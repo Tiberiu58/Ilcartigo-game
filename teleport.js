@@ -19,7 +19,9 @@ export class TeleportAbility {
     this.completionPulseTimer = 0
     this.targetPoint = new BABYLON.Vector3()
     this.lockedTargetPoint = new BABYLON.Vector3()
+    this.castOriginPoint = new BABYLON.Vector3()
     this.previewAlpha = 0
+    this.originAlpha = 0
 
     this.createPreviewMeshes()
     this.hidePreview()
@@ -45,6 +47,12 @@ export class TeleportAbility {
     this.pulseMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5fd9c1")
     this.pulseMaterial.specularColor = BABYLON.Color3.Black()
     this.pulseMaterial.alpha = 0
+
+    this.originMaterial = new BABYLON.StandardMaterial("teleportOriginMaterial", this.scene)
+    this.originMaterial.diffuseColor = BABYLON.Color3.FromHexString("#7aaeff")
+    this.originMaterial.emissiveColor = BABYLON.Color3.FromHexString("#2d6cd9")
+    this.originMaterial.specularColor = BABYLON.Color3.Black()
+    this.originMaterial.alpha = 0
 
     this.previewRing = BABYLON.MeshBuilder.CreateCylinder(
       "teleportPreviewRing",
@@ -76,6 +84,30 @@ export class TeleportAbility {
     this.previewPulse.isPickable = false
     this.previewPulse.renderingGroupId = 2
     this.previewPulse.material = this.pulseMaterial
+
+    this.originRoot = new BABYLON.TransformNode("teleportOriginRoot", this.scene)
+
+    this.originRing = BABYLON.MeshBuilder.CreateCylinder(
+      "teleportOriginRing",
+      { diameter: 1.05, height: 0.025, tessellation: 20 },
+      this.scene
+    )
+    this.originRing.parent = this.originRoot
+    this.originRing.position.y = 0.02
+    this.originRing.isPickable = false
+    this.originRing.renderingGroupId = 2
+    this.originRing.material = this.originMaterial
+
+    this.originPillar = BABYLON.MeshBuilder.CreateCylinder(
+      "teleportOriginPillar",
+      { diameterTop: 0.06, diameterBottom: 0.14, height: TELEPORT_CONFIG.previewHeight * 0.9, tessellation: 10 },
+      this.scene
+    )
+    this.originPillar.parent = this.originRoot
+    this.originPillar.position.y = TELEPORT_CONFIG.previewHeight * 0.45
+    this.originPillar.isPickable = false
+    this.originPillar.renderingGroupId = 2
+    this.originPillar.material = this.originMaterial
   }
 
   reset() {
@@ -87,6 +119,7 @@ export class TeleportAbility {
     this.statusTimer = 0
     this.completionPulseTimer = 0
     this.previewAlpha = 0
+    this.originAlpha = 0
     this.hidePreview()
   }
 
@@ -128,10 +161,18 @@ export class TeleportAbility {
         this.confirmTarget()
       }
     } else if (this.state === "casting") {
+      if (!this.validateLockedTarget()) {
+        this.cancelCast()
+        this.updatePreviewVisuals(dt)
+        return
+      }
+
       this.castTimer = Math.max(0, this.castTimer - dt)
       this.targetPoint.copyFrom(this.lockedTargetPoint)
       this.targetValid = true
       this.previewVisible = true
+      this.statusText = `Shadow Step casting... ${this.castTimer.toFixed(1)}s`
+      this.statusTimer = TELEPORT_CONFIG.castTime
 
       if (this.castTimer === 0) {
         this.resolveTeleport()
@@ -247,8 +288,27 @@ export class TeleportAbility {
     this.state = "casting"
     this.castTimer = TELEPORT_CONFIG.castTime
     this.lockedTargetPoint.copyFrom(this.targetPoint)
+    this.castOriginPoint.copyFromFloats(this.player.position.x, this.level.floorY, this.player.position.z)
     this.clearFireState()
-    this.setStatus("Shadow Step casting...", TELEPORT_CONFIG.castTime)
+    this.setStatus(`Shadow Step casting... ${this.castTimer.toFixed(1)}s`, TELEPORT_CONFIG.castTime)
+  }
+
+  validateLockedTarget() {
+    const origin = this.player.getCenterPosition()
+    const dx = this.lockedTargetPoint.x - this.player.position.x
+    const dz = this.lockedTargetPoint.z - this.player.position.z
+    const distance = Math.hypot(dx, dz)
+
+    if (distance > TELEPORT_CONFIG.range || distance < TELEPORT_CONFIG.minRange) {
+      return false
+    }
+
+    const radius = PLAYER_CONFIG.radius + TELEPORT_CONFIG.clearancePadding
+    return this.level.validateTeleportTarget(
+      origin,
+      { x: this.lockedTargetPoint.x, z: this.lockedTargetPoint.z },
+      radius
+    )
   }
 
   resolveTeleport() {
@@ -259,6 +319,14 @@ export class TeleportAbility {
     this.targetValid = false
     this.previewVisible = true
     this.setStatus(`Shadow Step cooling down: ${this.cooldownTimer.toFixed(1)}s`, 0.9)
+  }
+
+  cancelCast() {
+    this.state = "idle"
+    this.castTimer = 0
+    this.targetValid = false
+    this.previewVisible = false
+    this.setStatus("Shadow Step canceled. Target lost.", 0.7)
   }
 
   cancelTargeting() {
@@ -274,9 +342,11 @@ export class TeleportAbility {
   updatePreviewVisuals(dt) {
     const shouldShow = this.previewVisible || this.completionPulseTimer > 0
     const targetAlpha = shouldShow ? 1 : 0
+    const originTargetAlpha = this.state === "casting" ? 1 : 0
     this.previewAlpha = damp(this.previewAlpha, targetAlpha, 18, dt)
+    this.originAlpha = damp(this.originAlpha, originTargetAlpha, 18, dt)
 
-    if (this.previewAlpha < 0.01 && this.completionPulseTimer <= 0) {
+    if (this.previewAlpha < 0.01 && this.originAlpha < 0.01 && this.completionPulseTimer <= 0) {
       this.hidePreview()
       return
     }
@@ -298,6 +368,24 @@ export class TeleportAbility {
     this.previewPillar.scaling.y = this.state === "casting" ? 1.08 : 1
     this.previewPillar.position.y = TELEPORT_CONFIG.previewHeight * 0.5
 
+    if (this.originAlpha > 0.01) {
+      const castProgress = 1 - this.castTimer / TELEPORT_CONFIG.castTime
+      const originPulse = 0.45 + Math.sin(castProgress * 18) * 0.18
+      this.originRoot.setEnabled(true)
+      this.originRoot.position.set(this.castOriginPoint.x, this.level.floorY, this.castOriginPoint.z)
+      this.originMaterial.alpha = this.originAlpha * originPulse
+      const originScale = 1 + castProgress * 0.5
+      this.originRing.scaling.x = originScale
+      this.originRing.scaling.z = originScale
+      this.originPillar.scaling.y = 1 + castProgress * 0.2
+    } else {
+      this.originRoot.setEnabled(false)
+      this.originMaterial.alpha = 0
+      this.originRing.scaling.x = 1
+      this.originRing.scaling.z = 1
+      this.originPillar.scaling.y = 1
+    }
+
     if (this.completionPulseTimer > 0) {
       const t = 1 - this.completionPulseTimer / TELEPORT_CONFIG.completionPulseTime
       this.previewPulse.scaling.x = 1 + t * 1.2
@@ -312,9 +400,11 @@ export class TeleportAbility {
 
   hidePreview() {
     this.previewRoot.setEnabled(false)
+    this.originRoot.setEnabled(false)
     this.validMaterial.alpha = 0
     this.invalidMaterial.alpha = 0
     this.pulseMaterial.alpha = 0
+    this.originMaterial.alpha = 0
   }
 
   setStatus(text, duration = 0.6) {

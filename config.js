@@ -80,8 +80,8 @@ export const GAMEPLAY_CONFIG = {
       range: 8.5,
       // Ignore tiny point-blank hops so the skill stays intentional.
       minRange: 1.2,
-      // Short cast delay before the teleport resolves.
-      castTime: 0.18,
+      // Telegraph the blink long enough to read in combat.
+      castTime: 1.5,
       // Cooldown after a successful teleport.
       cooldown: 5.5,
       // Keep the preview slightly away from walls to avoid clipping.
