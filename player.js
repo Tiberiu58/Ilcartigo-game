@@ -148,7 +148,8 @@ export class PlayerController {
       this.velocity.y = Math.min(0, this.velocity.y)
     }
 
-    if (this.position.y <= this.level.floorY) {
+    const groundHeight = this.level.getGroundHeightAt(this.position.x, this.position.z, this.position.y)
+    if (this.position.y <= groundHeight) {
       if (!this.grounded && this.velocity.y < -2) {
         this.landingImpact = clamp(
           Math.abs(this.velocity.y) * 0.0018,
@@ -157,7 +158,7 @@ export class PlayerController {
         )
       }
 
-      this.position.y = this.level.floorY
+      this.position.y = groundHeight
       this.velocity.y = 0
       this.grounded = true
       this.coyoteTimer = PLAYER_CONFIG.coyoteTime
@@ -272,7 +273,7 @@ export class PlayerController {
   teleportTo(x, z) {
     this.position.x = x
     this.position.z = z
-    this.position.y = this.level.floorY
+    this.position.y = this.level.getGroundHeightAt(x, z, this.level.wallHeight)
     this.velocity.set(0, 0, 0)
     this.grounded = true
     this.coyoteTimer = PLAYER_CONFIG.coyoteTime

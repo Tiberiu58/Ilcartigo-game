@@ -146,7 +146,7 @@ export class InputController {
   }
 
   handleKeyDown(event) {
-    if ([
+    const isGameplayKey = [
       "KeyW",
       "KeyA",
       "KeyS",
@@ -159,8 +159,24 @@ export class InputController {
       "Digit1",
       "Digit2",
       "Digit3",
-    ].includes(event.code)) {
+    ].includes(event.code)
+
+    if (isGameplayKey) {
       event.preventDefault()
+    }
+
+    const isRepeatSensitiveAction = [
+      "Space",
+      "KeyR",
+      "KeyQ",
+      "Digit1",
+      "Digit2",
+      "Digit3",
+    ].includes(event.code)
+
+    if (event.repeat && isRepeatSensitiveAction) {
+      this.keys[event.code] = true
+      return
     }
 
     this.keys[event.code] = true

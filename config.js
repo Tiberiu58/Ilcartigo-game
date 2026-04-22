@@ -1,43 +1,45 @@
 export const ARENA_LAYOUTS = {
   switchyard: {
-    // A compact arena with a recognizable center lane, looping side routes,
-    // and staggered wall islands that act as fast cover.
+    // A compact snowy courtyard with fortress walls, scattered cover, and a
+    // central ramp leading onto a raised stone platform.
     map: [
-      "#################",
-      "#...#.......#...#",
-      "#.#.#.##.##.#.#.#",
-      "#.#...#...#...#.#",
-      "#...#..#.#..#...#",
-      "###....#.#....###",
-      "#...............#",
-      "###....#.#....###",
-      "#...#..#.#..#...#",
-      "#.#...#...#...#.#",
-      "#.#.#.##.##.#.#.#",
-      "#...#.......#...#",
-      "#################",
+      "###################",
+      "#.................#",
+      "#...#.........#...#",
+      "#.................#",
+      "#......#...#......#",
+      "#.................#",
+      "#.#.............#.#",
+      "#.........#.......#",
+      "#.#.............#.#",
+      "#.................#",
+      "#......#...#......#",
+      "#.................#",
+      "#...#.........#...#",
+      "#.................#",
+      "###################",
     ],
-    playerSpawn: { x: 2.5, z: 6.5 },
+    playerSpawn: { x: 3.5, z: 11.5 },
     enemyRoutes: [
       [
-        { x: 14.5, z: 1.5 },
-        { x: 11.5, z: 1.5 },
-        { x: 13.5, z: 4.5 },
+        { x: 15.5, z: 2.5 },
+        { x: 12.5, z: 3.5 },
+        { x: 15.5, z: 6.5 },
       ],
       [
-        { x: 8.5, z: 1.5 },
-        { x: 5.5, z: 4.5 },
-        { x: 11.5, z: 4.5 },
+        { x: 5.5, z: 2.5 },
+        { x: 8.5, z: 4.5 },
+        { x: 12.5, z: 2.5 },
       ],
       [
-        { x: 2.5, z: 11.5 },
-        { x: 5.5, z: 9.5 },
+        { x: 3.5, z: 12.5 },
+        { x: 6.5, z: 10.5 },
         { x: 3.5, z: 8.5 },
       ],
       [
-        { x: 14.5, z: 11.5 },
-        { x: 11.5, z: 9.5 },
-        { x: 13.5, z: 8.5 },
+        { x: 15.5, z: 12.5 },
+        { x: 12.5, z: 10.5 },
+        { x: 15.5, z: 8.5 },
       ],
     ],
   },
@@ -49,7 +51,7 @@ export const WORLD_CONFIG = {
   // Size of each walkable grid cell in world units.
   cellSize: 4,
   // Height of the indoor walls.
-  wallHeight: 3.2,
+  wallHeight: 5.4,
   // Base floor height used by the level and collision code.
   floorY: 0,
   // Active arena key so layouts are easy to swap later.
@@ -83,7 +85,7 @@ export const GAMEPLAY_CONFIG = {
       // Telegraph the blink long enough to read in combat.
       castTime: 1.5,
       // Cooldown after a successful teleport.
-      cooldown: 5.5,
+      cooldown: 6,
       // Keep the preview slightly away from walls to avoid clipping.
       wallBuffer: 0.48,
       // Small extra clearance check around the player capsule.

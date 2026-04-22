@@ -1,12 +1,12 @@
 import { BABYLON } from "./babylon.js"
 import { InputController } from "./input.js"
 import { UIController } from "./ui.js"
-import { Level } from "./level.js"
+import { Level } from "./level.js?v=snow-courtyard-v4"
 import { PlayerController } from "./player.js"
 import { Rifle } from "./weapon.js"
 import { EnemyManager } from "./enemies.js"
-import { TeleportAbility } from "./teleport.js"
-import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js"
+import { TeleportAbility } from "./teleport.js?v=snow-courtyard-v4"
+import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=snow-courtyard-v4"
 
 export function bootstrapGame() {
   const APP_STATES = {
@@ -32,11 +32,11 @@ export function bootstrapGame() {
   }
 
   const scene = new BABYLON.Scene(engine)
-  scene.clearColor = BABYLON.Color4.FromHexString("#111c2fff")
+  scene.clearColor = BABYLON.Color4.FromHexString("#dbe4eaFF")
   scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR
-  scene.fogStart = 28
-  scene.fogEnd = 68
-  scene.fogColor = BABYLON.Color3.FromHexString("#18253b")
+  scene.fogStart = 52
+  scene.fogEnd = 112
+  scene.fogColor = BABYLON.Color3.FromHexString("#d4dde4")
   scene.skipPointerMovePicking = true
   scene.imageProcessingConfiguration.isEnabled = false
 
@@ -45,17 +45,17 @@ export function bootstrapGame() {
     new BABYLON.Vector3(0.12, 1, 0.1),
     scene
   )
-  hemiLight.intensity = 1.05
-  hemiLight.groundColor = BABYLON.Color3.FromHexString("#233455")
-  hemiLight.diffuse = BABYLON.Color3.FromHexString("#f5fcff")
+  hemiLight.intensity = 1.18
+  hemiLight.groundColor = BABYLON.Color3.FromHexString("#b5c1cb")
+  hemiLight.diffuse = BABYLON.Color3.FromHexString("#f6fbff")
 
   const fillLight = new BABYLON.DirectionalLight(
     "fillLight",
     new BABYLON.Vector3(-0.18, -1, 0.12),
     scene
   )
-  fillLight.intensity = 0.16
-  fillLight.diffuse = BABYLON.Color3.FromHexString("#9ec7ff")
+  fillLight.intensity = 0.28
+  fillLight.diffuse = BABYLON.Color3.FromHexString("#d8e7f8")
 
   const level = new Level(scene)
   const player = new PlayerController(scene, input, level)

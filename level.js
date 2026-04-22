@@ -1,5 +1,5 @@
 import { BABYLON } from "./babylon.js"
-import { WORLD_CONFIG } from "./config.js"
+import { WORLD_CONFIG } from "./config.js?v=snow-courtyard-v4"
 import { clamp } from "./utils.js"
 
 function createPatternTexture(scene, name, draw) {
@@ -26,110 +26,105 @@ export class Level {
     this.depth = this.map.length
     this.staticMeshes = []
     this.teleportBlockers = []
+    this.walkSurfaces = []
+    this.maxStepHeight = 1.1
+
+    this.blockTypes = {
+      towerCore: new Set(["10,7"]),
+      tallBlock: new Set(["2,6", "16,6", "2,8", "16,8"]),
+      crate: new Set(["4,2", "14,2", "7,4", "11,4", "7,10", "11,10", "4,12", "14,12"]),
+    }
 
     this.buildMaterials()
     this.buildGeometry()
   }
 
   buildMaterials() {
-    const wallTexture = createPatternTexture(this.scene, "wallTexture", (context) => {
-      context.fillStyle = "#6884e7"
+    const wallTexture = createPatternTexture(this.scene, "snowWallTexture", (context) => {
+      context.fillStyle = "#cfd7d4"
       context.fillRect(0, 0, 64, 64)
-      context.fillStyle = "#87a5ff"
-      context.fillRect(0, 0, 64, 6)
-      context.fillRect(0, 30, 64, 4)
-      context.fillStyle = "#526ccc"
-      context.fillRect(0, 34, 64, 2)
-      context.fillRect(20, 0, 2, 64)
-      context.fillRect(42, 0, 2, 64)
-      context.fillStyle = "rgba(255,255,255,0.12)"
-      context.fillRect(4, 4, 56, 2)
-    })
-
-    const floorTexture = createPatternTexture(this.scene, "floorTexture", (context) => {
-      context.fillStyle = "#1a2332"
-      context.fillRect(0, 0, 64, 64)
-      context.fillStyle = "#243248"
-      for (let y = 0; y < 64; y += 16) {
-        for (let x = 0; x < 64; x += 16) {
-          context.fillRect(x, y, 16, 16)
-        }
-      }
-      context.fillStyle = "#35516e"
-      for (let y = 0; y < 64; y += 16) {
+      context.fillStyle = "#e9efef"
+      context.fillRect(0, 0, 64, 8)
+      context.fillStyle = "#b2bbb8"
+      for (let y = 12; y < 64; y += 18) {
         context.fillRect(0, y, 64, 2)
       }
-      for (let x = 0; x < 64; x += 16) {
+      for (let x = 10; x < 64; x += 18) {
         context.fillRect(x, 0, 2, 64)
+      }
+      context.fillStyle = "rgba(255,255,255,0.18)"
+      context.fillRect(4, 4, 56, 3)
+      context.fillRect(8, 18, 18, 2)
+      context.fillRect(34, 36, 20, 2)
+    })
+
+    const snowTexture = createPatternTexture(this.scene, "snowGroundTexture", (context) => {
+      context.fillStyle = "#edf4f7"
+      context.fillRect(0, 0, 64, 64)
+      context.fillStyle = "#e2edf2"
+      for (let i = 0; i < 18; i += 1) {
+        context.fillRect((i * 11) % 64, (i * 7) % 64, 6, 2)
+      }
+      context.fillStyle = "rgba(188,205,214,0.26)"
+      context.fillRect(0, 22, 64, 2)
+      context.fillRect(0, 44, 64, 2)
+    })
+
+    const stoneTopTexture = createPatternTexture(this.scene, "snowStoneTopTexture", (context) => {
+      context.fillStyle = "#cfd6d8"
+      context.fillRect(0, 0, 64, 64)
+      context.fillStyle = "#eef4f5"
+      context.fillRect(0, 0, 64, 16)
+      context.fillStyle = "#b5bfbe"
+      for (let x = 0; x < 64; x += 16) {
+        context.fillRect(x, 20, 64, 2)
       }
     })
 
-    const ceilingTexture = createPatternTexture(this.scene, "ceilingTexture", (context) => {
-      context.fillStyle = "#101826"
-      context.fillRect(0, 0, 64, 64)
-      context.fillStyle = "#19273a"
-      context.fillRect(0, 0, 64, 8)
-      context.fillRect(0, 28, 64, 4)
-      context.fillStyle = "#223754"
-      context.fillRect(14, 14, 36, 4)
-    })
-
-    this.wallMaterial = new BABYLON.StandardMaterial("wallMaterial", this.scene)
+    this.wallMaterial = new BABYLON.StandardMaterial("courtyardWallMaterial", this.scene)
     this.wallMaterial.diffuseTexture = wallTexture
-    this.wallMaterial.diffuseTexture.uScale = 1
-    this.wallMaterial.diffuseTexture.vScale = 0.7
+    this.wallMaterial.diffuseTexture.uScale = 0.9
+    this.wallMaterial.diffuseTexture.vScale = 0.65
     this.wallMaterial.specularColor = BABYLON.Color3.Black()
-    this.wallMaterial.ambientColor = BABYLON.Color3.FromHexString("#7f9af1")
-    this.wallMaterial.emissiveColor = BABYLON.Color3.FromHexString("#18233f")
+    this.wallMaterial.ambientColor = BABYLON.Color3.FromHexString("#dce3e4")
+    this.wallMaterial.emissiveColor = BABYLON.Color3.FromHexString("#3c4956")
     this.wallMaterial.freeze()
 
-    this.floorMaterial = new BABYLON.StandardMaterial("floorMaterial", this.scene)
-    this.floorMaterial.diffuseTexture = floorTexture
-    this.floorMaterial.diffuseTexture.uScale = this.width * 0.42
-    this.floorMaterial.diffuseTexture.vScale = this.depth * 0.42
-    this.floorMaterial.specularColor = BABYLON.Color3.Black()
-    this.floorMaterial.ambientColor = BABYLON.Color3.FromHexString("#34516f")
-    this.floorMaterial.emissiveColor = BABYLON.Color3.FromHexString("#111926")
-    this.floorMaterial.freeze()
+    this.groundMaterial = new BABYLON.StandardMaterial("courtyardGroundMaterial", this.scene)
+    this.groundMaterial.diffuseTexture = snowTexture
+    this.groundMaterial.diffuseTexture.uScale = this.width * 0.32
+    this.groundMaterial.diffuseTexture.vScale = this.depth * 0.32
+    this.groundMaterial.specularColor = BABYLON.Color3.Black()
+    this.groundMaterial.ambientColor = BABYLON.Color3.FromHexString("#eef5f7")
+    this.groundMaterial.emissiveColor = BABYLON.Color3.FromHexString("#cad6df")
+    this.groundMaterial.freeze()
 
-    this.ceilingMaterial = new BABYLON.StandardMaterial("ceilingMaterial", this.scene)
-    this.ceilingMaterial.diffuseTexture = ceilingTexture
-    this.ceilingMaterial.diffuseTexture.uScale = this.width * 0.34
-    this.ceilingMaterial.diffuseTexture.vScale = this.depth * 0.34
-    this.ceilingMaterial.specularColor = BABYLON.Color3.Black()
-    this.ceilingMaterial.ambientColor = BABYLON.Color3.FromHexString("#263957")
-    this.ceilingMaterial.emissiveColor = BABYLON.Color3.FromHexString("#131d2e")
-    this.ceilingMaterial.freeze()
+    this.coverMaterial = new BABYLON.StandardMaterial("courtyardCoverMaterial", this.scene)
+    this.coverMaterial.diffuseTexture = stoneTopTexture
+    this.coverMaterial.diffuseTexture.uScale = 0.8
+    this.coverMaterial.diffuseTexture.vScale = 0.8
+    this.coverMaterial.specularColor = BABYLON.Color3.Black()
+    this.coverMaterial.ambientColor = BABYLON.Color3.FromHexString("#d5dcdc")
+    this.coverMaterial.emissiveColor = BABYLON.Color3.FromHexString("#475461")
+    this.coverMaterial.freeze()
 
-    this.lightPanelMaterial = new BABYLON.StandardMaterial("lightPanelMaterial", this.scene)
-    this.lightPanelMaterial.diffuseColor = BABYLON.Color3.FromHexString("#d7fbff")
-    this.lightPanelMaterial.emissiveColor = BABYLON.Color3.FromHexString("#a7efff")
-    this.lightPanelMaterial.specularColor = BABYLON.Color3.Black()
-    this.lightPanelMaterial.freeze()
+    this.woodMaterial = new BABYLON.StandardMaterial("courtyardWoodMaterial", this.scene)
+    this.woodMaterial.diffuseColor = BABYLON.Color3.FromHexString("#7b5a3d")
+    this.woodMaterial.emissiveColor = BABYLON.Color3.FromHexString("#38281d")
+    this.woodMaterial.specularColor = BABYLON.Color3.Black()
+    this.woodMaterial.freeze()
 
-    this.landmarkBlueMaterial = new BABYLON.StandardMaterial("landmarkBlueMaterial", this.scene)
-    this.landmarkBlueMaterial.diffuseColor = BABYLON.Color3.FromHexString("#7cc7ff")
-    this.landmarkBlueMaterial.emissiveColor = BABYLON.Color3.FromHexString("#2d6ea2")
-    this.landmarkBlueMaterial.specularColor = BABYLON.Color3.Black()
-    this.landmarkBlueMaterial.freeze()
+    this.treeMaterial = new BABYLON.StandardMaterial("courtyardTreeMaterial", this.scene)
+    this.treeMaterial.diffuseColor = BABYLON.Color3.FromHexString("#5a5047")
+    this.treeMaterial.emissiveColor = BABYLON.Color3.FromHexString("#2b2724")
+    this.treeMaterial.specularColor = BABYLON.Color3.Black()
+    this.treeMaterial.freeze()
 
-    this.landmarkOrangeMaterial = new BABYLON.StandardMaterial("landmarkOrangeMaterial", this.scene)
-    this.landmarkOrangeMaterial.diffuseColor = BABYLON.Color3.FromHexString("#ffb36c")
-    this.landmarkOrangeMaterial.emissiveColor = BABYLON.Color3.FromHexString("#96552b")
-    this.landmarkOrangeMaterial.specularColor = BABYLON.Color3.Black()
-    this.landmarkOrangeMaterial.freeze()
-
-    this.landmarkGreenMaterial = new BABYLON.StandardMaterial("landmarkGreenMaterial", this.scene)
-    this.landmarkGreenMaterial.diffuseColor = BABYLON.Color3.FromHexString("#8fe8be")
-    this.landmarkGreenMaterial.emissiveColor = BABYLON.Color3.FromHexString("#2d835a")
-    this.landmarkGreenMaterial.specularColor = BABYLON.Color3.Black()
-    this.landmarkGreenMaterial.freeze()
-
-    this.trimMaterial = new BABYLON.StandardMaterial("trimMaterial", this.scene)
-    this.trimMaterial.diffuseColor = BABYLON.Color3.FromHexString("#22314a")
-    this.trimMaterial.emissiveColor = BABYLON.Color3.FromHexString("#142235")
-    this.trimMaterial.specularColor = BABYLON.Color3.Black()
-    this.trimMaterial.freeze()
+    this.mountainMaterial = new BABYLON.StandardMaterial("courtyardMountainMaterial", this.scene)
+    this.mountainMaterial.diffuseColor = BABYLON.Color3.FromHexString("#aebcc7")
+    this.mountainMaterial.emissiveColor = BABYLON.Color3.FromHexString("#73828f")
+    this.mountainMaterial.specularColor = BABYLON.Color3.Black()
+    this.mountainMaterial.freeze()
   }
 
   buildGeometry() {
@@ -137,28 +132,26 @@ export class Level {
     const worldDepth = this.depth * this.cellSize
 
     const floor = BABYLON.MeshBuilder.CreateGround(
-      "facilityFloor",
+      "courtyardFloor",
       { width: worldWidth, height: worldDepth, subdivisions: 1 },
       this.scene
     )
     floor.position.set(worldWidth * 0.5, this.floorY, worldDepth * 0.5)
-    floor.material = this.floorMaterial
+    floor.material = this.groundMaterial
     floor.receiveShadows = false
     floor.freezeWorldMatrix()
     this.staticMeshes.push(floor)
 
-    const ceiling = BABYLON.MeshBuilder.CreateGround(
-      "facilityCeiling",
-      { width: worldWidth, height: worldDepth, subdivisions: 1 },
-      this.scene
-    )
-    ceiling.position.set(worldWidth * 0.5, this.wallHeight, worldDepth * 0.5)
-    ceiling.rotation.x = Math.PI
-    ceiling.material = this.ceilingMaterial
-    ceiling.freezeWorldMatrix()
-    this.staticMeshes.push(ceiling)
+    this.buildPerimeterAndCover()
+    this.buildCentralPlatform()
+    this.buildGate(worldWidth)
+    this.buildTrees()
+    this.buildMountains(worldWidth, worldDepth)
+  }
 
-    const wallMeshes = []
+  buildPerimeterAndCover() {
+    const perimeterMeshes = []
+    const coverMeshes = []
 
     for (let z = 0; z < this.depth; z += 1) {
       for (let x = 0; x < this.width; x += 1) {
@@ -166,146 +159,340 @@ export class Level {
           continue
         }
 
-        const wall = BABYLON.MeshBuilder.CreateBox(
-          `wall-${x}-${z}`,
+        const positionX = (x + 0.5) * this.cellSize
+        const positionZ = (z + 0.5) * this.cellSize
+
+        if (this.isPerimeterCell(x, z)) {
+          const wall = BABYLON.MeshBuilder.CreateBox(
+            `fortress-wall-${x}-${z}`,
+            {
+              width: this.cellSize,
+              height: this.wallHeight,
+              depth: this.cellSize,
+            },
+            this.scene
+          )
+          wall.position.set(positionX, this.wallHeight * 0.5, positionZ)
+          wall.material = this.wallMaterial
+          wall.isPickable = false
+          perimeterMeshes.push(wall)
+          continue
+        }
+
+        const type = this.getInteriorBlockType(x, z)
+        const definition = this.getInteriorBlockDefinition(type)
+        const mesh = BABYLON.MeshBuilder.CreateBox(
+          `${type}-${x}-${z}`,
           {
-            width: this.cellSize,
-            height: this.wallHeight,
-            depth: this.cellSize,
+            width: definition.width,
+            height: definition.height,
+            depth: definition.depth,
           },
           this.scene
         )
-
-        wall.position.set(
-          (x + 0.5) * this.cellSize,
-          this.wallHeight * 0.5,
-          (z + 0.5) * this.cellSize
-        )
-        wall.material = this.wallMaterial
-        wall.isPickable = false
-        wallMeshes.push(wall)
+        mesh.position.set(positionX, definition.height * 0.5, positionZ)
+        mesh.material = this.coverMaterial
+        mesh.isPickable = false
+        coverMeshes.push(mesh)
       }
     }
 
-    const mergedWalls = BABYLON.Mesh.MergeMeshes(wallMeshes, true, true, undefined, false, true)
+    const mergedWalls = BABYLON.Mesh.MergeMeshes(perimeterMeshes, true, true, undefined, false, true)
     if (mergedWalls) {
-      mergedWalls.name = "facilityWalls"
+      mergedWalls.name = "fortressWalls"
       mergedWalls.freezeWorldMatrix()
       this.staticMeshes.push(mergedWalls)
     }
 
-    const lightPanels = []
-    for (let z = 1; z < this.depth - 1; z += 3) {
-      for (let x = 1; x < this.width - 1; x += 4) {
-        if (this.isWallCell(x, z)) {
-          continue
-        }
-
-        const panel = BABYLON.MeshBuilder.CreateBox(
-          `light-${x}-${z}`,
-          { width: this.cellSize * 0.8, height: 0.05, depth: this.cellSize * 0.18 },
-          this.scene
-        )
-        panel.position.set(
-          (x + 0.5) * this.cellSize,
-          this.wallHeight - 0.06,
-          (z + 0.5) * this.cellSize
-        )
-        panel.material = this.lightPanelMaterial
-        panel.isPickable = false
-        lightPanels.push(panel)
-      }
+    const mergedCover = BABYLON.Mesh.MergeMeshes(coverMeshes, true, true, undefined, false, true)
+    if (mergedCover) {
+      mergedCover.name = "courtyardCover"
+      mergedCover.freezeWorldMatrix()
+      this.staticMeshes.push(mergedCover)
     }
-
-    const mergedPanels = BABYLON.Mesh.MergeMeshes(lightPanels, true, true, undefined, false, true)
-    if (mergedPanels) {
-      mergedPanels.name = "facilityLights"
-      mergedPanels.freezeWorldMatrix()
-      this.staticMeshes.push(mergedPanels)
-    }
-
-    this.buildLandmarks()
   }
 
-  buildLandmarks() {
-    const landmarkGroups = [
+  buildCentralPlatform() {
+    const rampStartX = this.cellSize * 1.3
+    const rampEndX = this.cellSize * 8.0
+    const rampCenterZ = this.cellSize * 7.5
+    const rampWidth = this.cellSize * 3.2
+    const platformHeight = 1.8
+    const rampLength = rampEndX - rampStartX
+    const rampAngle = Math.atan(platformHeight / rampLength)
+
+    const platformMinX = rampEndX
+    const platformMaxX = this.cellSize * 12.2
+    const platformMinZ = this.cellSize * 5.5
+    const platformMaxZ = this.cellSize * 9.5
+    const platformCenterX = (platformMinX + platformMaxX) * 0.5
+    const platformCenterZ = (platformMinZ + platformMaxZ) * 0.5
+
+    const ramp = BABYLON.MeshBuilder.CreateBox(
+      "courtyardRamp",
       {
-        name: "centerBeacon",
-        material: this.landmarkBlueMaterial,
-        blocksTeleport: true,
-        cells: [
-          { x: 8.5, z: 6.5, width: 1.4, depth: 1.4, height: 1.4, y: 0.7 },
-          { x: 8.5, z: 6.5, width: 2.1, depth: 0.16, height: 0.16, y: 0.08 },
-          { x: 8.5, z: 6.5, width: 0.16, depth: 2.1, height: 0.16, y: 0.08 },
-        ],
+        width: rampLength,
+        height: 0.9,
+        depth: rampWidth,
       },
+      this.scene
+    )
+    ramp.position.set(
+      rampStartX + rampLength * 0.5,
+      this.floorY + platformHeight * 0.5,
+      rampCenterZ
+    )
+    ramp.rotation.z = -rampAngle
+    ramp.material = this.coverMaterial
+    ramp.isPickable = false
+
+    const rampSideLeft = BABYLON.MeshBuilder.CreateBox(
+      "courtyardRampSideLeft",
+      { width: rampLength, height: 0.6, depth: 0.35 },
+      this.scene
+    )
+    rampSideLeft.position.set(ramp.position.x, ramp.position.y - 0.05, rampCenterZ - rampWidth * 0.5)
+    rampSideLeft.rotation.z = -rampAngle
+    rampSideLeft.material = this.wallMaterial
+    rampSideLeft.isPickable = false
+
+    const rampSideRight = rampSideLeft.clone("courtyardRampSideRight")
+    rampSideRight.position.z = rampCenterZ + rampWidth * 0.5
+
+    const platform = BABYLON.MeshBuilder.CreateBox(
+      "courtyardPlatform",
       {
-        name: "northMarkers",
-        material: this.landmarkOrangeMaterial,
-        blocksTeleport: true,
-        cells: [
-          { x: 4.5, z: 1.5, width: 0.34, depth: 1.2, height: 2.1, y: 1.05 },
-          { x: 12.5, z: 1.5, width: 0.34, depth: 1.2, height: 2.1, y: 1.05 },
-          { x: 8.5, z: 1.5, width: 1.2, depth: 0.18, height: 2.4, y: 1.2 },
-        ],
+        width: platformMaxX - platformMinX,
+        height: platformHeight,
+        depth: platformMaxZ - platformMinZ,
       },
-      {
-        name: "southMarkers",
-        material: this.landmarkGreenMaterial,
-        blocksTeleport: true,
-        cells: [
-          { x: 4.5, z: 11.5, width: 0.34, depth: 1.2, height: 2.1, y: 1.05 },
-          { x: 12.5, z: 11.5, width: 0.34, depth: 1.2, height: 2.1, y: 1.05 },
-          { x: 8.5, z: 11.5, width: 1.2, depth: 0.18, height: 2.4, y: 1.2 },
-        ],
-      },
-      {
-        name: "laneTrim",
-        material: this.trimMaterial,
-        blocksTeleport: false,
-        cells: [
-          { x: 2.5, z: 6.5, width: 1.8, depth: 0.14, height: 0.08, y: 0.04 },
-          { x: 14.5, z: 6.5, width: 1.8, depth: 0.14, height: 0.08, y: 0.04 },
-          { x: 8.5, z: 3.5, width: 0.14, depth: 1.4, height: 0.08, y: 0.04 },
-          { x: 8.5, z: 9.5, width: 0.14, depth: 1.4, height: 0.08, y: 0.04 },
-        ],
-      },
+      this.scene
+    )
+    platform.position.set(
+      platformCenterX,
+      this.floorY + platformHeight * 0.5,
+      platformCenterZ
+    )
+    platform.material = this.coverMaterial
+    platform.isPickable = false
+
+    const tower = BABYLON.MeshBuilder.CreateBox(
+      "courtyardTower",
+      { width: this.cellSize * 1.2, height: 3.1, depth: this.cellSize * 1.2 },
+      this.scene
+    )
+    tower.position.set(this.cellSize * 10.5, this.floorY + platformHeight + 1.55, this.cellSize * 7.5)
+    tower.material = this.wallMaterial
+    tower.isPickable = false
+
+    const towerCap = BABYLON.MeshBuilder.CreateBox(
+      "courtyardTowerCap",
+      { width: this.cellSize * 1.45, height: 0.32, depth: this.cellSize * 1.45 },
+      this.scene
+    )
+    towerCap.position.set(tower.position.x, tower.position.y + 1.7, tower.position.z)
+    towerCap.material = this.coverMaterial
+    towerCap.isPickable = false
+
+    const mergedStructure = BABYLON.Mesh.MergeMeshes(
+      [ramp, rampSideLeft, rampSideRight, platform, tower, towerCap],
+      true,
+      true,
+      undefined,
+      false,
+      true
+    )
+
+    if (mergedStructure) {
+      mergedStructure.name = "courtyardCenterStructure"
+      mergedStructure.freezeWorldMatrix()
+      this.staticMeshes.push(mergedStructure)
+    }
+
+    this.walkSurfaces.push({
+      type: "ramp",
+      minX: rampStartX,
+      maxX: rampEndX,
+      minZ: rampCenterZ - rampWidth * 0.5 + 0.4,
+      maxZ: rampCenterZ + rampWidth * 0.5 - 0.4,
+      startY: this.floorY,
+      endY: platformHeight,
+    })
+
+    this.walkSurfaces.push({
+      type: "box",
+      minX: platformMinX,
+      maxX: platformMaxX,
+      minZ: platformMinZ,
+      maxZ: platformMaxZ,
+      y: platformHeight,
+    })
+  }
+
+  buildGate(worldWidth) {
+    const gateCenterX = worldWidth * 0.5
+    const gateZ = this.cellSize * 0.5
+
+    const gatePosts = []
+    ;[-1.45, 1.45].forEach((offset) => {
+      const post = BABYLON.MeshBuilder.CreateBox(
+        `gatePost${offset > 0 ? "Right" : "Left"}`,
+        { width: 0.85, height: 3.4, depth: 1.1 },
+        this.scene
+      )
+      post.position.set(gateCenterX + offset * this.cellSize, 1.7, gateZ + 1.1)
+      post.material = this.wallMaterial
+      post.isPickable = false
+      gatePosts.push(post)
+    })
+
+    const arch = BABYLON.MeshBuilder.CreateBox(
+      "gateArch",
+      { width: this.cellSize * 3.7, height: 0.55, depth: 1.1 },
+      this.scene
+    )
+    arch.position.set(gateCenterX, 3.25, gateZ + 1.1)
+    arch.material = this.wallMaterial
+    arch.isPickable = false
+    gatePosts.push(arch)
+
+    const door = BABYLON.MeshBuilder.CreateBox(
+      "gateDoor",
+      { width: this.cellSize * 2.7, height: 2.8, depth: 0.34 },
+      this.scene
+    )
+    door.position.set(gateCenterX, 1.4, gateZ + 1.42)
+    door.material = this.woodMaterial
+    door.isPickable = false
+    gatePosts.push(door)
+
+    const mergedGate = BABYLON.Mesh.MergeMeshes(gatePosts, true, true, undefined, false, true)
+    if (mergedGate) {
+      mergedGate.name = "courtyardGate"
+      mergedGate.freezeWorldMatrix()
+      this.staticMeshes.push(mergedGate)
+    }
+  }
+
+  buildTrees() {
+    const treePositions = [
+      { x: this.cellSize * 4.2, z: this.cellSize * 10.6, scale: 1 },
+      { x: this.cellSize * 15.1, z: this.cellSize * 4.1, scale: 1.15 },
     ]
 
-    landmarkGroups.forEach((group) => {
-      if (group.blocksTeleport) {
-        group.cells.forEach((cell) => {
-          this.teleportBlockers.push({
-            x: cell.x * this.cellSize,
-            z: cell.z * this.cellSize,
-            radius: Math.max(cell.width, cell.depth) * this.cellSize * 0.25,
-          })
-        })
-      }
+    const trees = []
+    treePositions.forEach((tree, index) => {
+      const trunk = BABYLON.MeshBuilder.CreateCylinder(
+        `treeTrunk-${index}`,
+        { diameterTop: 0.18, diameterBottom: 0.34, height: 3.2 * tree.scale, tessellation: 7 },
+        this.scene
+      )
+      trunk.position.set(tree.x, 1.6 * tree.scale, tree.z)
+      trunk.material = this.treeMaterial
+      trunk.isPickable = false
+      trees.push(trunk)
 
-      const meshes = group.cells.map((cell, index) => {
-        const mesh = BABYLON.MeshBuilder.CreateBox(
-          `${group.name}-${index}`,
-          {
-            width: cell.width * this.cellSize * 0.5,
-            depth: cell.depth * this.cellSize * 0.5,
-            height: cell.height,
-          },
+      ;[
+        { x: 0.3, y: 2.7, z: 0.1, rotZ: -0.6 },
+        { x: -0.25, y: 2.4, z: -0.1, rotZ: 0.55 },
+        { x: 0.15, y: 2.9, z: -0.18, rotX: 0.45 },
+        { x: -0.18, y: 3.05, z: 0.2, rotX: -0.5 },
+      ].forEach((branch, branchIndex) => {
+        const limb = BABYLON.MeshBuilder.CreateCylinder(
+          `treeBranch-${index}-${branchIndex}`,
+          { diameterTop: 0.04, diameterBottom: 0.1, height: 1.6 * tree.scale, tessellation: 6 },
           this.scene
         )
-        mesh.position.set(cell.x * this.cellSize, cell.y, cell.z * this.cellSize)
-        mesh.material = group.material
-        mesh.isPickable = false
-        return mesh
+        limb.position.set(tree.x + branch.x, branch.y * tree.scale, tree.z + branch.z)
+        limb.rotation.z = branch.rotZ || 0
+        limb.rotation.x = branch.rotX || 0
+        limb.material = this.treeMaterial
+        limb.isPickable = false
+        trees.push(limb)
       })
-
-      const merged = BABYLON.Mesh.MergeMeshes(meshes, true, true, undefined, false, true)
-      if (merged) {
-        merged.name = group.name
-        merged.freezeWorldMatrix()
-        this.staticMeshes.push(merged)
-      }
     })
+
+    const mergedTrees = BABYLON.Mesh.MergeMeshes(trees, true, true, undefined, false, true)
+    if (mergedTrees) {
+      mergedTrees.name = "courtyardTrees"
+      mergedTrees.freezeWorldMatrix()
+      this.staticMeshes.push(mergedTrees)
+    }
+  }
+
+  buildMountains(worldWidth, worldDepth) {
+    const ridgeGroups = []
+    const farZ = -this.cellSize * 3.8
+
+    for (let i = 0; i < 5; i += 1) {
+      const ridge = BABYLON.MeshBuilder.CreateBox(
+        `mountain-${i}`,
+        {
+          width: this.cellSize * (3.2 + i * 0.8),
+          height: 8 + i * 2,
+          depth: this.cellSize * 0.8,
+        },
+        this.scene
+      )
+      ridge.position.set(
+        worldWidth * (0.08 + i * 0.22),
+        ridge.scaling.y + 2.5,
+        farZ - i * 2
+      )
+      ridge.rotation.z = 0.16 - i * 0.05
+      ridge.material = this.mountainMaterial
+      ridge.isPickable = false
+      ridgeGroups.push(ridge)
+    }
+
+    const sideRidgeLeft = BABYLON.MeshBuilder.CreateBox(
+      "mountainSideLeft",
+      { width: this.cellSize * 3.4, height: 10, depth: this.cellSize * 1.2 },
+      this.scene
+    )
+    sideRidgeLeft.position.set(-this.cellSize * 1.5, 6.2, worldDepth * 0.35)
+    sideRidgeLeft.rotation.z = -0.35
+    sideRidgeLeft.material = this.mountainMaterial
+    sideRidgeLeft.isPickable = false
+    ridgeGroups.push(sideRidgeLeft)
+
+    const sideRidgeRight = sideRidgeLeft.clone("mountainSideRight")
+    sideRidgeRight.position.set(worldWidth + this.cellSize * 1.5, 6.6, worldDepth * 0.28)
+    sideRidgeRight.rotation.z = 0.35
+    ridgeGroups.push(sideRidgeRight)
+
+    const mergedMountains = BABYLON.Mesh.MergeMeshes(ridgeGroups, true, true, undefined, false, true)
+    if (mergedMountains) {
+      mergedMountains.name = "courtyardMountains"
+      mergedMountains.freezeWorldMatrix()
+      this.staticMeshes.push(mergedMountains)
+    }
+  }
+
+  getInteriorBlockType(x, z) {
+    const key = `${x},${z}`
+    if (this.blockTypes.towerCore.has(key)) {
+      return "towerCore"
+    }
+    if (this.blockTypes.tallBlock.has(key)) {
+      return "tallBlock"
+    }
+    return "crate"
+  }
+
+  getInteriorBlockDefinition(type) {
+    switch (type) {
+      case "towerCore":
+        return { width: this.cellSize * 0.95, depth: this.cellSize * 0.95, height: 4.2 }
+      case "tallBlock":
+        return { width: this.cellSize * 0.8, depth: this.cellSize * 0.8, height: 2.8 }
+      default:
+        return { width: this.cellSize * 0.95, depth: this.cellSize * 0.95, height: 1.55 }
+    }
+  }
+
+  isPerimeterCell(x, z) {
+    return x === 0 || z === 0 || x === this.width - 1 || z === this.depth - 1
   }
 
   dispose() {
@@ -338,6 +525,27 @@ export class Level {
       position: this.cellToWorld(route[0]),
       patrol: route.map((point) => this.cellToWorld(point)),
     }))
+  }
+
+  getGroundHeightAt(x, z, currentY = this.floorY) {
+    let highest = this.floorY
+
+    for (let i = 0; i < this.walkSurfaces.length; i += 1) {
+      const surface = this.walkSurfaces[i]
+      if (x < surface.minX || x > surface.maxX || z < surface.minZ || z > surface.maxZ) {
+        continue
+      }
+
+      const surfaceY = surface.type === "ramp"
+        ? surface.startY + ((x - surface.minX) / Math.max(surface.maxX - surface.minX, 0.001)) * (surface.endY - surface.startY)
+        : surface.y
+
+      if (surfaceY <= currentY + this.maxStepHeight && surfaceY >= highest - 0.02) {
+        highest = surfaceY
+      }
+    }
+
+    return highest
   }
 
   overlapsWall(x, z, radius) {
@@ -443,8 +651,6 @@ export class Level {
     const xFirst = this.moveByOrder(position, delta, radius, stepSize, true)
     const zFirst = this.moveByOrder(position, delta, radius, stepSize, false)
 
-    // Trying both axis orders makes diagonal wall contact slide naturally and
-    // helps the player avoid snagging on hard corners.
     return this.distanceSquared(position, xFirst) >= this.distanceSquared(position, zFirst)
       ? xFirst
       : zFirst
@@ -495,7 +701,6 @@ export class Level {
   }
 
   raycastWalls(origin, direction, maxDistance) {
-    // A tiny DDA grid walk keeps line-of-sight and rifle hitscan cheap.
     const dirX = direction.x
     const dirZ = direction.z
     const horizontalLength = Math.hypot(dirX, dirZ)
