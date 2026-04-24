@@ -61,7 +61,7 @@
                   <strong id="kill-value">0</strong>
                 </div>
                 <div class="hud-chip hud-chip-secondary">
-                  <span>Bots</span>
+                  <span>Players</span>
                   <strong id="enemy-value">4</strong>
                 </div>
                 <div class="hud-chip hud-chip-secondary">
@@ -142,6 +142,7 @@
                 </p>
                 <div class="menu-actions">
                   <button id="play-button" type="button">Play</button>
+                  <button id="lobby-button" type="button" class="button-secondary">Lobby</button>
                 </div>
               </section>
 
@@ -207,19 +208,19 @@
               </section>
 
               <section class="menu-screen hidden" id="screen-lobby">
-                <p class="eyebrow">Future Lobby</p>
+                <p class="eyebrow">Multiplayer Lobby</p>
                 <h2>Lobby</h2>
                 <p class="menu-copy">
-                  Placeholder room flow for future multiplayer. The current build still launches a local single-player run only.
+                  Create or join a lightweight PvP room. The browser remains the render/input layer while the Node server owns positions, damage, and respawns.
                 </p>
                 <div class="lobby-grid">
                   <div class="info-panel">
                     <span class="info-label">Room Code</span>
-                    <strong>FZRO-0000</strong>
+                    <strong>Created On Join</strong>
                   </div>
                   <div class="info-panel">
                     <span class="info-label">Status</span>
-                    <strong>Offline Placeholder</strong>
+                    <strong>Authoritative WebSocket Match</strong>
                   </div>
                 </div>
                 <div class="lobby-actions">
@@ -268,6 +269,6 @@
     </main>
 
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script type="module" src="game.js?v=snow-courtyard-v4"></script>
+    <script type="module" src="game.js?v=multiplayer-v2"></script>
   </body>
 </html>

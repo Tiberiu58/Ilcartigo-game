@@ -82,7 +82,12 @@ export class TeleportAbility {
     this.hideMarker()
   }
 
-  update(dt, active) {
+  update(dt, active, context = null) {
+    if (context?.multiplayer) {
+      this.updateMultiplayer(dt, active, context)
+      return
+    }
+
     if (!active) {
       this.state = "idle"
       this.cooldownTimer = 0
@@ -131,6 +136,35 @@ export class TeleportAbility {
       this.markerVisible = true
       this.statusText = "Teleport marker set. Press Q again to teleport."
       this.statusTimer = 0
+    }
+
+    this.updateMarkerVisuals(dt)
+  }
+
+  updateMultiplayer(dt, active, context) {
+    if (!active) {
+      this.hideMarker()
+      return
+    }
+
+    if (this.statusTimer > 0) {
+      this.statusTimer = Math.max(0, this.statusTimer - dt)
+      if (this.statusTimer === 0) {
+        this.statusText = ""
+      }
+    }
+
+    if (this.awaitingKeyRelease && !this.isTeleportHeld()) {
+      this.awaitingKeyRelease = false
+    }
+
+    if (this.consumeTeleportPressed() && !this.awaitingKeyRelease) {
+      context.networkSession.requestTeleportAction()
+      this.awaitingKeyRelease = true
+      this.setStatus(
+        this.markerVisible ? "Teleport request sent." : "Teleport marker request sent.",
+        0.45
+      )
     }
 
     this.updateMarkerVisuals(dt)
@@ -266,6 +300,16 @@ export class TeleportAbility {
     this.statusTimer = duration
   }
 
+  syncNetworkState(state) {
+    this.cooldownTimer = state?.cooldown || 0
+    if (state?.marker) {
+      this.markerVisible = true
+      this.markerPosition.copyFromFloats(state.marker.x, this.level.floorY, state.marker.z)
+    } else {
+      this.markerVisible = false
+    }
+  }
+
   consumeTeleportPressed() {
     return this.input.consumeTeleportPressed()
   }
@@ -281,6 +325,14 @@ export class TeleportAbility {
   getStatusText() {
     if (this.state === "placed") {
       return this.statusText
+    }
+
+    if (this.markerVisible && this.statusTimer <= 0) {
+      return "Teleport marker active. Press Q again to teleport."
+    }
+
+    if (this.cooldownTimer > 0 && this.statusTimer <= 0) {
+      return `Teleport cooling down: ${this.cooldownTimer.toFixed(1)}s`
     }
 
     if (this.statusTimer > 0) {

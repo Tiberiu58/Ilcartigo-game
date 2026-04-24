@@ -1,18 +1,25 @@
 import { BABYLON } from "./babylon.js"
 import { InputController } from "./input.js"
 import { UIController } from "./ui.js"
-import { Level } from "./level.js?v=snow-courtyard-v4"
+import { Level } from "./level.js?v=multiplayer-v2"
 import { PlayerController } from "./player.js"
 import { Rifle } from "./weapon.js"
 import { EnemyManager } from "./enemies.js"
-import { TeleportAbility } from "./teleport.js?v=snow-courtyard-v4"
-import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=snow-courtyard-v4"
+import { TeleportAbility } from "./teleport.js?v=multiplayer-v2"
+import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v2"
+import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v2"
+import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v2"
 
 export function bootstrapGame() {
   const APP_STATES = {
     menu: "menu",
     playing: "playing",
     dead: "dead",
+  }
+
+  const GAME_MODES = {
+    singleplayer: "singleplayer",
+    multiplayer: "multiplayer",
   }
 
   const canvas = document.getElementById("renderCanvas")
@@ -32,11 +39,11 @@ export function bootstrapGame() {
   }
 
   const scene = new BABYLON.Scene(engine)
-  scene.clearColor = BABYLON.Color4.FromHexString("#dbe4eaFF")
+  scene.clearColor = BABYLON.Color4.FromHexString("#9caab5FF")
   scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR
   scene.fogStart = 52
   scene.fogEnd = 112
-  scene.fogColor = BABYLON.Color3.FromHexString("#d4dde4")
+  scene.fogColor = BABYLON.Color3.FromHexString("#8d99a5")
   scene.skipPointerMovePicking = true
   scene.imageProcessingConfiguration.isEnabled = false
 
@@ -45,17 +52,17 @@ export function bootstrapGame() {
     new BABYLON.Vector3(0.12, 1, 0.1),
     scene
   )
-  hemiLight.intensity = 1.18
-  hemiLight.groundColor = BABYLON.Color3.FromHexString("#b5c1cb")
-  hemiLight.diffuse = BABYLON.Color3.FromHexString("#f6fbff")
+  hemiLight.intensity = 0.98
+  hemiLight.groundColor = BABYLON.Color3.FromHexString("#7b8792")
+  hemiLight.diffuse = BABYLON.Color3.FromHexString("#d9e2e9")
 
   const fillLight = new BABYLON.DirectionalLight(
     "fillLight",
     new BABYLON.Vector3(-0.18, -1, 0.12),
     scene
   )
-  fillLight.intensity = 0.28
-  fillLight.diffuse = BABYLON.Color3.FromHexString("#d8e7f8")
+  fillLight.intensity = 0.18
+  fillLight.diffuse = BABYLON.Color3.FromHexString("#b9c7d4")
 
   const level = new Level(scene)
   const player = new PlayerController(scene, input, level)
@@ -67,11 +74,19 @@ export function bootstrapGame() {
     LOADOUT_CONFIG.primaryWeaponIds
   )
   const teleport = new TeleportAbility(scene, player, input, level)
+  const network = new MultiplayerSession()
+  const remotePlayers = new RemotePlayers(scene)
   scene.activeCamera = player.camera
 
   let appState = APP_STATES.menu
+  let gameMode = GAME_MODES.singleplayer
   let fpsValue = 60
   let runState = null
+  let overlayAction = () => {
+    beginSinglePlayerRun()
+    lockPointer()
+  }
+
   const debugState = {
     phase: "boot",
     frame: 0,
@@ -90,6 +105,8 @@ export function bootstrapGame() {
     ui.updateDebugPanel([
       `phase: ${debugState.phase}`,
       `state: ${appState}`,
+      `mode: ${gameMode}`,
+      `room: ${network.roomId || "none"}`,
       `pointerLocked: ${input.isLocked()}`,
       `pointerEvent: ${debugState.lastPointerEvent}`,
       `inputEvent: ${debugState.lastInputEvent}`,
@@ -115,9 +132,8 @@ export function bootstrapGame() {
     }
   }
 
-  function resetScenario() {
+  function resetScenarioBase() {
     player.reset(level.getPlayerSpawn())
-    enemies.reset()
     weapon.reset()
     teleport.reset()
     input.resetTransientState()
@@ -125,24 +141,18 @@ export function bootstrapGame() {
     debugState.lastFrameNote = "scenario reset"
   }
 
-  function beginRun() {
-    resetScenario()
-    appState = APP_STATES.playing
-    ui.hideOverlay()
-    debugState.phase = "playing"
-    debugState.lastFrameNote = "beginRun"
+  function resetSinglePlayerScenario() {
+    resetScenarioBase()
+    enemies.setEnabled(true)
+    enemies.reset()
+    remotePlayers.clear()
   }
 
-  function showDeathOverlay() {
-    appState = APP_STATES.dead
-    debugState.phase = "dead"
-    debugState.lastFrameNote = "player dead"
-    ui.setOverlay(
-      "Operator Down",
-      `Score ${runState.score}. Kills ${runState.kills}. Best streak ${runState.bestStreak}. Reached wave ${runState.bestWave}. Restart and go again.`,
-      "Restart Run",
-      "Run Over"
-    )
+  function resetMultiplayerScenario() {
+    resetScenarioBase()
+    enemies.setEnabled(false)
+    enemies.reset()
+    remotePlayers.clear()
   }
 
   function lockPointer() {
@@ -153,9 +163,57 @@ export function bootstrapGame() {
     input.requestPointerLock()
   }
 
-  function handleOverlayAction() {
-    beginRun()
-    lockPointer()
+  function beginSinglePlayerRun() {
+    leaveMultiplayer()
+    gameMode = GAME_MODES.singleplayer
+    resetSinglePlayerScenario()
+    appState = APP_STATES.playing
+    ui.hideOverlay()
+    debugState.phase = "playing"
+    debugState.lastFrameNote = "begin singleplayer"
+  }
+
+  async function beginMultiplayerRun(mode) {
+    try {
+      debugState.lastFrameNote = `multiplayer ${mode}`
+      resetMultiplayerScenario()
+      let roomInfo
+      if (mode === "create") {
+        roomInfo = await network.createRoom()
+      } else {
+        const roomCode = window.prompt("Enter room code") || ""
+        if (!roomCode.trim()) {
+          return
+        }
+        roomInfo = await network.joinRoom(roomCode)
+      }
+
+      gameMode = GAME_MODES.multiplayer
+      appState = APP_STATES.playing
+      ui.hideOverlay()
+      debugState.phase = "playing"
+      debugState.lastFrameNote = `joined room ${roomInfo.roomId}`
+      lockPointer()
+    } catch (error) {
+      setDebugError(error instanceof Error ? error.message : String(error))
+      showLobbyMenu()
+    }
+  }
+
+  function showDeathOverlay() {
+    appState = APP_STATES.dead
+    debugState.phase = "dead"
+    debugState.lastFrameNote = "player dead"
+    overlayAction = () => {
+      beginSinglePlayerRun()
+      lockPointer()
+    }
+    ui.setOverlay(
+      "Operator Down",
+      `Score ${runState.score}. Kills ${runState.kills}. Best streak ${runState.bestStreak}. Reached wave ${runState.bestWave}. Restart and go again.`,
+      "Restart Run",
+      "Run Over"
+    )
   }
 
   function showMainMenu() {
@@ -163,6 +221,19 @@ export function bootstrapGame() {
     debugState.phase = "menu"
     debugState.lastFrameNote = "main menu"
     ui.showMainMenu()
+  }
+
+  function showLobbyMenu() {
+    appState = APP_STATES.menu
+    debugState.phase = "lobby"
+    debugState.lastFrameNote = "lobby menu"
+    ui.showLobbyMenu()
+  }
+
+  function leaveMultiplayer() {
+    network.leaveRoom()
+    remotePlayers.clear()
+    gameMode = GAME_MODES.singleplayer
   }
 
   input.onPointerLockChange = (locked) => {
@@ -182,10 +253,29 @@ export function bootstrapGame() {
     setDebugError(`promise rejection: ${reason}`)
   })
 
-  ui.overlayButton.addEventListener("click", handleOverlayAction)
-  ui.playButton.addEventListener("click", () => {
-    beginRun()
+  ui.overlayButton.addEventListener("click", () => {
+    overlayAction()
+  })
+  ui.playButton?.addEventListener("click", () => {
+    overlayAction = () => {
+      beginSinglePlayerRun()
+      lockPointer()
+    }
+    beginSinglePlayerRun()
     lockPointer()
+  })
+  ui.lobbyButton?.addEventListener("click", showLobbyMenu)
+  ui.lobbyBackButton?.addEventListener("click", showMainMenu)
+  ui.lobbySoloButton?.addEventListener("click", () => {
+    leaveMultiplayer()
+    beginSinglePlayerRun()
+    lockPointer()
+  })
+  ui.createRoomButton?.addEventListener("click", () => {
+    beginMultiplayerRun("create")
+  })
+  ui.joinRoomButton?.addEventListener("click", () => {
+    beginMultiplayerRun("join")
   })
 
   canvas.addEventListener("click", () => {
@@ -199,7 +289,7 @@ export function bootstrapGame() {
     engine.resize()
   })
 
-  function getStatusText() {
+  function getSinglePlayerStatusText() {
     if (appState === APP_STATES.menu) {
       return "Press Play to start a run."
     }
@@ -240,6 +330,23 @@ export function bootstrapGame() {
     return `Wave ${enemies.getWave()} live. Score ${runState.score}. Sweep the patrol routes.`
   }
 
+  function getMultiplayerStatusText() {
+    if (!input.isLocked()) {
+      return "Click the viewport to relock the mouse."
+    }
+
+    const teleportStatus = teleport.getStatusText()
+    if (teleportStatus) {
+      return teleportStatus
+    }
+
+    if (weapon.isReloading()) {
+      return "Reloading weapon."
+    }
+
+    return network.getStatusText()
+  }
+
   engine.runRenderLoop(() => {
     try {
       debugState.frame += 1
@@ -252,66 +359,91 @@ export function bootstrapGame() {
       debugState.lastInputEvent = `mouse:${input.lookX.toFixed(2)},${input.lookY.toFixed(2)} fire:${input.fireHeld ? 1 : 0}`
 
       if (appState === APP_STATES.playing) {
-        if (runState.streakTimer > 0) {
-          runState.streakTimer = Math.max(0, runState.streakTimer - dt)
-          if (runState.streakTimer === 0) {
-            runState.streak = 0
-            runState.lastComboBonus = 0
-          }
-        }
-
         player.update(dt)
-        runState.bestWave = Math.max(runState.bestWave, enemies.getWave())
-        teleport.update(dt, true)
 
-        const weaponResult = weapon.update(dt, {
-          active: !teleport.blocksWeaponInput(),
-          input,
-          player,
-          enemies,
-          level,
-        })
+        if (gameMode === GAME_MODES.singleplayer) {
+          if (runState.streakTimer > 0) {
+            runState.streakTimer = Math.max(0, runState.streakTimer - dt)
+            if (runState.streakTimer === 0) {
+              runState.streak = 0
+              runState.lastComboBonus = 0
+            }
+          }
 
-        if (weaponResult.hit) {
-          runState.score += weaponResult.killed ? LOOP_CONFIG.killScore : LOOP_CONFIG.hitScore
-          ui.pulseHitMarker()
-        }
+          runState.bestWave = Math.max(runState.bestWave, enemies.getWave())
+          teleport.update(dt, true)
 
-        if (weaponResult.killed) {
-          runState.kills += 1
-          runState.streak = runState.streakTimer > 0 ? runState.streak + 1 : 1
-          runState.streakTimer = LOOP_CONFIG.comboWindow
-          runState.bestStreak = Math.max(runState.bestStreak, runState.streak)
+          const weaponResult = weapon.update(dt, {
+            active: !teleport.blocksWeaponInput(),
+            input,
+            player,
+            enemies,
+            level,
+          })
 
-          if (runState.streak > 1) {
-            runState.lastComboBonus = Math.min(
-              LOOP_CONFIG.comboMaxBonus,
-              (runState.streak - 1) * LOOP_CONFIG.comboStepScore
-            )
-            runState.score += runState.lastComboBonus
-          } else {
+          if (weaponResult.hit) {
+            runState.score += weaponResult.killed ? LOOP_CONFIG.killScore : LOOP_CONFIG.hitScore
+            ui.pulseHitMarker()
+          }
+
+          if (weaponResult.killed) {
+            runState.kills += 1
+            runState.streak = runState.streakTimer > 0 ? runState.streak + 1 : 1
+            runState.streakTimer = LOOP_CONFIG.comboWindow
+            runState.bestStreak = Math.max(runState.bestStreak, runState.streak)
+
+            if (runState.streak > 1) {
+              runState.lastComboBonus = Math.min(
+                LOOP_CONFIG.comboMaxBonus,
+                (runState.streak - 1) * LOOP_CONFIG.comboStepScore
+              )
+              runState.score += runState.lastComboBonus
+            } else {
+              runState.lastComboBonus = 0
+            }
+          }
+
+          const damageTaken = enemies.update(dt, player, level)
+          if (damageTaken > 0) {
+            ui.pulseDamage(damageTaken)
+          }
+
+          if (!enemies.isWaitingForNextWave() && runState.clearedWave < enemies.getWave() - 1) {
+            runState.clearedWave = enemies.getWave() - 1
+            runState.score += LOOP_CONFIG.waveClearScore
+            runState.streak = 0
+            runState.streakTimer = 0
             runState.lastComboBonus = 0
           }
-        }
 
-        const damageTaken = enemies.update(dt, player, level)
-        if (damageTaken > 0) {
-          ui.pulseDamage(damageTaken)
-        }
-
-        if (!enemies.isWaitingForNextWave() && runState.clearedWave < enemies.getWave() - 1) {
-          runState.clearedWave = enemies.getWave() - 1
-          runState.score += LOOP_CONFIG.waveClearScore
-          runState.streak = 0
-          runState.streakTimer = 0
-          runState.lastComboBonus = 0
-        }
-
-        if (player.isDead()) {
-          if (input.isLocked()) {
-            document.exitPointerLock()
+          if (player.isDead()) {
+            if (input.isLocked()) {
+              document.exitPointerLock()
+            }
+            showDeathOverlay()
           }
-          showDeathOverlay()
+        } else {
+          teleport.update(dt, true, { multiplayer: true, networkSession: network })
+          weapon.update(dt, {
+            active: !teleport.blocksWeaponInput(),
+            input,
+            player,
+            enemies: null,
+            level,
+            networkSession: network,
+          })
+          network.update(dt, { input, player, weapon, teleport })
+          remotePlayers.syncSnapshots(network.getRemoteSnapshots())
+          remotePlayers.update(dt)
+
+          if (network.consumeHitMarkerPulse()) {
+            ui.pulseHitMarker()
+          }
+
+          const damageTaken = network.consumeDamagePulse()
+          if (damageTaken > 0) {
+            ui.pulseDamage(damageTaken)
+          }
         }
       } else {
         teleport.update(dt, false)
@@ -322,6 +454,7 @@ export function bootstrapGame() {
           enemies,
           level,
         })
+        remotePlayers.update(dt)
       }
 
       debugState.lastFrameNote = "frame ok"
@@ -329,11 +462,13 @@ export function bootstrapGame() {
       ui.updateHud({
         health: player.getHealth(),
         ammo: weapon.getAmmoText(),
-        enemies: enemies.getAliveCount(),
+        enemies: gameMode === GAME_MODES.multiplayer
+          ? network.getRemoteSnapshots().length + (network.roomId ? 1 : 0)
+          : enemies.getAliveCount(),
         score: runState.score,
         kills: runState.kills,
         fps: Math.round(fpsValue),
-        status: getStatusText(),
+        status: gameMode === GAME_MODES.multiplayer ? getMultiplayerStatusText() : getSinglePlayerStatusText(),
         crosshairGap: weapon.getCrosshairGap(player),
         loadoutSlots: weapon.getLoadoutSlots(),
       })
@@ -345,12 +480,14 @@ export function bootstrapGame() {
     scene.render()
   })
 
-  resetScenario()
+  resetSinglePlayerScenario()
   showMainMenu()
   updateDebugPanel()
 
   window.addEventListener("beforeunload", () => {
     input.dispose()
+    network.disconnect()
+    remotePlayers.clear()
     scene.dispose()
     engine.dispose()
   })

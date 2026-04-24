@@ -183,22 +183,46 @@ export class Rifle {
     if (context.active) {
       const weaponSlot = context.input.consumeWeaponSlot()
       if (weaponSlot != null) {
-        this.selectWeaponSlot(weaponSlot)
+        if (context.networkSession) {
+          const weaponId = this.weaponIds[weaponSlot]
+          if (weaponId) {
+            this.setWeapon(weaponId)
+            context.networkSession.requestWeaponSwitch(weaponId)
+          }
+        } else {
+          this.selectWeaponSlot(weaponSlot)
+        }
       } else {
         const weaponCycle = context.input.consumeWeaponCycle()
         if (weaponCycle !== 0) {
-          this.cycleWeapon(weaponCycle)
+          if (context.networkSession) {
+            const currentIndex = this.weaponIds.indexOf(this.weaponId)
+            const nextIndex = (currentIndex + Math.sign(weaponCycle) + this.weaponIds.length) % this.weaponIds.length
+            const weaponId = this.weaponIds[nextIndex]
+            this.setWeapon(weaponId)
+            context.networkSession.requestWeaponSwitch(weaponId)
+          } else {
+            this.cycleWeapon(weaponCycle)
+          }
         }
       }
 
       if (context.input.consumeReloadPressed()) {
-        this.startReload()
+        if (context.networkSession) {
+          context.networkSession.requestReload()
+        } else {
+          this.startReload()
+        }
       }
 
       if (context.input.isFireHeld()) {
-        const fireResult = this.tryFire(context.player, context.enemies, context.level)
-        result.hit = fireResult.hit
-        result.killed = fireResult.killed
+        if (context.networkSession) {
+          this.tryFireNetwork(context.player, context.networkSession)
+        } else {
+          const fireResult = this.tryFire(context.player, context.enemies, context.level)
+          result.hit = fireResult.hit
+          result.killed = fireResult.killed
+        }
       }
     }
 
@@ -330,6 +354,30 @@ export class Rifle {
     }
 
     return { hit: false, killed: false }
+  }
+
+  tryFireNetwork(player, networkSession) {
+    if (this.reloadTimer > 0 || this.cooldown > 0 || this.swapCooldown > 0) {
+      return false
+    }
+
+    if (this.clipAmmo <= 0) {
+      networkSession.requestReload()
+      return false
+    }
+
+    this.cooldown = this.weaponConfig.fireInterval
+    this.flashTimer = this.weaponConfig.muzzleFlashTime
+    this.flashRoll = Math.random() * Math.PI
+    this.recoil = clamp(this.recoil + 1, 0, 5.5)
+    this.visualKick = clamp(this.visualKick + this.weaponConfig.visualKickStrength, 0, 4.6)
+
+    player.addViewKick(
+      this.weaponConfig.recoilPitch + this.recoil * 0.0012,
+      (Math.random() - 0.5) * (this.weaponConfig.recoilYaw + this.recoil * 0.0008)
+    )
+
+    return networkSession.requestFire()
   }
 
   startReload() {
@@ -505,6 +553,21 @@ export class Rifle {
 
   getWeaponId() {
     return this.weaponId
+  }
+
+  syncNetworkState(snapshot) {
+    if (!snapshot) {
+      return
+    }
+
+    if (snapshot.weaponId && snapshot.weaponId !== this.weaponId) {
+      this.setWeapon(snapshot.weaponId, { resetAmmo: false, preserveCooldown: true })
+    }
+
+    this.clipAmmo = snapshot.clipAmmo
+    this.reserveAmmo = snapshot.reserveAmmo
+    this.reloadTimer = snapshot.reloadRemaining || 0
+    this.persistCurrentWeaponAmmo()
   }
 
   getSelectedWeapon() {

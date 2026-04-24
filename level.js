@@ -1,5 +1,5 @@
 import { BABYLON } from "./babylon.js"
-import { WORLD_CONFIG } from "./config.js?v=snow-courtyard-v4"
+import { PLAYER_CONFIG, WORLD_CONFIG } from "./config.js?v=snow-courtyard-v5"
 import { clamp } from "./utils.js"
 
 function createPatternTexture(scene, name, draw) {
@@ -27,7 +27,16 @@ export class Level {
     this.staticMeshes = []
     this.teleportBlockers = []
     this.walkSurfaces = []
+    this.structureColliders = []
     this.maxStepHeight = 1.1
+    this.maxWalkableSlopeCos = Math.cos(BABYLON.Tools.ToRadians(PLAYER_CONFIG.maxWalkableSlopeAngle))
+    this.groundInfo = {
+      height: this.floorY,
+      normal: new BABYLON.Vector3(0, 1, 0),
+      walkable: true,
+      slopeAngle: 0,
+      surfaceType: "floor",
+    }
 
     this.blockTypes = {
       towerCore: new Set(["10,7"]),
@@ -41,44 +50,49 @@ export class Level {
 
   buildMaterials() {
     const wallTexture = createPatternTexture(this.scene, "snowWallTexture", (context) => {
-      context.fillStyle = "#cfd7d4"
+      context.fillStyle = "#9d9487"
       context.fillRect(0, 0, 64, 64)
-      context.fillStyle = "#e9efef"
+      context.fillStyle = "#b8afa2"
       context.fillRect(0, 0, 64, 8)
-      context.fillStyle = "#b2bbb8"
+      context.fillStyle = "#7f776c"
       for (let y = 12; y < 64; y += 18) {
         context.fillRect(0, y, 64, 2)
       }
       for (let x = 10; x < 64; x += 18) {
         context.fillRect(x, 0, 2, 64)
       }
-      context.fillStyle = "rgba(255,255,255,0.18)"
+      context.fillStyle = "rgba(224,220,210,0.16)"
       context.fillRect(4, 4, 56, 3)
       context.fillRect(8, 18, 18, 2)
       context.fillRect(34, 36, 20, 2)
     })
 
     const snowTexture = createPatternTexture(this.scene, "snowGroundTexture", (context) => {
-      context.fillStyle = "#edf4f7"
+      context.fillStyle = "#9ba8b1"
       context.fillRect(0, 0, 64, 64)
-      context.fillStyle = "#e2edf2"
+      context.fillStyle = "#87959f"
       for (let i = 0; i < 18; i += 1) {
         context.fillRect((i * 11) % 64, (i * 7) % 64, 6, 2)
       }
-      context.fillStyle = "rgba(188,205,214,0.26)"
+      context.fillStyle = "rgba(111,128,141,0.28)"
       context.fillRect(0, 22, 64, 2)
       context.fillRect(0, 44, 64, 2)
+      context.fillStyle = "rgba(198,208,214,0.18)"
+      context.fillRect(0, 6, 64, 1)
+      context.fillRect(0, 54, 64, 1)
     })
 
     const stoneTopTexture = createPatternTexture(this.scene, "snowStoneTopTexture", (context) => {
-      context.fillStyle = "#cfd6d8"
+      context.fillStyle = "#8f867a"
       context.fillRect(0, 0, 64, 64)
-      context.fillStyle = "#eef4f5"
+      context.fillStyle = "#b1a89b"
       context.fillRect(0, 0, 64, 16)
-      context.fillStyle = "#b5bfbe"
-      for (let x = 0; x < 64; x += 16) {
-        context.fillRect(x, 20, 64, 2)
+      context.fillStyle = "#71695e"
+      for (let y = 22; y < 64; y += 18) {
+        context.fillRect(0, y, 64, 2)
       }
+      context.fillStyle = "rgba(214,208,196,0.14)"
+      context.fillRect(8, 6, 48, 2)
     })
 
     this.wallMaterial = new BABYLON.StandardMaterial("courtyardWallMaterial", this.scene)
@@ -86,8 +100,8 @@ export class Level {
     this.wallMaterial.diffuseTexture.uScale = 0.9
     this.wallMaterial.diffuseTexture.vScale = 0.65
     this.wallMaterial.specularColor = BABYLON.Color3.Black()
-    this.wallMaterial.ambientColor = BABYLON.Color3.FromHexString("#dce3e4")
-    this.wallMaterial.emissiveColor = BABYLON.Color3.FromHexString("#3c4956")
+    this.wallMaterial.ambientColor = BABYLON.Color3.FromHexString("#a79f94")
+    this.wallMaterial.emissiveColor = BABYLON.Color3.FromHexString("#343c47")
     this.wallMaterial.freeze()
 
     this.groundMaterial = new BABYLON.StandardMaterial("courtyardGroundMaterial", this.scene)
@@ -95,8 +109,8 @@ export class Level {
     this.groundMaterial.diffuseTexture.uScale = this.width * 0.32
     this.groundMaterial.diffuseTexture.vScale = this.depth * 0.32
     this.groundMaterial.specularColor = BABYLON.Color3.Black()
-    this.groundMaterial.ambientColor = BABYLON.Color3.FromHexString("#eef5f7")
-    this.groundMaterial.emissiveColor = BABYLON.Color3.FromHexString("#cad6df")
+    this.groundMaterial.ambientColor = BABYLON.Color3.FromHexString("#96a6b1")
+    this.groundMaterial.emissiveColor = BABYLON.Color3.FromHexString("#738390")
     this.groundMaterial.freeze()
 
     this.coverMaterial = new BABYLON.StandardMaterial("courtyardCoverMaterial", this.scene)
@@ -104,25 +118,25 @@ export class Level {
     this.coverMaterial.diffuseTexture.uScale = 0.8
     this.coverMaterial.diffuseTexture.vScale = 0.8
     this.coverMaterial.specularColor = BABYLON.Color3.Black()
-    this.coverMaterial.ambientColor = BABYLON.Color3.FromHexString("#d5dcdc")
-    this.coverMaterial.emissiveColor = BABYLON.Color3.FromHexString("#475461")
+    this.coverMaterial.ambientColor = BABYLON.Color3.FromHexString("#9b9388")
+    this.coverMaterial.emissiveColor = BABYLON.Color3.FromHexString("#474d50")
     this.coverMaterial.freeze()
 
     this.woodMaterial = new BABYLON.StandardMaterial("courtyardWoodMaterial", this.scene)
-    this.woodMaterial.diffuseColor = BABYLON.Color3.FromHexString("#7b5a3d")
-    this.woodMaterial.emissiveColor = BABYLON.Color3.FromHexString("#38281d")
+    this.woodMaterial.diffuseColor = BABYLON.Color3.FromHexString("#6b4f3a")
+    this.woodMaterial.emissiveColor = BABYLON.Color3.FromHexString("#2d221a")
     this.woodMaterial.specularColor = BABYLON.Color3.Black()
     this.woodMaterial.freeze()
 
     this.treeMaterial = new BABYLON.StandardMaterial("courtyardTreeMaterial", this.scene)
-    this.treeMaterial.diffuseColor = BABYLON.Color3.FromHexString("#5a5047")
-    this.treeMaterial.emissiveColor = BABYLON.Color3.FromHexString("#2b2724")
+    this.treeMaterial.diffuseColor = BABYLON.Color3.FromHexString("#4b433c")
+    this.treeMaterial.emissiveColor = BABYLON.Color3.FromHexString("#221f1c")
     this.treeMaterial.specularColor = BABYLON.Color3.Black()
     this.treeMaterial.freeze()
 
     this.mountainMaterial = new BABYLON.StandardMaterial("courtyardMountainMaterial", this.scene)
-    this.mountainMaterial.diffuseColor = BABYLON.Color3.FromHexString("#aebcc7")
-    this.mountainMaterial.emissiveColor = BABYLON.Color3.FromHexString("#73828f")
+    this.mountainMaterial.diffuseColor = BABYLON.Color3.FromHexString("#66737f")
+    this.mountainMaterial.emissiveColor = BABYLON.Color3.FromHexString("#48515a")
     this.mountainMaterial.specularColor = BABYLON.Color3.Black()
     this.mountainMaterial.freeze()
   }
@@ -219,7 +233,12 @@ export class Level {
     const rampWidth = this.cellSize * 3.2
     const platformHeight = 1.8
     const rampLength = rampEndX - rampStartX
+    const rampThickness = 0.9
     const rampAngle = Math.atan(platformHeight / rampLength)
+    const rampTopStartY = this.floorY + 0.06
+    const rampCenterY = rampTopStartY
+      + Math.sin(rampAngle) * rampLength * 0.5
+      - Math.cos(rampAngle) * rampThickness * 0.5
 
     const platformMinX = rampEndX
     const platformMaxX = this.cellSize * 12.2
@@ -232,17 +251,17 @@ export class Level {
       "courtyardRamp",
       {
         width: rampLength,
-        height: 0.9,
+        height: rampThickness,
         depth: rampWidth,
       },
       this.scene
     )
     ramp.position.set(
       rampStartX + rampLength * 0.5,
-      this.floorY + platformHeight * 0.5,
+      rampCenterY,
       rampCenterZ
     )
-    ramp.rotation.z = -rampAngle
+    ramp.rotation.z = rampAngle
     ramp.material = this.coverMaterial
     ramp.isPickable = false
 
@@ -251,8 +270,8 @@ export class Level {
       { width: rampLength, height: 0.6, depth: 0.35 },
       this.scene
     )
-    rampSideLeft.position.set(ramp.position.x, ramp.position.y - 0.05, rampCenterZ - rampWidth * 0.5)
-    rampSideLeft.rotation.z = -rampAngle
+    rampSideLeft.position.set(ramp.position.x, ramp.position.y - 0.12, rampCenterZ - rampWidth * 0.5)
+    rampSideLeft.rotation.z = rampAngle
     rampSideLeft.material = this.wallMaterial
     rampSideLeft.isPickable = false
 
@@ -308,6 +327,34 @@ export class Level {
       mergedStructure.freezeWorldMatrix()
       this.staticMeshes.push(mergedStructure)
     }
+
+    this.structureColliders.push({
+      type: "ramp",
+      minX: rampStartX,
+      maxX: rampEndX,
+      minZ: rampCenterZ - rampWidth * 0.5 + 0.15,
+      maxZ: rampCenterZ + rampWidth * 0.5 - 0.15,
+      startY: this.floorY,
+      endY: platformHeight,
+    })
+
+    this.structureColliders.push({
+      type: "box",
+      minX: platformMinX,
+      maxX: platformMaxX,
+      minZ: platformMinZ,
+      maxZ: platformMaxZ,
+      topY: platformHeight,
+    })
+
+    this.structureColliders.push({
+      type: "box",
+      minX: tower.position.x - this.cellSize * 0.6,
+      maxX: tower.position.x + this.cellSize * 0.6,
+      minZ: tower.position.z - this.cellSize * 0.6,
+      maxZ: tower.position.z + this.cellSize * 0.6,
+      topY: this.floorY + platformHeight + 3.1,
+    })
 
     this.walkSurfaces.push({
       type: "ramp",
@@ -528,7 +575,46 @@ export class Level {
   }
 
   getGroundHeightAt(x, z, currentY = this.floorY) {
+    return this.getGroundInfoAt(x, z, currentY).height
+  }
+
+  getStructureSurfaceHeight(collider, x) {
+    if (collider.type === "ramp") {
+      const progress = (x - collider.minX) / Math.max(collider.maxX - collider.minX, 0.001)
+      return collider.startY + progress * (collider.endY - collider.startY)
+    }
+
+    return collider.topY
+  }
+
+  getSurfaceInfo(surface, x) {
+    if (surface.type === "ramp") {
+      const run = Math.max(surface.maxX - surface.minX, 0.001)
+      const rise = surface.endY - surface.startY
+      const progress = (x - surface.minX) / run
+      const height = surface.startY + progress * rise
+      const normal = new BABYLON.Vector3(-rise / run, 1, 0).normalize()
+      const walkable = normal.y >= this.maxWalkableSlopeCos
+      const slopeAngle = BABYLON.Tools.ToDegrees(Math.acos(clamp(normal.y, -1, 1)))
+      return { height, normal, walkable, slopeAngle, surfaceType: "ramp" }
+    }
+
+    return {
+      height: surface.y,
+      normal: new BABYLON.Vector3(0, 1, 0),
+      walkable: true,
+      slopeAngle: 0,
+      surfaceType: "box",
+    }
+  }
+
+  getGroundInfoAt(x, z, currentY = this.floorY) {
     let highest = this.floorY
+    let bestHeight = this.floorY
+    let bestNormal = this.groundInfo.normal.set(0, 1, 0)
+    let bestWalkable = true
+    let bestSlopeAngle = 0
+    let bestSurfaceType = "floor"
 
     for (let i = 0; i < this.walkSurfaces.length; i += 1) {
       const surface = this.walkSurfaces[i]
@@ -536,19 +622,55 @@ export class Level {
         continue
       }
 
-      const surfaceY = surface.type === "ramp"
-        ? surface.startY + ((x - surface.minX) / Math.max(surface.maxX - surface.minX, 0.001)) * (surface.endY - surface.startY)
-        : surface.y
-
-      if (surfaceY <= currentY + this.maxStepHeight && surfaceY >= highest - 0.02) {
-        highest = surfaceY
+      const surfaceInfo = this.getSurfaceInfo(surface, x)
+      if (surfaceInfo.height <= currentY + this.maxStepHeight && surfaceInfo.height >= highest - 0.02) {
+        highest = surfaceInfo.height
+        bestHeight = surfaceInfo.height
+        bestNormal.copyFrom(surfaceInfo.normal)
+        bestWalkable = surfaceInfo.walkable
+        bestSlopeAngle = surfaceInfo.slopeAngle
+        bestSurfaceType = surfaceInfo.surfaceType
       }
     }
 
-    return highest
+    this.groundInfo.height = bestHeight
+    this.groundInfo.walkable = bestWalkable
+    this.groundInfo.slopeAngle = bestSlopeAngle
+    this.groundInfo.surfaceType = bestSurfaceType
+    return this.groundInfo
   }
 
-  overlapsWall(x, z, radius) {
+  overlapsStructureCollider(x, z, radius, currentY = this.floorY) {
+    for (let i = 0; i < this.structureColliders.length; i += 1) {
+      const collider = this.structureColliders[i]
+      const nearestX = clamp(x, collider.minX, collider.maxX)
+      const nearestZ = clamp(z, collider.minZ, collider.maxZ)
+      const diffX = x - nearestX
+      const diffZ = z - nearestZ
+
+      if (diffX * diffX + diffZ * diffZ >= radius * radius) {
+        continue
+      }
+
+      const surfaceY = this.getStructureSurfaceHeight(collider, nearestX)
+      if (collider.type === "ramp") {
+        const rampRun = Math.max(collider.maxX - collider.minX, 0.001)
+        const rampRise = collider.endY - collider.startY
+        const rampNormalY = new BABYLON.Vector3(-rampRise / rampRun, 1, 0).normalize().y
+        if (rampNormalY < this.maxWalkableSlopeCos) {
+          return true
+        }
+      }
+
+      if (currentY + this.maxStepHeight < surfaceY - 0.04) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  overlapsWall(x, z, radius, currentY = this.floorY) {
     const minCellX = Math.floor((x - radius) / this.cellSize)
     const maxCellX = Math.floor((x + radius) / this.cellSize)
     const minCellZ = Math.floor((z - radius) / this.cellSize)
@@ -573,6 +695,10 @@ export class Level {
           return true
         }
       }
+    }
+
+    if (this.overlapsStructureCollider(x, z, radius, currentY)) {
+      return true
     }
 
     return false
@@ -624,6 +750,11 @@ export class Level {
       return false
     }
 
+    const groundInfo = this.getGroundInfoAt(target.x, target.z, this.wallHeight)
+    if (!groundInfo.walkable) {
+      return false
+    }
+
     if (!this.hasLineOfSight(from, target)) {
       return false
     }
@@ -660,17 +791,17 @@ export class Level {
     const next = position.clone()
 
     if (xFirst) {
-      next.x = this.moveAxis(next.x, next.z, delta.x, radius, stepSize, "x")
-      next.z = this.moveAxis(next.x, next.z, delta.z, radius, stepSize, "z")
+      next.x = this.moveAxis(next.x, next.z, position.y, delta.x, radius, stepSize, "x")
+      next.z = this.moveAxis(next.x, next.z, position.y, delta.z, radius, stepSize, "z")
     } else {
-      next.z = this.moveAxis(next.x, next.z, delta.z, radius, stepSize, "z")
-      next.x = this.moveAxis(next.x, next.z, delta.x, radius, stepSize, "x")
+      next.z = this.moveAxis(next.x, next.z, position.y, delta.z, radius, stepSize, "z")
+      next.x = this.moveAxis(next.x, next.z, position.y, delta.x, radius, stepSize, "x")
     }
 
     return next
   }
 
-  moveAxis(baseX, baseZ, delta, radius, stepSize, axis) {
+  moveAxis(baseX, baseZ, currentY, delta, radius, stepSize, axis) {
     if (delta === 0) {
       return axis === "x" ? baseX : baseZ
     }
@@ -684,7 +815,7 @@ export class Level {
       const nextX = axis === "x" ? candidate : baseX
       const nextZ = axis === "z" ? candidate : baseZ
 
-      if (this.overlapsWall(nextX, nextZ, radius)) {
+      if (this.overlapsWall(nextX, nextZ, radius, currentY)) {
         break
       }
 

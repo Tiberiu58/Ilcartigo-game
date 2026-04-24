@@ -322,16 +322,28 @@ export class EnemyManager {
     this.wave = 1
     this.waveTimer = 0
     this.aliveCount = 0
+    this.enabled = true
     this.reset()
   }
 
   reset() {
+    if (!this.enabled) {
+      this.aliveCount = 0
+      this.enemies.forEach((enemy, index) => {
+        enemy.deactivate(this.spawns[index])
+      })
+      return
+    }
     this.wave = 1
     this.waveTimer = 0
     this.spawnWave(this.wave)
   }
 
   update(dt, player, level) {
+    if (!this.enabled) {
+      return 0
+    }
+
     let damageDealt = 0
     const playerCenter = player.getCenterPosition()
 
@@ -394,5 +406,10 @@ export class EnemyManager {
 
   notifyEnemyKilled() {
     this.aliveCount = Math.max(0, this.aliveCount - 1)
+  }
+
+  setEnabled(enabled) {
+    this.enabled = enabled
+    this.reset()
   }
 }

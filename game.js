@@ -1,3 +1,3 @@
-import { bootstrapGame } from "./app.js?v=snow-courtyard-v4"
+import { bootstrapGame } from "./app.js?v=multiplayer-v2"
 
 bootstrapGame()

@@ -38,6 +38,8 @@ export class PlayerController {
     this.horizontalDelta = new BABYLON.Vector3()
     this.centerPosition = new BABYLON.Vector3()
     this.shootOrigin = new BABYLON.Vector3()
+    this.groundNormal = new BABYLON.Vector3(0, 1, 0)
+    this.projectedMove = new BABYLON.Vector3()
   }
 
   reset(spawn) {
@@ -59,6 +61,7 @@ export class PlayerController {
     this.sprinting = false
     this.coyoteTimer = 0
     this.jumpBufferTimer = 0
+    this.groundNormal.set(0, 1, 0)
     this.updateCamera()
   }
 
@@ -111,8 +114,14 @@ export class PlayerController {
       ? (forwardZ * inputVector.z + rightZ * inputVector.x) * moveSpeed
       : 0
 
+    const groundInfoBeforeMove = this.level.getGroundInfoAt(this.position.x, this.position.z, this.position.y)
+    this.groundNormal.copyFrom(groundInfoBeforeMove.normal)
+    const slopeAdjustedTarget = this.projectGroundMovement(targetX, targetZ, groundInfoBeforeMove)
+    const slopeTargetX = slopeAdjustedTarget.x
+    const slopeTargetZ = slopeAdjustedTarget.z
+
     if (this.grounded) {
-      this.applyGroundMovement(targetX, targetZ, hasMovementInput, dt)
+      this.applyGroundMovement(slopeTargetX, slopeTargetZ, hasMovementInput, dt)
     } else {
       this.applyAirMovement(targetX, targetZ, hasMovementInput, dt)
     }
@@ -148,8 +157,13 @@ export class PlayerController {
       this.velocity.y = Math.min(0, this.velocity.y)
     }
 
-    const groundHeight = this.level.getGroundHeightAt(this.position.x, this.position.z, this.position.y)
-    if (this.position.y <= groundHeight) {
+    const groundInfo = this.level.getGroundInfoAt(this.position.x, this.position.z, this.position.y)
+    const groundHeight = groundInfo.height
+    const canSnapToGround = groundInfo.walkable
+      && this.velocity.y <= 0
+      && this.position.y <= groundHeight + PLAYER_CONFIG.groundSnapDistance
+
+    if (canSnapToGround) {
       if (!this.grounded && this.velocity.y < -2) {
         this.landingImpact = clamp(
           Math.abs(this.velocity.y) * 0.0018,
@@ -161,9 +175,11 @@ export class PlayerController {
       this.position.y = groundHeight
       this.velocity.y = 0
       this.grounded = true
+      this.groundNormal.copyFrom(groundInfo.normal)
       this.coyoteTimer = PLAYER_CONFIG.coyoteTime
     } else {
       this.grounded = false
+      this.groundNormal.set(0, 1, 0)
     }
 
     const horizontalSpeed = length2D(this.velocity.x, this.velocity.z)
@@ -201,6 +217,21 @@ export class PlayerController {
         : PLAYER_CONFIG.groundAcceleration
 
     this.approachHorizontalVelocity(targetX, targetZ, acceleration, dt)
+  }
+
+  projectGroundMovement(targetX, targetZ, groundInfo) {
+    if (!groundInfo.walkable || groundInfo.normal.y >= 0.999) {
+      return { x: targetX, z: targetZ }
+    }
+
+    this.projectedMove.set(targetX, 0, targetZ)
+    const normalDot = BABYLON.Vector3.Dot(this.projectedMove, groundInfo.normal)
+    this.projectedMove.subtractInPlace(groundInfo.normal.scale(normalDot))
+
+    return {
+      x: this.projectedMove.x,
+      z: this.projectedMove.z,
+    }
   }
 
   applyAirMovement(targetX, targetZ, hasMovementInput, dt) {
@@ -273,9 +304,11 @@ export class PlayerController {
   teleportTo(x, z) {
     this.position.x = x
     this.position.z = z
-    this.position.y = this.level.getGroundHeightAt(x, z, this.level.wallHeight)
+    const groundInfo = this.level.getGroundInfoAt(x, z, this.level.wallHeight)
+    this.position.y = groundInfo.height
     this.velocity.set(0, 0, 0)
     this.grounded = true
+    this.groundNormal.copyFrom(groundInfo.normal)
     this.coyoteTimer = PLAYER_CONFIG.coyoteTime
     this.jumpBufferTimer = 0
     this.landingImpact = 0
@@ -307,6 +340,42 @@ export class PlayerController {
     this.health = Math.max(0, this.health - amount)
     this.viewKickPitch += 0.02
     this.viewRoll += (Math.random() - 0.5) * 0.06
+  }
+
+  setHealth(value) {
+    this.health = clamp(value, 0, PLAYER_CONFIG.maxHealth)
+  }
+
+  reconcileAuthoritativeState(snapshot, dt) {
+    if (!snapshot) {
+      return
+    }
+
+    this.setHealth(snapshot.health)
+
+    const positionError = Math.hypot(
+      snapshot.position.x - this.position.x,
+      snapshot.position.y - this.position.y,
+      snapshot.position.z - this.position.z
+    )
+
+    if (positionError > 2.2) {
+      this.position.x = snapshot.position.x
+      this.position.y = snapshot.position.y
+      this.position.z = snapshot.position.z
+    } else {
+      this.position.x = damp(this.position.x, snapshot.position.x, 18, dt)
+      this.position.y = damp(this.position.y, snapshot.position.y, 18, dt)
+      this.position.z = damp(this.position.z, snapshot.position.z, 18, dt)
+    }
+
+    this.velocity.x = snapshot.velocity.x
+    this.velocity.y = snapshot.velocity.y
+    this.velocity.z = snapshot.velocity.z
+    this.grounded = snapshot.alive ? this.grounded : false
+    this.yaw = snapshot.yaw
+    this.pitch = snapshot.pitch
+    this.updateCamera()
   }
 
   getHealth() {

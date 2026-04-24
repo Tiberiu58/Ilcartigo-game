@@ -1,7 +1,6 @@
 export const ARENA_LAYOUTS = {
   switchyard: {
-    // A compact snowy courtyard with fortress walls, scattered cover, and a
-    // central ramp leading onto a raised stone platform.
+    // A compact snowy courtyard with fortress walls and scattered cover.
     map: [
       "###################",
       "#.................#",
@@ -50,7 +49,7 @@ const ACTIVE_ARENA = ARENA_LAYOUTS.switchyard
 export const WORLD_CONFIG = {
   // Size of each walkable grid cell in world units.
   cellSize: 4,
-  // Height of the indoor walls.
+  // Height of the fortress perimeter walls.
   wallHeight: 5.4,
   // Base floor height used by the level and collision code.
   floorY: 0,
@@ -102,6 +101,10 @@ export const GAMEPLAY_CONFIG = {
       radius: 0.34,
       // Full player height used for ceiling checks.
       height: 1.75,
+      // Maximum slope angle in degrees that the player can walk up.
+      maxWalkableSlopeAngle: 48,
+      // Distance below which the player will snap to a walkable ground surface.
+      groundSnapDistance: 0.24,
       // Small inset to avoid sticky edge contact.
       collisionInset: 0.02,
       // Collision trace step size for smooth wall sliding.
@@ -377,6 +380,21 @@ export const LOADOUT_CONFIG = {
   defaultPrimaryWeaponId: "rifle",
   // Available primaries shown in the current single-player loadout screen.
   primaryWeaponIds: ["rifle", "carbine", "bruiser"],
+}
+
+export const MULTIPLAYER_CONFIG = {
+  // WebSocket port used by the lightweight Node authoritative server.
+  serverPort: 2567,
+  // Simulation tick rate on the server.
+  simulationRate: 60,
+  // Snapshot broadcast rate to connected clients.
+  snapshotRate: 20,
+  // Maximum room size for the first multiplayer prototype.
+  maxPlayersPerRoom: 4,
+  // Delay before a dead player respawns.
+  respawnDelay: 3,
+  // Client send rate for movement/input messages.
+  inputSendRate: 20,
 }
 
 export const PLAYER_CONFIG = {
