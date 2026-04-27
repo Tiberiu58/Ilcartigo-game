@@ -90,6 +90,7 @@ export function createSimulationState(spawn) {
     pitch: 0,
     grounded: true,
     coyoteTimer: 0,
+    jumpBufferTimer: 0,
     jumpHeldLast: false,
   }
 }
@@ -101,8 +102,14 @@ export function stepPlayerSimulation(state, input, dt) {
   const axes = normalize2D(input.right, input.forward)
   const hasMovementInput = input.right !== 0 || input.forward !== 0
   const moveSpeed = input.sprinting && hasMovementInput ? PLAYER_CONFIG.sprintSpeed : PLAYER_CONFIG.walkSpeed
-  const jumpPressed = Boolean(input.jumpHeld && !state.jumpHeldLast)
+  const jumpPressed = Boolean(input.jumpPressed || (input.jumpHeld && !state.jumpHeldLast))
   state.jumpHeldLast = Boolean(input.jumpHeld)
+
+  if (jumpPressed) {
+    state.jumpBufferTimer = PLAYER_CONFIG.jumpBufferTime
+  } else {
+    state.jumpBufferTimer = Math.max(0, state.jumpBufferTimer - dt)
+  }
 
   state.coyoteTimer = state.grounded
     ? PLAYER_CONFIG.coyoteTime
@@ -128,10 +135,11 @@ export function stepPlayerSimulation(state, input, dt) {
     applyAirMovement(state, targetX, targetZ, hasMovementInput, dt)
   }
 
-  if (jumpPressed && state.coyoteTimer > 0) {
+  if (state.jumpBufferTimer > 0 && state.coyoteTimer > 0) {
     state.velocity.y = PLAYER_CONFIG.jumpSpeed
     state.grounded = false
     state.coyoteTimer = 0
+    state.jumpBufferTimer = 0
   }
 
   let gravityMultiplier = 1

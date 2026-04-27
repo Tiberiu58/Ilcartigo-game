@@ -40,6 +40,7 @@ export class PlayerController {
     this.shootOrigin = new BABYLON.Vector3()
     this.groundNormal = new BABYLON.Vector3(0, 1, 0)
     this.projectedMove = new BABYLON.Vector3()
+    this.lastReconcileNote = "none"
   }
 
   reset(spawn) {
@@ -62,10 +63,11 @@ export class PlayerController {
     this.coyoteTimer = 0
     this.jumpBufferTimer = 0
     this.groundNormal.set(0, 1, 0)
+    this.lastReconcileNote = "reset"
     this.updateCamera()
   }
 
-  update(dt) {
+  update(dt, options = {}) {
     const look = this.input.consumeLookDelta()
     const lookX = clamp(look.x, -PLAYER_CONFIG.maxLookDeltaPerFrame, PLAYER_CONFIG.maxLookDeltaPerFrame)
     const lookY = clamp(look.y, -PLAYER_CONFIG.maxLookDeltaPerFrame, PLAYER_CONFIG.maxLookDeltaPerFrame)
@@ -89,7 +91,9 @@ export class PlayerController {
 
     this.sprinting = moveSpeed === PLAYER_CONFIG.sprintSpeed
 
-    if (this.input.consumeJumpPressed()) {
+    const jumpPressed = options.jumpPressed ?? this.input.consumeJumpPressed()
+
+    if (jumpPressed) {
       this.jumpBufferTimer = PLAYER_CONFIG.jumpBufferTime
     } else {
       this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt)
@@ -359,22 +363,28 @@ export class PlayerController {
       snapshot.position.z - this.position.z
     )
 
-    if (positionError > 2.2) {
+    if (positionError > 3.25) {
+      this.lastReconcileNote = `snap ${positionError.toFixed(2)}`
       this.position.x = snapshot.position.x
       this.position.y = snapshot.position.y
       this.position.z = snapshot.position.z
+    } else if (positionError > 0.001) {
+      this.lastReconcileNote = `blend ${positionError.toFixed(2)}`
+      const correctionStrength = positionError > 0.65 ? 10 : 6
+      this.position.x = damp(this.position.x, snapshot.position.x, correctionStrength, dt)
+      this.position.y = damp(this.position.y, snapshot.position.y, correctionStrength, dt)
+      this.position.z = damp(this.position.z, snapshot.position.z, correctionStrength, dt)
     } else {
-      this.position.x = damp(this.position.x, snapshot.position.x, 18, dt)
-      this.position.y = damp(this.position.y, snapshot.position.y, 18, dt)
-      this.position.z = damp(this.position.z, snapshot.position.z, 18, dt)
+      this.lastReconcileNote = "steady"
+      this.position.x = snapshot.position.x
+      this.position.y = snapshot.position.y
+      this.position.z = snapshot.position.z
     }
 
-    this.velocity.x = snapshot.velocity.x
-    this.velocity.y = snapshot.velocity.y
-    this.velocity.z = snapshot.velocity.z
-    this.grounded = snapshot.alive ? this.grounded : false
-    this.yaw = snapshot.yaw
-    this.pitch = snapshot.pitch
+    this.velocity.x = damp(this.velocity.x, snapshot.velocity.x, 10, dt)
+    this.velocity.y = damp(this.velocity.y, snapshot.velocity.y, 12, dt)
+    this.velocity.z = damp(this.velocity.z, snapshot.velocity.z, 10, dt)
+    this.grounded = snapshot.alive ? snapshot.velocity.y === 0 || this.grounded : false
     this.updateCamera()
   }
 
@@ -455,5 +465,9 @@ export class PlayerController {
 
   getLookDirection() {
     return this.camera.getForwardRay(1).direction
+  }
+
+  getLastReconcileNote() {
+    return this.lastReconcileNote
   }
 }

@@ -76,9 +76,11 @@ const walkSurfaces = [
   },
 ]
 
-const multiplayerSpawnCells = [
-  WORLD_CONFIG.playerSpawn,
-  ...WORLD_CONFIG.enemyRoutes.map((route) => route[0]),
+const multiplayerSpawnPoints = [
+  createVector3(cellSize * 2.75, floorY, cellSize * 2.75),
+  createVector3(cellSize * 15.25, floorY, cellSize * 2.75),
+  createVector3(cellSize * 2.75, floorY, cellSize * 12.25),
+  createVector3(cellSize * 15.25, floorY, cellSize * 12.25),
 ]
 
 function createVector3(x, y, z) {
@@ -107,7 +109,7 @@ export function getPlayerSpawn() {
 }
 
 export function getMultiplayerSpawnPoints() {
-  return multiplayerSpawnCells.map((cell) => cellToWorld(cell))
+  return multiplayerSpawnPoints.map((point) => createVector3(point.x, point.y, point.z))
 }
 
 export function getSpawnPoint(index = 0) {

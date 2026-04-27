@@ -394,7 +394,7 @@ export const MULTIPLAYER_CONFIG = {
   // Delay before a dead player respawns.
   respawnDelay: 3,
   // Client send rate for movement/input messages.
-  inputSendRate: 20,
+  inputSendRate: 60,
 }
 
 export const PLAYER_CONFIG = {

@@ -1,6 +1,6 @@
 import { MULTIPLAYER_CONFIG } from "../config.js"
-import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js"
-import { NetworkClient } from "./networkClient.js"
+import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v11"
+import { NetworkClient } from "./networkClient.js?v=multiplayer-v11"
 
 export class MultiplayerSession {
   constructor() {
@@ -17,11 +17,17 @@ export class MultiplayerSession {
     this.pendingRoomAction = null
     this.joinWaiter = null
     this.lastError = ""
+    this.hostId = ""
+    this.started = false
     this.localSnapshot = null
     this.remoteSnapshots = []
+    this.lastRoomPlayers = []
     this.inputAccumulator = 0
     this.hitMarkerPulse = false
     this.damagePulse = 0
+    this.pendingJumpPressed = false
+    this.onLobbyStateChanged = null
+    this.onMatchStarted = null
   }
 
   async ensureConnected() {
@@ -57,8 +63,14 @@ export class MultiplayerSession {
     }
     this.playerId = ""
     this.roomId = ""
+    this.hostId = ""
+    this.started = false
     this.localSnapshot = null
     this.remoteSnapshots = []
+    this.lastRoomPlayers = []
+    this.pendingJumpPressed = false
+    this.lastError = ""
+    this.emitLobbyStateChanged()
   }
 
   disconnect() {
@@ -72,9 +84,13 @@ export class MultiplayerSession {
       return
     }
 
+    if (context.jumpPressed) {
+      this.pendingJumpPressed = true
+    }
+
     this.inputAccumulator += dt
     const sendInterval = 1 / MULTIPLAYER_CONFIG.inputSendRate
-    if (this.inputAccumulator >= sendInterval) {
+    if (this.inputAccumulator >= sendInterval || this.pendingJumpPressed) {
       this.inputAccumulator = 0
       this.client.send(MESSAGE_TYPES.INPUT, {
         roomId: this.roomId,
@@ -82,10 +98,12 @@ export class MultiplayerSession {
         right: context.input.getMoveAxes().right,
         sprinting: context.input.isSprinting(),
         jumpHeld: context.input.isJumpHeld(),
+        jumpPressed: this.pendingJumpPressed,
         yaw: context.player.yaw,
         pitch: context.player.pitch,
         weaponId: context.weapon.getWeaponId(),
       })
+      this.pendingJumpPressed = false
     }
 
     if (this.localSnapshot) {
@@ -132,6 +150,79 @@ export class MultiplayerSession {
     }
   }
 
+  requestStartMatch() {
+    if (!this.roomId || !this.isHost()) {
+      this.lastError = !this.roomId ? "Join a room first." : "Only the host can start the match."
+      this.emitLobbyStateChanged()
+      return false
+    }
+
+    this.client.send(MESSAGE_TYPES.START_MATCH, { roomId: this.roomId })
+    this.lastError = "Starting match..."
+    this.emitLobbyStateChanged()
+    return true
+  }
+
+  isHost() {
+    return Boolean(this.playerId) && this.playerId === this.hostId
+  }
+
+  hasStarted() {
+    return this.started
+  }
+
+  getLobbyState() {
+    const roster = this.lastRoomPlayers.length > 0
+      ? [...this.lastRoomPlayers]
+      : [
+          ...(this.localSnapshot ? [this.localSnapshot] : []),
+          ...this.remoteSnapshots,
+        ]
+
+    roster.sort((left, right) => {
+      if (left.id === this.hostId) {
+        return -1
+      }
+      if (right.id === this.hostId) {
+        return 1
+      }
+      if (left.id === this.playerId) {
+        return -1
+      }
+      if (right.id === this.playerId) {
+        return 1
+      }
+      return left.id.localeCompare(right.id)
+    })
+
+    const players = roster.map((player, index) => {
+      const isLocal = player.id === this.playerId
+      const isHost = player.id === this.hostId
+      const baseLabel = isLocal ? "You" : `Player ${index + 1}`
+
+      return {
+        id: player.id,
+        label: isHost ? `${baseLabel} (Host)` : baseLabel,
+      }
+    })
+
+    return {
+      roomId: this.roomId,
+      hostId: this.hostId,
+      started: this.started,
+      isHost: this.isHost(),
+      playerCount: players.length,
+      players,
+      status: this.lastError || (this.started ? "Match starting..." : "Waiting for players."),
+    }
+  }
+
+  emitLobbyStateChanged() {
+    if (typeof this.onLobbyStateChanged === "function") {
+      this.onLobbyStateChanged(this.getLobbyState())
+    }
+  }
+
   getRemoteSnapshots() {
     return this.remoteSnapshots
   }
@@ -168,15 +259,37 @@ export class MultiplayerSession {
       case MESSAGE_TYPES.ROOM_JOINED:
         this.roomId = message.roomId
         this.playerId = message.playerId
+        this.hostId = message.hostId || this.hostId
+        this.started = Boolean(message.started)
+        this.lastError = ""
         this.applySnapshots(message.players || [])
         if (this.joinWaiter) {
           this.joinWaiter.resolve({ roomId: this.roomId, playerId: this.playerId })
           this.joinWaiter = null
         }
+        this.emitLobbyStateChanged()
         break
       case MESSAGE_TYPES.SNAPSHOT:
-      case MESSAGE_TYPES.ROOM_STATE:
         this.applySnapshots(message.players || [])
+        break
+      case MESSAGE_TYPES.ROOM_STATE:
+        {
+          const wasStarted = this.started
+          this.roomId = message.roomId || this.roomId
+          this.hostId = message.hostId || this.hostId
+          this.started = Boolean(message.started)
+          if (this.started) {
+            this.lastError = ""
+          }
+          this.applySnapshots(message.players || [])
+          this.emitLobbyStateChanged()
+          if (!wasStarted && this.started && typeof this.onMatchStarted === "function") {
+            this.onMatchStarted({
+              roomId: this.roomId,
+              hostId: this.hostId,
+            })
+          }
+        }
         break
       case MESSAGE_TYPES.PLAYER_LEFT:
       case MESSAGE_TYPES.PLAYER_JOINED:
@@ -196,6 +309,7 @@ export class MultiplayerSession {
           this.joinWaiter.reject(new Error(this.lastError))
           this.joinWaiter = null
         }
+        this.emitLobbyStateChanged()
         break
       default:
         break
@@ -203,6 +317,7 @@ export class MultiplayerSession {
   }
 
   applySnapshots(players) {
+    this.lastRoomPlayers = [...players]
     this.localSnapshot = players.find((player) => player.id === this.playerId) || this.localSnapshot
     this.remoteSnapshots = players.filter((player) => player.id !== this.playerId)
   }
@@ -211,7 +326,12 @@ export class MultiplayerSession {
     this.connected = false
     this.lastError = message
     this.roomId = ""
+    this.hostId = ""
+    this.started = false
     this.localSnapshot = null
     this.remoteSnapshots = []
+    this.lastRoomPlayers = []
+    this.pendingJumpPressed = false
+    this.emitLobbyStateChanged()
   }
 }

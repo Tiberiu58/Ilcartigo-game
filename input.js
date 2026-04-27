@@ -21,6 +21,7 @@ export class InputController {
     this.handlePointerMove = this.handlePointerMove.bind(this)
     this.handlePointerDown = this.handlePointerDown.bind(this)
     this.handlePointerUp = this.handlePointerUp.bind(this)
+    this.handleCanvasClick = this.handleCanvasClick.bind(this)
     this.handleWheel = this.handleWheel.bind(this)
     this.handlePointerLockChange = this.handlePointerLockChange.bind(this)
     this.handlePointerLockError = this.handlePointerLockError.bind(this)
@@ -34,6 +35,7 @@ export class InputController {
     document.addEventListener("mousemove", this.handlePointerMove, { passive: true })
     document.addEventListener("mousedown", this.handlePointerDown)
     document.addEventListener("mouseup", this.handlePointerUp)
+    this.canvas.addEventListener("click", this.handleCanvasClick)
     document.addEventListener("wheel", this.handleWheel, { passive: false })
     this.canvas.addEventListener("contextmenu", this.handleContextMenu)
     document.addEventListener("pointerlockchange", this.handlePointerLockChange)
@@ -47,6 +49,7 @@ export class InputController {
     document.removeEventListener("mousemove", this.handlePointerMove)
     document.removeEventListener("mousedown", this.handlePointerDown)
     document.removeEventListener("mouseup", this.handlePointerUp)
+    this.canvas.removeEventListener("click", this.handleCanvasClick)
     document.removeEventListener("wheel", this.handleWheel)
     this.canvas.removeEventListener("contextmenu", this.handleContextMenu)
     document.removeEventListener("pointerlockchange", this.handlePointerLockChange)
@@ -56,10 +59,30 @@ export class InputController {
 
   requestPointerLock() {
     if (document.pointerLockElement === this.canvas) {
-      return
+      return Promise.resolve()
+    }
+    if (this.pendingPointerLockRequest) {
+      return Promise.resolve()
     }
     this.pendingPointerLockRequest = true
-    this.canvas.requestPointerLock?.()
+    try {
+      const result = this.canvas.requestPointerLock?.()
+      if (result && typeof result.catch === "function") {
+        return result.catch(() => {
+          this.pendingPointerLockRequest = false
+          if (typeof this.onPointerLockError === "function") {
+            this.onPointerLockError()
+          }
+        })
+      }
+      return Promise.resolve(result)
+    } catch (error) {
+      this.pendingPointerLockRequest = false
+      if (typeof this.onPointerLockError === "function") {
+        this.onPointerLockError(error)
+      }
+      return Promise.resolve()
+    }
   }
 
   isLocked() {
@@ -214,11 +237,6 @@ export class InputController {
   }
 
   handlePointerDown(event) {
-    if (!this.pointerLocked && event.target === this.canvas) {
-      this.requestPointerLock()
-      return
-    }
-
     if (event.button !== 0) {
       return
     }
@@ -235,6 +253,12 @@ export class InputController {
   handlePointerUp(event) {
     if (event.button === 0) {
       this.fireHeld = false
+    }
+  }
+
+  handleCanvasClick() {
+    if (!this.pointerLocked) {
+      this.requestPointerLock()
     }
   }
 

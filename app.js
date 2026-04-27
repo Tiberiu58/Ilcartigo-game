@@ -1,18 +1,19 @@
 import { BABYLON } from "./babylon.js"
-import { InputController } from "./input.js"
-import { UIController } from "./ui.js"
-import { Level } from "./level.js?v=multiplayer-v2"
-import { PlayerController } from "./player.js"
+import { InputController } from "./input.js?v=multiplayer-v11"
+import { UIController } from "./ui.js?v=multiplayer-v7"
+import { Level } from "./level.js?v=multiplayer-v7"
+import { PlayerController } from "./player.js?v=multiplayer-v11"
 import { Rifle } from "./weapon.js"
 import { EnemyManager } from "./enemies.js"
-import { TeleportAbility } from "./teleport.js?v=multiplayer-v2"
-import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v2"
-import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v2"
-import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v2"
+import { TeleportAbility } from "./teleport.js?v=multiplayer-v7"
+import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v11"
+import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v11"
+import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v7"
 
 export function bootstrapGame() {
   const APP_STATES = {
     menu: "menu",
+    lobby: "lobby",
     playing: "playing",
     dead: "dead",
   }
@@ -114,6 +115,7 @@ export function bootstrapGame() {
       `fps: ${Math.round(fpsValue)}`,
       `look: ${input.lookX.toFixed(2)}, ${input.lookY.toFixed(2)}`,
       `keys: W${input.keys.KeyW ? 1 : 0} A${input.keys.KeyA ? 1 : 0} S${input.keys.KeyS ? 1 : 0} D${input.keys.KeyD ? 1 : 0}`,
+      `reconcile: ${player.getLastReconcileNote()}`,
       `note: ${debugState.lastFrameNote}`,
       `error: ${debugState.lastError || "none"}`,
     ])
@@ -173,10 +175,34 @@ export function bootstrapGame() {
     debugState.lastFrameNote = "begin singleplayer"
   }
 
+  function enterMultiplayerMatch(reason = "match started") {
+    gameMode = GAME_MODES.multiplayer
+    appState = APP_STATES.playing
+    ui.hideOverlay()
+    debugState.phase = "playing"
+    debugState.lastFrameNote = reason
+    debugState.lastPointerEvent = "awaiting click to lock"
+    debugState.lastError = ""
+  }
+
+  function renderLobbyState(statusOverride = "") {
+    const lobbyState = network.getLobbyState()
+    if (typeof ui.renderLobby === "function") {
+      ui.renderLobby({
+        ...lobbyState,
+        status: statusOverride || lobbyState.status,
+      })
+    }
+  }
+
   async function beginMultiplayerRun(mode) {
     try {
       debugState.lastFrameNote = `multiplayer ${mode}`
+      gameMode = GAME_MODES.multiplayer
+      appState = APP_STATES.lobby
       resetMultiplayerScenario()
+      renderLobbyState(mode === "create" ? "Creating room..." : "Joining room...")
+      ui.showLobbyMenu()
       let roomInfo
       if (mode === "create") {
         roomInfo = await network.createRoom()
@@ -188,15 +214,14 @@ export function bootstrapGame() {
         roomInfo = await network.joinRoom(roomCode)
       }
 
-      gameMode = GAME_MODES.multiplayer
-      appState = APP_STATES.playing
-      ui.hideOverlay()
-      debugState.phase = "playing"
+      appState = APP_STATES.lobby
+      debugState.phase = "lobby"
       debugState.lastFrameNote = `joined room ${roomInfo.roomId}`
-      lockPointer()
+      renderLobbyState(mode === "create" ? `Room ${roomInfo.roomId} created.` : `Joined room ${roomInfo.roomId}.`)
+      ui.showLobbyMenu()
     } catch (error) {
       setDebugError(error instanceof Error ? error.message : String(error))
-      showLobbyMenu()
+      showLobbyMenu(error instanceof Error ? error.message : String(error))
     }
   }
 
@@ -223,10 +248,14 @@ export function bootstrapGame() {
     ui.showMainMenu()
   }
 
-  function showLobbyMenu() {
-    appState = APP_STATES.menu
+  function showLobbyMenu(statusOverride = "") {
+    appState = APP_STATES.lobby
     debugState.phase = "lobby"
     debugState.lastFrameNote = "lobby menu"
+    if (network.roomId) {
+      gameMode = GAME_MODES.multiplayer
+    }
+    renderLobbyState(statusOverride)
     ui.showLobbyMenu()
   }
 
@@ -234,6 +263,19 @@ export function bootstrapGame() {
     network.leaveRoom()
     remotePlayers.clear()
     gameMode = GAME_MODES.singleplayer
+  }
+
+  network.onLobbyStateChanged = () => {
+    if (network.roomId) {
+      gameMode = GAME_MODES.multiplayer
+    }
+    if (appState === APP_STATES.lobby) {
+      renderLobbyState()
+    }
+  }
+
+  network.onMatchStarted = ({ roomId }) => {
+    enterMultiplayerMatch(`match started ${roomId}`)
   }
 
   input.onPointerLockChange = (locked) => {
@@ -265,7 +307,10 @@ export function bootstrapGame() {
     lockPointer()
   })
   ui.lobbyButton?.addEventListener("click", showLobbyMenu)
-  ui.lobbyBackButton?.addEventListener("click", showMainMenu)
+  ui.lobbyBackButton?.addEventListener("click", () => {
+    leaveMultiplayer()
+    showMainMenu()
+  })
   ui.lobbySoloButton?.addEventListener("click", () => {
     leaveMultiplayer()
     beginSinglePlayerRun()
@@ -277,12 +322,34 @@ export function bootstrapGame() {
   ui.joinRoomButton?.addEventListener("click", () => {
     beginMultiplayerRun("join")
   })
+  ui.copyRoomCodeButton?.addEventListener("click", async () => {
+    const roomCode = network.roomId
+    if (!roomCode) {
+      renderLobbyState("No room code available yet.")
+      return
+    }
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("clipboard unavailable")
+      }
+      await navigator.clipboard.writeText(roomCode)
+      renderLobbyState("Room code copied to clipboard.")
+    } catch {
+      renderLobbyState("Could not copy room code.")
+    }
+  })
+  ui.startRoomButton?.addEventListener("click", () => {
+    const started = network.requestStartMatch()
+    if (!started) {
+      renderLobbyState(network.getLobbyState().status)
+      return
+    }
+    renderLobbyState("Starting match...")
+  })
 
   canvas.addEventListener("click", () => {
     debugState.lastInputEvent = "canvas click"
-    if (appState === APP_STATES.playing && !input.isLocked()) {
-      lockPointer()
-    }
   })
 
   window.addEventListener("resize", () => {
@@ -292,6 +359,10 @@ export function bootstrapGame() {
   function getSinglePlayerStatusText() {
     if (appState === APP_STATES.menu) {
       return "Press Play to start a run."
+    }
+
+    if (appState === APP_STATES.lobby) {
+      return network.getLobbyState().status
     }
 
     if (appState === APP_STATES.dead) {
@@ -331,6 +402,10 @@ export function bootstrapGame() {
   }
 
   function getMultiplayerStatusText() {
+    if (appState === APP_STATES.lobby) {
+      return network.getLobbyState().status
+    }
+
     if (!input.isLocked()) {
       return "Click the viewport to relock the mouse."
     }
@@ -359,7 +434,8 @@ export function bootstrapGame() {
       debugState.lastInputEvent = `mouse:${input.lookX.toFixed(2)},${input.lookY.toFixed(2)} fire:${input.fireHeld ? 1 : 0}`
 
       if (appState === APP_STATES.playing) {
-        player.update(dt)
+        const jumpPressed = input.consumeJumpPressed()
+        player.update(dt, { jumpPressed })
 
         if (gameMode === GAME_MODES.singleplayer) {
           if (runState.streakTimer > 0) {
@@ -432,7 +508,7 @@ export function bootstrapGame() {
             level,
             networkSession: network,
           })
-          network.update(dt, { input, player, weapon, teleport })
+          network.update(dt, { input, player, weapon, teleport, jumpPressed })
           remotePlayers.syncSnapshots(network.getRemoteSnapshots())
           remotePlayers.update(dt)
 
@@ -444,6 +520,11 @@ export function bootstrapGame() {
           if (damageTaken > 0) {
             ui.pulseDamage(damageTaken)
           }
+        }
+      } else if (appState === APP_STATES.lobby) {
+        renderLobbyState()
+        if (gameMode === GAME_MODES.multiplayer && network.hasStarted()) {
+          enterMultiplayerMatch(`match started ${network.roomId}`)
         }
       } else {
         teleport.update(dt, false)

@@ -4,6 +4,7 @@ export const MESSAGE_TYPES = {
   CREATE_ROOM: "create_room",
   JOIN_ROOM: "join_room",
   LEAVE_ROOM: "leave_room",
+  START_MATCH: "start_match",
   ROOM_JOINED: "room_joined",
   ROOM_STATE: "room_state",
   PLAYER_JOINED: "player_joined",

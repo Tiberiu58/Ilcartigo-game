@@ -18,6 +18,8 @@ export class Match {
     this.roomId = roomId
     this.roomManager = roomManager
     this.players = new Map()
+    this.hostId = ""
+    this.started = false
     this.lastTickAt = performance.now()
     this.accumulator = 0
     this.simulationInterval = 1000 / MULTIPLAYER_CONFIG.simulationRate
@@ -32,18 +34,20 @@ export class Match {
     client.inputState = this.createNeutralInputState()
     client.playerState = state
     this.players.set(client.id, client)
+    if (!this.hostId) {
+      this.hostId = client.id
+    }
 
     client.send(MESSAGE_TYPES.ROOM_JOINED, {
       roomId: this.roomId,
       playerId: client.id,
+      hostId: this.hostId,
+      started: this.started,
       player: getPlayerSnapshot(state),
       players: this.getSnapshots(),
     })
 
-    this.broadcast(MESSAGE_TYPES.PLAYER_JOINED, {
-      roomId: this.roomId,
-      player: getPlayerSnapshot(state),
-    }, client.id)
+    this.broadcastRoomState()
   }
 
   removePlayer(clientId) {
@@ -53,7 +57,11 @@ export class Match {
     }
 
     this.players.delete(clientId)
+    if (this.hostId === clientId) {
+      this.hostId = this.players.size > 0 ? [...this.players.keys()][0] : ""
+    }
     this.broadcast(MESSAGE_TYPES.PLAYER_LEFT, { roomId: this.roomId, playerId: clientId })
+    this.broadcastRoomState()
 
     if (this.players.size === 0) {
       this.roomManager.deleteRoom(this.roomId)
@@ -66,6 +74,7 @@ export class Match {
       right: 0,
       sprinting: false,
       jumpHeld: false,
+      jumpPressed: false,
       yaw: 0,
       pitch: 0,
       weaponId: null,
@@ -95,13 +104,48 @@ export class Match {
       case MESSAGE_TYPES.LEAVE_ROOM:
         this.removePlayer(client.id)
         break
+      case MESSAGE_TYPES.START_MATCH:
+        this.handleStartMatch(client)
+        break
       default:
         break
     }
   }
 
+  handleStartMatch(client) {
+    if (client.id !== this.hostId) {
+      client.send(MESSAGE_TYPES.ERROR, { message: "Only the host can start the match." })
+      return
+    }
+
+    if (this.started) {
+      client.send(MESSAGE_TYPES.ERROR, { message: "Match already started." })
+      return
+    }
+
+    this.started = true
+    for (const roomClient of this.players.values()) {
+      if (!roomClient.playerState) {
+        continue
+      }
+      respawnPlayerState(roomClient.playerState, this.getPlayerIndex(roomClient.id))
+      roomClient.inputState = this.createNeutralInputState()
+    }
+
+    console.log(`[match ${this.roomId}] host ${client.id} started match with ${this.players.size} players`)
+    this.broadcastRoomState()
+    this.broadcast(MESSAGE_TYPES.SNAPSHOT, {
+      roomId: this.roomId,
+      players: this.getSnapshots(),
+    })
+  }
+
+  getPlayerIndex(clientId) {
+    return [...this.players.keys()].findIndex((id) => id === clientId)
+  }
+
   handleInput(client, message) {
-    if (!client.playerState) {
+    if (!this.started || !client.playerState) {
       return
     }
 
@@ -110,6 +154,7 @@ export class Match {
       right: Number(message.right) || 0,
       sprinting: Boolean(message.sprinting),
       jumpHeld: Boolean(message.jumpHeld),
+      jumpPressed: Boolean(message.jumpPressed),
       yaw: Number(message.yaw) || 0,
       pitch: Number(message.pitch) || 0,
       weaponId: typeof message.weaponId === "string" ? message.weaponId : null,
@@ -117,7 +162,7 @@ export class Match {
   }
 
   handleWeaponSwitch(client, weaponId) {
-    if (!client.playerState || !weaponId) {
+    if (!this.started || !client.playerState || !weaponId) {
       return
     }
 
@@ -140,7 +185,7 @@ export class Match {
 
   handleReload(client) {
     const state = client.playerState
-    if (!state || !state.alive) {
+    if (!this.started || !state || !state.alive) {
       return
     }
 
@@ -179,7 +224,7 @@ export class Match {
 
   handleFire(client) {
     const state = client.playerState
-    if (!state || !state.alive) {
+    if (!this.started || !state || !state.alive) {
       return
     }
 
@@ -248,7 +293,7 @@ export class Match {
 
   handleTeleportPlace(client) {
     const state = client.playerState
-    if (!state || !state.alive || state.weapon.reloadEndAt > 0) {
+    if (!this.started || !state || !state.alive || state.weapon.reloadEndAt > 0) {
       return
     }
 
@@ -266,7 +311,7 @@ export class Match {
 
   handleTeleportUse(client) {
     const state = client.playerState
-    if (!state || !state.alive || !state.teleportMarker) {
+    if (!this.started || !state || !state.alive || !state.teleportMarker) {
       return
     }
 
@@ -300,6 +345,10 @@ export class Match {
   }
 
   tick(now = performance.now()) {
+    if (!this.started) {
+      return
+    }
+
     const elapsed = now - this.lastTickAt
     this.lastTickAt = now
     this.accumulator += elapsed
@@ -351,17 +400,28 @@ export class Match {
       }
 
       stepPlayerSimulation(state, client.inputState, dt)
-      state.position.y = getGroundInfoAt(state.position.x, state.position.z, state.position.y).height
+      client.inputState.jumpPressed = false
       state.weaponInventory[state.weapon.weaponId] = { ...state.weapon }
 
       if (!canOccupyPosition(state.position.x, state.position.z, PLAYER_CONFIG.radius, state.position.y)) {
-        const respawn = getSpawnPoint(this.getRespawnIndex(client.id))
-        state.position.x = respawn.x
-        state.position.y = respawn.y
-        state.position.z = respawn.z
+        const fallback = state.lastSafePosition || getSpawnPoint(this.getRespawnIndex(client.id))
+        console.warn(
+          `[match ${this.roomId}] invalid occupancy for ${client.id} at `
+          + `(${state.position.x.toFixed(2)}, ${state.position.y.toFixed(2)}, ${state.position.z.toFixed(2)}) `
+          + `-> rolling back to (${fallback.x.toFixed(2)}, ${fallback.y.toFixed(2)}, ${fallback.z.toFixed(2)})`
+        )
+        state.position.x = fallback.x
+        state.position.y = fallback.y
+        state.position.z = fallback.z
         state.velocity.x = 0
         state.velocity.y = 0
         state.velocity.z = 0
+      } else {
+        state.lastSafePosition = {
+          x: state.position.x,
+          y: state.position.y,
+          z: state.position.z,
+        }
       }
     }
   }
@@ -373,6 +433,15 @@ export class Match {
 
   getSnapshots() {
     return [...this.players.values()].map((client) => getPlayerSnapshot(client.playerState))
+  }
+
+  broadcastRoomState() {
+    this.broadcast(MESSAGE_TYPES.ROOM_STATE, {
+      roomId: this.roomId,
+      hostId: this.hostId,
+      started: this.started,
+      players: this.getSnapshots(),
+    })
   }
 
   broadcast(type, payload, excludeId = null) {

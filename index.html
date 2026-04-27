@@ -216,18 +216,19 @@
                 <div class="lobby-grid">
                   <div class="info-panel">
                     <span class="info-label">Room Code</span>
-                    <strong>Created On Join</strong>
+                    <strong id="lobby-room-code">Created On Join</strong>
                   </div>
                   <div class="info-panel">
                     <span class="info-label">Status</span>
-                    <strong>Authoritative WebSocket Match</strong>
+                    <strong id="lobby-room-status">Authoritative WebSocket Match</strong>
                   </div>
                 </div>
                 <div class="lobby-actions">
                   <button id="create-room-button" type="button">Create Room</button>
                   <button id="join-room-button" type="button" class="button-secondary">Join Room</button>
+                  <button id="copy-room-code-button" type="button" class="button-secondary">Copy Code</button>
                 </div>
-                <div class="player-slots">
+                <div class="player-slots" id="player-slots">
                   <div class="slot-card slot-card-active">
                     <span class="info-label">Slot 1</span>
                     <strong>You</strong>
@@ -246,6 +247,7 @@
                   </div>
                 </div>
                 <div class="menu-actions">
+                  <button id="start-room-button" type="button" class="hidden">Start Game</button>
                   <button id="lobby-solo-button" type="button">Start Solo Run</button>
                   <button id="lobby-back-button" type="button" class="button-secondary">Back</button>
                 </div>
@@ -269,6 +271,6 @@
     </main>
 
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script type="module" src="game.js?v=multiplayer-v2"></script>
+    <script type="module" src="game.js?v=multiplayer-v11"></script>
   </body>
 </html>

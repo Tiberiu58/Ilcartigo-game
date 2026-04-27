@@ -29,6 +29,7 @@ export function createPlayerState(id, spawnIndex = 0) {
     id,
     roomId: null,
     ...createSimulationState(spawn),
+    lastSafePosition: { x: spawn.x, y: spawn.y, z: spawn.z },
     health: PLAYER_CONFIG.maxHealth,
     alive: true,
     respawnAt: 0,
@@ -48,7 +49,9 @@ export function respawnPlayerState(state, spawnIndex) {
   state.pitch = simulation.pitch
   state.grounded = simulation.grounded
   state.coyoteTimer = simulation.coyoteTimer
+  state.jumpBufferTimer = simulation.jumpBufferTimer
   state.jumpHeldLast = simulation.jumpHeldLast
+  state.lastSafePosition = { x: spawn.x, y: spawn.y, z: spawn.z }
   state.health = PLAYER_CONFIG.maxHealth
   state.alive = true
   state.respawnAt = 0

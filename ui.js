@@ -47,6 +47,11 @@ export class UIController {
     this.lobbySoloButton = rootDocument.getElementById("lobby-solo-button")
     this.createRoomButton = rootDocument.getElementById("create-room-button")
     this.joinRoomButton = rootDocument.getElementById("join-room-button")
+    this.copyRoomCodeButton = rootDocument.getElementById("copy-room-code-button")
+    this.startRoomButton = rootDocument.getElementById("start-room-button")
+    this.lobbyRoomCode = rootDocument.getElementById("lobby-room-code")
+    this.lobbyRoomStatus = rootDocument.getElementById("lobby-room-status")
+    this.playerSlots = rootDocument.getElementById("player-slots")
     this.loadoutOptions = rootDocument.getElementById("loadout-options")
     this.loadoutWeaponName = rootDocument.getElementById("loadout-weapon-name")
     this.loadoutWeaponDescription = rootDocument.getElementById("loadout-weapon-description")
@@ -163,6 +168,48 @@ export class UIController {
 
   showLobbyMenu() {
     this.showScreen("lobby")
+  }
+
+  renderLobby(lobbyState) {
+    if (this.lobbyRoomCode) {
+      this.lobbyRoomCode.textContent = lobbyState.roomId || "Created On Join"
+    }
+
+    if (this.lobbyRoomStatus) {
+      this.lobbyRoomStatus.textContent = lobbyState.status
+    }
+
+    if (this.copyRoomCodeButton) {
+      this.copyRoomCodeButton.disabled = !lobbyState.roomId
+    }
+
+    if (this.startRoomButton) {
+      this.startRoomButton.classList.toggle("hidden", !lobbyState.isHost)
+      this.startRoomButton.disabled = !lobbyState.isHost || lobbyState.started
+    }
+
+    if (!this.playerSlots) {
+      return
+    }
+
+    const fragment = this.rootDocument.createDocumentFragment()
+    for (let index = 0; index < 4; index += 1) {
+      const player = lobbyState.players[index]
+      const slot = this.rootDocument.createElement("div")
+      slot.className = `slot-card${player ? " slot-card-active" : ""}`
+
+      const label = this.rootDocument.createElement("span")
+      label.className = "info-label"
+      label.textContent = `Slot ${index + 1}`
+
+      const strong = this.rootDocument.createElement("strong")
+      strong.textContent = player ? player.label : "Open"
+
+      slot.append(label, strong)
+      fragment.append(slot)
+    }
+
+    this.playerSlots.replaceChildren(fragment)
   }
 
   renderLoadout(weaponIds, weaponLibrary, selectedWeaponId) {

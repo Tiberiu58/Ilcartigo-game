@@ -47,14 +47,23 @@ wss.on("connection", (socket) => {
   socket.on("message", (raw) => {
     const message = parseMessage(raw.toString())
     if (!message) {
+      console.warn(`[server] invalid payload from ${client.id}: ${raw.toString()}`)
       client.send(MESSAGE_TYPES.ERROR, { message: "Invalid message payload." })
       return
     }
 
     if (message.type === MESSAGE_TYPES.CREATE_ROOM) {
-      leaveCurrentRoom(client)
-      const room = roomManager.createRoom()
-      room.addPlayer(client)
+      try {
+        leaveCurrentRoom(client)
+        const room = roomManager.createRoom()
+        if (!room) {
+          client.send(MESSAGE_TYPES.ERROR, { message: "Could not generate a room code. Try again." })
+          return
+        }
+        room.addPlayer(client)
+      } catch {
+        client.send(MESSAGE_TYPES.ERROR, { message: "Could not generate a room code. Try again." })
+      }
       return
     }
 
@@ -78,10 +87,14 @@ wss.on("connection", (socket) => {
 
     const room = client.roomId ? roomManager.getRoom(client.roomId) : null
     if (!room) {
+      console.warn(`[server] ${client.id} sent ${message.type} without room membership`)
       client.send(MESSAGE_TYPES.ERROR, { message: "Join a room first." })
       return
     }
 
+    if (message.type === MESSAGE_TYPES.START_MATCH) {
+      console.log(`[server] ${client.id} requested start for room ${client.roomId}`)
+    }
     room.handleMessage(client, message)
   })
 
