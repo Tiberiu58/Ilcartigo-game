@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: facility-zero-server
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production

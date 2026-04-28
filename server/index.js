@@ -1,10 +1,16 @@
+import http from "node:http"
 import { WebSocketServer } from "ws"
 import { MULTIPLAYER_CONFIG } from "../config.js"
 import { MESSAGE_TYPES, normalizeRoomCode, parseMessage, serializeMessage } from "../shared/protocol.js"
 import { RoomManager } from "./roomManager.js"
 
 const roomManager = new RoomManager()
-const wss = new WebSocketServer({ port: MULTIPLAYER_CONFIG.serverPort })
+const port = Number(process.env.PORT) || MULTIPLAYER_CONFIG.serverPort
+const server = http.createServer((request, response) => {
+  response.writeHead(200, { "content-type": "text/plain" })
+  response.end("Facility Zero multiplayer server is running.\n")
+})
+const wss = new WebSocketServer({ server })
 let nextClientId = 1
 
 function createClientSocket(socket) {
@@ -109,4 +115,6 @@ setInterval(() => {
   }
 }, Math.max(4, Math.floor(1000 / MULTIPLAYER_CONFIG.simulationRate)))
 
-console.log(`Facility Zero multiplayer server running on ws://localhost:${MULTIPLAYER_CONFIG.serverPort}`)
+server.listen(port, "0.0.0.0", () => {
+  console.log(`Facility Zero multiplayer server running on port ${port}`)
+})
