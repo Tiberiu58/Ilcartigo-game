@@ -367,17 +367,23 @@ export function raycastWalls(origin, direction, maxDistance) {
   if (rayX < 0) {
     stepX = -1
     sideDistX = (origin.x - cellX * cellSize) / -rayX
-  } else {
+  } else if (rayX > 0) {
     stepX = 1
-    sideDistX = (((cellX + 1) * cellSize) - origin.x) / (rayX || 1)
+    sideDistX = (((cellX + 1) * cellSize) - origin.x) / rayX
+  } else {
+    stepX = 0
+    sideDistX = Infinity
   }
 
   if (rayZ < 0) {
     stepZ = -1
     sideDistZ = (origin.z - cellZ * cellSize) / -rayZ
-  } else {
+  } else if (rayZ > 0) {
     stepZ = 1
-    sideDistZ = (((cellZ + 1) * cellSize) - origin.z) / (rayZ || 1)
+    sideDistZ = (((cellZ + 1) * cellSize) - origin.z) / rayZ
+  } else {
+    stepZ = 0
+    sideDistZ = Infinity
   }
 
   let distance = 0

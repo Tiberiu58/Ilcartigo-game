@@ -1,4 +1,4 @@
-import { ENEMY_CONFIG, PLAYER_CONFIG, TELEPORT_CONFIG, getWeaponDefinition } from "../config.js"
+import { PLAYER_CONFIG, TELEPORT_CONFIG, WEAPON_CONFIG, getWeaponDefinition } from "../config.js"
 import {
   canOccupyPosition,
   computeTeleportMarkerTarget,
@@ -6,12 +6,16 @@ import {
   getLookDirection,
   getPlayerShootOrigin,
   getSpawnPoint,
+  raycastWalls,
   validateTeleportTarget,
 } from "../shared/arena.js"
 import { createPlayerState, getPlayerSnapshot, MULTIPLAYER_CONFIG, respawnPlayerState } from "../shared/gameRules.js"
 import { raySphereIntersection } from "../shared/math.js"
 import { MESSAGE_TYPES, serializeMessage } from "../shared/protocol.js"
 import { stepPlayerSimulation } from "../shared/playerSimulation.js"
+
+const DEBUG_SHOOTING = false
+const PLAYER_HITBOX_RADIUS = PLAYER_CONFIG.radius + 0.34
 
 export class Match {
   constructor(roomId, roomManager) {
@@ -87,7 +91,7 @@ export class Match {
         this.handleInput(client, message)
         break
       case MESSAGE_TYPES.FIRE:
-        this.handleFire(client)
+        this.handleFire(client, message)
         break
       case MESSAGE_TYPES.RELOAD:
         this.handleReload(client)
@@ -183,6 +187,15 @@ export class Match {
     }
   }
 
+  getWeaponStats(weaponId) {
+    const definition = getWeaponDefinition(weaponId)
+    return {
+      ...WEAPON_CONFIG,
+      ...definition.stats,
+      fireInterval: definition.stats.fireRate ?? WEAPON_CONFIG.fireInterval,
+    }
+  }
+
   handleReload(client) {
     const state = client.playerState
     if (!this.started || !state || !state.alive) {
@@ -222,43 +235,56 @@ export class Match {
     }
   }
 
-  handleFire(client) {
+  handleFire(client, message = {}) {
     const state = client.playerState
     if (!this.started || !state || !state.alive) {
+      this.logShot("rejected", { shooterId: client.id, reason: "match not started or shooter dead" })
       return
     }
 
-    const definition = getWeaponDefinition(state.weapon.weaponId)
+    const stats = this.getWeaponStats(state.weapon.weaponId)
     if (state.weapon.reloadEndAt > 0 || state.weapon.cooldown > 0 || state.weapon.clipAmmo <= 0) {
+      this.logShot("rejected", { shooterId: client.id, reason: "weapon unavailable" })
       return
     }
 
     state.weapon.clipAmmo -= 1
-    state.weapon.cooldown = definition.stats.fireRate
+    state.weapon.cooldown = stats.fireInterval
     state.weaponInventory[state.weapon.weaponId] = { ...state.weapon }
+
+    if (Number.isFinite(message.yaw)) {
+      state.yaw = Number(message.yaw)
+    }
+    if (Number.isFinite(message.pitch)) {
+      state.pitch = Math.max(-PLAYER_CONFIG.maxPitch, Math.min(PLAYER_CONFIG.maxPitch, Number(message.pitch)))
+    }
 
     const origin = getPlayerShootOrigin(state)
     const direction = getLookDirection(state.yaw, state.pitch)
+
+    // Server-owned hitscan order:
+    // 1. Find the nearest wall along the shot.
+    // 2. Test every other alive player's virtual capsule only up to that wall distance.
+    // This makes walls block bullets while still allowing players in open line of sight to be hit.
+    const wallDistance = raycastWalls(origin, direction, stats.range)
     let bestClient = null
-    let bestDistance = definition.stats.range
+    let bestDistance = wallDistance
+
+    this.logShot("fired", {
+      shooterId: client.id,
+      weaponId: state.weapon.weaponId,
+      origin,
+      direction,
+      wallDistance,
+      range: stats.range,
+    })
 
     for (const target of this.players.values()) {
       if (target.id === client.id || !target.playerState?.alive) {
         continue
       }
 
-      const targetCenter = {
-        x: target.playerState.position.x,
-        y: target.playerState.position.y + PLAYER_CONFIG.eyeHeight * 0.55,
-        z: target.playerState.position.z,
-      }
-      const hitDistance = raySphereIntersection(
-        origin,
-        direction,
-        targetCenter,
-        PLAYER_CONFIG.radius + 0.28,
-        bestDistance
-      )
+      const hitDistance = this.raycastPlayerCapsule(origin, direction, target.playerState, bestDistance)
 
       if (hitDistance < bestDistance) {
         bestDistance = hitDistance
@@ -267,21 +293,39 @@ export class Match {
     }
 
     if (!bestClient) {
+      this.logShot("miss", {
+        shooterId: client.id,
+        blockedByWall: wallDistance < stats.range,
+        wallDistance,
+      })
       return
     }
 
-    bestClient.playerState.health = Math.max(0, bestClient.playerState.health - definition.stats.damage)
+    bestClient.playerState.health = Math.max(0, bestClient.playerState.health - stats.damage)
+    this.logShot("hit", {
+      shooterId: client.id,
+      victimId: bestClient.id,
+      distance: bestDistance,
+      damage: stats.damage,
+      health: bestClient.playerState.health,
+    })
     this.broadcast(MESSAGE_TYPES.DAMAGE, {
       roomId: this.roomId,
       attackerId: client.id,
       victimId: bestClient.id,
-      amount: definition.stats.damage,
+      amount: stats.damage,
       health: bestClient.playerState.health,
     })
 
     if (bestClient.playerState.health <= 0) {
       bestClient.playerState.alive = false
       bestClient.playerState.respawnAt = MULTIPLAYER_CONFIG.respawnDelay
+      bestClient.playerState.teleportMarker = null
+      this.logShot("death", {
+        shooterId: client.id,
+        victimId: bestClient.id,
+        respawnDelay: MULTIPLAYER_CONFIG.respawnDelay,
+      })
       this.broadcast(MESSAGE_TYPES.DEATH, {
         roomId: this.roomId,
         attackerId: client.id,
@@ -289,6 +333,54 @@ export class Match {
         respawnDelay: MULTIPLAYER_CONFIG.respawnDelay,
       })
     }
+
+    this.broadcast(MESSAGE_TYPES.SNAPSHOT, {
+      roomId: this.roomId,
+      players: this.getSnapshots(),
+    })
+  }
+
+  raycastPlayerCapsule(origin, direction, targetState, maxDistance) {
+    if (!targetState?.alive || maxDistance <= 0) {
+      return Infinity
+    }
+
+    // Lightweight capsule approximation: three overlapping spheres from torso to head.
+    // The server uses this virtual hitbox instead of trusting client-side Babylon meshes.
+    const sampleHeights = [
+      PLAYER_CONFIG.eyeHeight * 0.25,
+      PLAYER_CONFIG.eyeHeight * 0.62,
+      PLAYER_CONFIG.eyeHeight * 0.95,
+    ]
+    let bestDistance = Infinity
+
+    for (const height of sampleHeights) {
+      const hitDistance = raySphereIntersection(
+        origin,
+        direction,
+        {
+          x: targetState.position.x,
+          y: targetState.position.y + height,
+          z: targetState.position.z,
+        },
+        PLAYER_HITBOX_RADIUS,
+        maxDistance
+      )
+
+      if (hitDistance < bestDistance) {
+        bestDistance = hitDistance
+      }
+    }
+
+    return bestDistance
+  }
+
+  logShot(event, details = {}) {
+    if (!DEBUG_SHOOTING) {
+      return
+    }
+
+    console.log(`[match ${this.roomId}] shot:${event}`, details)
   }
 
   handleTeleportPlace(client) {
@@ -386,6 +478,11 @@ export class Match {
           state.respawnAt = Math.max(0, state.respawnAt - dt)
           if (state.respawnAt === 0) {
             respawnPlayerState(state, this.getRespawnIndex(client.id))
+            this.logShot("respawn", {
+              playerId: client.id,
+              position: state.position,
+              health: state.health,
+            })
             this.broadcast(MESSAGE_TYPES.RESPAWN, {
               roomId: this.roomId,
               player: getPlayerSnapshot(state),

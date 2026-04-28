@@ -1,14 +1,14 @@
 import { BABYLON } from "./babylon.js"
-import { InputController } from "./input.js?v=multiplayer-v11"
-import { UIController } from "./ui.js?v=multiplayer-v7"
-import { Level } from "./level.js?v=multiplayer-v7"
-import { PlayerController } from "./player.js?v=multiplayer-v11"
-import { Rifle } from "./weapon.js"
+import { InputController } from "./input.js?v=multiplayer-v15"
+import { UIController } from "./ui.js?v=multiplayer-v15"
+import { Level } from "./level.js?v=multiplayer-v15"
+import { PlayerController } from "./player.js?v=multiplayer-v15"
+import { Rifle } from "./weapon.js?v=multiplayer-v15"
 import { EnemyManager } from "./enemies.js"
-import { TeleportAbility } from "./teleport.js?v=multiplayer-v7"
-import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v11"
-import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v11"
-import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v7"
+import { TeleportAbility } from "./teleport.js?v=multiplayer-v15"
+import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v15"
+import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v15"
+import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v15"
 
 export function bootstrapGame() {
   const APP_STATES = {
@@ -546,8 +546,8 @@ export function bootstrapGame() {
         enemies: gameMode === GAME_MODES.multiplayer
           ? network.getRemoteSnapshots().length + (network.roomId ? 1 : 0)
           : enemies.getAliveCount(),
-        score: runState.score,
-        kills: runState.kills,
+        score: gameMode === GAME_MODES.multiplayer ? network.getScore() : runState.score,
+        kills: gameMode === GAME_MODES.multiplayer ? network.getKills() : runState.kills,
         fps: Math.round(fpsValue),
         status: gameMode === GAME_MODES.multiplayer ? getMultiplayerStatusText() : getSinglePlayerStatusText(),
         crosshairGap: weapon.getCrosshairGap(player),

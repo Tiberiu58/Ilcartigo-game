@@ -1,6 +1,8 @@
 import { BABYLON } from "../babylon.js"
 import { damp } from "../utils.js"
 
+const DEBUG_REMOTE_HITBOXES = false
+
 class RemotePlayerView {
   constructor(scene, id) {
     this.scene = scene
@@ -53,6 +55,25 @@ class RemotePlayerView {
     this.gun.position.set(0.32, 1.12, 0.22)
     this.gun.material = this.bodyMaterial
     this.gun.isPickable = false
+
+    this.hitboxMaterial = new BABYLON.StandardMaterial(`remotePlayerHitbox-${id}`, scene)
+    this.hitboxMaterial.diffuseColor = BABYLON.Color3.FromHexString("#44c8ff")
+    this.hitboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#1b6f9c")
+    this.hitboxMaterial.alpha = 0.2
+    this.hitboxMaterial.wireframe = true
+
+    // Visual-only helper matching the server's virtual player hitbox.
+    // Damage is still decided on the authoritative Node server.
+    this.debugHitbox = BABYLON.MeshBuilder.CreateBox(`remotePlayerHitboxMesh-${id}`, {
+      width: 1.36,
+      height: 1.85,
+      depth: 1.36,
+    }, scene)
+    this.debugHitbox.parent = this.root
+    this.debugHitbox.position.y = 0.92
+    this.debugHitbox.material = this.hitboxMaterial
+    this.debugHitbox.isPickable = false
+    this.debugHitbox.setEnabled(DEBUG_REMOTE_HITBOXES)
   }
 
   applySnapshot(snapshot) {
@@ -73,12 +94,14 @@ class RemotePlayerView {
     this.root.position.y = damp(this.root.position.y, this.target.position.y, 18, dt)
     this.root.position.z = damp(this.root.position.z, this.target.position.z, 18, dt)
     this.root.rotation.y = damp(this.root.rotation.y, this.target.yaw, 18, dt)
+    this.debugHitbox.setEnabled(DEBUG_REMOTE_HITBOXES && this.target.alive)
   }
 
   dispose() {
     this.root.dispose()
     this.bodyMaterial.dispose()
     this.headMaterial.dispose()
+    this.hitboxMaterial.dispose()
   }
 }
 

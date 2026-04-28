@@ -1,5 +1,6 @@
 import { BABYLON } from "./babylon.js"
 import { getWeaponDefinition, LOADOUT_CONFIG, WEAPON_CONFIG } from "./config.js"
+import { getLookDirection, getPlayerShootOrigin } from "./shared/arena.js"
 import { clamp, damp } from "./utils.js"
 
 export class Rifle {
@@ -377,7 +378,14 @@ export class Rifle {
       (Math.random() - 0.5) * (this.weaponConfig.recoilYaw + this.recoil * 0.0008)
     )
 
-    return networkSession.requestFire()
+    return networkSession.requestFire({
+      yaw: player.yaw,
+      pitch: player.pitch,
+      weaponId: this.weaponId,
+      origin: getPlayerShootOrigin(player),
+      direction: getLookDirection(player.yaw, player.pitch),
+      timestamp: Date.now(),
+    })
   }
 
   startReload() {

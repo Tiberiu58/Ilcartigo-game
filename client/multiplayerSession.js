@@ -1,6 +1,6 @@
 import { MULTIPLAYER_CONFIG } from "../config.js"
-import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v11"
-import { NetworkClient } from "./networkClient.js?v=multiplayer-v11"
+import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v15"
+import { NetworkClient } from "./networkClient.js?v=multiplayer-v15"
 
 export class MultiplayerSession {
   constructor() {
@@ -25,6 +25,9 @@ export class MultiplayerSession {
     this.inputAccumulator = 0
     this.hitMarkerPulse = false
     this.damagePulse = 0
+    this.kills = 0
+    this.deaths = 0
+    this.score = 0
     this.pendingJumpPressed = false
     this.onLobbyStateChanged = null
     this.onMatchStarted = null
@@ -69,6 +72,9 @@ export class MultiplayerSession {
     this.remoteSnapshots = []
     this.lastRoomPlayers = []
     this.pendingJumpPressed = false
+    this.kills = 0
+    this.deaths = 0
+    this.score = 0
     this.lastError = ""
     this.emitLobbyStateChanged()
   }
@@ -116,11 +122,19 @@ export class MultiplayerSession {
     }
   }
 
-  requestFire() {
+  requestFire(aim = {}) {
     if (!this.roomId) {
       return false
     }
-    this.client.send(MESSAGE_TYPES.FIRE, { roomId: this.roomId })
+    this.client.send(MESSAGE_TYPES.FIRE, {
+      roomId: this.roomId,
+      yaw: Number.isFinite(aim.yaw) ? aim.yaw : undefined,
+      pitch: Number.isFinite(aim.pitch) ? aim.pitch : undefined,
+      weaponId: typeof aim.weaponId === "string" ? aim.weaponId : undefined,
+      origin: sanitizeVector3(aim.origin),
+      direction: sanitizeVector3(aim.direction),
+      timestamp: Number.isFinite(aim.timestamp) ? aim.timestamp : Date.now(),
+    })
     return true
   }
 
@@ -239,6 +253,14 @@ export class MultiplayerSession {
     return value
   }
 
+  getKills() {
+    return this.kills
+  }
+
+  getScore() {
+    return this.score
+  }
+
   getStatusText() {
     if (!this.roomId) {
       return this.lastError || "Connect to a multiplayer room."
@@ -293,14 +315,37 @@ export class MultiplayerSession {
         break
       case MESSAGE_TYPES.PLAYER_LEFT:
       case MESSAGE_TYPES.PLAYER_JOINED:
+        break
       case MESSAGE_TYPES.RESPAWN:
+        if (message.player?.id) {
+          this.patchPlayerSnapshot(message.player.id, message.player)
+        }
         break
       case MESSAGE_TYPES.DAMAGE:
+        this.patchPlayerSnapshot(message.victimId, {
+          health: Number.isFinite(message.health) ? message.health : undefined,
+        })
         if (message.attackerId === this.playerId) {
           this.hitMarkerPulse = true
+          this.score += Math.max(0, Math.round((message.amount || 0) * 0.5))
         }
         if (message.victimId === this.playerId) {
           this.damagePulse = message.amount || 10
+        }
+        break
+      case MESSAGE_TYPES.DEATH:
+        this.patchPlayerSnapshot(message.victimId, {
+          alive: false,
+          health: 0,
+          respawnAt: message.respawnDelay || 0,
+        })
+        if (message.attackerId === this.playerId && message.victimId !== this.playerId) {
+          this.kills += 1
+          this.score += 100
+        }
+        if (message.victimId === this.playerId) {
+          this.deaths += 1
+          this.damagePulse = Math.max(this.damagePulse, 30)
         }
         break
       case MESSAGE_TYPES.ERROR:
@@ -322,6 +367,27 @@ export class MultiplayerSession {
     this.remoteSnapshots = players.filter((player) => player.id !== this.playerId)
   }
 
+  patchPlayerSnapshot(playerId, patch) {
+    if (!playerId) {
+      return
+    }
+
+    const cleanPatch = Object.fromEntries(
+      Object.entries(patch).filter(([, value]) => value !== undefined)
+    )
+
+    if (this.localSnapshot?.id === playerId) {
+      this.localSnapshot = { ...this.localSnapshot, ...cleanPatch }
+    }
+
+    this.remoteSnapshots = this.remoteSnapshots.map((snapshot) => (
+      snapshot.id === playerId ? { ...snapshot, ...cleanPatch } : snapshot
+    ))
+    this.lastRoomPlayers = this.lastRoomPlayers.map((snapshot) => (
+      snapshot.id === playerId ? { ...snapshot, ...cleanPatch } : snapshot
+    ))
+  }
+
   handleDisconnected(message) {
     this.connected = false
     this.lastError = message
@@ -332,6 +398,21 @@ export class MultiplayerSession {
     this.remoteSnapshots = []
     this.lastRoomPlayers = []
     this.pendingJumpPressed = false
+    this.kills = 0
+    this.deaths = 0
+    this.score = 0
     this.emitLobbyStateChanged()
+  }
+}
+
+function sanitizeVector3(value) {
+  if (!value || !Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
+    return undefined
+  }
+
+  return {
+    x: value.x,
+    y: value.y,
+    z: value.z,
   }
 }
