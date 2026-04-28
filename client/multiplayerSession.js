@@ -1,12 +1,11 @@
 import { MULTIPLAYER_CONFIG } from "../config.js"
-import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v15"
-import { NetworkClient } from "./networkClient.js?v=multiplayer-v15"
+import { getMultiplayerServerUrl } from "./runtimeConfig.js?v=multiplayer-v16"
+import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v16"
+import { NetworkClient } from "./networkClient.js?v=multiplayer-v16"
 
 export class MultiplayerSession {
   constructor() {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws"
-    const host = window.location.hostname || "127.0.0.1"
-    this.client = new NetworkClient(`${protocol}://${host}:${MULTIPLAYER_CONFIG.serverPort}`)
+    this.client = new NetworkClient(getMultiplayerServerUrl())
     this.client.onMessage = (message) => this.handleMessage(message)
     this.client.onClose = () => this.handleDisconnected("Disconnected from multiplayer server.")
     this.client.onError = () => this.handleDisconnected("Failed to reach multiplayer server.")

@@ -1,14 +1,14 @@
 import { BABYLON } from "./babylon.js"
-import { InputController } from "./input.js?v=multiplayer-v15"
-import { UIController } from "./ui.js?v=multiplayer-v15"
-import { Level } from "./level.js?v=multiplayer-v15"
-import { PlayerController } from "./player.js?v=multiplayer-v15"
-import { Rifle } from "./weapon.js?v=multiplayer-v15"
+import { InputController } from "./input.js?v=multiplayer-v16"
+import { UIController } from "./ui.js?v=multiplayer-v16"
+import { Level } from "./level.js?v=multiplayer-v16"
+import { PlayerController } from "./player.js?v=multiplayer-v16"
+import { Rifle } from "./weapon.js?v=multiplayer-v16"
 import { EnemyManager } from "./enemies.js"
-import { TeleportAbility } from "./teleport.js?v=multiplayer-v15"
-import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v15"
-import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v15"
-import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v15"
+import { TeleportAbility } from "./teleport.js?v=multiplayer-v16"
+import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v16"
+import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v16"
+import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v16"
 
 export function bootstrapGame() {
   const APP_STATES = {

@@ -11,12 +11,23 @@ export class NetworkClient {
   }
 
   connect() {
+    if (!this.url) {
+      return Promise.reject(new Error("Multiplayer server URL is not configured."))
+    }
+
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return Promise.resolve()
     }
 
     return new Promise((resolve, reject) => {
-      const socket = new WebSocket(this.url)
+      let socket
+      try {
+        socket = new WebSocket(this.url)
+      } catch (error) {
+        reject(error)
+        return
+      }
+
       this.socket = socket
 
       socket.addEventListener("open", () => {
