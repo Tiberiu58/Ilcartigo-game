@@ -4,31 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Facility Zero</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=multiplayer-v18" />
   </head>
   <body>
     <main class="shell">
-      <section class="topbar" aria-label="Header">
-        <div>
-          <p class="eyebrow">Practice Build</p>
-          <h1>Facility Zero</h1>
-        </div>
-        <div class="header-stats" aria-label="Overview">
-          <div class="header-stat">
-            <span>Mode</span>
-            <strong>Solo FPS</strong>
-          </div>
-          <div class="header-stat">
-            <span>Style</span>
-            <strong>Arcade</strong>
-          </div>
-          <div class="header-stat">
-            <span>Loop</span>
-            <strong>Waves</strong>
-          </div>
-        </div>
-      </section>
-
       <section class="arena">
         <div class="viewport">
           <canvas id="renderCanvas" aria-label="3D first person shooter" tabindex="0"></canvas>
@@ -79,6 +58,7 @@
                 <p>R - RELOAD</p>
                 <p>Q - PLACE / TELEPORT PIN</p>
                 <p>WHEEL / 1 2 3 - SWITCH</p>
+                <p>TAB - SCOREBOARD</p>
                 <p>ESC - MENU</p>
               </div>
 
@@ -127,6 +107,14 @@
 
           <div class="screen-flash" id="screen-flash" aria-hidden="true"></div>
 
+          <aside class="scoreboard hidden" id="scoreboard" aria-live="polite">
+            <div class="scoreboard-header">
+              <span class="eyebrow">Deathmatch</span>
+              <strong id="scoreboard-timer">5:00</strong>
+            </div>
+            <div class="scoreboard-table" id="scoreboard-table"></div>
+          </aside>
+
           <aside class="debug-panel" id="debug-panel" aria-live="polite">
             <div class="debug-panel-title">Debug</div>
             <pre class="debug-panel-body" id="debug-panel-body">Booting...</pre>
@@ -134,15 +122,20 @@
 
           <div class="overlay" id="overlay">
             <div class="card menu-shell" id="menu-root">
-              <section class="menu-screen" id="screen-main">
-                <p class="eyebrow">Practice Build</p>
+              <section class="menu-screen ready-room" id="screen-main">
+                <p class="eyebrow">Ready Room</p>
                 <h2>Facility Zero</h2>
                 <p class="menu-copy">
-                  Fast arcade wave survival.
+                  Fast browser FPS. Create a room, copy the code, start the match.
                 </p>
-                <div class="menu-actions">
-                  <button id="play-button" type="button">Play</button>
-                  <button id="lobby-button" type="button" class="button-secondary">Lobby</button>
+                <div class="quick-status" aria-label="Session status">
+                  <span id="menu-server-status" class="status-chip status-chip-info">Server: Ready</span>
+                  <span class="status-chip">Mode: Deathmatch</span>
+                  <span class="status-chip">Players: 2-4</span>
+                </div>
+                <div class="menu-actions start-actions">
+                  <button id="play-button" type="button" class="button-primary">Play Solo</button>
+                  <button id="lobby-button" type="button" class="button-secondary">Multiplayer Lobby</button>
                 </div>
               </section>
 
@@ -208,30 +201,44 @@
               </section>
 
               <section class="menu-screen hidden" id="screen-lobby">
-                <p class="eyebrow">Multiplayer Lobby</p>
-                <h2>Lobby</h2>
-                <p class="menu-copy">
-                  Create or join a lightweight PvP room. The browser remains the render/input layer while the Node server owns positions, damage, and respawns.
+                <div class="lobby-header">
+                  <div>
+                    <p class="eyebrow">Multiplayer Lobby</p>
+                    <h2>Deathmatch Room</h2>
+                  </div>
+                  <div class="lobby-state-chips" aria-label="Lobby state">
+                    <span class="status-chip" id="lobby-connection-status">Ready</span>
+                    <span class="status-chip" id="lobby-match-status">Lobby</span>
+                  </div>
+                </div>
+
+                <p class="menu-copy lobby-intro">
+                  Share the room code with friends. Host starts the match.
                 </p>
-                <div class="lobby-grid">
-                  <div class="info-panel">
+
+                <div class="room-command">
+                  <div class="room-code-block">
                     <span class="info-label">Room Code</span>
                     <strong id="lobby-room-code">Created On Join</strong>
                   </div>
-                  <div class="info-panel">
-                    <span class="info-label">Status</span>
-                    <strong id="lobby-room-status">Authoritative WebSocket Match</strong>
-                  </div>
+                  <button id="copy-room-code-button" type="button" class="button-secondary room-copy-button">Copy</button>
                 </div>
-                <div class="lobby-actions">
-                  <button id="create-room-button" type="button">Create Room</button>
+
+                <div class="lobby-status-line" id="lobby-room-status">Authoritative WebSocket Match</div>
+
+                <div class="lobby-actions lobby-actions-secondary">
+                  <button id="retry-server-button" type="button" class="button-secondary">Wake / Retry Server</button>
+                  <button id="create-room-button" type="button" class="button-primary">Create Room</button>
                   <button id="join-room-button" type="button" class="button-secondary">Join Room</button>
-                  <button id="copy-room-code-button" type="button" class="button-secondary">Copy Code</button>
                 </div>
+
                 <div class="player-slots" id="player-slots">
-                  <div class="slot-card slot-card-active">
-                    <span class="info-label">Slot 1</span>
-                    <strong>You</strong>
+                  <div class="slot-card slot-card-active slot-card-host">
+                    <div>
+                      <span class="info-label">Slot 1</span>
+                      <strong>You</strong>
+                    </div>
+                    <span class="slot-badge">Host</span>
                   </div>
                   <div class="slot-card">
                     <span class="info-label">Slot 2</span>
@@ -246,8 +253,9 @@
                     <strong>Open</strong>
                   </div>
                 </div>
-                <div class="menu-actions">
-                  <button id="start-room-button" type="button" class="hidden">Start Game</button>
+
+                <div class="menu-actions lobby-footer-actions">
+                  <button id="start-room-button" type="button" class="hidden button-primary">Start Match</button>
                   <button id="lobby-solo-button" type="button">Start Solo Run</button>
                   <button id="lobby-back-button" type="button" class="button-secondary">Back</button>
                 </div>
@@ -271,7 +279,7 @@
     </main>
 
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="public-config.js?v=multiplayer-v16"></script>
-    <script type="module" src="game.js?v=multiplayer-v16"></script>
+    <script src="public-config.js?v=multiplayer-v18"></script>
+    <script type="module" src="game.js?v=multiplayer-v18"></script>
   </body>
 </html>

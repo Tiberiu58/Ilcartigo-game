@@ -19,6 +19,9 @@ export class UIController {
     this.crosshair = rootDocument.getElementById("crosshair")
     this.hitMarker = rootDocument.getElementById("hit-marker")
     this.screenFlash = rootDocument.getElementById("screen-flash")
+    this.scoreboard = rootDocument.getElementById("scoreboard")
+    this.scoreboardTable = rootDocument.getElementById("scoreboard-table")
+    this.scoreboardTimer = rootDocument.getElementById("scoreboard-timer")
     this.debugPanel = rootDocument.getElementById("debug-panel")
     this.debugPanelBody = rootDocument.getElementById("debug-panel-body")
     this.weaponSlotNames = [
@@ -48,9 +51,13 @@ export class UIController {
     this.createRoomButton = rootDocument.getElementById("create-room-button")
     this.joinRoomButton = rootDocument.getElementById("join-room-button")
     this.copyRoomCodeButton = rootDocument.getElementById("copy-room-code-button")
+    this.retryServerButton = rootDocument.getElementById("retry-server-button")
     this.startRoomButton = rootDocument.getElementById("start-room-button")
     this.lobbyRoomCode = rootDocument.getElementById("lobby-room-code")
     this.lobbyRoomStatus = rootDocument.getElementById("lobby-room-status")
+    this.lobbyConnectionStatus = rootDocument.getElementById("lobby-connection-status")
+    this.lobbyMatchStatus = rootDocument.getElementById("lobby-match-status")
+    this.menuServerStatus = rootDocument.getElementById("menu-server-status")
     this.playerSlots = rootDocument.getElementById("player-slots")
     this.loadoutOptions = rootDocument.getElementById("loadout-options")
     this.loadoutWeaponName = rootDocument.getElementById("loadout-weapon-name")
@@ -82,6 +89,9 @@ export class UIController {
     this.hitTimer = 0
     this.damageTimer = 0
     this.activeScreen = "main"
+    this.lobbyBusyAction = ""
+    this.copyFeedbackTimer = 0
+    this.copyFeedbackLabel = ""
   }
 
   updateHud(values) {
@@ -170,22 +180,75 @@ export class UIController {
     this.showScreen("lobby")
   }
 
+  renderMenuStatus(lobbyState) {
+    if (!this.menuServerStatus) {
+      return
+    }
+
+    this.menuServerStatus.textContent = `Server: ${getConnectionShortText(lobbyState.connectionState)}`
+    setStatusClass(this.menuServerStatus, lobbyState.connectionState)
+  }
+
   renderLobby(lobbyState) {
     if (this.lobbyRoomCode) {
-      this.lobbyRoomCode.textContent = lobbyState.roomId || "Created On Join"
+      this.lobbyRoomCode.textContent = lobbyState.roomId || "Create or Join"
     }
 
     if (this.lobbyRoomStatus) {
-      this.lobbyRoomStatus.textContent = lobbyState.status
+      this.lobbyRoomStatus.textContent = this.lobbyBusyAction
+        ? `${this.lobbyBusyAction}...`
+        : lobbyState.status
+    }
+
+    if (this.lobbyConnectionStatus) {
+      this.lobbyConnectionStatus.textContent = getConnectionShortText(lobbyState.connectionState)
+      setStatusClass(this.lobbyConnectionStatus, lobbyState.connectionState)
+    }
+
+    if (this.lobbyMatchStatus) {
+      this.lobbyMatchStatus.textContent = getLobbyMatchText(lobbyState)
+      setStatusClass(this.lobbyMatchStatus, lobbyState.matchPhase === "playing" ? "connected" : "idle")
     }
 
     if (this.copyRoomCodeButton) {
       this.copyRoomCodeButton.disabled = !lobbyState.roomId
+      if (!this.lobbyBusyAction) {
+        this.copyRoomCodeButton.textContent = this.copyFeedbackTimer > 0
+          ? this.copyFeedbackLabel
+          : lobbyState.roomId
+            ? "Copy"
+            : "No Code"
+      }
+    }
+
+    if (this.retryServerButton) {
+      const shouldShowRetry = ["waking", "connecting", "disconnected", "error"].includes(lobbyState.connectionState)
+      this.retryServerButton.classList.toggle("hidden", !shouldShowRetry)
+      this.retryServerButton.disabled = this.lobbyBusyAction === "Waking server"
+      this.retryServerButton.textContent = this.lobbyBusyAction === "Waking server"
+        ? "Waking..."
+        : "Wake / Retry Server"
+    }
+
+    if (this.createRoomButton) {
+      this.createRoomButton.disabled = Boolean(this.lobbyBusyAction)
+      this.createRoomButton.textContent = this.lobbyBusyAction === "Creating room" ? "Creating..." : "Create Room"
+    }
+
+    if (this.joinRoomButton) {
+      this.joinRoomButton.disabled = Boolean(this.lobbyBusyAction)
+      this.joinRoomButton.textContent = this.lobbyBusyAction === "Joining room" ? "Joining..." : "Join Room"
     }
 
     if (this.startRoomButton) {
+      const canRestart = lobbyState.matchPhase === "ended"
       this.startRoomButton.classList.toggle("hidden", !lobbyState.isHost)
-      this.startRoomButton.disabled = !lobbyState.isHost || lobbyState.started
+      this.startRoomButton.disabled = Boolean(this.lobbyBusyAction) || !lobbyState.isHost || (lobbyState.started && !canRestart)
+      this.startRoomButton.textContent = this.lobbyBusyAction === "Starting match"
+        ? "Starting..."
+        : canRestart
+          ? "Restart Match"
+          : "Start Match"
     }
 
     if (!this.playerSlots) {
@@ -196,20 +259,84 @@ export class UIController {
     for (let index = 0; index < 4; index += 1) {
       const player = lobbyState.players[index]
       const slot = this.rootDocument.createElement("div")
-      slot.className = `slot-card${player ? " slot-card-active" : ""}`
+      const isHost = player?.id && player.id === lobbyState.hostId
+      slot.className = [
+        "slot-card",
+        player ? "slot-card-active" : "slot-card-empty",
+        isHost ? "slot-card-host" : "",
+      ].filter(Boolean).join(" ")
+
+      const copy = this.rootDocument.createElement("div")
 
       const label = this.rootDocument.createElement("span")
       label.className = "info-label"
-      label.textContent = `Slot ${index + 1}`
-
+      label.textContent = player ? `Slot ${index + 1} Ready` : `Slot ${index + 1}`
       const strong = this.rootDocument.createElement("strong")
       strong.textContent = player ? player.label : "Open"
+      copy.append(label, strong)
 
-      slot.append(label, strong)
+      const badge = this.rootDocument.createElement("span")
+      badge.className = `slot-badge${player ? "" : " slot-badge-muted"}`
+      badge.textContent = isHost ? "Host" : player ? "Ready" : "Waiting"
+
+      slot.append(copy, badge)
       fragment.append(slot)
     }
 
     this.playerSlots.replaceChildren(fragment)
+  }
+
+  setLobbyBusy(actionName) {
+    this.lobbyBusyAction = actionName
+  }
+
+  clearLobbyBusy() {
+    this.lobbyBusyAction = ""
+  }
+
+  isLobbyBusy(actionName = "") {
+    return actionName ? this.lobbyBusyAction === actionName : Boolean(this.lobbyBusyAction)
+  }
+
+  showCopyFeedback(label = "Copied") {
+    this.copyFeedbackLabel = label
+    this.copyFeedbackTimer = 1.2
+  }
+
+  renderScoreboard(entries, options = {}) {
+    if (!this.scoreboard || !this.scoreboardTable) {
+      return
+    }
+
+    this.scoreboard.classList.toggle("hidden", !options.visible)
+    if (!options.visible) {
+      return
+    }
+
+    if (this.scoreboardTimer) {
+      this.scoreboardTimer.textContent = options.timeText || "0:00"
+    }
+
+    const fragment = this.rootDocument.createDocumentFragment()
+    const header = this.rootDocument.createElement("div")
+    header.className = "scoreboard-row scoreboard-row-header"
+    header.innerHTML = "<span>Player</span><span>K</span><span>D</span><span>Score</span><span>State</span>"
+    fragment.append(header)
+
+    entries.forEach((entry, index) => {
+      const row = this.rootDocument.createElement("div")
+      row.className = `scoreboard-row${index === 0 ? " scoreboard-row-leader" : ""}`
+      row.innerHTML = `
+        <span>${entry.label || entry.id}</span>
+        <span>${entry.kills || 0}</span>
+        <span>${entry.deaths || 0}</span>
+        <span>${entry.score || 0}</span>
+        <span>${entry.alive ? "Alive" : "Down"}</span>
+      `
+      fragment.append(row)
+    })
+
+    this.scoreboardTable.replaceChildren(fragment)
   }
 
   renderLoadout(weaponIds, weaponLibrary, selectedWeaponId) {
@@ -281,6 +408,58 @@ export class UIController {
       this.damageTimer = Math.max(0, this.damageTimer - dt * 1.8)
     }
 
+    if (this.copyFeedbackTimer > 0) {
+      this.copyFeedbackTimer = Math.max(0, this.copyFeedbackTimer - dt)
+    }
+
     this.screenFlash.style.opacity = String(clamp(this.damageTimer, 0, 0.45))
   }
+}
+
+function setStatusClass(element, state) {
+  element.classList.remove("status-chip-online", "status-chip-error", "status-chip-waking", "status-chip-info")
+  if (state === "connected" || state === "playing") {
+    element.classList.add("status-chip-online")
+  } else if (state === "error" || state === "disconnected") {
+    element.classList.add("status-chip-error")
+  } else if (state === "waking" || state === "connecting") {
+    element.classList.add("status-chip-waking")
+  } else {
+    element.classList.add("status-chip-info")
+  }
+}
+
+function getConnectionShortText(state) {
+  if (state === "connected") {
+    return "Connected"
+  }
+  if (state === "waking") {
+    return "Waking"
+  }
+  if (state === "connecting") {
+    return "Connecting"
+  }
+  if (state === "error") {
+    return "Offline"
+  }
+  if (state === "disconnected") {
+    return "Disconnected"
+  }
+  return "Ready"
+}
+
+function getLobbyMatchText(lobbyState) {
+  if (lobbyState.matchPhase === "countdown") {
+    return `Starting in ${Math.ceil(lobbyState.countdownRemaining || 0)}`
+  }
+
+  if (lobbyState.matchPhase === "playing") {
+    return "Match live"
+  }
+
+  if (lobbyState.matchPhase === "ended") {
+    return "Match ended"
+  }
+
+  return "Lobby"
 }

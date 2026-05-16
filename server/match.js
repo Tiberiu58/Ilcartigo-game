@@ -29,6 +29,9 @@ export class Match {
     this.simulationInterval = 1000 / MULTIPLAYER_CONFIG.simulationRate
     this.snapshotAccumulator = 0
     this.snapshotInterval = 1000 / MULTIPLAYER_CONFIG.snapshotRate
+    this.matchPhase = "lobby"
+    this.countdownRemaining = 0
+    this.matchTimeRemaining = MULTIPLAYER_CONFIG.matchDuration
   }
 
   addPlayer(client) {
@@ -128,11 +131,18 @@ export class Match {
     }
 
     this.started = true
+    this.matchPhase = "countdown"
+    this.countdownRemaining = MULTIPLAYER_CONFIG.countdownTime
+    this.matchTimeRemaining = MULTIPLAYER_CONFIG.matchDuration
     for (const roomClient of this.players.values()) {
       if (!roomClient.playerState) {
         continue
       }
       respawnPlayerState(roomClient.playerState, this.getPlayerIndex(roomClient.id))
+      roomClient.playerState.kills = 0
+      roomClient.playerState.deaths = 0
+      roomClient.playerState.score = 0
+      roomClient.playerState.killedBy = ""
       roomClient.inputState = this.createNeutralInputState()
     }
 
@@ -154,11 +164,11 @@ export class Match {
     }
 
     client.inputState = {
-      forward: Number(message.forward) || 0,
-      right: Number(message.right) || 0,
+      forward: Math.max(-1, Math.min(1, Number(message.forward) || 0)),
+      right: Math.max(-1, Math.min(1, Number(message.right) || 0)),
       sprinting: Boolean(message.sprinting),
       jumpHeld: Boolean(message.jumpHeld),
-      jumpPressed: Boolean(message.jumpPressed),
+      jumpPressed: this.matchPhase === "playing" && Boolean(message.jumpPressed),
       yaw: Number(message.yaw) || 0,
       pitch: Number(message.pitch) || 0,
       weaponId: typeof message.weaponId === "string" ? message.weaponId : null,
@@ -166,7 +176,7 @@ export class Match {
   }
 
   handleWeaponSwitch(client, weaponId) {
-    if (!this.started || !client.playerState || !weaponId) {
+    if (!this.started || this.matchPhase !== "playing" || !client.playerState || !weaponId) {
       return
     }
 
@@ -198,7 +208,7 @@ export class Match {
 
   handleReload(client) {
     const state = client.playerState
-    if (!this.started || !state || !state.alive) {
+    if (!this.started || this.matchPhase !== "playing" || !state || !state.alive) {
       return
     }
 
@@ -237,7 +247,7 @@ export class Match {
 
   handleFire(client, message = {}) {
     const state = client.playerState
-    if (!this.started || !state || !state.alive) {
+    if (!this.started || this.matchPhase !== "playing" || !state || !state.alive) {
       this.logShot("rejected", { shooterId: client.id, reason: "match not started or shooter dead" })
       return
     }
@@ -321,6 +331,10 @@ export class Match {
       bestClient.playerState.alive = false
       bestClient.playerState.respawnAt = MULTIPLAYER_CONFIG.respawnDelay
       bestClient.playerState.teleportMarker = null
+      bestClient.playerState.deaths = (bestClient.playerState.deaths || 0) + 1
+      bestClient.playerState.killedBy = client.id
+      state.kills = (state.kills || 0) + 1
+      state.score = (state.score || 0) + 100
       this.logShot("death", {
         shooterId: client.id,
         victimId: bestClient.id,
@@ -385,7 +399,7 @@ export class Match {
 
   handleTeleportPlace(client) {
     const state = client.playerState
-    if (!this.started || !state || !state.alive || state.weapon.reloadEndAt > 0) {
+    if (!this.started || this.matchPhase !== "playing" || !state || !state.alive || state.weapon.reloadEndAt > 0) {
       return
     }
 
@@ -403,7 +417,7 @@ export class Match {
 
   handleTeleportUse(client) {
     const state = client.playerState
-    if (!this.started || !state || !state.alive || !state.teleportMarker) {
+    if (!this.started || this.matchPhase !== "playing" || !state || !state.alive || !state.teleportMarker) {
       return
     }
 
@@ -454,14 +468,39 @@ export class Match {
 
     if (this.snapshotAccumulator >= this.snapshotInterval) {
       this.snapshotAccumulator = 0
-      this.broadcast(MESSAGE_TYPES.SNAPSHOT, {
-        roomId: this.roomId,
-        players: this.getSnapshots(),
-      })
+      if (this.matchPhase === "countdown" || this.matchPhase === "ended") {
+        this.broadcastRoomState()
+      } else {
+        this.broadcast(MESSAGE_TYPES.SNAPSHOT, {
+          roomId: this.roomId,
+          players: this.getSnapshots(),
+        })
+      }
     }
   }
 
   step(dt) {
+    if (this.matchPhase === "countdown") {
+      this.countdownRemaining = Math.max(0, this.countdownRemaining - dt)
+      if (this.countdownRemaining === 0) {
+        this.matchPhase = "playing"
+        this.broadcastRoomState()
+      }
+      return
+    }
+
+    if (this.matchPhase === "ended") {
+      return
+    }
+
+    if (this.matchPhase === "playing") {
+      this.matchTimeRemaining = Math.max(0, this.matchTimeRemaining - dt)
+      if (this.matchTimeRemaining === 0) {
+        this.endMatch()
+        return
+      }
+    }
+
     this.completeReloads(dt)
 
     for (const client of this.players.values()) {
@@ -478,6 +517,7 @@ export class Match {
           state.respawnAt = Math.max(0, state.respawnAt - dt)
           if (state.respawnAt === 0) {
             respawnPlayerState(state, this.getRespawnIndex(client.id))
+            state.killedBy = ""
             this.logShot("respawn", {
               playerId: client.id,
               position: state.position,
@@ -532,11 +572,38 @@ export class Match {
     return [...this.players.values()].map((client) => getPlayerSnapshot(client.playerState))
   }
 
+  getScoreboard() {
+    return this.getSnapshots()
+      .map((player) => ({
+        id: player.id,
+        kills: player.kills || 0,
+        deaths: player.deaths || 0,
+        score: player.score || 0,
+        health: player.health,
+        alive: player.alive,
+      }))
+      .sort((left, right) => right.score - left.score || right.kills - left.kills || left.deaths - right.deaths)
+  }
+
+  endMatch() {
+    this.matchPhase = "ended"
+    this.started = false
+    for (const client of this.players.values()) {
+      client.inputState = this.createNeutralInputState()
+    }
+    console.log(`[match ${this.roomId}] match ended`)
+    this.broadcastRoomState()
+  }
+
   broadcastRoomState() {
     this.broadcast(MESSAGE_TYPES.ROOM_STATE, {
       roomId: this.roomId,
       hostId: this.hostId,
       started: this.started,
+      matchPhase: this.matchPhase,
+      countdownRemaining: this.countdownRemaining,
+      matchTimeRemaining: this.matchTimeRemaining,
+      scoreboard: this.getScoreboard(),
       players: this.getSnapshots(),
     })
   }

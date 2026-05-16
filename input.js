@@ -151,6 +151,10 @@ export class InputController {
     return this.fireHeld
   }
 
+  isScoreboardHeld() {
+    return Boolean(this.keys.Tab)
+  }
+
   resetTransientState() {
     this.lookX = 0
     this.lookY = 0
@@ -182,6 +186,7 @@ export class InputController {
       "Digit1",
       "Digit2",
       "Digit3",
+      "Tab",
     ].includes(event.code)
 
     if (isGameplayKey) {

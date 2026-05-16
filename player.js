@@ -363,14 +363,14 @@ export class PlayerController {
       snapshot.position.z - this.position.z
     )
 
-    if (positionError > 3.25) {
+    if (positionError > 6.5 || !snapshot.alive) {
       this.lastReconcileNote = `snap ${positionError.toFixed(2)}`
       this.position.x = snapshot.position.x
       this.position.y = snapshot.position.y
       this.position.z = snapshot.position.z
     } else if (positionError > 0.001) {
       this.lastReconcileNote = `blend ${positionError.toFixed(2)}`
-      const correctionStrength = positionError > 0.65 ? 10 : 6
+      const correctionStrength = positionError > 1.8 ? 8 : 4.5
       this.position.x = damp(this.position.x, snapshot.position.x, correctionStrength, dt)
       this.position.y = damp(this.position.y, snapshot.position.y, correctionStrength, dt)
       this.position.z = damp(this.position.z, snapshot.position.z, correctionStrength, dt)

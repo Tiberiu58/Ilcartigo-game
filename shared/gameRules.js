@@ -33,6 +33,10 @@ export function createPlayerState(id, spawnIndex = 0) {
     health: PLAYER_CONFIG.maxHealth,
     alive: true,
     respawnAt: 0,
+    kills: 0,
+    deaths: 0,
+    score: 0,
+    killedBy: "",
     weaponInventory,
     weapon: { ...weaponInventory[LOADOUT_CONFIG.defaultPrimaryWeaponId] },
     teleportMarker: null,
@@ -55,6 +59,7 @@ export function respawnPlayerState(state, spawnIndex) {
   state.health = PLAYER_CONFIG.maxHealth
   state.alive = true
   state.respawnAt = 0
+  state.killedBy = ""
   state.weaponInventory = Object.fromEntries(
     LOADOUT_CONFIG.primaryWeaponIds.map((weaponId) => [weaponId, createWeaponState(weaponId)])
   )
@@ -87,6 +92,10 @@ export function getPlayerSnapshot(state) {
     health: state.health,
     alive: state.alive,
     respawnAt: state.respawnAt,
+    kills: state.kills || 0,
+    deaths: state.deaths || 0,
+    score: state.score || 0,
+    killedBy: state.killedBy || "",
     teleportMarker: state.teleportMarker,
     teleportCooldown: state.teleportCooldown || 0,
   }

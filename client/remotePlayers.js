@@ -2,6 +2,7 @@ import { BABYLON } from "../babylon.js"
 import { damp } from "../utils.js"
 
 const DEBUG_REMOTE_HITBOXES = false
+const INTERPOLATION_DELAY = 0.1
 
 class RemotePlayerView {
   constructor(scene, id) {
@@ -16,6 +17,7 @@ class RemotePlayerView {
     }
 
     this.root = new BABYLON.TransformNode(`remotePlayer-${id}`, scene)
+    this.snapshots = []
 
     this.bodyMaterial = new BABYLON.StandardMaterial(`remotePlayerBody-${id}`, scene)
     this.bodyMaterial.diffuseColor = BABYLON.Color3.FromHexString("#cb7f57")
@@ -77,8 +79,20 @@ class RemotePlayerView {
   }
 
   applySnapshot(snapshot) {
-    this.target.position.set(snapshot.position.x, snapshot.position.y, snapshot.position.z)
-    this.target.yaw = snapshot.yaw
+    const time = performance.now() / 1000
+    this.snapshots.push({
+      time,
+      position: new BABYLON.Vector3(snapshot.position.x, snapshot.position.y, snapshot.position.z),
+      yaw: snapshot.yaw,
+      alive: snapshot.alive,
+      health: snapshot.health,
+      weaponId: snapshot.weaponId,
+    })
+
+    if (this.snapshots.length > 8) {
+      this.snapshots.shift()
+    }
+
     this.target.alive = snapshot.alive
     this.target.health = snapshot.health
     this.target.weaponId = snapshot.weaponId
@@ -90,11 +104,36 @@ class RemotePlayerView {
       return
     }
 
+    this.applyBufferedTarget()
     this.root.position.x = damp(this.root.position.x, this.target.position.x, 18, dt)
     this.root.position.y = damp(this.root.position.y, this.target.position.y, 18, dt)
     this.root.position.z = damp(this.root.position.z, this.target.position.z, 18, dt)
     this.root.rotation.y = damp(this.root.rotation.y, this.target.yaw, 18, dt)
     this.debugHitbox.setEnabled(DEBUG_REMOTE_HITBOXES && this.target.alive)
+  }
+
+  applyBufferedTarget() {
+    if (this.snapshots.length === 0) {
+      return
+    }
+
+    const renderTime = performance.now() / 1000 - INTERPOLATION_DELAY
+    while (this.snapshots.length > 2 && this.snapshots[1].time <= renderTime) {
+      this.snapshots.shift()
+    }
+
+    const first = this.snapshots[0]
+    const second = this.snapshots[1]
+    if (!second) {
+      this.target.position.copyFrom(first.position)
+      this.target.yaw = first.yaw
+      return
+    }
+
+    const span = Math.max(0.001, second.time - first.time)
+    const t = Math.max(0, Math.min(1, (renderTime - first.time) / span))
+    BABYLON.Vector3.LerpToRef(first.position, second.position, t, this.target.position)
+    this.target.yaw = first.yaw + shortestAngleDelta(first.yaw, second.yaw) * t
   }
 
   dispose() {
@@ -103,6 +142,17 @@ class RemotePlayerView {
     this.headMaterial.dispose()
     this.hitboxMaterial.dispose()
   }
+}
+
+function shortestAngleDelta(from, to) {
+  let delta = to - from
+  while (delta > Math.PI) {
+    delta -= Math.PI * 2
+  }
+  while (delta < -Math.PI) {
+    delta += Math.PI * 2
+  }
+  return delta
 }
 
 export class RemotePlayers {

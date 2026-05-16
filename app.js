@@ -1,14 +1,14 @@
 import { BABYLON } from "./babylon.js"
-import { InputController } from "./input.js?v=multiplayer-v16"
-import { UIController } from "./ui.js?v=multiplayer-v16"
-import { Level } from "./level.js?v=multiplayer-v16"
-import { PlayerController } from "./player.js?v=multiplayer-v16"
-import { Rifle } from "./weapon.js?v=multiplayer-v16"
+import { InputController } from "./input.js?v=multiplayer-v18"
+import { UIController } from "./ui.js?v=multiplayer-v18"
+import { Level } from "./level.js?v=multiplayer-v18"
+import { PlayerController } from "./player.js?v=multiplayer-v18"
+import { Rifle } from "./weapon.js?v=multiplayer-v18"
 import { EnemyManager } from "./enemies.js"
-import { TeleportAbility } from "./teleport.js?v=multiplayer-v16"
-import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v16"
-import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v16"
-import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v16"
+import { TeleportAbility } from "./teleport.js?v=multiplayer-v18"
+import { LOADOUT_CONFIG, LOOP_CONFIG } from "./config.js?v=multiplayer-v18"
+import { MultiplayerSession } from "./client/multiplayerSession.js?v=multiplayer-v18"
+import { RemotePlayers } from "./client/remotePlayers.js?v=multiplayer-v18"
 
 export function bootstrapGame() {
   const APP_STATES = {
@@ -187,6 +187,9 @@ export function bootstrapGame() {
 
   function renderLobbyState(statusOverride = "") {
     const lobbyState = network.getLobbyState()
+    if (typeof ui.renderMenuStatus === "function") {
+      ui.renderMenuStatus(lobbyState)
+    }
     if (typeof ui.renderLobby === "function") {
       ui.renderLobby({
         ...lobbyState,
@@ -201,25 +204,30 @@ export function bootstrapGame() {
       gameMode = GAME_MODES.multiplayer
       appState = APP_STATES.lobby
       resetMultiplayerScenario()
-      renderLobbyState(mode === "create" ? "Creating room..." : "Joining room...")
+      ui.setLobbyBusy(mode === "create" ? "Creating room" : "Joining room")
+      renderLobbyState()
       ui.showLobbyMenu()
       let roomInfo
       if (mode === "create") {
         roomInfo = await network.createRoom()
       } else {
-        const roomCode = window.prompt("Enter room code") || ""
+        const roomCode = window.prompt("Enter room code", network.getLastRoomCode()) || ""
         if (!roomCode.trim()) {
+          ui.clearLobbyBusy()
+          renderLobbyState()
           return
         }
         roomInfo = await network.joinRoom(roomCode)
       }
 
+      ui.clearLobbyBusy()
       appState = APP_STATES.lobby
       debugState.phase = "lobby"
       debugState.lastFrameNote = `joined room ${roomInfo.roomId}`
       renderLobbyState(mode === "create" ? `Room ${roomInfo.roomId} created.` : `Joined room ${roomInfo.roomId}.`)
       ui.showLobbyMenu()
     } catch (error) {
+      ui.clearLobbyBusy()
       setDebugError(error instanceof Error ? error.message : String(error))
       showLobbyMenu(error instanceof Error ? error.message : String(error))
     }
@@ -245,6 +253,7 @@ export function bootstrapGame() {
     appState = APP_STATES.menu
     debugState.phase = "menu"
     debugState.lastFrameNote = "main menu"
+    renderLobbyState()
     ui.showMainMenu()
   }
 
@@ -266,15 +275,31 @@ export function bootstrapGame() {
   }
 
   network.onLobbyStateChanged = () => {
+    const lobbyState = network.getLobbyState()
+    if (
+      ui.isLobbyBusy("Starting match") &&
+      lobbyState.status &&
+      !lobbyState.status.toLowerCase().includes("starting")
+    ) {
+      ui.clearLobbyBusy()
+    }
+
     if (network.roomId) {
       gameMode = GAME_MODES.multiplayer
     }
     if (appState === APP_STATES.lobby) {
       renderLobbyState()
+    } else if (appState === APP_STATES.playing && network.isMatchEnded()) {
+      appState = APP_STATES.lobby
+      debugState.phase = "lobby"
+      debugState.lastFrameNote = "match ended"
+      renderLobbyState("Match ended. Host can restart.")
+      ui.showLobbyMenu()
     }
   }
 
   network.onMatchStarted = ({ roomId }) => {
+    ui.clearLobbyBusy()
     enterMultiplayerMatch(`match started ${roomId}`)
   }
 
@@ -319,6 +344,13 @@ export function bootstrapGame() {
   ui.createRoomButton?.addEventListener("click", () => {
     beginMultiplayerRun("create")
   })
+  ui.retryServerButton?.addEventListener("click", async () => {
+    ui.setLobbyBusy("Waking server")
+    renderLobbyState()
+    const woke = await network.wakeServer()
+    ui.clearLobbyBusy()
+    renderLobbyState(woke ? "Connected to multiplayer server." : network.getLobbyState().status)
+  })
   ui.joinRoomButton?.addEventListener("click", () => {
     beginMultiplayerRun("join")
   })
@@ -334,8 +366,10 @@ export function bootstrapGame() {
         throw new Error("clipboard unavailable")
       }
       await navigator.clipboard.writeText(roomCode)
+      ui.showCopyFeedback("Copied")
       renderLobbyState("Room code copied to clipboard.")
     } catch {
+      ui.showCopyFeedback("Failed")
       renderLobbyState("Could not copy room code.")
     }
   })
@@ -345,7 +379,8 @@ export function bootstrapGame() {
       renderLobbyState(network.getLobbyState().status)
       return
     }
-    renderLobbyState("Starting match...")
+    ui.setLobbyBusy("Starting match")
+    renderLobbyState()
   })
 
   canvas.addEventListener("click", () => {
@@ -438,6 +473,7 @@ export function bootstrapGame() {
         player.update(dt, { jumpPressed })
 
         if (gameMode === GAME_MODES.singleplayer) {
+          ui.renderScoreboard([], { visible: false })
           if (runState.streakTimer > 0) {
             runState.streakTimer = Math.max(0, runState.streakTimer - dt)
             if (runState.streakTimer === 0) {
@@ -511,6 +547,10 @@ export function bootstrapGame() {
           network.update(dt, { input, player, weapon, teleport, jumpPressed })
           remotePlayers.syncSnapshots(network.getRemoteSnapshots())
           remotePlayers.update(dt)
+          ui.renderScoreboard(network.getScoreboard(), {
+            visible: input.isScoreboardHeld() || network.isMatchEnded(),
+            timeText: network.getMatchTimeText(),
+          })
 
           if (network.consumeHitMarkerPulse()) {
             ui.pulseHitMarker()
@@ -536,6 +576,7 @@ export function bootstrapGame() {
           level,
         })
         remotePlayers.update(dt)
+        ui.renderScoreboard([], { visible: false })
       }
 
       debugState.lastFrameNote = "frame ok"

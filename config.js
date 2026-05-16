@@ -395,6 +395,10 @@ export const MULTIPLAYER_CONFIG = {
   respawnDelay: 3,
   // Client send rate for movement/input messages.
   inputSendRate: 60,
+  // Delay before a multiplayer match accepts movement/combat input.
+  countdownTime: 3,
+  // Default public deathmatch length in seconds.
+  matchDuration: 300,
 }
 
 export const PLAYER_CONFIG = {

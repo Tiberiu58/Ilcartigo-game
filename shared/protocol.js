@@ -9,6 +9,8 @@ export const MESSAGE_TYPES = {
   ROOM_STATE: "room_state",
   PLAYER_JOINED: "player_joined",
   PLAYER_LEFT: "player_left",
+  MATCH_STATE: "match_state",
+  SCOREBOARD: "scoreboard",
   INPUT: "input",
   FIRE: "fire",
   RELOAD: "reload",

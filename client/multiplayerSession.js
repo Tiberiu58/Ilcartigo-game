@@ -1,11 +1,21 @@
 import { MULTIPLAYER_CONFIG } from "../config.js"
-import { getMultiplayerServerUrl } from "./runtimeConfig.js?v=multiplayer-v16"
-import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v16"
-import { NetworkClient } from "./networkClient.js?v=multiplayer-v16"
+import { getMultiplayerServerUrl } from "./runtimeConfig.js?v=multiplayer-v18"
+import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v18"
+import { NetworkClient } from "./networkClient.js?v=multiplayer-v18"
+
+const CONNECTION_LABELS = {
+  idle: "Ready to connect.",
+  waking: "Waking multiplayer server...",
+  connecting: "Connecting to multiplayer server...",
+  connected: "Connected to multiplayer server.",
+  disconnected: "Disconnected from multiplayer server.",
+  error: "Could not reach multiplayer server. Try Wake / Retry.",
+}
 
 export class MultiplayerSession {
   constructor() {
-    this.client = new NetworkClient(getMultiplayerServerUrl())
+    this.serverUrl = getMultiplayerServerUrl()
+    this.client = new NetworkClient(this.serverUrl)
     this.client.onMessage = (message) => this.handleMessage(message)
     this.client.onClose = () => this.handleDisconnected("Disconnected from multiplayer server.")
     this.client.onError = () => this.handleDisconnected("Failed to reach multiplayer server.")
@@ -18,9 +28,14 @@ export class MultiplayerSession {
     this.lastError = ""
     this.hostId = ""
     this.started = false
+    this.matchPhase = "lobby"
+    this.countdownRemaining = 0
+    this.matchTimeRemaining = 0
     this.localSnapshot = null
     this.remoteSnapshots = []
     this.lastRoomPlayers = []
+    this.scoreboard = []
+    this.connectionState = this.serverUrl ? "idle" : "error"
     this.inputAccumulator = 0
     this.hitMarkerPulse = false
     this.damagePulse = 0
@@ -32,13 +47,43 @@ export class MultiplayerSession {
     this.onMatchStarted = null
   }
 
+  getLastRoomCode() {
+    return window.localStorage?.getItem("facilityZeroLastRoom") || ""
+  }
+
   async ensureConnected() {
     if (this.connected && this.client.isOpen()) {
       return
     }
 
+    this.connectionState = "connecting"
+    this.lastError = CONNECTION_LABELS.connecting
+    this.emitLobbyStateChanged()
     await this.client.connect()
     this.connected = true
+    this.connectionState = "connected"
+    this.lastError = ""
+    this.emitLobbyStateChanged()
+  }
+
+  async wakeServer() {
+    this.connectionState = "waking"
+    this.lastError = CONNECTION_LABELS.waking
+    this.emitLobbyStateChanged()
+
+    try {
+      const healthUrl = this.getHealthUrl()
+      if (healthUrl) {
+        await fetch(healthUrl, { cache: "no-store", mode: "no-cors" })
+      }
+      await this.ensureConnected()
+      return true
+    } catch (error) {
+      this.connectionState = "error"
+      this.lastError = error instanceof Error ? error.message : CONNECTION_LABELS.error
+      this.emitLobbyStateChanged()
+      return false
+    }
   }
 
   async createRoom() {
@@ -67,9 +112,13 @@ export class MultiplayerSession {
     this.roomId = ""
     this.hostId = ""
     this.started = false
+    this.matchPhase = "lobby"
+    this.countdownRemaining = 0
+    this.matchTimeRemaining = 0
     this.localSnapshot = null
     this.remoteSnapshots = []
     this.lastRoomPlayers = []
+    this.scoreboard = []
     this.pendingJumpPressed = false
     this.kills = 0
     this.deaths = 0
@@ -223,10 +272,15 @@ export class MultiplayerSession {
       roomId: this.roomId,
       hostId: this.hostId,
       started: this.started,
+      matchPhase: this.matchPhase,
+      countdownRemaining: this.countdownRemaining,
+      matchTimeRemaining: this.matchTimeRemaining,
       isHost: this.isHost(),
       playerCount: players.length,
       players,
-      status: this.lastError || (this.started ? "Match starting..." : "Waiting for players."),
+      connectionState: this.connectionState,
+      connectionLabel: CONNECTION_LABELS[this.connectionState] || this.connectionState,
+      status: this.lastError || (this.started ? this.getMatchStatusText() : "Waiting for players."),
     }
   }
 
@@ -260,13 +314,49 @@ export class MultiplayerSession {
     return this.score
   }
 
+  getDeaths() {
+    return this.deaths
+  }
+
+  getScoreboard() {
+    return this.scoreboard
+  }
+
+  getMatchTimeText() {
+    const seconds = Math.max(0, Math.ceil(this.matchTimeRemaining || 0))
+    const minutes = Math.floor(seconds / 60)
+    const remainder = String(seconds % 60).padStart(2, "0")
+    return `${minutes}:${remainder}`
+  }
+
+  isMatchEnded() {
+    return this.matchPhase === "ended"
+  }
+
   getStatusText() {
     if (!this.roomId) {
       return this.lastError || "Connect to a multiplayer room."
     }
 
     if (this.localSnapshot && !this.localSnapshot.alive) {
-      return `Respawning in ${this.localSnapshot.respawnAt.toFixed(1)}s.`
+      const killer = this.getPlayerLabel(this.localSnapshot.killedBy)
+      return `${killer ? `Killed by ${killer}. ` : ""}Respawning in ${this.localSnapshot.respawnAt.toFixed(1)}s.`
+    }
+
+    return this.getMatchStatusText()
+  }
+
+  getMatchStatusText() {
+    if (this.matchPhase === "countdown") {
+      return `Match starts in ${Math.ceil(this.countdownRemaining || 0)}.`
+    }
+
+    if (this.matchPhase === "ended") {
+      return "Match ended. Return to lobby or restart."
+    }
+
+    if (this.matchPhase === "playing") {
+      return `Deathmatch ${this.getMatchTimeText()}. ${this.remoteSnapshots.length + 1} players connected.`
     }
 
     return `Room ${this.roomId}. ${this.remoteSnapshots.length + 1} players connected.`
@@ -282,7 +372,12 @@ export class MultiplayerSession {
         this.playerId = message.playerId
         this.hostId = message.hostId || this.hostId
         this.started = Boolean(message.started)
+        this.matchPhase = message.matchPhase || (this.started ? "playing" : "lobby")
+        this.countdownRemaining = Number(message.countdownRemaining) || 0
+        this.matchTimeRemaining = Number(message.matchTimeRemaining) || 0
+        this.scoreboard = message.scoreboard || []
         this.lastError = ""
+        window.localStorage?.setItem("facilityZeroLastRoom", this.roomId)
         this.applySnapshots(message.players || [])
         if (this.joinWaiter) {
           this.joinWaiter.resolve({ roomId: this.roomId, playerId: this.playerId })
@@ -299,6 +394,10 @@ export class MultiplayerSession {
           this.roomId = message.roomId || this.roomId
           this.hostId = message.hostId || this.hostId
           this.started = Boolean(message.started)
+          this.matchPhase = message.matchPhase || (this.started ? "playing" : "lobby")
+          this.countdownRemaining = Number(message.countdownRemaining) || 0
+          this.matchTimeRemaining = Number(message.matchTimeRemaining) || 0
+          this.scoreboard = message.scoreboard || this.scoreboard
           if (this.started) {
             this.lastError = ""
           }
@@ -364,6 +463,25 @@ export class MultiplayerSession {
     this.lastRoomPlayers = [...players]
     this.localSnapshot = players.find((player) => player.id === this.playerId) || this.localSnapshot
     this.remoteSnapshots = players.filter((player) => player.id !== this.playerId)
+    const local = players.find((player) => player.id === this.playerId)
+    if (local) {
+      this.kills = local.kills || this.kills
+      this.deaths = local.deaths || this.deaths
+      this.score = local.score || this.score
+    }
+    if (players.length > 0) {
+      this.scoreboard = players
+        .map((player) => ({
+          id: player.id,
+          label: this.getPlayerLabel(player.id),
+          kills: player.kills || 0,
+          deaths: player.deaths || 0,
+          score: player.score || 0,
+          health: player.health,
+          alive: player.alive,
+        }))
+        .sort((left, right) => right.score - left.score || right.kills - left.kills || left.deaths - right.deaths)
+    }
   }
 
   patchPlayerSnapshot(playerId, patch) {
@@ -393,14 +511,48 @@ export class MultiplayerSession {
     this.roomId = ""
     this.hostId = ""
     this.started = false
+    this.matchPhase = "lobby"
+    this.countdownRemaining = 0
+    this.matchTimeRemaining = 0
     this.localSnapshot = null
     this.remoteSnapshots = []
     this.lastRoomPlayers = []
+    this.scoreboard = []
     this.pendingJumpPressed = false
     this.kills = 0
     this.deaths = 0
     this.score = 0
     this.emitLobbyStateChanged()
+  }
+
+  getPlayerLabel(playerId) {
+    if (!playerId) {
+      return ""
+    }
+
+    if (playerId === this.playerId) {
+      return "You"
+    }
+
+    const roster = this.lastRoomPlayers.length > 0 ? this.lastRoomPlayers : this.remoteSnapshots
+    const index = roster.findIndex((player) => player.id === playerId)
+    return index >= 0 ? `Player ${index + 1}` : playerId
+  }
+
+  getHealthUrl() {
+    if (!this.serverUrl) {
+      return ""
+    }
+
+    if (this.serverUrl.startsWith("wss://")) {
+      return `https://${this.serverUrl.slice("wss://".length)}`
+    }
+
+    if (this.serverUrl.startsWith("ws://")) {
+      return `http://${this.serverUrl.slice("ws://".length)}`
+    }
+
+    return ""
   }
 }
 
