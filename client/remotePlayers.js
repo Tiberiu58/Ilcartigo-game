@@ -14,7 +14,11 @@ class RemotePlayerView {
       alive: true,
       health: 100,
       weaponId: "rifle",
+      displayName: "",
     }
+    this.walkBobTime = 0
+    this.prevPosition = new BABYLON.Vector3()
+    this.speedEstimate = 0
 
     this.root = new BABYLON.TransformNode(`remotePlayer-${id}`, scene)
     this.snapshots = []
@@ -76,6 +80,41 @@ class RemotePlayerView {
     this.debugHitbox.material = this.hitboxMaterial
     this.debugHitbox.isPickable = false
     this.debugHitbox.setEnabled(DEBUG_REMOTE_HITBOXES)
+
+    // Name label using Babylon GUI (plane + dynamic texture)
+    this.namePlane = BABYLON.MeshBuilder.CreatePlane(`nameplate-${id}`, { width: 1.2, height: 0.3 }, scene)
+    this.namePlane.parent = this.root
+    this.namePlane.position.y = 2.3
+    this.namePlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL
+    this.namePlane.renderingGroupId = 2
+    this.namePlane.isPickable = false
+
+    this.nameTex = new BABYLON.DynamicTexture(`nameTex-${id}`, { width: 256, height: 64 }, scene, false)
+    this.nameTex.hasAlpha = true
+    const nameMat = new BABYLON.StandardMaterial(`nameMat-${id}`, scene)
+    nameMat.diffuseTexture = this.nameTex
+    nameMat.emissiveColor = BABYLON.Color3.White()
+    nameMat.specularColor = BABYLON.Color3.Black()
+    nameMat.backFaceCulling = false
+    nameMat.disableLighting = true
+    this.namePlane.material = nameMat
+    this.updateNameLabel("")
+  }
+
+  updateNameLabel(name) {
+    const ctx = this.nameTex.getContext()
+    ctx.clearRect(0, 0, 256, 64)
+    if (name) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)"
+      ctx.roundRect ? ctx.roundRect(4, 14, 248, 38, 6) : ctx.fillRect(4, 14, 248, 38)
+      ctx.fill()
+      ctx.font = "bold 22px Arial"
+      ctx.fillStyle = "#ffffff"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.fillText(name.slice(0, 14), 128, 34)
+    }
+    this.nameTex.update()
   }
 
   applySnapshot(snapshot) {
@@ -96,6 +135,12 @@ class RemotePlayerView {
     this.target.alive = snapshot.alive
     this.target.health = snapshot.health
     this.target.weaponId = snapshot.weaponId
+
+    const newName = snapshot.displayName || ""
+    if (newName !== this.target.displayName) {
+      this.target.displayName = newName
+      this.updateNameLabel(newName)
+    }
   }
 
   update(dt) {
@@ -105,10 +150,31 @@ class RemotePlayerView {
     }
 
     this.applyBufferedTarget()
+
+    const prevX = this.root.position.x
+    const prevZ = this.root.position.z
     this.root.position.x = damp(this.root.position.x, this.target.position.x, 18, dt)
     this.root.position.y = damp(this.root.position.y, this.target.position.y, 18, dt)
     this.root.position.z = damp(this.root.position.z, this.target.position.z, 18, dt)
     this.root.rotation.y = damp(this.root.rotation.y, this.target.yaw, 18, dt)
+
+    // Estimate horizontal speed from frame movement for walk bob
+    const dx = this.root.position.x - prevX
+    const dz = this.root.position.z - prevZ
+    const frameDist = Math.sqrt(dx * dx + dz * dz)
+    this.speedEstimate = damp(this.speedEstimate, frameDist / Math.max(dt, 0.001), 12, dt)
+
+    if (this.speedEstimate > 0.5) {
+      this.walkBobTime += dt * 11.0
+      const bob = Math.sin(this.walkBobTime) * 0.025 * Math.min(this.speedEstimate / 6, 1)
+      this.body.position.y = 0.95 + bob
+      this.head.position.y = 1.82 + bob * 0.8
+    } else {
+      this.walkBobTime = 0
+      this.body.position.y = damp(this.body.position.y, 0.95, 10, dt)
+      this.head.position.y = damp(this.head.position.y, 1.82, 10, dt)
+    }
+
     this.debugHitbox.setEnabled(DEBUG_REMOTE_HITBOXES && this.target.alive)
   }
 
@@ -141,6 +207,8 @@ class RemotePlayerView {
     this.bodyMaterial.dispose()
     this.headMaterial.dispose()
     this.hitboxMaterial.dispose()
+    this.nameTex.dispose()
+    this.namePlane.material?.dispose()
   }
 }
 

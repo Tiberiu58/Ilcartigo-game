@@ -22,6 +22,10 @@ export const MESSAGE_TYPES = {
   DEATH: "death",
   RESPAWN: "respawn",
   ERROR: "error",
+  SET_NAME: "set_name",
+  LIST_ROOMS: "list_rooms",
+  ROOMS_LIST: "rooms_list",
+  MATCH_SUMMARY: "match_summary",
 }
 
 export function serializeMessage(type, payload = {}) {

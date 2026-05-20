@@ -16,6 +16,7 @@ let nextClientId = 1
 function createClientSocket(socket) {
   return {
     id: `p${nextClientId++}`,
+    displayName: "",
     socket,
     roomId: null,
     playerState: null,
@@ -55,6 +56,20 @@ wss.on("connection", (socket) => {
     if (!message) {
       console.warn(`[server] invalid payload from ${client.id}: ${raw.toString()}`)
       client.send(MESSAGE_TYPES.ERROR, { message: "Invalid message payload." })
+      return
+    }
+
+    if (message.type === MESSAGE_TYPES.LIST_ROOMS) {
+      client.send(MESSAGE_TYPES.ROOMS_LIST, { rooms: roomManager.listPublicRooms() })
+      return
+    }
+
+    if (message.type === MESSAGE_TYPES.SET_NAME) {
+      const sanitized = String(message.displayName || "").trim().slice(0, 16).replace(/[^\w\s-]/g, "")
+      client.displayName = sanitized
+      if (client.playerState) {
+        client.playerState.displayName = sanitized
+      }
       return
     }
 

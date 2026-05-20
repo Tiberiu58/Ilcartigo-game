@@ -24,4 +24,20 @@ export class RoomManager {
   deleteRoom(roomId) {
     this.rooms.delete(roomId)
   }
+
+  listPublicRooms() {
+    const rooms = []
+    for (const [roomId, match] of this.rooms.entries()) {
+      if (match.matchPhase === "ended") {
+        continue
+      }
+      rooms.push({
+        roomId,
+        playerCount: match.players.size,
+        maxPlayers: 4,
+        matchPhase: match.matchPhase,
+      })
+    }
+    return rooms
+  }
 }

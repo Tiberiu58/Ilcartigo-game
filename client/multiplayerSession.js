@@ -43,8 +43,13 @@ export class MultiplayerSession {
     this.deaths = 0
     this.score = 0
     this.pendingJumpPressed = false
+    this.matchSummary = null
+    this.publicRooms = []
+    this.displayName = window.localStorage?.getItem("facilityZeroDisplayName") || ""
     this.onLobbyStateChanged = null
     this.onMatchStarted = null
+    this.onMatchSummary = null
+    this.onRoomsList = null
   }
 
   getLastRoomCode() {
@@ -86,8 +91,25 @@ export class MultiplayerSession {
     }
   }
 
+  setDisplayName(name) {
+    const sanitized = String(name || "").trim().slice(0, 16)
+    this.displayName = sanitized
+    window.localStorage?.setItem("facilityZeroDisplayName", sanitized)
+    if (this.connected && this.client.isOpen()) {
+      this.client.send(MESSAGE_TYPES.SET_NAME, { displayName: sanitized })
+    }
+  }
+
+  async requestRoomsList() {
+    await this.ensureConnected()
+    this.client.send(MESSAGE_TYPES.LIST_ROOMS)
+  }
+
   async createRoom() {
     await this.ensureConnected()
+    if (this.displayName) {
+      this.client.send(MESSAGE_TYPES.SET_NAME, { displayName: this.displayName })
+    }
     return new Promise((resolve, reject) => {
       this.joinWaiter = { resolve, reject }
       this.pendingRoomAction = "create"
@@ -97,6 +119,9 @@ export class MultiplayerSession {
 
   async joinRoom(roomCode) {
     await this.ensureConnected()
+    if (this.displayName) {
+      this.client.send(MESSAGE_TYPES.SET_NAME, { displayName: this.displayName })
+    }
     return new Promise((resolve, reject) => {
       this.joinWaiter = { resolve, reject }
       this.pendingRoomAction = "join"
@@ -260,7 +285,10 @@ export class MultiplayerSession {
     const players = roster.map((player, index) => {
       const isLocal = player.id === this.playerId
       const isHost = player.id === this.hostId
-      const baseLabel = isLocal ? "You" : `Player ${index + 1}`
+      const nameFromSnapshot = player.displayName || ""
+      const baseLabel = isLocal
+        ? (this.displayName || "You")
+        : (nameFromSnapshot || `Player ${index + 1}`)
 
       return {
         id: player.id,
@@ -446,6 +474,18 @@ export class MultiplayerSession {
           this.damagePulse = Math.max(this.damagePulse, 30)
         }
         break
+      case MESSAGE_TYPES.MATCH_SUMMARY:
+        this.matchSummary = message.summary || []
+        if (typeof this.onMatchSummary === "function") {
+          this.onMatchSummary(this.matchSummary)
+        }
+        break
+      case MESSAGE_TYPES.ROOMS_LIST:
+        this.publicRooms = message.rooms || []
+        if (typeof this.onRoomsList === "function") {
+          this.onRoomsList(this.publicRooms)
+        }
+        break
       case MESSAGE_TYPES.ERROR:
         this.lastError = message.message || "Multiplayer error."
         if (this.joinWaiter) {
@@ -457,6 +497,18 @@ export class MultiplayerSession {
       default:
         break
     }
+  }
+
+  getMatchSummary() {
+    return this.matchSummary
+  }
+
+  clearMatchSummary() {
+    this.matchSummary = null
+  }
+
+  getPublicRooms() {
+    return this.publicRooms
   }
 
   applySnapshots(players) {
@@ -531,11 +583,15 @@ export class MultiplayerSession {
     }
 
     if (playerId === this.playerId) {
-      return "You"
+      return this.displayName || "You"
     }
 
     const roster = this.lastRoomPlayers.length > 0 ? this.lastRoomPlayers : this.remoteSnapshots
-    const index = roster.findIndex((player) => player.id === playerId)
+    const player = roster.find((p) => p.id === playerId)
+    if (player?.displayName) {
+      return player.displayName
+    }
+    const index = roster.findIndex((p) => p.id === playerId)
     return index >= 0 ? `Player ${index + 1}` : playerId
   }
 

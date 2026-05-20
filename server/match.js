@@ -37,6 +37,7 @@ export class Match {
   addPlayer(client) {
     const state = createPlayerState(client.id, this.players.size)
     state.roomId = this.roomId
+    state.displayName = client.displayName || ""
     client.roomId = this.roomId
     client.inputState = this.createNeutralInputState()
     client.playerState = state
@@ -110,6 +111,9 @@ export class Match {
         break
       case MESSAGE_TYPES.LEAVE_ROOM:
         this.removePlayer(client.id)
+        break
+      case MESSAGE_TYPES.SET_NAME:
+        this.handleSetName(client, message.displayName)
         break
       case MESSAGE_TYPES.START_MATCH:
         this.handleStartMatch(client)
@@ -261,6 +265,7 @@ export class Match {
     state.weapon.clipAmmo -= 1
     state.weapon.cooldown = stats.fireInterval
     state.weaponInventory[state.weapon.weaponId] = { ...state.weapon }
+    state.shotsFired = (state.shotsFired || 0) + 1
 
     if (Number.isFinite(message.yaw)) {
       state.yaw = Number(message.yaw)
@@ -312,6 +317,7 @@ export class Match {
     }
 
     bestClient.playerState.health = Math.max(0, bestClient.playerState.health - stats.damage)
+    state.shotsHit = (state.shotsHit || 0) + 1
     this.logShot("hit", {
       shooterId: client.id,
       victimId: bestClient.id,
@@ -592,6 +598,40 @@ export class Match {
       client.inputState = this.createNeutralInputState()
     }
     console.log(`[match ${this.roomId}] match ended`)
+
+    const summary = this.getMatchSummary()
+    this.broadcast(MESSAGE_TYPES.MATCH_SUMMARY, { roomId: this.roomId, summary })
+    this.broadcastRoomState()
+  }
+
+  getMatchSummary() {
+    return [...this.players.values()]
+      .filter((client) => client.playerState)
+      .map((client) => {
+        const state = client.playerState
+        const accuracy = state.shotsFired > 0
+          ? Math.round((state.shotsHit / state.shotsFired) * 100)
+          : 0
+        return {
+          id: state.id,
+          displayName: state.displayName || "",
+          kills: state.kills || 0,
+          deaths: state.deaths || 0,
+          score: state.score || 0,
+          shotsFired: state.shotsFired || 0,
+          shotsHit: state.shotsHit || 0,
+          accuracy,
+        }
+      })
+      .sort((left, right) => right.score - left.score || right.kills - left.kills || left.deaths - right.deaths)
+  }
+
+  handleSetName(client, displayName) {
+    if (!client.playerState) {
+      return
+    }
+    const sanitized = String(displayName || "").trim().slice(0, 16).replace(/[^\w\s-]/g, "")
+    client.playerState.displayName = sanitized
     this.broadcastRoomState()
   }
 

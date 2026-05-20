@@ -198,8 +198,18 @@ export function bootstrapGame() {
     }
   }
 
-  async function beginMultiplayerRun(mode) {
+  async function beginMultiplayerRun(mode, directRoomId = "") {
     try {
+      // Prompt for name on first multiplayer join if not set
+      if (!network.displayName) {
+        await new Promise((resolve) => {
+          ui.showNamePrompt("", (name) => {
+            network.setDisplayName(name || `Player${Math.floor(Math.random() * 9000) + 1000}`)
+            resolve()
+          })
+        })
+      }
+
       debugState.lastFrameNote = `multiplayer ${mode}`
       gameMode = GAME_MODES.multiplayer
       appState = APP_STATES.lobby
@@ -210,6 +220,8 @@ export function bootstrapGame() {
       let roomInfo
       if (mode === "create") {
         roomInfo = await network.createRoom()
+      } else if (mode === "join-direct" && directRoomId) {
+        roomInfo = await network.joinRoom(directRoomId)
       } else {
         const roomCode = window.prompt("Enter room code", network.getLastRoomCode()) || ""
         if (!roomCode.trim()) {
@@ -226,6 +238,9 @@ export function bootstrapGame() {
       debugState.lastFrameNote = `joined room ${roomInfo.roomId}`
       renderLobbyState(mode === "create" ? `Room ${roomInfo.roomId} created.` : `Joined room ${roomInfo.roomId}.`)
       ui.showLobbyMenu()
+
+      // Load room list after joining lobby
+      network.requestRoomsList().catch(() => {})
     } catch (error) {
       ui.clearLobbyBusy()
       setDebugError(error instanceof Error ? error.message : String(error))
@@ -300,7 +315,25 @@ export function bootstrapGame() {
 
   network.onMatchStarted = ({ roomId }) => {
     ui.clearLobbyBusy()
+    network.clearMatchSummary()
     enterMultiplayerMatch(`match started ${roomId}`)
+  }
+
+  network.onMatchSummary = (summary) => {
+    if (typeof ui.renderMatchSummary === "function") {
+      ui.renderMatchSummary(summary, network.isHost())
+      ui.showSummaryScreen()
+    }
+  }
+
+  network.onRoomsList = (rooms) => {
+    if (typeof ui.renderRoomBrowser === "function") {
+      ui.renderRoomBrowser(rooms, (roomId) => {
+        beginMultiplayerRun("join-direct", roomId)
+      })
+    }
+    const section = document.getElementById("room-browser-section")
+    section?.classList.remove("hidden")
   }
 
   input.onPointerLockChange = (locked) => {
@@ -331,7 +364,10 @@ export function bootstrapGame() {
     beginSinglePlayerRun()
     lockPointer()
   })
-  ui.lobbyButton?.addEventListener("click", showLobbyMenu)
+  ui.lobbyButton?.addEventListener("click", () => {
+    showLobbyMenu()
+    network.requestRoomsList().catch(() => {})
+  })
   ui.lobbyBackButton?.addEventListener("click", () => {
     leaveMultiplayer()
     showMainMenu()
@@ -382,6 +418,40 @@ export function bootstrapGame() {
     ui.setLobbyBusy("Starting match")
     renderLobbyState()
   })
+
+  ui.summaryPlayAgainButton?.addEventListener("click", () => {
+    network.requestStartMatch()
+    ui.setLobbyBusy("Starting match")
+    renderLobbyState()
+    ui.showLobbyMenu()
+  })
+
+  ui.summaryLeaveButton?.addEventListener("click", () => {
+    leaveMultiplayer()
+    showMainMenu()
+  })
+
+  ui.roomBrowserRefreshButton?.addEventListener("click", async () => {
+    await network.requestRoomsList()
+  })
+
+  document.getElementById("change-name-button")?.addEventListener("click", () => {
+    ui.showNamePrompt(network.displayName, (name) => {
+      if (name) {
+        network.setDisplayName(name)
+        renderLobbyState(`Name set to "${name}".`)
+      }
+    })
+  })
+
+  // Show room browser when user opens lobby
+  document.getElementById("room-browser-section")?.classList.add("hidden")
+
+  // Name prompt on first lobby visit
+  const savedName = window.localStorage?.getItem("facilityZeroDisplayName") || ""
+  if (savedName) {
+    network.displayName = savedName
+  }
 
   canvas.addEventListener("click", () => {
     debugState.lastInputEvent = "canvas click"

@@ -232,6 +232,14 @@
                   <button id="join-room-button" type="button" class="button-secondary">Join Room</button>
                 </div>
 
+                <div class="room-browser-section hidden" id="room-browser-section">
+                  <div class="room-browser-header">
+                    <span class="info-label">Open Rooms</span>
+                    <button id="room-browser-refresh-button" type="button" class="button-secondary room-browser-refresh">Refresh</button>
+                  </div>
+                  <div class="room-browser-table" id="room-browser-table"></div>
+                </div>
+
                 <div class="player-slots" id="player-slots">
                   <div class="slot-card slot-card-active slot-card-host">
                     <div>
@@ -257,6 +265,7 @@
                 <div class="menu-actions lobby-footer-actions">
                   <button id="start-room-button" type="button" class="hidden button-primary">Start Match</button>
                   <button id="lobby-solo-button" type="button">Start Solo Run</button>
+                  <button id="change-name-button" type="button" class="button-secondary">Change Name</button>
                   <button id="lobby-back-button" type="button" class="button-secondary">Back</button>
                 </div>
               </section>
@@ -272,6 +281,25 @@
                   <button id="overlay-button" type="button">Start Run</button>
                 </div>
               </section>
+
+              <section class="menu-screen hidden" id="screen-summary">
+                <p class="eyebrow">Match Over</p>
+                <h2>Final Standings</h2>
+                <div class="summary-table" id="summary-table"></div>
+                <div class="menu-actions">
+                  <button id="summary-play-again-button" type="button" class="button-primary">Play Again</button>
+                  <button id="summary-leave-button" type="button" class="button-secondary">Leave Room</button>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="name-prompt-overlay hidden" id="name-prompt-overlay">
+            <div class="name-prompt-card">
+              <p class="eyebrow">Welcome</p>
+              <h3>Choose Your Name</h3>
+              <input id="name-input" type="text" maxlength="16" placeholder="Your name (max 16 chars)" class="name-input" autocomplete="off" />
+              <button id="name-confirm-button" type="button" class="button-primary">Confirm</button>
             </div>
           </div>
         </div>

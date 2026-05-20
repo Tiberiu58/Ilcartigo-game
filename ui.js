@@ -73,7 +73,18 @@ export class UIController {
       settings: rootDocument.getElementById("screen-settings"),
       lobby: rootDocument.getElementById("screen-lobby"),
       message: rootDocument.getElementById("screen-message"),
+      summary: rootDocument.getElementById("screen-summary"),
     }
+
+    this.summaryTable = rootDocument.getElementById("summary-table")
+    this.summaryPlayAgainButton = rootDocument.getElementById("summary-play-again-button")
+    this.summaryLeaveButton = rootDocument.getElementById("summary-leave-button")
+    this.namePromptOverlay = rootDocument.getElementById("name-prompt-overlay")
+    this.nameInput = rootDocument.getElementById("name-input")
+    this.nameConfirmButton = rootDocument.getElementById("name-confirm-button")
+    this.roomBrowserTable = rootDocument.getElementById("room-browser-table")
+    this.roomBrowserRefreshButton = rootDocument.getElementById("room-browser-refresh-button")
+    this.roomBrowserSection = rootDocument.getElementById("room-browser-section")
 
     this.cache = {
       health: "",
@@ -337,6 +348,101 @@ export class UIController {
     })
 
     this.scoreboardTable.replaceChildren(fragment)
+  }
+
+  showSummaryScreen() {
+    this.showScreen("summary")
+  }
+
+  renderMatchSummary(entries, isHost) {
+    if (!this.summaryTable) {
+      return
+    }
+
+    const fragment = this.rootDocument.createDocumentFragment()
+    const header = this.rootDocument.createElement("div")
+    header.className = "summary-row summary-row-header"
+    header.innerHTML = "<span>Player</span><span>K</span><span>D</span><span>Score</span><span>Accuracy</span>"
+    fragment.append(header)
+
+    entries.forEach((entry, index) => {
+      const row = this.rootDocument.createElement("div")
+      row.className = `summary-row${index === 0 ? " summary-row-leader" : ""}`
+      const name = entry.displayName || entry.id
+      row.innerHTML = `
+        <span>${name}</span>
+        <span>${entry.kills || 0}</span>
+        <span>${entry.deaths || 0}</span>
+        <span>${entry.score || 0}</span>
+        <span>${entry.accuracy ?? 0}%</span>
+      `
+      fragment.append(row)
+    })
+
+    this.summaryTable.replaceChildren(fragment)
+
+    if (this.summaryPlayAgainButton) {
+      this.summaryPlayAgainButton.classList.toggle("hidden", !isHost)
+    }
+  }
+
+  showNamePrompt(currentName, onConfirm) {
+    if (!this.namePromptOverlay) {
+      return
+    }
+    if (this.nameInput) {
+      this.nameInput.value = currentName || ""
+    }
+    this.namePromptOverlay.classList.remove("hidden")
+    this.nameInput?.focus()
+    if (this.nameConfirmButton) {
+      this.nameConfirmButton.onclick = () => {
+        const name = this.nameInput?.value?.trim() || ""
+        this.namePromptOverlay.classList.add("hidden")
+        onConfirm(name)
+      }
+    }
+    if (this.nameInput) {
+      this.nameInput.onkeydown = (event) => {
+        if (event.key === "Enter") {
+          this.nameConfirmButton?.click()
+        }
+      }
+    }
+  }
+
+  hideNamePrompt() {
+    this.namePromptOverlay?.classList.add("hidden")
+  }
+
+  renderRoomBrowser(rooms, onJoin) {
+    if (!this.roomBrowserTable) {
+      return
+    }
+
+    const fragment = this.rootDocument.createDocumentFragment()
+    if (rooms.length === 0) {
+      const empty = this.rootDocument.createElement("div")
+      empty.className = "room-browser-empty"
+      empty.textContent = "No open rooms found. Create one!"
+      fragment.append(empty)
+    } else {
+      rooms.forEach((room) => {
+        const row = this.rootDocument.createElement("div")
+        row.className = "room-browser-row"
+        const label = this.rootDocument.createElement("span")
+        label.textContent = `${room.roomId}  (${room.playerCount}/${room.maxPlayers}) — ${room.matchPhase}`
+        const btn = this.rootDocument.createElement("button")
+        btn.type = "button"
+        btn.className = "button-secondary room-browser-join"
+        btn.textContent = "Join"
+        btn.onclick = () => onJoin(room.roomId)
+        row.append(label, btn)
+        fragment.append(row)
+      })
+    }
+
+    this.roomBrowserTable.replaceChildren(fragment)
   }
 
   renderLoadout(weaponIds, weaponLibrary, selectedWeaponId) {

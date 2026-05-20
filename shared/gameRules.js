@@ -27,6 +27,7 @@ export function createPlayerState(id, spawnIndex = 0) {
   const spawn = getSpawnPoint(spawnIndex)
   return {
     id,
+    displayName: "",
     roomId: null,
     ...createSimulationState(spawn),
     lastSafePosition: { x: spawn.x, y: spawn.y, z: spawn.z },
@@ -36,6 +37,8 @@ export function createPlayerState(id, spawnIndex = 0) {
     kills: 0,
     deaths: 0,
     score: 0,
+    shotsFired: 0,
+    shotsHit: 0,
     killedBy: "",
     weaponInventory,
     weapon: { ...weaponInventory[LOADOUT_CONFIG.defaultPrimaryWeaponId] },
@@ -72,6 +75,7 @@ export function respawnPlayerState(state, spawnIndex) {
 export function getPlayerSnapshot(state) {
   return {
     id: state.id,
+    displayName: state.displayName || "",
     roomId: state.roomId,
     position: {
       x: state.position.x,
@@ -95,6 +99,8 @@ export function getPlayerSnapshot(state) {
     kills: state.kills || 0,
     deaths: state.deaths || 0,
     score: state.score || 0,
+    shotsFired: state.shotsFired || 0,
+    shotsHit: state.shotsHit || 0,
     killedBy: state.killedBy || "",
     teleportMarker: state.teleportMarker,
     teleportCooldown: state.teleportCooldown || 0,
