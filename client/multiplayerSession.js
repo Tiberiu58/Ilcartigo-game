@@ -186,12 +186,20 @@ export class MultiplayerSession {
     }
 
     if (this.localSnapshot) {
+      // Reconcile only — local movement runs freely via client-side prediction.
+      // Weapon + teleport are still server-authoritative for correctness.
       context.player.reconcileAuthoritativeState(this.localSnapshot, dt)
       context.weapon.syncNetworkState(this.localSnapshot)
       context.teleport.syncNetworkState({
         marker: this.localSnapshot.teleportMarker,
         cooldown: this.localSnapshot.teleportCooldown || 0,
       })
+    }
+
+    // Run local movement prediction so the player feels immediate regardless
+    // of network round-trip time. The reconcile above will gently correct drift.
+    if (this.matchPhase === "playing" && context.player) {
+      context.player.runLocalPrediction(dt, context.input)
     }
   }
 

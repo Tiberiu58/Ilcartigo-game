@@ -1,6 +1,7 @@
 import { BABYLON } from "./babylon.js"
 import { PLAYER_CONFIG } from "./config.js"
 import { clamp, damp, length2D, moveTowards, normalize2D } from "./utils.js"
+import { stepPlayerSimulation } from "./shared/playerSimulation.js"
 
 export class PlayerController {
   constructor(scene, input, level) {
@@ -72,8 +73,6 @@ export class PlayerController {
     const lookX = clamp(look.x, -PLAYER_CONFIG.maxLookDeltaPerFrame, PLAYER_CONFIG.maxLookDeltaPerFrame)
     const lookY = clamp(look.y, -PLAYER_CONFIG.maxLookDeltaPerFrame, PLAYER_CONFIG.maxLookDeltaPerFrame)
 
-    // Pointer-lock aim stays immediate, but very large single-frame spikes are
-    // clamped so focus changes do not yank the camera.
     this.yaw += lookX * PLAYER_CONFIG.mouseSensitivity
     const lookDirection = PLAYER_CONFIG.invertLookY ? -1 : 1
     this.pitch = clamp(
@@ -81,6 +80,14 @@ export class PlayerController {
       -PLAYER_CONFIG.maxPitch,
       PLAYER_CONFIG.maxPitch
     )
+
+    // In multiplayer, physics run via runLocalPrediction — skip them here
+    // to avoid double-simulating. Only visuals/look are updated above.
+    if (options.networkMode) {
+      this.updateVisuals(dt)
+      this.updateCamera()
+      return
+    }
 
     const axes = this.input.getMoveAxes()
     const inputVector = normalize2D(axes.right, axes.forward)
@@ -197,6 +204,22 @@ export class PlayerController {
       this.bob = damp(this.bob, 0, PLAYER_CONFIG.bobSmoothing, dt)
     }
 
+    this.updateVisuals(dt)
+    this.updateCamera()
+  }
+
+  updateVisuals(dt) {
+    const horizontalSpeed = length2D(this.velocity.x, this.velocity.z)
+    this.moveAmount = clamp(horizontalSpeed / PLAYER_CONFIG.sprintSpeed, 0, 1)
+
+    if (this.grounded && horizontalSpeed > 0.2) {
+      const sprintMultiplier = this.sprinting ? 1.2 : 1
+      this.bobPhase += dt * PLAYER_CONFIG.bobSpeed * sprintMultiplier * (0.75 + this.moveAmount)
+      this.bob = Math.sin(this.bobPhase) * PLAYER_CONFIG.bobAmount * this.moveAmount
+    } else {
+      this.bob = damp(this.bob, 0, PLAYER_CONFIG.bobSmoothing, dt)
+    }
+
     this.visualBob = damp(this.visualBob, this.bob, PLAYER_CONFIG.bobSmoothing, dt)
     this.visualBobSide = damp(
       this.visualBobSide,
@@ -208,8 +231,6 @@ export class PlayerController {
     this.viewKickPitch = damp(this.viewKickPitch, 0, 18, dt)
     this.viewKickYaw = damp(this.viewKickYaw, 0, 14, dt)
     this.viewRoll = damp(this.viewRoll, 0, 12, dt)
-
-    this.updateCamera()
   }
 
   applyGroundMovement(targetX, targetZ, hasMovementInput, dt) {
@@ -357,34 +378,53 @@ export class PlayerController {
 
     this.setHealth(snapshot.health)
 
-    const positionError = Math.hypot(
-      snapshot.position.x - this.position.x,
-      snapshot.position.y - this.position.y,
-      snapshot.position.z - this.position.z
-    )
-
-    if (positionError > 6.5 || !snapshot.alive) {
-      this.lastReconcileNote = `snap ${positionError.toFixed(2)}`
+    if (!snapshot.alive) {
+      // Hard snap on death/respawn — position must be authoritative
       this.position.x = snapshot.position.x
       this.position.y = snapshot.position.y
       this.position.z = snapshot.position.z
-    } else if (positionError > 0.001) {
-      this.lastReconcileNote = `blend ${positionError.toFixed(2)}`
-      const correctionStrength = positionError > 1.8 ? 8 : 4.5
-      this.position.x = damp(this.position.x, snapshot.position.x, correctionStrength, dt)
-      this.position.y = damp(this.position.y, snapshot.position.y, correctionStrength, dt)
-      this.position.z = damp(this.position.z, snapshot.position.z, correctionStrength, dt)
-    } else {
-      this.lastReconcileNote = "steady"
-      this.position.x = snapshot.position.x
-      this.position.y = snapshot.position.y
-      this.position.z = snapshot.position.z
+      this.velocity.x = 0
+      this.velocity.y = 0
+      this.velocity.z = 0
+      this.grounded = true
+      this.lastReconcileNote = "dead-snap"
+      this.updateCamera()
+      return
     }
 
-    this.velocity.x = damp(this.velocity.x, snapshot.velocity.x, 10, dt)
-    this.velocity.y = damp(this.velocity.y, snapshot.velocity.y, 12, dt)
-    this.velocity.z = damp(this.velocity.z, snapshot.velocity.z, 10, dt)
-    this.grounded = snapshot.alive ? snapshot.velocity.y === 0 || this.grounded : false
+    // With client-side prediction running we only need to correct real drift.
+    // Ignore Y (vertical) small errors — they're from gravity timing differences
+    // and cause visible vertical snapping. Only correct X/Z unless very wrong.
+    const errorX = snapshot.position.x - this.position.x
+    const errorZ = snapshot.position.z - this.position.z
+    const errorY = snapshot.position.y - this.position.y
+    const horizontalError = Math.hypot(errorX, errorZ)
+    const totalError = Math.hypot(horizontalError, errorY)
+
+    if (totalError > 5.0) {
+      // Too far off — hard snap (teleport, spawn, large desync)
+      this.position.x = snapshot.position.x
+      this.position.y = snapshot.position.y
+      this.position.z = snapshot.position.z
+      this.velocity.x = snapshot.velocity.x
+      this.velocity.y = snapshot.velocity.y
+      this.velocity.z = snapshot.velocity.z
+      this.grounded = snapshot.velocity.y === 0
+      this.lastReconcileNote = `hard-snap ${totalError.toFixed(2)}`
+    } else if (horizontalError > 0.08) {
+      // Gentle smooth correction — don't fight the player's current input
+      const blend = Math.min(horizontalError / 3.0, 1) * 6
+      this.position.x += errorX * Math.min(blend * dt, 0.4)
+      this.position.z += errorZ * Math.min(blend * dt, 0.4)
+      // Only correct Y if it's significantly wrong (avoids vertical jitter)
+      if (Math.abs(errorY) > 0.4) {
+        this.position.y += errorY * Math.min(3 * dt, 0.25)
+      }
+      this.lastReconcileNote = `drift ${horizontalError.toFixed(2)}`
+    } else {
+      this.lastReconcileNote = "ok"
+    }
+
     this.updateCamera()
   }
 
@@ -465,6 +505,47 @@ export class PlayerController {
 
   getLookDirection() {
     return this.camera.getForwardRay(1).direction
+  }
+
+  runLocalPrediction(dt, input) {
+    // Mirror the server's stepPlayerSimulation using local input so movement
+    // feels immediate. The reconcile pass will nudge us back if we drift.
+    const axes = input.getMoveAxes()
+    const syntheticInput = {
+      forward: axes.forward,
+      right: axes.right,
+      sprinting: input.isSprinting(),
+      jumpHeld: input.isJumpHeld(),
+      jumpPressed: false, // consumed by player.update already
+      yaw: this.yaw,
+      pitch: this.pitch,
+    }
+
+    // Build a lightweight state mirror matching what stepPlayerSimulation expects
+    const state = {
+      position: { x: this.position.x, y: this.position.y, z: this.position.z },
+      velocity: { x: this.velocity.x, y: this.velocity.y, z: this.velocity.z },
+      yaw: this.yaw,
+      pitch: this.pitch,
+      grounded: this.grounded,
+      coyoteTimer: this.coyoteTimer,
+      jumpBufferTimer: this.jumpBufferTimer,
+      jumpHeldLast: this._jumpHeldLastPrediction ?? false,
+    }
+
+    stepPlayerSimulation(state, syntheticInput, dt)
+    this._jumpHeldLastPrediction = syntheticInput.jumpHeld
+
+    this.position.x = state.position.x
+    this.position.y = state.position.y
+    this.position.z = state.position.z
+    this.velocity.x = state.velocity.x
+    this.velocity.y = state.velocity.y
+    this.velocity.z = state.velocity.z
+    this.grounded = state.grounded
+    this.coyoteTimer = state.coyoteTimer
+    this.jumpBufferTimer = state.jumpBufferTimer
+    this.updateCamera()
   }
 
   getLastReconcileNote() {

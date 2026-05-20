@@ -388,7 +388,7 @@ export const MULTIPLAYER_CONFIG = {
   // Simulation tick rate on the server.
   simulationRate: 60,
   // Snapshot broadcast rate to connected clients.
-  snapshotRate: 20,
+  snapshotRate: 30,
   // Maximum room size for the first multiplayer prototype.
   maxPlayersPerRoom: 4,
   // Delay before a dead player respawns.

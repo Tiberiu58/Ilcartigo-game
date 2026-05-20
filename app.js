@@ -540,7 +540,7 @@ export function bootstrapGame() {
 
       if (appState === APP_STATES.playing) {
         const jumpPressed = input.consumeJumpPressed()
-        player.update(dt, { jumpPressed })
+        player.update(dt, { jumpPressed, networkMode: gameMode === GAME_MODES.multiplayer })
 
         if (gameMode === GAME_MODES.singleplayer) {
           ui.renderScoreboard([], { visible: false })
