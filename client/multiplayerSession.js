@@ -1,7 +1,7 @@
 import { MULTIPLAYER_CONFIG } from "../config.js"
-import { getMultiplayerServerUrl } from "./runtimeConfig.js?v=multiplayer-v18"
-import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v18"
-import { NetworkClient } from "./networkClient.js?v=multiplayer-v18"
+import { getMultiplayerServerUrl } from "./runtimeConfig.js?v=multiplayer-v19"
+import { MESSAGE_TYPES, normalizeRoomCode } from "../shared/protocol.js?v=multiplayer-v19"
+import { NetworkClient } from "./networkClient.js?v=multiplayer-v19"
 
 const CONNECTION_LABELS = {
   idle: "Ready to connect.",
