@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ILCARTIGO — fast-paced browser arena shooter" />
+    <title>ILCARTIGO</title>
+    <link rel="stylesheet" href="/src/ui/styles.css" />
+  </head>
+  <body>
+    <!-- Mobile / unsupported device gate. Shown by main.ts if we detect
+         a touchscreen device or no pointer-lock support. Override with
+         ?nodetect=1 in the URL for dev testing on a desktop with touch. -->
+    <div id="mobile-gate" class="hidden">
+      <div class="mobile-gate-card">
+        <h1>ILCARTIGO</h1>
+        <p class="mobile-gate-line">Desktop-only game</p>
+        <p class="mobile-gate-body">
+          ILCARTIGO is a first-person shooter that needs a keyboard, a mouse,
+          and pointer-lock support. Mobile browsers can't deliver the precision
+          aim required to play it well, so we don't try.
+        </p>
+        <p class="mobile-gate-body">
+          Come back from a desktop or laptop. We'll be here.
+        </p>
+        <p class="mobile-gate-body" style="font-size: 12px; opacity: 0.7; margin-top: 24px;">
+          Read about the game at <a href="https://ilcartigo.com">ilcartigo.com</a>.
+        </p>
+      </div>
+    </div>
+
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <div id="hud" class="hidden">
+        <div id="crosshair">
+          <div class="ch-line ch-top"></div>
+          <div class="ch-line ch-bottom"></div>
+          <div class="ch-line ch-left"></div>
+          <div class="ch-line ch-right"></div>
+          <div class="ch-dot"></div>
+          <div id="hitmarker">
+            <div class="hm hm-tl"></div>
+            <div class="hm hm-tr"></div>
+            <div class="hm hm-bl"></div>
+            <div class="hm hm-br"></div>
+          </div>
+        </div>
+
+        <div id="damage-flash"></div>
+
+        <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
+        <div id="match-score" class="hidden">
+          <span class="ms-you" id="ms-you-kills">0</span>
+          <span class="ms-sep">/</span>
+          <span class="ms-goal" id="ms-goal">30</span>
+          <span class="ms-leader" id="ms-leader">leader: —</span>
+        </div>
+
+        <!-- Killstreak / multi-kill announcer banner — center-upper screen.
+             Populated + animated by Announcer.ts on local-player kills. -->
+        <div id="announcer" class="hidden">
+          <div id="announcer-main"></div>
+          <div id="announcer-sub"></div>
+        </div>
+
+        <!-- Respawn countdown overlay during the death window. -->
+        <div id="respawn-countdown" class="hidden">
+          <div class="rc-label">You died</div>
+          <div class="rc-timer" id="rc-timer">1.8</div>
+          <div class="rc-sub">Respawning…</div>
+        </div>
+
+        <!-- Practice Range badge — top-center, only shown in practice mode. -->
+        <div id="practice-badge" class="hidden">PRACTICE RANGE · No bots · ESC to return</div>
+        <!-- Online badge — shown while connected to MP. Includes player count. -->
+        <div id="online-badge" class="hidden">ONLINE · <span id="online-count">1</span> players</div>
+
+        <!-- Spawn-protection vignette + label. Shown for 2s after spawn/respawn. -->
+        <div id="spawn-protect" class="hidden">
+          <div class="sp-label">SPAWN PROTECTED</div>
+        </div>
+
+        <!-- Sniper scope overlay — shown only while scoped. Renders a round
+             lens cutout with black masks on the sides + a thin reticle. -->
+        <div id="scope-overlay" class="hidden">
+          <div class="scope-mask scope-top"></div>
+          <div class="scope-mask scope-bottom"></div>
+          <div class="scope-mask scope-left"></div>
+          <div class="scope-mask scope-right"></div>
+          <div class="scope-lens"></div>
+          <div class="scope-reticle">
+            <div class="sr-v"></div>
+            <div class="sr-h"></div>
+            <div class="sr-dot"></div>
+          </div>
+        </div>
+
+        <div id="debug-hud">
+          <div>FPS: <span id="dbg-fps">0</span></div>
+          <div>Speed: <span id="dbg-speed">0</span> u/s</div>
+          <div>State: <span id="dbg-state">-</span></div>
+          <div>Pos: <span id="dbg-pos">-</span></div>
+        </div>
+
+        <div id="health-panel">
+          <div class="hp-label">HP</div>
+          <div class="hp-bar"><div id="hp-fill"></div></div>
+          <div id="hp-num">100</div>
+        </div>
+
+        <div id="ammo-panel">
+          <div id="ammo-cur">30</div>
+          <div id="ammo-sep">/</div>
+          <div id="ammo-max">30</div>
+          <div id="ammo-weapon">AR</div>
+        </div>
+        <div id="slot-indicator">
+          <div class="slot-chip active" data-slot="0">1</div>
+          <div class="slot-chip" data-slot="1">2</div>
+        </div>
+
+        <!-- Ability pill — bottom-center, shows class color, ability name,
+             cooldown ring, charge dots, and the E keybind. -->
+        <div id="ability-pill">
+          <div class="ap-key">E</div>
+          <div class="ap-body">
+            <div class="ap-name">Dash</div>
+            <div class="ap-cd-ring">
+              <div class="ap-cd-fill"></div>
+              <div class="ap-charges">
+                <div class="ap-dot"></div>
+                <div class="ap-dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="reload-indicator" class="hidden">RELOADING</div>
+
+        <div id="killfeed"></div>
+
+        <!-- Scoreboard overlay — hold TAB. Populated by main.ts each frame
+             while visible. Rows: rank, name, kills, deaths, K/D. -->
+        <div id="scoreboard" class="hidden">
+          <div class="sb-card">
+            <div class="sb-header">
+              <span class="sb-title">SCOREBOARD</span>
+              <span class="sb-mode" id="sb-mode">Free-for-All</span>
+            </div>
+            <div class="sb-row sb-row-head">
+              <span class="sb-rank">#</span>
+              <span class="sb-name">PLAYER</span>
+              <span class="sb-k">K</span>
+              <span class="sb-d">D</span>
+              <span class="sb-kd">K/D</span>
+            </div>
+            <div id="sb-body"></div>
+            <div class="sb-footer">Hold <b>TAB</b> to view · First to <span id="sb-goal">30</span> kills wins</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main menu shell — shown first; PLAY moves to the in-game pause overlay then locks pointer. -->
+      <div id="main-menu">
+        <div class="menu-topbanner">
+          <!-- AdSense 728x90 slot — managed by Ads.ts. Shows an in-house
+               placeholder until a real publisher id is configured. -->
+          <div class="ad-slot ad-728x90" id="ad-menu-top" data-ad-slot="menu-top"></div>
+        </div>
+        <div class="menu-sidebar">
+          <div class="ad-slot ad-300x600" id="ad-menu-side" data-ad-slot="menu-side"></div>
+        </div>
+        <div class="menu-center">
+          <h1>ILCARTIGO</h1>
+          <p class="subtitle">Browser arena shooter · v0.11</p>
+          <div class="loadout">
+            <div class="loadout-label">Class</div>
+            <div class="class-grid">
+              <button class="class-btn" data-class="phantom"  style="--class-c: #9c64ff;">
+                <div class="cb-name">Phantom</div><div class="cb-ab">Blink</div>
+              </button>
+              <button class="class-btn" data-class="rush"     style="--class-c: #ff8a3a;">
+                <div class="cb-name">Rush</div><div class="cb-ab">Surge</div>
+              </button>
+              <button class="class-btn selected" data-class="vanguard" style="--class-c: #4ac8a8;">
+                <div class="cb-name">Vanguard</div><div class="cb-ab">Dash ×2</div>
+              </button>
+              <button class="class-btn" data-class="ghost"    style="--class-c: #a0a8b8;">
+                <div class="cb-name">Ghost</div><div class="cb-ab">Cloak</div>
+              </button>
+              <button class="class-btn" data-class="engineer" style="--class-c: #f5d442;">
+                <div class="cb-name">Engineer</div><div class="cb-ab">Barrier</div>
+              </button>
+              <button class="class-btn" data-class="hunter"   style="--class-c: #ff5a7e;">
+                <div class="cb-name">Hunter</div><div class="cb-ab">Pulse</div>
+              </button>
+            </div>
+          </div>
+          <div class="loadout">
+            <div class="loadout-label">Map</div>
+            <div class="loadout-grid map-grid">
+              <button class="loadout-btn selected" data-map="sandstone">Sandstone</button>
+              <button class="loadout-btn" data-map="industrial">Industrial</button>
+            </div>
+          </div>
+          <div class="loadout">
+            <div class="loadout-label">Primary Weapon</div>
+            <div class="loadout-grid">
+              <button class="loadout-btn selected" data-weapon="ar">AR</button>
+              <button class="loadout-btn" data-weapon="smg">SMG</button>
+              <button class="loadout-btn" data-weapon="sniper">Sniper</button>
+              <button class="loadout-btn" data-weapon="shotgun">Shotgun</button>
+            </div>
+          </div>
+          <div class="menu-buttons">
+            <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
+            <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
+            <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
+            <button class="menu-btn" id="menu-howto">How to Play</button>
+            <button class="menu-btn" id="menu-settings">Settings</button>
+            <button class="menu-btn" id="menu-about">About</button>
+          </div>
+        </div>
+        <div class="menu-footer">
+          <div>v0.11.0 — scoreboard, killstreaks, stats, ads</div>
+          <div>
+            <a href="#" data-page="privacy">Privacy</a>
+            <a href="#" data-page="terms">Terms</a>
+            <a href="#" data-page="about">About</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause overlay — shown when pointer is unlocked mid-game. -->
+      <div id="pause-overlay" class="hidden in-game">
+        <div class="pause-card">
+          <h1>PAUSED</h1>
+          <p class="tag">Esc returns to the game</p>
+          <button id="play-btn" class="menu-btn primary">▸ Resume</button>
+          <button class="menu-btn" id="pause-settings-btn" style="margin-top: 8px;">Settings</button>
+          <button class="menu-btn" id="back-to-menu" style="margin-top: 8px;">Quit to Menu</button>
+          <div class="controls" style="margin-top: 22px;">
+            <div><kbd>WASD</kbd> move · <kbd>Space</kbd> jump (bhop)</div>
+            <div><kbd>Shift</kbd> crouch</div>
+            <div><kbd>LMB</kbd> shoot · <kbd>RMB</kbd> scope</div>
+            <div><kbd>R</kbd> reload · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>Q</kbd> swap</div>
+            <div><kbd>E</kbd> ability</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Post-match overlay (MP only). Shown when first player hits 30 kills. -->
+      <div id="postmatch-overlay" class="hidden">
+        <div class="postmatch-card">
+          <h2 id="pm-title">MATCH OVER</h2>
+          <p id="pm-winner-line" class="pm-winner">winner: —</p>
+
+          <div class="pm-scoreboard">
+            <div class="pm-row pm-row-head">
+              <span>Rank</span><span>Player</span><span>Kills</span><span>Deaths</span><span>K/D</span>
+            </div>
+            <div id="pm-scoreboard-body"></div>
+          </div>
+
+          <div class="pm-rewards">
+            <div class="pm-xp">+<span id="pm-xp-earned">0</span> XP</div>
+            <div id="pm-unlocks"></div>
+          </div>
+
+          <!-- Ad slot — post-match is a natural breakpoint (player is paused,
+               deciding whether to replay). Filled by Ads.ts; shows an in-house
+               placeholder until a real AdSense publisher id is configured. -->
+          <div class="ad-slot" id="ad-postmatch" data-ad-slot="postmatch"></div>
+
+          <div class="pm-buttons">
+            <button class="menu-btn primary" id="pm-play-again">▸ Play Again</button>
+            <button class="menu-btn" id="pm-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- First-run "How to Play" card. Shown once for new players (gated by a
+           localStorage flag); replayable from the main menu's "How to Play". -->
+      <div id="howto-overlay" class="hidden">
+        <div class="howto-card">
+          <h2>How to Play</h2>
+          <p class="howto-sub">60-second crash course — you'll be fragging in no time.</p>
+          <div class="howto-grid">
+            <div class="howto-item"><kbd>WASD</kbd><span>Move. Strafe-jump (hold <kbd>Space</kbd>) to build speed.</span></div>
+            <div class="howto-item"><kbd>Space</kbd><span>Jump. Time it on landing to bunny-hop (bhop) and fly.</span></div>
+            <div class="howto-item"><kbd>Shift</kbd><span>Crouch. Slide if you're moving fast.</span></div>
+            <div class="howto-item"><kbd>LMB</kbd><span>Shoot. <kbd>RMB</kbd> scopes the sniper.</span></div>
+            <div class="howto-item"><kbd>R</kbd><span>Reload. <kbd>1</kbd>/<kbd>2</kbd>/<kbd>Q</kbd> swap weapons.</span></div>
+            <div class="howto-item"><kbd>E</kbd><span>Class ability — Blink, Dash, Cloak and more.</span></div>
+            <div class="howto-item"><kbd>Tab</kbd><span>Hold to see the live scoreboard.</span></div>
+            <div class="howto-item"><kbd>Esc</kbd><span>Pause. First to 30 kills wins the match.</span></div>
+          </div>
+          <div class="howto-tips">
+            <b>Pro tip:</b> headshots hurt more, killstreaks earn glory, and daily challenges in your Profile pay bonus XP.
+          </div>
+          <button class="menu-btn primary" id="howto-dismiss">▸ Got it — let's play</button>
+        </div>
+      </div>
+
+      <!-- Tabbed settings page. Reachable from main menu OR pause overlay.
+           Esc closes back to whatever overlay called it. -->
+      <div id="settings-page" class="hidden">
+        <div class="settings-card">
+          <header class="settings-header">
+            <h2>Settings</h2>
+            <button class="settings-close" id="settings-close-btn" aria-label="Close">×</button>
+          </header>
+          <div class="settings-body">
+            <nav class="settings-tabs" role="tablist">
+              <button class="settings-tab selected" data-tab="profile">Profile</button>
+              <button class="settings-tab" data-tab="general">General</button>
+              <button class="settings-tab" data-tab="crosshair">Crosshair</button>
+              <button class="settings-tab" data-tab="audio">Audio</button>
+              <button class="settings-tab" data-tab="cosmetics">Cosmetics</button>
+              <button class="settings-tab" data-tab="graphics">Graphics</button>
+            </nav>
+
+            <section class="settings-pane selected" data-pane="profile">
+              <h3>Profile</h3>
+              <label class="set-row">
+                <span class="set-label">Display name</span>
+                <input id="name-input" type="text" maxlength="16" placeholder="You" autocomplete="off" spellcheck="false" />
+                <button class="seg-toggle-btn" id="name-save">Save</button>
+              </label>
+              <p class="set-note">Shown on the scoreboard and killfeed. Max 16 characters.</p>
+
+              <div class="profile-summary">
+                <div class="prof-level">
+                  <span class="prof-level-num" id="prof-level">0</span>
+                  <span class="prof-level-lbl">LEVEL</span>
+                </div>
+                <div class="prof-xpbar">
+                  <div class="prof-xpbar-fill" id="prof-xp-fill"></div>
+                  <span class="prof-xp-text" id="prof-xp-text">0 XP</span>
+                </div>
+              </div>
+
+              <h4 class="prof-section-title">Lifetime Stats</h4>
+              <div class="stats-grid" id="stats-grid">
+                <!-- Populated by ProfileUI -->
+              </div>
+
+              <h4 class="prof-section-title">Daily Challenges</h4>
+              <div class="challenges-list" id="challenges-list">
+                <!-- Populated by ProfileUI -->
+              </div>
+            </section>
+
+            <section class="settings-pane" data-pane="general">
+              <h3>General</h3>
+              <label class="set-row">
+                <span class="set-label">Field of View</span>
+                <input id="fov-slider" type="range" min="60" max="120" step="1" value="90" />
+                <span class="set-val" id="fov-val">90</span>
+              </label>
+              <label class="set-row">
+                <span class="set-label">Sensitivity</span>
+                <input id="sens-slider" type="range" min="0.05" max="2" step="0.05" value="0.5" />
+                <span class="set-val" id="sens-val">0.50</span>
+              </label>
+              <p class="set-note">Scoped sensitivity scales with FOV automatically. Wrist motion stays consistent.</p>
+            </section>
+
+            <section class="settings-pane" data-pane="crosshair">
+              <h3>Crosshair</h3>
+              <div class="crosshair-preview">
+                <!-- Static preview crosshair — uses the same vars as the live one. -->
+                <div class="ch-preview-frame">
+                  <div class="ch-line ch-top"></div>
+                  <div class="ch-line ch-bottom"></div>
+                  <div class="ch-line ch-left"></div>
+                  <div class="ch-line ch-right"></div>
+                  <div class="ch-dot"></div>
+                </div>
+              </div>
+              <label class="set-row">
+                <span class="set-label">Color</span>
+                <input id="ch-color" type="color" value="#f5d442" />
+                <span class="set-val" id="ch-color-val">#f5d442</span>
+              </label>
+              <label class="set-row">
+                <span class="set-label">Size</span>
+                <input id="ch-size" type="range" min="2" max="20" step="1" value="8" />
+                <span class="set-val" id="ch-size-val">8</span>
+              </label>
+              <label class="set-row">
+                <span class="set-label">Thickness</span>
+                <input id="ch-thickness" type="range" min="1" max="6" step="1" value="2" />
+                <span class="set-val" id="ch-thickness-val">2</span>
+              </label>
+              <label class="set-row">
+                <span class="set-label">Gap (base)</span>
+                <input id="ch-gap-base" type="range" min="0" max="20" step="1" value="0" />
+                <span class="set-val" id="ch-gap-base-val">0</span>
+              </label>
+              <label class="set-row checkbox-row">
+                <input id="ch-outline" type="checkbox" checked />
+                <span class="set-label">Outline</span>
+              </label>
+              <label class="set-row checkbox-row">
+                <input id="ch-dot" type="checkbox" checked />
+                <span class="set-label">Center dot</span>
+              </label>
+            </section>
+
+            <section class="settings-pane" data-pane="audio">
+              <h3>Audio</h3>
+              <label class="set-row">
+                <span class="set-label">Master volume</span>
+                <input id="audio-master" type="range" min="0" max="1" step="0.05" value="0.8" />
+                <span class="set-val" id="audio-master-val">80%</span>
+              </label>
+              <label class="set-row">
+                <span class="set-label">SFX volume</span>
+                <input id="audio-sfx" type="range" min="0" max="1" step="0.05" value="0.8" />
+                <span class="set-val" id="audio-sfx-val">80%</span>
+              </label>
+              <div class="set-row" style="grid-template-columns: 110px 1fr;">
+                <span class="set-label">Test</span>
+                <button class="menu-btn" id="audio-test-btn" style="max-width: 180px;">Play test sound</button>
+              </div>
+              <p class="set-note">
+                Sound effects are loaded from <code>/assets/sounds/</code>. If the
+                files aren't present, the game is silent but everything else
+                works normally. See the README for the file list.
+              </p>
+            </section>
+
+            <section class="settings-pane" data-pane="cosmetics">
+              <h3>Cosmetics</h3>
+              <div class="cosmetics-summary">
+                <div class="level-label">Level <span id="cos-level">0</span></div>
+                <div class="xp-bar"><div class="xp-bar-fill" id="cos-xp-fill"></div></div>
+                <div class="total-xp"><span id="cos-xp">0</span> XP</div>
+              </div>
+              <div class="cos-section">
+                <h4>Player Skin</h4>
+                <div id="cos-skins"></div>
+              </div>
+              <div class="cos-section">
+                <h4>Kill Effect</h4>
+                <div class="cos-grid" id="cos-effects"></div>
+              </div>
+              <p class="set-note">Earn XP from kills. Skins are per-class — pick a class on the main menu to swap which class's skin is equipped.</p>
+              <div class="cos-section" style="margin-top: 28px; border-top: 1px solid var(--border); padding-top: 22px;">
+                <h4>Danger zone</h4>
+                <button class="menu-btn" id="reset-progression" style="border-left: 3px solid #ff5a5a; max-width: 280px;">Reset all progression</button>
+                <p class="set-note">Wipes XP, unlocks, and equipped cosmetics. Can't be undone.</p>
+              </div>
+            </section>
+
+            <section class="settings-pane" data-pane="graphics">
+              <h3>Graphics</h3>
+              <div class="set-row gfx-row">
+                <span class="set-label">Quality</span>
+                <div class="seg-toggle" id="gfx-quality">
+                  <button data-q="low">Low</button>
+                  <button data-q="medium" class="selected">Medium</button>
+                  <button data-q="high">High</button>
+                </div>
+              </div>
+              <p class="set-note">
+                Low: pixel ratio 1, reduced fog. Medium: balanced (default). High: full DPR, extended fog.
+                Antialiasing is locked at startup — High requires a page reload to enable it.
+              </p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

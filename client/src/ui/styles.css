@@ -1,0 +1,1761 @@
+:root {
+  --accent: #f5d442;
+  --bg: #0d0f14;
+  --panel: rgba(16, 20, 28, 0.92);
+  --text: #e8ecf2;
+  --muted: #8892a6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Mobile gate — shown above #app when we detect an unsupported device. */
+#mobile-gate {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0d0f14 0%, #1a2030 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+#mobile-gate.hidden { display: none; }
+.mobile-gate-card {
+  max-width: 480px;
+  text-align: center;
+}
+.mobile-gate-card h1 {
+  font-size: 48px;
+  letter-spacing: 8px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #f5d442 0%, #ff8a3a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.mobile-gate-line {
+  font: 700 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #6cc6ff;
+  margin-bottom: 28px;
+}
+.mobile-gate-body {
+  color: #b8c0d0;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.mobile-gate-body a { color: #f5d442; }
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+#game-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+#hud { position: fixed; inset: 0; pointer-events: none; }
+#hud.hidden { display: none; }
+
+/* Crosshair — fully customizable via CSS variables on :root.
+   --ch-color       pip + dot color
+   --ch-size        length of each pip in px
+   --ch-thickness   pip width in px
+   --ch-gap-base    user-chosen baseline gap (px) — stacks with dynamic gap
+   --ch-gap         dynamic gap from HUD (stance/recoil); HUD writes base + dynamic
+   --ch-outline     1px black shadow on/off (1 = on, 0 = off)
+   --ch-dot         center-dot display (block = on, none = off)
+
+   The crosshair container is auto-sized to fit the pips and the gap so the
+   coordinate math doesn't care about the container's pixel dimensions. */
+:root {
+  --ch-color: #f5d442;
+  --ch-size: 8px;
+  --ch-thickness: 2px;
+  --ch-gap-base: 0px;
+  --ch-gap: var(--ch-gap-base);
+  --ch-outline: 1;
+  --ch-dot: block;
+}
+#crosshair {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  /* container is just a reference frame; pips are positioned around (0,0). */
+  width: 0; height: 0;
+}
+.ch-line {
+  position: absolute;
+  background: var(--ch-color);
+  box-shadow: 0 0 0 calc(var(--ch-outline) * 1px) rgba(0, 0, 0, 0.7);
+  transition: transform 0.06s linear;
+}
+.ch-top {
+  width: var(--ch-thickness);
+  height: var(--ch-size);
+  left: calc(var(--ch-thickness) * -0.5);
+  top: 0;
+  transform: translateY(calc((var(--ch-gap) + var(--ch-size)) * -1));
+}
+.ch-bottom {
+  width: var(--ch-thickness);
+  height: var(--ch-size);
+  left: calc(var(--ch-thickness) * -0.5);
+  top: 0;
+  transform: translateY(var(--ch-gap));
+}
+.ch-left {
+  height: var(--ch-thickness);
+  width: var(--ch-size);
+  top: calc(var(--ch-thickness) * -0.5);
+  left: 0;
+  transform: translateX(calc((var(--ch-gap) + var(--ch-size)) * -1));
+}
+.ch-right {
+  height: var(--ch-thickness);
+  width: var(--ch-size);
+  top: calc(var(--ch-thickness) * -0.5);
+  left: 0;
+  transform: translateX(var(--ch-gap));
+}
+.ch-dot {
+  position: absolute;
+  display: var(--ch-dot);
+  left: calc(var(--ch-thickness) * -0.5);
+  top: calc(var(--ch-thickness) * -0.5);
+  width: var(--ch-thickness);
+  height: var(--ch-thickness);
+  background: var(--ch-color);
+  box-shadow: 0 0 0 calc(var(--ch-outline) * 1px) rgba(0, 0, 0, 0.7);
+}
+
+/* Hitmarker — four diagonal pips appearing briefly when a shot lands. */
+#hitmarker {
+  position: absolute;
+  inset: -10px;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.05s ease-out;
+}
+#hitmarker.show {
+  opacity: 1;
+  transform: scale(1);
+}
+#hitmarker.fade {
+  opacity: 0;
+  transform: scale(1.4);
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+}
+#hitmarker.headshot .hm { background: #ff3a3a; }
+.hm {
+  position: absolute;
+  width: 7px;
+  height: 2px;
+  background: #f2f2f2;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6);
+}
+.hm-tl { left: 2px;  top: 9px;  transform: rotate(45deg);  }
+.hm-tr { right: 2px; top: 9px;  transform: rotate(-45deg); }
+.hm-bl { left: 2px;  bottom: 9px; transform: rotate(-45deg); }
+.hm-br { right: 2px; bottom: 9px; transform: rotate(45deg);  }
+
+/* --- Class-active screen FX ---------------------------------------------
+   Each *-active body class triggers a class-specific overlay. Pure CSS so
+   abilities only need to toggle a class — no JS animation loop. */
+
+/* Rush Surge — orange speed lines and a warm screen tint. */
+body.rush-active #app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    /* faint warm tint */
+    radial-gradient(ellipse at center, transparent 35%, rgba(255, 138, 58, 0.18) 100%),
+    /* diagonal speed lines streaming inward (animated) */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 24px,
+      rgba(255, 200, 140, 0.18) 24px,
+      rgba(255, 200, 140, 0.18) 25px
+    );
+  animation: rush-streak 0.4s linear infinite;
+  z-index: 4;
+  opacity: 0.85;
+}
+@keyframes rush-streak {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 0, 80px 0; }
+}
+
+/* Ghost Cloak — desaturated screen with a cyan inset shimmer on edges. */
+body.ghost-active #app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 3px rgba(160, 220, 255, 0.35),
+    inset 0 0 80px rgba(120, 200, 255, 0.20);
+  backdrop-filter: saturate(0.7) brightness(0.95);
+  z-index: 4;
+  animation: ghost-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ghost-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1.0; }
+}
+
+/* Match score ticker — top-center, MP combat only. */
+#match-score {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(20, 25, 35, 0.78);
+  padding: 8px 18px;
+  border-radius: 4px;
+  border-left: 3px solid var(--accent);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+#match-score.hidden { display: none; }
+.ms-you {
+  font: 700 22px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent);
+}
+.ms-sep {
+  font: 600 16px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+}
+.ms-goal {
+  font: 600 16px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+}
+.ms-leader {
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 2px;
+  margin-left: 14px;
+  text-transform: uppercase;
+}
+
+/* Respawn countdown — full-screen dim with central timer. */
+#respawn-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 15, 20, 0.4);
+  pointer-events: none;
+  z-index: 8;
+}
+#respawn-countdown.hidden { display: none; }
+.rc-label {
+  font: 700 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: #ff5a5a;
+  margin-bottom: 14px;
+}
+.rc-timer {
+  font: 800 96px/1 'Segoe UI', sans-serif;
+  color: var(--accent);
+  text-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+.rc-sub {
+  font: 600 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  color: var(--muted);
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+/* Practice Range badge — top-center pill, persistent while in practice mode. */
+#practice-badge {
+  position: absolute;
+  left: 50%; top: 18px;
+  transform: translateX(-50%);
+  background: rgba(20, 40, 60, 0.86);
+  color: #b8e6ff;
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #6cc6ff;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+}
+#practice-badge.hidden { display: none; }
+
+#online-badge {
+  position: absolute;
+  left: 50%; top: 18px;
+  transform: translateX(-50%);
+  background: rgba(20, 60, 50, 0.86);
+  color: #b8ffe2;
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #4ac8a8;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+}
+#online-badge.hidden { display: none; }
+#online-badge span { color: #fff; }
+
+/* Spawn protection — soft cyan border + label, pulsing. */
+#spawn-protect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 4px rgba(100, 200, 255, 0.5),
+              inset 0 0 60px rgba(100, 200, 255, 0.3);
+  animation: spawn-pulse 0.9s ease-in-out infinite;
+}
+#spawn-protect.hidden { display: none; }
+.sp-label {
+  position: absolute;
+  left: 50%; top: 64%;
+  transform: translateX(-50%);
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: #b8e6ff;
+  background: rgba(20, 40, 60, 0.85);
+  padding: 6px 14px;
+  border-radius: 4px;
+  letter-spacing: 4px;
+  border-left: 2px solid #6cc6ff;
+}
+@keyframes spawn-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 0 4px rgba(100, 200, 255, 0.55),
+                inset 0 0 60px rgba(100, 200, 255, 0.32);
+  }
+  50% {
+    box-shadow: inset 0 0 0 4px rgba(100, 200, 255, 0.20),
+                inset 0 0 40px rgba(100, 200, 255, 0.12);
+  }
+}
+
+/* Sniper scope — round lens cutout via four black corner masks. */
+#scope-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+#scope-overlay.hidden { display: none; }
+.scope-mask {
+  position: absolute;
+  background: #000;
+}
+/* Lens diameter = min(vw, vh) * 0.7. Masks cover everything else. */
+.scope-top    { top: 0;    left: 0; right: 0; height: calc(50% - min(35vw, 35vh)); }
+.scope-bottom { bottom: 0; left: 0; right: 0; height: calc(50% - min(35vw, 35vh)); }
+.scope-left   { top: calc(50% - min(35vw, 35vh)); bottom: calc(50% - min(35vw, 35vh)); left: 0;  width: calc(50% - min(35vw, 35vh)); }
+.scope-right  { top: calc(50% - min(35vw, 35vh)); bottom: calc(50% - min(35vw, 35vh)); right: 0; width: calc(50% - min(35vw, 35vh)); }
+.scope-lens {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: min(70vw, 70vh);
+  height: min(70vw, 70vh);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 40px rgba(0, 0, 0, 0.85),
+    inset 0 0 0 4px #0a0a0a,
+    0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+.scope-reticle {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(70vw, 70vh);
+  height: min(70vw, 70vh);
+}
+.sr-v {
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(255, 230, 200, 0.45);
+  transform: translateX(-50%);
+}
+.sr-h {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: rgba(255, 230, 200, 0.45);
+  transform: translateY(-50%);
+}
+.sr-dot {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 3px; height: 3px;
+  background: #ff3a3a;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Kill flash — brief edge tint after a confirmed kill, using the equipped
+   kill effect's color (set via --kill-flash-color JS-side). */
+body.kill-flash #app::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, var(--kill-flash-color, transparent) 100%);
+  z-index: 6;
+  animation: kill-flash-fade 0.15s ease-out forwards;
+}
+@keyframes kill-flash-fade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Damage-direction flash: red vignette pulse on hit. */
+#damage-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(200, 30, 30, 0.55) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+#damage-flash.show { opacity: 1; transition: opacity 0.04s; }
+
+#debug-hud {
+  position: absolute;
+  top: 16px; left: 16px;
+  background: var(--panel);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font: 12px/1.5 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+  border-left: 3px solid var(--accent);
+}
+#debug-hud span { color: var(--accent); }
+
+#pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 15, 20, 0.86);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+#pause-overlay.hidden { display: none; }
+
+.pause-card {
+  background: var(--panel);
+  padding: 36px 44px;
+  border-radius: 12px;
+  border-top: 3px solid var(--accent);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  text-align: center;
+  min-width: 360px;
+}
+.pause-card h1 {
+  font-size: 36px;
+  letter-spacing: 6px;
+  margin-bottom: 4px;
+}
+.pause-card .tag {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+#play-btn {
+  background: var(--accent);
+  color: #1a1408;
+  border: none;
+  padding: 12px 36px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform .1s;
+}
+#play-btn:hover { transform: translateY(-1px); }
+#play-btn:active { transform: translateY(1px); }
+
+.controls {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 18px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: left;
+}
+.controls kbd {
+  background: #232a38;
+  border: 1px solid #303a4d;
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  color: var(--text);
+  margin-right: 4px;
+}
+
+.settings {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.settings label {
+  display: grid;
+  grid-template-columns: 90px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+}
+.settings input[type="range"] { accent-color: var(--accent); }
+
+/* --- Bottom HUD: health, ammo, reload, killfeed ------------------------- */
+
+#health-panel {
+  position: absolute;
+  left: 24px; bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  padding: 8px 14px;
+  border-radius: 6px;
+  border-left: 3px solid #58c66a;
+}
+#health-panel .hp-label {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+#health-panel .hp-bar {
+  position: relative;
+  width: 160px; height: 10px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#hp-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #58c66a, #b4e84a);
+  transition: width 0.18s ease-out;
+}
+#hp-num {
+  font: 700 16px/1 'Segoe UI', sans-serif;
+  color: var(--text);
+  min-width: 40px;
+  text-align: right;
+}
+
+#ammo-panel {
+  position: absolute;
+  right: 28px; bottom: 24px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  background: var(--panel);
+  padding: 8px 16px;
+  border-radius: 6px;
+  border-right: 3px solid var(--accent);
+}
+#ammo-cur {
+  font: 700 28px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent);
+  min-width: 44px;
+  text-align: right;
+}
+#ammo-sep, #ammo-max {
+  font: 600 14px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+}
+#ammo-weapon {
+  margin-left: 10px;
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+#ammo-cur.low { color: #ff7a3a; }
+#ammo-cur.empty { color: #ff3a3a; }
+
+#slot-indicator {
+  position: absolute;
+  right: 28px; bottom: 100px;
+  display: flex;
+  gap: 4px;
+}
+.slot-chip {
+  width: 22px; height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  border-radius: 3px;
+}
+.slot-chip.active {
+  background: var(--accent);
+  color: #1a1408;
+  border-color: #b6961f;
+}
+
+#reload-indicator {
+  position: absolute;
+  right: 28px; bottom: 78px;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: #1a1408;
+  background: var(--accent);
+  padding: 6px 12px;
+  border-radius: 4px;
+  letter-spacing: 3px;
+  animation: pulse 0.9s ease-in-out infinite;
+}
+#reload-indicator.hidden { display: none; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+#killfeed {
+  position: absolute;
+  top: 16px; right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+.kf-entry {
+  background: var(--panel);
+  padding: 5px 10px;
+  border-radius: 3px;
+  font: 600 12px/1.2 'Segoe UI', sans-serif;
+  border-left: 2px solid var(--accent);
+  animation: kfIn 0.18s ease-out;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.kf-entry .kf-killer { color: #ffe170; }
+.kf-entry .kf-victim { color: #ff7a7a; }
+.kf-entry .kf-wpn { color: var(--muted); font-family: 'JetBrains Mono', Consolas, monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+.kf-entry .kf-head { color: #ff3a3a; font-weight: 800; margin-left: 2px; }
+@keyframes kfIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* --- Main menu shell (Phase 2) ----------------------------------------- */
+
+#main-menu {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0d0f14 0%, #1a2030 100%);
+  display: grid;
+  grid-template-columns: 300px 1fr 280px;
+  grid-template-rows: 110px 1fr 60px;
+  grid-template-areas:
+    "topad topad topad"
+    "side  center sidegap"
+    "footer footer footer";
+  z-index: 20;
+}
+#main-menu.hidden { display: none; }
+
+.menu-topbanner {
+  grid-area: topad;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.menu-sidebar {
+  grid-area: side;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.menu-center {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+.menu-center h1 {
+  font-size: 64px;
+  letter-spacing: 10px;
+  margin-bottom: 4px;
+  background: linear-gradient(90deg, #f5d442 0%, #ffb454 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.menu-center .subtitle {
+  color: var(--muted);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 36px;
+}
+.loadout {
+  margin-bottom: 28px;
+  text-align: center;
+}
+.loadout-label {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 4px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.loadout-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  min-width: 380px;
+}
+.loadout-grid.map-grid {
+  grid-template-columns: 1fr 1fr;
+}
+.loadout-btn {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 14px 8px;
+  font: 700 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.12s;
+}
+.loadout-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.loadout-btn.selected {
+  background: var(--accent);
+  color: #1a1408;
+  border-color: #b6961f;
+}
+
+/* Class selector — six color-coded cards in two rows. */
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  min-width: 380px;
+}
+.class-btn {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--class-c, var(--accent));
+  padding: 10px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.12s;
+  text-align: center;
+  font-family: 'Segoe UI', sans-serif;
+}
+.class-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-1px);
+}
+.class-btn .cb-name {
+  font: 700 13px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--class-c, var(--text));
+}
+.class-btn .cb-ab {
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.class-btn.selected {
+  background: rgba(255, 255, 255, 0.06);
+  border-top-width: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.class-btn.selected .cb-ab { color: var(--class-c, var(--accent)); }
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 260px;
+}
+.menu-btn {
+  background: var(--panel);
+  color: var(--text);
+  border: none;
+  padding: 14px 28px;
+  font: 700 14px/1 'Segoe UI', sans-serif;
+  letter-spacing: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  border-left: 3px solid transparent;
+  transition: all 0.12s;
+}
+.menu-btn:hover {
+  border-left-color: var(--accent);
+  transform: translateX(2px);
+}
+.menu-btn.primary {
+  background: var(--accent);
+  color: #1a1408;
+  border-left: 3px solid #b6961f;
+}
+.menu-btn.primary:hover { transform: translateY(-1px) translateX(0); }
+.menu-btn.practice {
+  border-left: 3px solid #6cc6ff;
+}
+.menu-btn.practice:hover { border-left-color: #6cc6ff; color: #6cc6ff; }
+.menu-btn.online {
+  border-left: 3px solid #4ac8a8;
+}
+.menu-btn.online:hover { border-left-color: #4ac8a8; color: #4ac8a8; }
+
+.menu-footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  font: 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+.menu-footer a { color: var(--muted); text-decoration: none; margin-left: 14px; }
+.menu-footer a:hover { color: var(--accent); }
+
+/* Ad placeholders — visible in dev, hidden via JS once approved AdSense
+   tags are inserted. Sizes match standard AdSense slots so the layout
+   doesn't shift when real ads load. */
+.ad-slot {
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(255,255,255,0.12);
+  color: var(--muted);
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+.ad-728x90 { width: 728px; height: 90px; }
+.ad-300x600 { width: 300px; height: 600px; }
+.ad-300x250 { width: 300px; height: 250px; }
+/* Post-match ad slot — responsive width, fixed-ish height, sits between the
+   rewards line and the action buttons. */
+#ad-postmatch {
+  width: 100%;
+  min-height: 90px;
+  margin: 0 0 20px;
+}
+/* In-house placeholder styling (shown until a real publisher id is set). The
+   label is injected by Ads.ts as .ad-ph-label. Subtle so it doesn't look broken. */
+.ad-slot.ad-placeholder {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.02) 10px,
+    rgba(255, 255, 255, 0.04) 10px,
+    rgba(255, 255, 255, 0.04) 20px
+  );
+}
+.ad-ph-label {
+  color: var(--muted);
+  opacity: 0.55;
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* --- Ability pill (bottom-center HUD) ---------------------------------- */
+#ability-pill {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  padding: 8px 12px 8px 8px;
+  border-radius: 6px;
+  border-bottom: 2px solid var(--class-c, var(--accent));
+  --class-c: #4ac8a8;
+}
+#ability-pill .ap-key {
+  width: 28px; height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+}
+#ability-pill .ap-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+#ability-pill .ap-name {
+  font: 700 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--class-c, var(--accent));
+}
+#ability-pill .ap-cd-ring {
+  position: relative;
+  width: 130px; height: 6px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#ability-pill .ap-cd-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--class-c, var(--accent));
+  transition: width 0.08s linear;
+}
+#ability-pill .ap-charges {
+  position: absolute;
+  right: -32px; top: -2px;
+  display: flex;
+  gap: 3px;
+}
+#ability-pill .ap-charges.single { display: none; }
+#ability-pill .ap-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--class-c, var(--accent));
+  border: 1px solid rgba(0,0,0,0.4);
+}
+#ability-pill .ap-dot.spent {
+  background: rgba(0,0,0,0.4);
+  border-color: rgba(255,255,255,0.05);
+}
+#ability-pill.ready .ap-cd-fill {
+  box-shadow: 0 0 8px var(--class-c, var(--accent));
+}
+#ability-pill.active {
+  animation: ability-active-pulse 0.4s ease-in-out infinite alternate;
+}
+@keyframes ability-active-pulse {
+  from { box-shadow: 0 0 0 2px rgba(255,255,255,0.1); }
+  to   { box-shadow: 0 0 14px var(--class-c, var(--accent)); }
+}
+
+/* --- Post-match overlay ------------------------------------------------ */
+#postmatch-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+}
+#postmatch-overlay.hidden { display: none; }
+.postmatch-card {
+  background: var(--panel);
+  border-top: 4px solid var(--accent);
+  border-radius: 10px;
+  width: 640px;
+  max-width: calc(100vw - 40px);
+  padding: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.postmatch-card h2 {
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 8px;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.pm-winner {
+  text-align: center;
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.pm-winner b { color: var(--text); }
+.pm-scoreboard {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 22px;
+}
+.pm-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 80px 80px 80px;
+  padding: 6px 0;
+  font-size: 13px;
+  align-items: center;
+}
+.pm-row span:nth-child(1) { color: var(--accent); font-weight: 700; }
+.pm-row span:nth-child(3),
+.pm-row span:nth-child(4),
+.pm-row span:nth-child(5) { text-align: right; font-family: 'JetBrains Mono', Consolas, monospace; }
+.pm-row-head {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.pm-row.you span:nth-child(2) { color: var(--accent); font-weight: 700; }
+.pm-rewards {
+  text-align: center;
+  margin-bottom: 22px;
+}
+.pm-xp {
+  font: 700 22px/1.2 'Segoe UI', sans-serif;
+  color: var(--accent);
+}
+#pm-unlocks {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--accent-green);
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+}
+.pm-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.pm-buttons .menu-btn { min-width: 240px; }
+
+/* --- Cosmetics tab ------------------------------------------------------ */
+.cosmetics-summary {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.cosmetics-summary .xp-bar {
+  flex: 1;
+  margin: 0 16px;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.cosmetics-summary .xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #ffb454);
+  transition: width 0.3s;
+}
+.cosmetics-summary .total-xp {
+  font: 700 14px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent);
+}
+.cosmetics-summary .level-label {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.cos-section { margin-bottom: 28px; }
+.cos-section h4 {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.cos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.cos-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.cos-card:hover { border-color: var(--accent); }
+.cos-card.equipped { border-color: var(--accent); background: rgba(245, 212, 66, 0.08); }
+.cos-card.locked { opacity: 0.7; cursor: not-allowed; }
+.cos-card.locked:hover { border-color: var(--border); }
+.cos-card .cos-swatch {
+  width: 28px; height: 28px;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.cos-card .cos-swatch .body {
+  width: 100%; height: 70%;
+  background: var(--body-c);
+  border-radius: 2px;
+}
+.cos-card .cos-swatch .head {
+  width: 50%; height: 30%;
+  background: var(--head-c);
+  border-radius: 2px;
+  margin-bottom: 1px;
+}
+.cos-card .cos-name {
+  font: 700 11px/1.2 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.cos-card .cos-status {
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.cos-card.equipped .cos-status { color: var(--accent); }
+.cos-class-header {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 16px 0 8px;
+}
+.cos-class-header:first-child { margin-top: 0; }
+
+/* Pause overlay variant (in-game) — leaves the canvas visible behind it. */
+#pause-overlay.in-game {
+  background: rgba(13, 15, 20, 0.55);
+}
+
+/* --- Settings page ----------------------------------------------------- */
+#settings-page {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.86);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+#settings-page.hidden { display: none; }
+.settings-card {
+  background: var(--panel);
+  border-top: 3px solid var(--accent);
+  border-radius: 10px;
+  width: 720px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.settings-header h2 {
+  font-size: 18px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.settings-close {
+  width: 36px; height: 36px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font: 700 22px/1 'Segoe UI', sans-serif;
+  cursor: pointer;
+  line-height: 1;
+}
+.settings-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent);
+}
+.settings-body {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  min-height: 380px;
+}
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.25);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 14px 0;
+}
+.settings-tab {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: 700 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 12px 24px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.1s;
+}
+.settings-tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+}
+.settings-tab.selected {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: rgba(255, 255, 255, 0.04);
+}
+.settings-pane {
+  padding: 22px 28px;
+  display: none;
+  overflow-y: auto;
+}
+.settings-pane.selected { display: block; }
+.settings-pane h3 {
+  font-size: 14px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 60px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--text);
+}
+.set-row.checkbox-row {
+  grid-template-columns: 24px auto;
+  cursor: pointer;
+}
+.set-row.gfx-row {
+  grid-template-columns: 110px 1fr;
+}
+.set-row .set-label {
+  color: var(--muted);
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.set-row input[type="range"] {
+  accent-color: var(--accent);
+  width: 100%;
+}
+.set-row .set-val {
+  text-align: right;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent);
+}
+.set-row input[type="color"] {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  width: 100%;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+}
+.set-row input[type="checkbox"] { accent-color: var(--accent); }
+.set-note {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Crosshair preview — a 120×120 dark square showing the live crosshair. */
+.crosshair-preview {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.ch-preview-frame {
+  position: relative;
+  width: 140px;
+  height: 100px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+/* The preview crosshair pips read the same CSS vars as the in-game one. */
+.ch-preview-frame .ch-line {
+  position: absolute;
+  left: 50%; top: 50%;
+  background: var(--ch-color);
+  box-shadow: 0 0 0 calc(var(--ch-outline) * 1px) rgba(0, 0, 0, 0.7);
+}
+.ch-preview-frame .ch-top {
+  width: var(--ch-thickness);
+  height: var(--ch-size);
+  transform: translate(calc(var(--ch-thickness) * -0.5), calc((var(--ch-gap-base) + var(--ch-size)) * -1));
+}
+.ch-preview-frame .ch-bottom {
+  width: var(--ch-thickness);
+  height: var(--ch-size);
+  transform: translate(calc(var(--ch-thickness) * -0.5), var(--ch-gap-base));
+}
+.ch-preview-frame .ch-left {
+  width: var(--ch-size);
+  height: var(--ch-thickness);
+  transform: translate(calc((var(--ch-gap-base) + var(--ch-size)) * -1), calc(var(--ch-thickness) * -0.5));
+}
+.ch-preview-frame .ch-right {
+  width: var(--ch-size);
+  height: var(--ch-thickness);
+  transform: translate(var(--ch-gap-base), calc(var(--ch-thickness) * -0.5));
+}
+.ch-preview-frame .ch-dot {
+  position: absolute;
+  left: 50%; top: 50%;
+  display: var(--ch-dot);
+  width: var(--ch-thickness);
+  height: var(--ch-thickness);
+  background: var(--ch-color);
+  transform: translate(calc(var(--ch-thickness) * -0.5), calc(var(--ch-thickness) * -0.5));
+  box-shadow: 0 0 0 calc(var(--ch-outline) * 1px) rgba(0, 0, 0, 0.7);
+}
+
+/* Segmented toggle (Graphics quality). */
+.seg-toggle {
+  display: flex;
+  gap: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+  width: fit-content;
+}
+.seg-toggle button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 8px 16px;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.1s;
+}
+.seg-toggle button:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+.seg-toggle button.selected {
+  background: var(--accent);
+  color: #1a1408;
+}
+
+/* ── Scoreboard (hold TAB) ──────────────────────────────────────────────── */
+#scoreboard {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 9vh;
+  z-index: 18;            /* above HUD, below pause/postmatch/settings */
+  pointer-events: none;  /* purely informational while held */
+  background: rgba(8, 10, 14, 0.45);
+  backdrop-filter: blur(2px);
+  animation: sb-fade 0.08s ease-out;
+}
+#scoreboard.hidden { display: none; }
+@keyframes sb-fade { from { opacity: 0; } to { opacity: 1; } }
+.sb-card {
+  width: 680px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border-top: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 18px 22px 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+.sb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.sb-title {
+  font: 700 18px/1 'Segoe UI', sans-serif;
+  letter-spacing: 6px;
+  color: var(--accent);
+}
+.sb-mode {
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.sb-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 64px 64px 72px;
+  align-items: center;
+  padding: 7px 10px;
+  font-size: 14px;
+  border-radius: 5px;
+}
+.sb-row .sb-rank { color: var(--accent); font-weight: 700; }
+.sb-row .sb-k, .sb-row .sb-d, .sb-row .sb-kd {
+  text-align: right;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+.sb-row-head {
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-radius: 0;
+}
+.sb-row-head .sb-rank { color: var(--muted); }
+/* Zebra striping on body rows for readability. */
+#sb-body .sb-row:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
+#sb-body .sb-row.sb-me {
+  background: rgba(245, 212, 66, 0.12);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+#sb-body .sb-row.sb-me .sb-name { color: var(--accent); font-weight: 700; }
+#sb-body .sb-row.sb-lead .sb-rank { text-shadow: 0 0 8px var(--accent); }
+.sb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-footer {
+  margin-top: 10px;
+  text-align: center;
+  font: 500 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.sb-footer b { color: var(--text); }
+
+/* ── Killstreak / multi-kill announcer ──────────────────────────────────── */
+#announcer {
+  position: fixed;
+  top: 19vh;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 17;          /* above HUD, below scoreboard/pause */
+  pointer-events: none;
+  user-select: none;
+}
+#announcer.hidden { display: none; }
+#announcer-main {
+  --ann-scale: 1;
+  font: 900 calc(46px * var(--ann-scale)) / 1 'Segoe UI', 'Arial Black', sans-serif;
+  letter-spacing: calc(4px * var(--ann-scale));
+  color: var(--accent);
+  text-transform: uppercase;
+  /* Heavy outline + glow so it reads over any map. */
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.9),
+    0 2px 6px rgba(0, 0, 0, 0.8),
+    0 0 22px currentColor;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.55);
+}
+#announcer-sub {
+  margin-top: 4px;
+  font: 700 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  color: var(--text);
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  opacity: 0.85;
+}
+/* Pop-in: overshoot scale + slight rise, then settle and drift up while fading.
+   The whole thing is one keyframe so re-adding .ann-pop restarts it. */
+#announcer.ann-pop { animation: ann-pop 1.4s cubic-bezier(0.18, 0.9, 0.3, 1) forwards; }
+@keyframes ann-pop {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.6); }
+  12%  { opacity: 1; transform: translateY(0)   scale(1.18); }
+  24%  { transform: translateY(0) scale(1.0); }
+  78%  { opacity: 1; transform: translateY(0) scale(1.0); }
+  100% { opacity: 0; transform: translateY(-14px) scale(1.02); }
+}
+
+/* ── Profile tab ─────────────────────────────────────────────────────────── */
+.seg-toggle-btn {
+  background: var(--accent);
+  color: #1a1408;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 14px;
+  font: 700 12px/1 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: filter 0.1s;
+}
+.seg-toggle-btn:hover { filter: brightness(1.1); }
+#name-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 7px 10px;
+  font: 600 14px/1 'Segoe UI', sans-serif;
+}
+#name-input:focus { outline: none; border-color: var(--accent); }
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 18px 0 8px;
+}
+.prof-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+.prof-level-num {
+  font: 900 34px/1 'Segoe UI', sans-serif;
+  color: var(--accent);
+  text-shadow: 0 0 16px rgba(245, 212, 66, 0.4);
+}
+.prof-level-lbl {
+  font: 700 9px/1 'JetBrains Mono', monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.prof-xpbar {
+  position: relative;
+  flex: 1;
+  height: 22px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.prof-xpbar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f5d442, #ffae3a);
+  border-radius: 11px;
+  transition: width 0.3s ease;
+}
+.prof-xp-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 11px/1 'JetBrains Mono', monospace;
+  color: var(--text);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.prof-section-title {
+  margin: 22px 0 10px;
+  font: 700 12px/1 'JetBrains Mono', monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.stat-cell {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.stat-val {
+  display: block;
+  font: 800 20px/1 'Segoe UI', sans-serif;
+  color: var(--text);
+}
+.stat-label {
+  display: block;
+  margin-top: 5px;
+  font: 600 9px/1 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.challenges-list { display: flex; flex-direction: column; gap: 8px; }
+.chal-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  border-left: 3px solid rgba(255, 255, 255, 0.1);
+}
+.chal-row.chal-ready { border-left-color: var(--accent); }
+.chal-row.chal-claimed { opacity: 0.5; }
+.chal-info { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.chal-label { font: 600 13px/1 'Segoe UI', sans-serif; color: var(--text); }
+.chal-bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.chal-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.chal-progress { font: 600 10px/1 'JetBrains Mono', monospace; color: var(--muted); }
+.chal-reward { font: 700 12px/1 'JetBrains Mono', monospace; color: var(--muted); white-space: nowrap; }
+.chal-done { font: 700 12px/1 'JetBrains Mono', monospace; color: #6ad08a; white-space: nowrap; }
+.chal-claim {
+  background: var(--accent);
+  color: #1a1408;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 14px;
+  font: 800 12px/1 'Segoe UI', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  animation: chal-pulse 1.2s ease-in-out infinite;
+}
+@keyframes chal-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 212, 66, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 212, 66, 0); }
+}
+
+/* ── How to Play (first-run card) ────────────────────────────────────────── */
+#howto-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;          /* above everything — it's a first-run gate */
+  padding: 24px;
+}
+#howto-overlay.hidden { display: none; }
+.howto-card {
+  background: var(--panel);
+  border-top: 4px solid var(--accent);
+  border-radius: 12px;
+  width: 620px;
+  max-width: calc(100vw - 32px);
+  padding: 30px 34px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.howto-card h2 {
+  font-size: 26px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-align: center;
+}
+.howto-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 22px;
+}
+.howto-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 22px;
+  margin-bottom: 20px;
+}
+.howto-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.howto-item kbd {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+  min-width: 26px;
+  text-align: center;
+}
+.howto-item span kbd { display: inline; padding: 1px 4px; min-width: 0; }
+.howto-tips {
+  background: rgba(245, 212, 66, 0.08);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 22px;
+}
+.howto-tips b { color: var(--accent); }
+.howto-card .menu-btn { width: 100%; }

@@ -1,0 +1,378 @@
+/*
+ * ILCARTIGO website — shared stylesheet across all marketing pages.
+ *
+ * Goals:
+ *   - Responsive (mobile-first, breakpoints at 720px + 1080px).
+ *   - Cohesive with the in-game palette: dark background, accent yellow, cyan
+ *     and orange for class-y accents.
+ *   - Lightweight: no JS frameworks, no webfonts beyond system stacks.
+ *   - AdSense-friendly: substantive content sections, clear nav, footer with
+ *     privacy/terms links on every page.
+ */
+
+:root {
+  --bg: #0d0f14;
+  --bg-elev: #161924;
+  --bg-card: rgba(22, 25, 36, 0.7);
+  --text: #e8ecf2;
+  --muted: #8892a6;
+  --accent: #f5d442;
+  --accent-warm: #ff8a3a;
+  --accent-cool: #6cc6ff;
+  --accent-green: #4ac8a8;
+  --border: rgba(255, 255, 255, 0.06);
+  --max-content: 1080px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); }
+body {
+  font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Layout primitives ─────────────────────────────────────────────────── */
+
+.container {
+  width: 100%;
+  max-width: var(--max-content);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+main { flex: 1; }
+
+/* ── Top nav ──────────────────────────────────────────────────────────── */
+
+.topnav {
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topnav .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+.brand {
+  font: 800 18px/1 'Segoe UI', sans-serif;
+  letter-spacing: 6px;
+  color: var(--text);
+}
+.brand a { color: inherit; }
+.brand a:hover { text-decoration: none; color: var(--accent); }
+.nav-links {
+  display: flex;
+  gap: 22px;
+  list-style: none;
+  align-items: center;
+}
+.nav-links a {
+  color: var(--muted);
+  font: 600 13px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.nav-links a:hover { color: var(--accent); text-decoration: none; }
+.nav-links a.cta {
+  background: var(--accent);
+  color: #1a1408;
+  padding: 9px 18px;
+  border-radius: 4px;
+}
+.nav-links a.cta:hover { background: #fde060; }
+
+@media (max-width: 720px) {
+  .nav-links { gap: 14px; }
+  .nav-links a:not(.cta) { display: none; }
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.hero {
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(245, 212, 66, 0.10), transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(74, 200, 168, 0.08), transparent 60%),
+    var(--bg);
+  padding: 80px 0 100px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.hero h1 {
+  font-size: clamp(40px, 8vw, 88px);
+  letter-spacing: clamp(4px, 1vw, 10px);
+  background: linear-gradient(90deg, #f5d442 0%, #ff8a3a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 14px;
+  font-weight: 900;
+}
+.hero .tagline {
+  font-size: clamp(15px, 2vw, 18px);
+  color: var(--muted);
+  max-width: 620px;
+  margin: 0 auto 30px;
+}
+.hero .cta-row {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn {
+  display: inline-block;
+  padding: 14px 32px;
+  font: 700 14px/1 'Segoe UI', sans-serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.1s;
+}
+.btn.primary {
+  background: var(--accent);
+  color: #1a1408;
+  border-color: #b6961f;
+}
+.btn.primary:hover { background: #fde060; transform: translateY(-1px); text-decoration: none; }
+.btn.secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn.secondary:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+/* ── Ad slots (placeholders before AdSense approval) ──────────────────── */
+
+.ad-slot {
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  margin: 24px auto;
+}
+.ad-728x90 { width: 728px; max-width: 100%; height: 90px; }
+.ad-300x250 { width: 300px; height: 250px; }
+.ad-300x600 { width: 300px; height: 600px; }
+
+/* ── Sections ─────────────────────────────────────────────────────────── */
+
+section { padding: 80px 0; }
+section + section { border-top: 1px solid var(--border); }
+section h2 {
+  font-size: clamp(28px, 4vw, 40px);
+  margin-bottom: 12px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+section h2 + .section-sub {
+  text-align: center;
+  color: var(--muted);
+  max-width: 640px;
+  margin: 0 auto 50px;
+  font-size: 15px;
+}
+
+/* Three-column feature grid (classes, weapons, etc) */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  border-top-width: 3px;
+}
+.card h3 {
+  font-size: 18px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.card .card-sub {
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+.card p { color: var(--muted); font-size: 14px; }
+
+.card.phantom  { border-top-color: #9c64ff; } .card.phantom  h3 { color: #9c64ff; }
+.card.rush     { border-top-color: #ff8a3a; } .card.rush     h3 { color: #ff8a3a; }
+.card.vanguard { border-top-color: #4ac8a8; } .card.vanguard h3 { color: #4ac8a8; }
+.card.ghost    { border-top-color: #a0a8b8; } .card.ghost    h3 { color: #a0a8b8; }
+.card.engineer { border-top-color: #f5d442; } .card.engineer h3 { color: #f5d442; }
+.card.hunter   { border-top-color: #ff5a7e; } .card.hunter   h3 { color: #ff5a7e; }
+
+.card.weapon   { border-top-color: var(--accent); }
+.card.weapon h3 { color: var(--accent); }
+
+.card.map      { border-top-color: var(--accent-warm); }
+.card.map h3   { color: var(--accent-warm); }
+
+/* ── Article pages (Privacy, Terms, About) ────────────────────────────── */
+
+.article {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+.article h1 {
+  font-size: 36px;
+  letter-spacing: 4px;
+  margin-bottom: 6px;
+  background: linear-gradient(90deg, #f5d442 0%, #ff8a3a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.article .updated {
+  color: var(--muted);
+  font: 600 11px/1.4 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  margin-bottom: 36px;
+  text-transform: uppercase;
+}
+.article h2 {
+  font-size: 22px;
+  margin: 36px 0 12px;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+.article p, .article li {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.article ul, .article ol {
+  padding-left: 24px;
+  margin-bottom: 18px;
+}
+.article ul li, .article ol li { margin-bottom: 6px; }
+.article strong { color: var(--accent); font-weight: 700; }
+.article a { color: var(--accent-cool); }
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+
+.footer {
+  background: var(--bg-elev);
+  border-top: 1px solid var(--border);
+  padding: 40px 0 28px;
+  margin-top: 60px;
+}
+.footer .container {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 32px;
+}
+@media (max-width: 720px) {
+  .footer .container { grid-template-columns: 1fr 1fr; }
+}
+.footer h4 {
+  font: 700 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.footer ul { list-style: none; }
+.footer li { margin-bottom: 8px; font-size: 14px; }
+.footer a { color: var(--text); }
+.footer a:hover { color: var(--accent); }
+.footer .brand-block p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 12px;
+  max-width: 320px;
+  line-height: 1.6;
+}
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  margin-top: 28px;
+  padding-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+}
+
+/* ── Cookie consent banner ────────────────────────────────────────────── */
+
+.cookie-banner {
+  position: fixed;
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 20;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  max-width: 720px;
+  margin: 0 auto;
+}
+.cookie-banner.hidden { display: none; }
+.cookie-banner .text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.cookie-banner .text a { color: var(--accent-cool); }
+.cookie-banner .actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cookie-banner button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: 600 11px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.cookie-banner button.primary {
+  background: var(--accent);
+  color: #1a1408;
+  border-color: #b6961f;
+}
+@media (max-width: 720px) {
+  .cookie-banner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+}

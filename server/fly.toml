@@ -1,0 +1,35 @@
+# ILCARTIGO multiplayer server — Fly.io config.
+#
+# STATEFUL single-instance game server: holds one in-memory FFA Room (player
+# positions, HP, scores, ability cooldowns, lag-comp history) and ticks at
+# 32 Hz. It MUST run as exactly one always-on machine:
+#   - never auto-stop (stopping wipes the room + drops everyone)
+#   - never scale to >1 machine (a 2nd machine = a 2nd independent room, so
+#     players on different machines wouldn't see each other)
+#
+# To switch the map, set the MAP env (sandstone | industrial) and redeploy.
+app = "ilcartigo-server"
+primary_region = "iad"          # change to the region nearest your players
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"                 # server listens here; matches internal_port
+  # MAP = "sandstone"           # uncomment + set to "industrial" to switch maps
+
+[http_service]
+  internal_port = 8080
+  force_https = true            # http->https redirect; wss handshakes still work
+  auto_stop_machines = false    # STATEFUL — never stop the room
+  auto_start_machines = true    # harmless (single machine), keeps it responsive
+  min_machines_running = 1      # no cold-stop; the room stays alive 24/7
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 200
+    soft_limit = 150
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

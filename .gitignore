@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+client/dist/
+server/dist/
+
+# Vite / TS caches
+**/.vite/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local env files (never commit secrets / baked URLs)
+.env
+.env.*
+!.env.example
+
+# Fly / deploy local state
+.fly/
+
+# Vercel local link state
+.vercel/
+
+# Local Claude tooling
+.claude/

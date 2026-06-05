@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — ILCARTIGO</title>
+  <meta name="description" content="About ILCARTIGO: a fast browser arena shooter built with Three.js, server-authoritative netcode, and Krunker-inspired design.">
+  <link rel="canonical" href="https://ilcartigo.com/about.html">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="topnav">
+  <div class="container">
+    <div class="brand"><a href="/">ILCARTIGO</a></div>
+    <ul class="nav-links">
+      <li><a href="/about.html">About</a></li>
+      <li><a href="/privacy.html">Privacy</a></li>
+      <li><a href="/terms.html">Terms</a></li>
+      <li><a class="cta" href="/play/">▸ Play Now</a></li>
+    </ul>
+  </div>
+</header>
+
+<main>
+  <article class="article">
+    <h1>About ILCARTIGO</h1>
+    <p class="updated">Last updated: 22 May 2026</p>
+
+    <p>ILCARTIGO is a free, fast, browser-based arena shooter. It's a personal
+    project — built by one person to be the kind of game I want to play in a
+    browser tab between tasks: short matches, snappy movement, no installer.</p>
+
+    <h2>The pitch</h2>
+    <p>Most browser shooters either feel mushy or take a minute to load. The
+    goal here is to load in under a second on a decent connection, drop you
+    into a match in two clicks, and feel sharp enough that aim and movement
+    are actually worth practicing. The whole game ships as roughly 165 KB of
+    gzipped JavaScript — small enough to play on bad WiFi.</p>
+
+    <h2>What's in it</h2>
+    <ul>
+      <li><strong>Six classes</strong> each built around one active ability:
+        Phantom (Blink teleport), Rush (Surge sprint), Vanguard (Dash burst),
+        Ghost (Cloak invisibility), Engineer (Barrier shield wall), Hunter
+        (Pulse wallhack scan).</li>
+      <li><strong>Five weapons</strong> — Assault Rifle, SMG, Sniper, Shotgun,
+        Pistol — each with its own recoil pattern, spread, damage falloff,
+        and feel.</li>
+      <li><strong>Two maps</strong> at launch — Sandstone (open desert town,
+        sniper-friendly) and Industrial (rusty warehouse, CQB-favored). A
+        Practice Range mode lets you test movement without dying.</li>
+      <li><strong>Server-authoritative online FFA</strong> at 32 Hz with
+        lag-compensated hit detection. Same netcode model CS:GO uses.</li>
+      <li><strong>A real settings menu</strong> with FOV, sensitivity, a full
+        crosshair customizer (color, size, thickness, gap, outline, dot
+        toggle), and graphics quality presets.</li>
+    </ul>
+
+    <h2>Under the hood</h2>
+    <p>The client is TypeScript + Three.js + Vite. Movement is a hand-rolled
+    CS-style kinematic controller — counter-strafe, light bunny-hop with a
+    hard speed cap, asymmetric forward/strafe/backward speeds, auto step-up
+    on stairs, slide on Shift while moving fast. No physics library; the math
+    is small and deterministic so it can mirror to the server.</p>
+
+    <p>Combat is hitscan. Each weapon defines its recoil pattern, spread,
+    bloom curve, damage falloff, and headshot multiplier in a single config
+    object. The shotgun fires 9 pellets per trigger pull with damage summed
+    into one floating number on hit, like Krunker.</p>
+
+    <p>Multiplayer is server-authoritative at 32 Hz over Socket.io.
+    Clients send sequence-numbered inputs and predict locally; the server
+    runs the same movement code and reconciles via snapshots. Hitscan is
+    lag-compensated — the server rewinds targets ~100ms to where they were
+    on the shooter's screen before running the raycast. Class abilities are
+    server-validated: cooldowns, charges, and active state all live on the
+    server.</p>
+
+    <h2>Design choices</h2>
+    <p>A few things I deliberately said no to:</p>
+    <ul>
+      <li><strong>No pay-to-win.</strong> Cosmetic skins are the only thing I
+        plan to charge for, if anything. Class abilities and weapons are the
+        same for everyone.</li>
+      <li><strong>No accounts required.</strong> Click play, pick a class,
+        you're in a match. If accounts get added later, they'll be optional
+        and only for persisting stats and cosmetics.</li>
+      <li><strong>No mobile.</strong> FPS games on mobile browsers are a bad
+        experience. The site is responsive so you can read about the game on
+        your phone, but the game itself is desktop-only.</li>
+      <li><strong>No microtransactions during matches.</strong> No loot boxes,
+        no ad-watching for rewards.</li>
+    </ul>
+
+    <h2>How it's funded</h2>
+    <p>The site shows ads — Google AdSense on the homepage and between
+    matches, never overlaying gameplay. Ads pay for the game server. There
+    are no premium subscriptions or pay-to-win mechanics. If ads aren't
+    enough to keep the server running, I'll figure something else out before
+    putting ads in your face mid-fight.</p>
+
+    <h2 id="contact">Contact</h2>
+    <p>The fastest way to reach me is by email:
+    <a href="mailto:tiberiumatei1978@gmail.com">tiberiumatei1978@gmail.com</a>.</p>
+    <p>Good things to email about:</p>
+    <ul>
+      <li>Bugs (especially repeatable ones — what you did, what happened, what
+        browser).</li>
+      <li>Cheaters or harassment in your matches.</li>
+      <li>Privacy requests (see <a href="/privacy.html">privacy policy</a>).</li>
+      <li>Feature ideas.</li>
+    </ul>
+
+    <h2>Credits</h2>
+    <p>Built with:</p>
+    <ul>
+      <li><a href="https://threejs.org/" target="_blank" rel="noopener">Three.js</a> — WebGL rendering.</li>
+      <li><a href="https://vitejs.dev/" target="_blank" rel="noopener">Vite</a> — build tool + dev server.</li>
+      <li><a href="https://socket.io/" target="_blank" rel="noopener">Socket.io</a> — multiplayer transport.</li>
+      <li><a href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a> + Express — backend.</li>
+      <li><a href="https://www.typescriptlang.org/" target="_blank" rel="noopener">TypeScript</a> — both ends.</li>
+    </ul>
+    <p>Inspirations: Krunker.io for the snappy browser-shooter feel, CS:GO for
+    the movement model, Valorant for the class-based ability design.</p>
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="brand-block">
+      <h4 style="color: var(--accent); letter-spacing: 6px; font-size: 16px;">ILCARTIGO</h4>
+      <p>Browser arena shooter. Six classes, five weapons, multiplayer FFA.</p>
+    </div>
+    <div>
+      <h4>Play</h4>
+      <ul>
+        <li><a href="/play/">Launcher</a></li>
+        <li><a href="/#classes">Classes</a></li>
+        <li><a href="/#weapons">Weapons</a></li>
+        <li><a href="/#maps">Maps</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>About</h4>
+      <ul>
+        <li><a href="/about.html">About ILCARTIGO</a></li>
+        <li><a href="/about.html#contact">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="/privacy.html">Privacy Policy</a></li>
+        <li><a href="/terms.html">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 ILCARTIGO · v0.8</div>
+</footer>
+
+<div id="cookie-banner" class="cookie-banner hidden">
+  <div class="text">
+    We use cookies for essential site functionality. With your consent, we may
+    also use cookies for analytics and personalized advertising. See our
+    <a href="/privacy.html">privacy policy</a> for details.
+  </div>
+  <div class="actions">
+    <button data-action="dismiss">Reject</button>
+    <button data-action="accept" class="primary">Accept</button>
+  </div>
+</div>
+
+<script src="site.js"></script>
+</body>
+</html>
