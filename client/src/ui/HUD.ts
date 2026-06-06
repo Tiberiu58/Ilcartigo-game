@@ -123,6 +123,11 @@ export class HUD {
       const victim = this.game.isLocalPlayer(e.targetId)   ? 'YOU' : shortId(e.targetId);
       this.pushKill(killer, victim, e.weaponId, e.isHeadshot);
 
+      // Kill-confirm marker when YOU got the kill (not a suicide/fall).
+      if (this.game.isLocalPlayer(e.attackerId) && !this.game.isLocalPlayer(e.targetId)) {
+        this.flashKillMarker();
+      }
+
       // Death → start respawn countdown. Cleared when HP comes back.
       if (this.game.isLocalPlayer(e.targetId)) {
         this.deathStartedAt = performance.now();
@@ -328,7 +333,7 @@ export class HUD {
   }
 
   private flashHitmarker(isHeadshot: boolean) {
-    this.hitmarker.classList.remove('fade');
+    this.hitmarker.classList.remove('fade', 'kill');
     this.hitmarker.classList.toggle('headshot', isHeadshot);
     // Force reflow so re-adding the class restarts the transition.
     void this.hitmarker.offsetWidth;
@@ -338,6 +343,19 @@ export class HUD {
       this.hitmarker.classList.remove('show');
       this.hitmarker.classList.add('fade');
     }, 80);
+  }
+
+  /** Bigger red X stamped over the crosshair the moment you confirm a kill. */
+  private flashKillMarker() {
+    this.hitmarker.classList.remove('fade', 'headshot');
+    this.hitmarker.classList.add('kill');
+    void this.hitmarker.offsetWidth;
+    this.hitmarker.classList.add('show');
+    if (this.hitmarkerTimer !== null) window.clearTimeout(this.hitmarkerTimer);
+    this.hitmarkerTimer = window.setTimeout(() => {
+      this.hitmarker.classList.remove('show');
+      this.hitmarker.classList.add('fade');
+    }, 140);
   }
 
   private flashDamage() {

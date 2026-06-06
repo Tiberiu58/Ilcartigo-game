@@ -160,6 +160,14 @@ html, body, #app {
   transition: opacity 0.18s ease-out, transform 0.18s ease-out;
 }
 #hitmarker.headshot .hm { background: #ff3a3a; }
+/* Kill-confirm marker — bigger red X with a glow, the satisfying "you got
+   the kill" stamp (Krunker-style). Overrides the show scale for extra pop. */
+#hitmarker.kill .hm {
+  background: #ff2a2a;
+  width: 10px;
+  box-shadow: 0 0 4px 1px rgba(255, 40, 40, 0.9), 0 0 0 1px rgba(0,0,0,0.6);
+}
+#hitmarker.kill.show { transform: scale(1.5); }
 .hm {
   position: absolute;
   width: 7px;
