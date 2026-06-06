@@ -50,6 +50,20 @@ const MULTIKILL_TIERS: Record<number, Tier> = {
   6: { text: 'MONSTER KILL', color: '#c84aff', sound: 'multi_monster', scale: 1.4 },
 };
 
+// One-off "special" callouts. These take the headline over multi/streak when
+// they fire (they're rarer + more dramatic), with the multi/streak riding the
+// subline. First Blood = first kill of the match (by anyone — Krunker style).
+// Revenge = you killed whoever last killed you. Comeback = a kill after dying
+// COMEBACK_DEATHS+ times since your last one.
+const SPECIAL_TIERS = {
+  firstBlood: { text: 'FIRST BLOOD', color: '#ff3b3b', sound: 'first_blood' as SoundId, scale: 1.4 },
+  revenge:    { text: 'REVENGE',     color: '#ffb020', sound: 'revenge' as SoundId,     scale: 1.3 },
+  comeback:   { text: 'COMEBACK',    color: '#4ad6ff', sound: 'comeback' as SoundId,    scale: 1.3 },
+} satisfies Record<string, Tier>;
+
+/** Deaths since your last kill needed before the next kill counts as a Comeback. */
+const COMEBACK_DEATHS = 3;
+
 // Killstreak milestones (consecutive kills without dying). Only fires AT these
 // exact counts.
 const STREAK_TIERS: Record<number, Tier> = {
@@ -73,6 +87,11 @@ export class Announcer {
   private lastKillAt = 0;       // performance.now() of the last local kill
   private hideTimer: number | null = null;
 
+  // Special-callout tracking.
+  private matchHadKill = false;       // any kill landed this match yet?
+  private lastKilledMeBy: string | null = null;  // for Revenge
+  private deathsSinceKill = 0;        // for Comeback
+
   constructor(bus: GameEventBus, audio: AudioManager, isLocalPlayer: (id: string) => boolean) {
     this.root = document.getElementById('announcer')!;
     this.mainEl = document.getElementById('announcer-main')!;
@@ -81,13 +100,16 @@ export class Announcer {
     this.isLocal = isLocalPlayer;
 
     bus.on('kill', (e) => {
+      // First-blood detection must read the flag BEFORE this kill flips it.
+      const firstOfMatch = !this.matchHadKill;
+      this.matchHadKill = true;
       if (this.isLocal(e.attackerId) && !this.isLocal(e.targetId)) {
-        this.onLocalKill();
+        this.onLocalKill(e.targetId, firstOfMatch);
       }
       // Dying resets our streak + multi chain (whether we were killed by a
       // player or fell — any death of the local player counts).
       if (this.isLocal(e.targetId)) {
-        this.onLocalDeath();
+        this.onLocalDeath(e.attackerId);
       }
     });
   }
@@ -98,10 +120,13 @@ export class Announcer {
     this.streak = 0;
     this.multiCount = 0;
     this.lastKillAt = 0;
+    this.matchHadKill = false;
+    this.lastKilledMeBy = null;
+    this.deathsSinceKill = 0;
     this.hideBanner();
   }
 
-  private onLocalKill() {
+  private onLocalKill(victimId: string, firstOfMatch: boolean) {
     const now = performance.now();
     // Multi-kill chaining.
     if (now - this.lastKillAt <= MULTIKILL_WINDOW * 1000) {
@@ -112,12 +137,31 @@ export class Announcer {
     this.lastKillAt = now;
     this.streak++;
 
-    // Decide what to announce. Multi-kill (>=2) is the headline; otherwise a
-    // streak milestone if we just hit one; otherwise nothing (a plain kill).
+    // ── Specials (take headline priority over multi/streak) ──────────────────
+    let special: Tier | null = null;
+    if (firstOfMatch) {
+      special = SPECIAL_TIERS.firstBlood;
+    } else if (this.lastKilledMeBy && victimId === this.lastKilledMeBy) {
+      special = SPECIAL_TIERS.revenge;
+    } else if (this.deathsSinceKill >= COMEBACK_DEATHS) {
+      special = SPECIAL_TIERS.comeback;
+    }
+    // Avenged → clear the grudge so we don't re-announce it next kill.
+    if (this.lastKilledMeBy && victimId === this.lastKilledMeBy) this.lastKilledMeBy = null;
+    this.deathsSinceKill = 0;
+
+    // Multi-kill (>=2) and streak milestones, as before.
     const multiTier = this.multiCount >= 2 ? tierFor(MULTIKILL_TIERS, this.multiCount) : null;
     const streakTier = STREAK_TIERS[this.streak] ?? null;
 
-    if (multiTier) {
+    if (special) {
+      // Special headline; the multi/streak (if any) rides the subline.
+      const sub = multiTier ? multiTier.text : streakTier ? streakTier.text : streakSubline(this.streak);
+      this.show(special, sub);
+      this.audio.play(special.sound);
+      if (multiTier) this.audio.play(multiTier.sound);
+      else if (streakTier) this.audio.play(streakTier.sound);
+    } else if (multiTier) {
       this.show(multiTier, streakTier ? streakTier.text : streakSubline(this.streak));
       this.audio.play(multiTier.sound);
       // If a streak milestone ALSO popped this kill, still play its sting
@@ -130,10 +174,14 @@ export class Announcer {
     // else: plain kill, no banner (the hitmarker + killfeed already cover it).
   }
 
-  private onLocalDeath() {
+  private onLocalDeath(attackerId: string) {
     this.streak = 0;
     this.multiCount = 0;
     this.lastKillAt = 0;
+    this.deathsSinceKill++;
+    // Remember a real attacker (not a fall / self) so the next kill on them
+    // counts as Revenge.
+    if (attackerId && !this.isLocal(attackerId)) this.lastKilledMeBy = attackerId;
     // Don't yank an in-flight banner on death — let it fade naturally.
   }
 
