@@ -95,6 +95,18 @@ export class MultiplayerSession {
     return Array.from(this.remotes.keys());
   }
 
+  /**
+   * Copy a remote player's current (interpolated) world position into `out`.
+   * Returns false if we don't know that player. Used by directional damage
+   * indicators to point at the shooter.
+   */
+  getRemotePosition(id: string, out: THREE.Vector3): boolean {
+    const rp = this.remotes.get(id);
+    if (!rp) return false;
+    out.copy(rp.group.position);
+    return true;
+  }
+
   /** Subscribers. Mirror the local bus shape so existing HUD listeners keep working. */
   onWelcome?: (msg: ServerWelcome) => void;
   onDisconnect?: (reason: string) => void;

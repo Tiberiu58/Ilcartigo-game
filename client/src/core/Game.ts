@@ -111,6 +111,27 @@ export class Game {
     return this.mp?.myId || 'player';
   }
 
+  /**
+   * Resolve an actor id to a world position (feet-anchored, roughly torso for
+   * direction math). Used by directional damage indicators to point at whoever
+   * shot us. Handles all three actor sources: the local player, single-player
+   * bots, and MP remotes. Returns false if the id can't be resolved (e.g. the
+   * attacker already left) so callers can skip cleanly.
+   */
+  actorWorldPos(id: string, out: THREE.Vector3): boolean {
+    if (this.isLocalPlayer(id)) {
+      out.copy(this.player.pos);
+      return true;
+    }
+    const bot = this.bots.find((b) => b.id === id);
+    if (bot) {
+      out.copy(bot.group.position);
+      return true;
+    }
+    if (this.mp && this.mp.getRemotePosition(id, out)) return true;
+    return false;
+  }
+
   /** Per-match kill/death tracking. Cleared on respawn-loop reset / mode swap. */
   matchKills = new Map<string, number>();
   matchDeaths = new Map<string, number>();

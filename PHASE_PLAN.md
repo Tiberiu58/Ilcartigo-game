@@ -81,7 +81,35 @@ Files: `main.ts`, `index.html`, `Account.ts` (name), css.
 
 ### Phase 11 COMPLETE — all 8 sub-phases (A–H) + audit-fix round shipped, typecheck + build green, app chunk ~59 KB gzip.
 
-### Remaining (deferred, needs the user / external accounts)
-- Deploy: Fly.io account + card, Vercel login, registered domain. Config all written.
-- Audio assets: drop CC0 .wav files per the catalog (pipeline fully wired).
-- Bigger features: TDM, real account backend / leaderboard, matchmaking, anti-cheat.
+---
+
+## Phase 12 — Combat Feel & Feedback Juice (autonomous build, v0.12.0)
+
+The single biggest gap between ILCARTIGO and Krunker right now is *moment-to-moment
+combat feedback* — you can't tell where you're being shot from, low-HP has no
+tension, death is abrupt, and there's only one cosmetic axis to chase. Phase 12
+closes that, all client-side and low-risk (no protocol changes, solo + MP both
+keep working), plus one new cosmetic track to deepen the unlock loop (retention →
+ad revenue).
+
+Guiding constraint: **no protocol changes, no new deps, typecheck + build green each step.**
+
+- **12A — Directional damage indicators.** Red curved arcs around the crosshair
+  pointing at whoever's shooting you (CoD/Krunker staple). Computed from the
+  attacker's world position vs camera yaw. Works solo (bots) + MP (remotes).
+  New `ui/DamageDirection.ts`, `Game.actorWorldPos()` resolver,
+  `MultiplayerSession.getRemotePosition()`.
+- **12B — Low-HP vignette + heartbeat.** Persistent pulsing red vignette + a
+  throttled heartbeat SFX cue when HP drops under a threshold. Pure HUD + CSS.
+- **12C — Death recap card.** "ELIMINATED BY {name} · {WEAPON}" on the death
+  screen, folded into the respawn countdown. Captured from the lethal kill event.
+- **12D — Tracer-colour cosmetics.** A new unlockable cosmetic axis (your bullet
+  tracer colour). Extends the registry + Account + Cosmetics settings tab; the
+  local player's tracers read the equipped colour. More to chase = more reasons
+  to return.
+- **12E — Announcer specials.** First Blood (first kill of a match), Revenge
+  (kill whoever last killed you), Comeback (kill after a long death drought).
+  Pure `Announcer.ts` extension on top of the existing streak/multi-kill system.
+
+### Status log
+

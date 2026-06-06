@@ -17,6 +17,7 @@
 import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
+import { DamageDirection } from './ui/DamageDirection';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -84,6 +85,8 @@ let scoreboardOpen = false;
 const game = new Game(canvas);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
+const damageDir = new DamageDirection(game);
+void damageDir;
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);

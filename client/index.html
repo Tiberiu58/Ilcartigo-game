@@ -49,6 +49,14 @@
 
         <div id="damage-flash"></div>
 
+        <!-- Directional damage indicators — red arcs pointing at the attacker.
+             Arc elements are pooled + populated by DamageDirection.ts. -->
+        <div id="damage-dir"></div>
+
+        <!-- Low-HP danger vignette — pulses red when HP drops under threshold.
+             Toggled by HUD.tick. -->
+        <div id="lowhp-vignette" class="hidden"></div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
