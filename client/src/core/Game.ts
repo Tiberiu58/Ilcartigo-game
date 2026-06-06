@@ -242,7 +242,10 @@ export class Game {
         ? e.hit.point
         : _SCRATCH_END.copy(e.origin).addScaledVector(e.direction, range);
       const start = isPlayer ? this._muzzlePos : e.origin;
-      this.tracers.spawn(start, end, isPlayer ? 0.08 : 0.14, isPlayer ? 0xfff0a0 : 0xff5a3a);
+      // Local player's tracer colour is a cosmetic (equipped tracer); remote /
+      // bot tracers stay the warm red so you can read incoming fire.
+      const tracerColor = isPlayer ? this.account.equippedTracerColor() : 0xff5a3a;
+      this.tracers.spawn(start, end, isPlayer ? 0.08 : 0.14, tracerColor);
       if (isPlayer) this.viewmodel.onFire();
 
       // Audio. Local shots play unspatialized; remote/bot shots play spatial

@@ -1220,6 +1220,17 @@ body.kill-flash #app::after {
   border-radius: 2px;
   margin-bottom: 1px;
 }
+/* Tracer swatch — a glowing bolt in the tracer's colour. */
+.cos-card .cos-swatch-tracer {
+  align-items: center;
+  background: #0d0f14;
+}
+.cos-card .cos-swatch-tracer .bolt {
+  width: 80%; height: 5px;
+  border-radius: 3px;
+  background: var(--body-c);
+  box-shadow: 0 0 6px 1px var(--body-c);
+}
 .cos-card .cos-name {
   font: 700 11px/1.2 'Segoe UI', sans-serif;
   letter-spacing: 1px;

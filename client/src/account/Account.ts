@@ -12,7 +12,7 @@
  * Level curve: 1000 XP per level. Simple and predictable.
  */
 
-import { findSkin, defaultSkinForClass, DEFAULT_KILL_EFFECT, type SkinId, type KillEffectId } from './Cosmetics';
+import { findSkin, findTracer, defaultSkinForClass, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId } from './Cosmetics';
 import type { ClassId } from '../classes/types';
 
 const STORAGE_KEY = 'ilc.account';
@@ -57,9 +57,11 @@ interface AccountData {
   /** Set of unlocked cosmetic IDs (we store as array for JSON). */
   unlockedSkins: SkinId[];
   unlockedEffects: KillEffectId[];
+  unlockedTracers: TracerId[];
   /** Per-class equipped skin. If a class isn't here, the default is used. */
   equippedSkin: Partial<Record<ClassId, SkinId>>;
   equippedKillEffect: KillEffectId;
+  equippedTracer: TracerId;
   /** Lifetime career stats. */
   stats: LifetimeStats;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
@@ -137,8 +139,10 @@ function freshData(): AccountData {
       'ghost-default', 'engineer-default', 'hunter-default',
     ],
     unlockedEffects: [DEFAULT_KILL_EFFECT],
+    unlockedTracers: [DEFAULT_TRACER],
     equippedSkin: {},
     equippedKillEffect: DEFAULT_KILL_EFFECT,
+    equippedTracer: DEFAULT_TRACER,
     stats: freshStats(),
     name: '',
     daily: freshDaily(freshStats()),
@@ -167,12 +171,19 @@ export class Account {
         xp: typeof parsed.xp === 'number' ? parsed.xp : fresh.xp,
         unlockedSkins: Array.isArray(parsed.unlockedSkins) ? parsed.unlockedSkins : fresh.unlockedSkins,
         unlockedEffects: Array.isArray(parsed.unlockedEffects) ? parsed.unlockedEffects : fresh.unlockedEffects,
+        // Always keep the default tracer unlocked even on an older save.
+        unlockedTracers: Array.isArray(parsed.unlockedTracers)
+          ? Array.from(new Set([DEFAULT_TRACER, ...parsed.unlockedTracers]))
+          : fresh.unlockedTracers,
         equippedSkin: (parsed.equippedSkin && typeof parsed.equippedSkin === 'object')
           ? parsed.equippedSkin as Partial<Record<ClassId, SkinId>>
           : fresh.equippedSkin,
         equippedKillEffect: typeof parsed.equippedKillEffect === 'string'
           ? parsed.equippedKillEffect
           : fresh.equippedKillEffect,
+        equippedTracer: typeof parsed.equippedTracer === 'string'
+          ? parsed.equippedTracer
+          : fresh.equippedTracer,
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
@@ -218,6 +229,9 @@ export class Account {
   isEffectUnlocked(id: KillEffectId): boolean {
     return this.data.unlockedEffects.includes(id);
   }
+  isTracerUnlocked(id: TracerId): boolean {
+    return this.data.unlockedTracers.includes(id);
+  }
 
   /** Equipped skin for the given class, falling back to default. */
   equippedSkinFor(classId: ClassId): SkinId {
@@ -228,6 +242,18 @@ export class Account {
 
   equippedKillEffect(): KillEffectId {
     return this.data.equippedKillEffect;
+  }
+
+  /** Equipped tracer id, falling back to default if the saved one is invalid. */
+  equippedTracer(): TracerId {
+    const id = this.data.equippedTracer;
+    if (this.isTracerUnlocked(id) && findTracer(id)) return id;
+    return DEFAULT_TRACER;
+  }
+
+  /** Equipped tracer colour (hex number) — read by Game for local tracers. */
+  equippedTracerColor(): number {
+    return findTracer(this.equippedTracer())?.color ?? 0xfff0a0;
   }
 
   /** Lifetime career stats (read-only snapshot). */
@@ -289,6 +315,22 @@ export class Account {
   equipKillEffect(id: KillEffectId): boolean {
     if (!this.isEffectUnlocked(id)) return false;
     this.data.equippedKillEffect = id;
+    this.save();
+    return true;
+  }
+
+  tryUnlockTracer(id: TracerId, cost: number): boolean {
+    if (this.isTracerUnlocked(id)) return true;
+    if (this.data.xp < cost) return false;
+    this.data.xp -= cost;
+    this.data.unlockedTracers.push(id);
+    this.save();
+    return true;
+  }
+
+  equipTracer(id: TracerId): boolean {
+    if (!this.isTracerUnlocked(id)) return false;
+    this.data.equippedTracer = id;
     this.save();
     return true;
   }

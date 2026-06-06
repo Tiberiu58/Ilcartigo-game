@@ -16,6 +16,7 @@ import type { ClassId } from '../classes/types';
 
 export type SkinId = string;          // e.g. 'phantom-violet', 'rush-ember'
 export type KillEffectId = string;    // e.g. 'puff-yellow', 'shock-cyan'
+export type TracerId = string;        // e.g. 'tracer-gold', 'tracer-cyan'
 
 export interface SkinConfig {
   id: SkinId;
@@ -33,6 +34,14 @@ export interface KillEffectConfig {
   particleColor: number;
   /** Screen edge flash color for ~120ms after kill. */
   tintColor: number;
+  cost: number;
+}
+
+export interface TracerConfig {
+  id: TracerId;
+  displayName: string;
+  /** Colour of the local player's bullet tracer (hex). */
+  color: number;
   cost: number;
 }
 
@@ -148,9 +157,28 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',     particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
 ];
 
+/**
+ * Bullet tracer colours for the LOCAL player. Purely cosmetic — the default
+ * matches the existing warm-gold tracer so equipping nothing changes nothing.
+ * A cheap, satisfying unlock track players see on every single shot.
+ */
+export const TRACERS: ReadonlyArray<TracerConfig> = [
+  { id: 'tracer-gold',    displayName: 'Gold',         color: 0xfff0a0, cost: 0    },
+  { id: 'tracer-cyan',    displayName: 'Cyan Bolt',    color: 0x6cc6ff, cost: 250  },
+  { id: 'tracer-lime',    displayName: 'Toxic Lime',   color: 0xaaff3a, cost: 400  },
+  { id: 'tracer-magenta', displayName: 'Hot Magenta',  color: 0xff4ad6, cost: 700  },
+  { id: 'tracer-crimson', displayName: 'Crimson',      color: 0xff3b3b, cost: 1200 },
+  { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
+];
+
+export const DEFAULT_TRACER: TracerId = 'tracer-gold';
+
 /** Lookup helpers. */
 export function findSkin(id: SkinId): SkinConfig | undefined {
   return SKINS.find((s) => s.id === id);
+}
+export function findTracer(id: TracerId): TracerConfig | undefined {
+  return TRACERS.find((t) => t.id === id);
 }
 export function findKillEffect(id: KillEffectId): KillEffectConfig | undefined {
   return KILL_EFFECTS.find((e) => e.id === id);

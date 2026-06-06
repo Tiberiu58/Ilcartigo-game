@@ -12,7 +12,7 @@
  */
 
 import type { Account } from '../account/Account';
-import { KILL_EFFECTS, skinsForClass, findKillEffect, type SkinConfig, type KillEffectConfig } from '../account/Cosmetics';
+import { KILL_EFFECTS, TRACERS, skinsForClass, findKillEffect, findTracer, type SkinConfig, type KillEffectConfig, type TracerConfig } from '../account/Cosmetics';
 import { CLASS_LIBRARY, CLASS_ORDER, type ClassId } from '../classes/types';
 
 export class CosmeticsUI {
@@ -20,6 +20,7 @@ export class CosmeticsUI {
   private root: HTMLElement;
   private skinsEl: HTMLElement;
   private effectsEl: HTMLElement;
+  private tracersEl: HTMLElement;
   private levelEl: HTMLElement;
   private xpEl: HTMLElement;
   private fillEl: HTMLElement;
@@ -29,6 +30,7 @@ export class CosmeticsUI {
     this.root = document.querySelector('[data-pane="cosmetics"]') as HTMLElement;
     this.skinsEl = document.getElementById('cos-skins')!;
     this.effectsEl = document.getElementById('cos-effects')!;
+    this.tracersEl = document.getElementById('cos-tracers')!;
     this.levelEl = document.getElementById('cos-level')!;
     this.xpEl = document.getElementById('cos-xp')!;
     this.fillEl = document.getElementById('cos-xp-fill')!;
@@ -41,6 +43,7 @@ export class CosmeticsUI {
     this.renderSummary();
     this.renderSkins();
     this.renderEffects();
+    this.renderTracers();
   }
 
   private renderSummary() {
@@ -78,6 +81,15 @@ export class CosmeticsUI {
     });
   }
 
+  private renderTracers() {
+    if (!this.tracersEl) return;
+    this.tracersEl.innerHTML = TRACERS.map((t) => this.tracerCardHtml(t)).join('');
+    this.tracersEl.querySelectorAll<HTMLElement>('[data-tracer-id]').forEach((el) => {
+      const id = el.dataset.tracerId!;
+      el.addEventListener('click', () => this.handleTracerClick(id));
+    });
+  }
+
   private skinCardHtml(skin: SkinConfig, classId: ClassId): string {
     const unlocked = this.account.isSkinUnlocked(skin.id);
     const equipped = this.account.equippedSkinFor(classId) === skin.id;
@@ -107,6 +119,29 @@ export class CosmeticsUI {
       <div class="cos-name">${escape(e.displayName)}</div>
       <div class="cos-status">${status}</div>
     </div>`;
+  }
+
+  private tracerCardHtml(t: TracerConfig): string {
+    const unlocked = this.account.isTracerUnlocked(t.id);
+    const equipped = this.account.equippedTracer() === t.id;
+    const status = !unlocked ? `${t.cost} XP` : equipped ? 'EQUIPPED' : 'EQUIP';
+    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    const hex = '#' + t.color.toString(16).padStart(6, '0');
+    // Reuse the swatch markup but render a tracer "bolt" via the body bar.
+    return `<div class="${cls}" data-tracer-id="${t.id}" style="--body-c: ${hex}; --head-c: ${hex}">
+      <div class="cos-swatch cos-swatch-tracer"><div class="bolt"></div></div>
+      <div class="cos-name">${escape(t.displayName)}</div>
+      <div class="cos-status">${status}</div>
+    </div>`;
+  }
+
+  private handleTracerClick(id: string) {
+    if (!this.account.isTracerUnlocked(id)) {
+      const cfg = findTracer(id);
+      if (!cfg) return;
+      if (!this.account.tryUnlockTracer(id, cfg.cost)) return;
+    }
+    this.account.equipTracer(id);
   }
 
   private handleSkinClick(id: string) {
