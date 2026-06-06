@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 11 — v0.11.0. Fun/catch/revenue: Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding. Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -285,6 +285,15 @@ Drop CC0 `.wav` files into `client/public/assets/sounds/` matching these names. 
 
 Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` — useful for verifying volume sliders without doing combat.
 
+**Phase 12 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `heartbeat.wav` | Single slow heartbeat thump (low-HP danger cue) | "heartbeat single", "heart beat thump" |
+| `first_blood.wav` | First-blood announcer sting | "first blood", "announcer impact" |
+| `revenge.wav` | Revenge-kill announcer sting | "revenge sting", "vengeance" |
+| `comeback.wav` | Comeback announcer sting | "comeback", "rise up sting" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -311,14 +320,55 @@ Two code changes + Fly.io config were added so the deploy is mechanical when rea
 - **`CLIENT_ORIGIN`** — server CORS allowlist via env var (comma-separated origins; localhost still always allowed for dev).
 - **`server/Dockerfile` + `fly.toml` + `.dockerignore`** — single always-on machine (stateful game room), `tsx`-run (no compile step), websocket-friendly. See `PHASE_PLAN.md` for the full deploy runbook. Domain (`ilcartigo.com`) not registered yet → deploy targets free preview URLs first.
 
+## Phase 12 — Combat Feel & Feedback Juice (this round, v0.12.0)
+
+The biggest gap to Krunker was moment-to-moment combat *feedback*. Phase 12
+closes it — all client-side, **no protocol changes**, solo + MP both unaffected
+— plus a new cosmetic track to deepen the unlock loop (retention → ad revenue).
+
+- **A. Directional damage indicators.** Red curved arcs around the crosshair
+  point at whoever's shooting you (the CoD/Krunker "where am I getting hit
+  from" staple). Bearing is computed from the attacker's world position vs the
+  camera's yaw. Works solo (bots) and MP (remotes) through a unified
+  `Game.actorWorldPos()` resolver (+ `MultiplayerSession.getRemotePosition()`).
+  Pooled arc elements merge continuous fire from one direction and show separate
+  arcs for multiple attackers. New `ui/DamageDirection.ts`.
+- **B. Low-HP danger feedback.** A pulsing red vignette + a throttled heartbeat
+  SFX kick in at ≤30% HP, the heartbeat tightening as you near death. Tension
+  you feel without watching the HP bar. Pure HUD + CSS.
+- **C. Death recap card.** "ELIMINATED BY {name} · {WEAPON}" folded into the
+  respawn countdown — captured from the lethal kill event, resolving bot
+  difficulty labels / short MP ids, hidden for attacker-less falls.
+- **D. Bullet-tracer cosmetics.** A new unlockable cosmetic axis you see on
+  every shot — 6 tracer colours (gold default free, then cyan/lime/magenta/
+  crimson/white at 250–2000 XP). `Account` extended migration-safe
+  (`unlockedTracers` + `equippedTracer`, default always kept unlocked on old
+  saves). Local tracers read the equipped colour; remote/bot tracers stay red so
+  incoming fire stays readable. New "Bullet Tracer" grid in the Cosmetics tab.
+- **E. Announcer specials.** First Blood (first kill of the match, by anyone),
+  Revenge (you kill whoever last killed you), Comeback (a kill after dying 3+
+  times since your last). Specials take the headline; the existing multi-kill /
+  streak rides the subline. Reset on match reset / mode switch.
+- **F. Kill-confirm marker.** Confirming a kill stamps a bigger, glowing red X
+  over the crosshair, distinct from the white hitmarker and the red headshot
+  ping.
+
+New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
+`revenge`, `comeback` — see the audio asset guide above.
+
+### Bundle size
+
+Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
+~+2 KB this phase for the whole combat-feel layer. No new dependencies.
+
 ## Project status
 
-11 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, **scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~180 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads. v0.11.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.11.0.
+- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
