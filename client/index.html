@@ -75,6 +75,11 @@
         <!-- Respawn countdown overlay during the death window. -->
         <div id="respawn-countdown" class="hidden">
           <div class="rc-label">You died</div>
+          <!-- Death recap — "ELIMINATED BY {name} · {WEAPON}". Hidden for
+               attacker-less deaths (falls). Populated by HUD on the kill event. -->
+          <div class="rc-recap hidden" id="rc-recap">
+            eliminated by <b id="rc-killer">—</b><span id="rc-weapon"></span>
+          </div>
           <div class="rc-timer" id="rc-timer">1.8</div>
           <div class="rc-sub">Respawning…</div>
         </div>

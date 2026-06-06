@@ -287,6 +287,17 @@ body.ghost-active #app::before {
   margin-top: 10px;
   text-transform: uppercase;
 }
+/* Death recap line — "eliminated by {name} · {weapon}". */
+.rc-recap {
+  font: 600 13px/1.4 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: #d8dde6;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+}
+.rc-recap.hidden { display: none; }
+.rc-recap b { color: #ff7a7a; font-weight: 800; }
+#rc-weapon { color: var(--muted); }
 
 /* Practice Range badge — top-center pill, persistent while in practice mode. */
 #practice-badge {

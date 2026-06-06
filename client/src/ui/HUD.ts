@@ -13,6 +13,8 @@ import { Game } from '../core/Game';
 
 const KILLFEED_MAX = 5;
 const KILLFEED_TTL = 5000; // ms
+/** Health fraction at/below which the low-HP danger vignette + heartbeat kick in. */
+const LOW_HP_RATIO = 0.3;
 
 export class HUD {
   private playerHealth: Health;
@@ -33,12 +35,16 @@ export class HUD {
   private scopeOverlay: HTMLElement;
   private slotChips: HTMLElement[];
   private spawnProtect: HTMLElement;
+  private lowHpVignette: HTMLElement;
   private matchScore: HTMLElement;
   private msYouKills: HTMLElement;
   private msGoal: HTMLElement;
   private msLeader: HTMLElement;
   private respawnCountdown: HTMLElement;
   private rcTimer: HTMLElement;
+  private rcRecap: HTMLElement;
+  private rcKiller: HTMLElement;
+  private rcWeapon: HTMLElement;
   /** Wall-clock ms when our death animation started; 0 = not dead. */
   private deathStartedAt = 0;
   private abilityPill: HTMLElement;
@@ -59,6 +65,10 @@ export class HUD {
   private lastActive = false;
   private hitmarkerTimer: number | null = null;
   private damageFlashTimer: number | null = null;
+
+  /** Low-HP danger state. Vignette shows + a heartbeat throbs below threshold. */
+  private lowHp = false;
+  private lastHeartbeatAt = 0;
 
   private game: Game;
 
@@ -83,12 +93,16 @@ export class HUD {
     this.scopeOverlay = document.getElementById('scope-overlay')!;
     this.slotChips = Array.from(document.querySelectorAll<HTMLElement>('.slot-chip'));
     this.spawnProtect = document.getElementById('spawn-protect')!;
+    this.lowHpVignette = document.getElementById('lowhp-vignette')!;
     this.matchScore = document.getElementById('match-score')!;
     this.msYouKills = document.getElementById('ms-you-kills')!;
     this.msGoal = document.getElementById('ms-goal')!;
     this.msLeader = document.getElementById('ms-leader')!;
     this.respawnCountdown = document.getElementById('respawn-countdown')!;
     this.rcTimer = document.getElementById('rc-timer')!;
+    this.rcRecap = document.getElementById('rc-recap')!;
+    this.rcKiller = document.getElementById('rc-killer')!;
+    this.rcWeapon = document.getElementById('rc-weapon')!;
     this.abilityPill = document.getElementById('ability-pill')!;
     this.apName = this.abilityPill.querySelector('.ap-name') as HTMLElement;
     this.apFill = this.abilityPill.querySelector('.ap-cd-fill') as HTMLElement;
@@ -112,6 +126,7 @@ export class HUD {
       // Death → start respawn countdown. Cleared when HP comes back.
       if (this.game.isLocalPlayer(e.targetId)) {
         this.deathStartedAt = performance.now();
+        this.showRecap(e.attackerId, e.weaponId, e.isHeadshot);
       }
     });
   }
@@ -166,8 +181,33 @@ export class HUD {
 
     this.tickAbilityPill();
     this.tickCrosshairSpread();
+    this.tickLowHp();
     this.tickMatchScore();
     this.tickRespawnCountdown();
+  }
+
+  /**
+   * Low-HP danger feedback. Below LOW_HP_RATIO of max (and alive), a pulsing
+   * red vignette shows and a slow heartbeat SFX throbs — tension you feel
+   * without looking at the HP bar. Heartbeat cadence tightens as HP drops.
+   */
+  private tickLowHp() {
+    const max = this.playerHealth.max || 1;
+    const ratio = this.playerHealth.current / max;
+    const critical = !this.playerHealth.dead && this.playerHealth.current > 0 && ratio <= LOW_HP_RATIO;
+    if (critical !== this.lowHp) {
+      this.lowHp = critical;
+      this.lowHpVignette.classList.toggle('hidden', !critical);
+    }
+    if (!critical) return;
+    // Heartbeat: ~0.95s at the threshold, tightening toward ~0.5s near death.
+    const t = Math.max(0, Math.min(1, ratio / LOW_HP_RATIO));
+    const interval = 500 + t * 450;
+    const now = performance.now();
+    if (now - this.lastHeartbeatAt >= interval) {
+      this.lastHeartbeatAt = now;
+      this.game.audio.play('heartbeat', 0.7);
+    }
   }
 
   /**
@@ -308,6 +348,29 @@ export class HUD {
     this.damageFlashTimer = window.setTimeout(() => {
       this.damageFlash.classList.remove('show');
     }, 40);
+  }
+
+  /**
+   * Populate the death recap line ("ELIMINATED BY {name} · {WEAPON}"). Hidden
+   * for attacker-less deaths (falls) or the theoretical self-kill so we never
+   * print "eliminated by YOU". A headshot kill is flagged on the weapon tag.
+   */
+  private showRecap(attackerId: string, weaponId: string, isHeadshot: boolean) {
+    if (!attackerId || this.game.isLocalPlayer(attackerId)) {
+      this.rcRecap.classList.add('hidden');
+      return;
+    }
+    this.rcKiller.textContent = this.killerName(attackerId);
+    this.rcWeapon.textContent = ` · ${weaponId.toUpperCase()}${isHeadshot ? ' · HS' : ''}`;
+    this.rcRecap.classList.remove('hidden');
+  }
+
+  /** Friendly name for whoever killed us: a bot's difficulty label, or a short
+   *  MP id. (Never the local player — guarded by the caller.) */
+  private killerName(id: string): string {
+    const bot = this.game.bots.find((b) => b.id === id);
+    if (bot) return bot.difficulty.charAt(0).toUpperCase() + bot.difficulty.slice(1) + ' Bot';
+    return shortId(id);
   }
 
   private pushKill(killer: string, victim: string, weaponId: string, isHeadshot: boolean) {

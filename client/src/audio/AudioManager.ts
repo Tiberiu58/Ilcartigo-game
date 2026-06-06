@@ -62,6 +62,14 @@ export const SOUND_FILES = {
   match_end:     'match_end.wav',
   ui_click:      'ui_click.wav',
 
+  // Low-HP danger cue — a slow heartbeat throbs while health is critical.
+  heartbeat:     'heartbeat.wav',
+
+  // Announcer specials (Phase 12E) — one-off callouts, escalating stings.
+  first_blood:   'first_blood.wav',
+  revenge:       'revenge.wav',
+  comeback:      'comeback.wav',
+
   // Killstreak announcer — multi-kill chain (escalating).
   multi_double:  'multi_double.wav',
   multi_triple:  'multi_triple.wav',
