@@ -122,3 +122,53 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ### Phase 12 COMPLETE — A–F + polish shipped, no protocol change, solo + MP intact.
 
+---
+
+## Phase 13 — Aim Lab + Solo Depth (autonomous build, v0.13.0)
+
+Krunker has a beloved **Aim Trainer**. ILCARTIGO had instant combat feedback
+(Phase 12) but no low-pressure way to *practise* and *measure* aim — and no
+extra solo loop to pull players back between matches. Phase 13 adds a complete,
+self-contained **Aim Lab (Target Rush)** mode: a 60-second flick sprint with a
+persistent personal best and a clean post-run results card (a natural AdSense
+breakpoint). It's a strong retention + revenue hook and very on-brand for the
+Krunker feel.
+
+Guiding constraint (same as Phase 12): **no protocol changes, no server changes,
+no controller changes, no new deps. Solo + MP both untouched. Typecheck + build
+green each step.**
+
+- **13A — Aim Lab: Target Rush.** New `modes/AimLab.ts`. A 60s run on the
+  Practice arena where glowing targets pop in and you flick to them as fast as
+  you can. Self-contained and additive:
+  - Targets are `Damageable`s shot through the *existing* `World.raycast` +
+    `Weapon` → `bus('shot'|'damage')` pipeline — the player shoots them exactly
+    like a bot.
+  - Targets carry huge HP so they **never** emit `kill` events — that keeps the
+    killfeed, announcer, lifetime stats, and combat XP completely clean during a
+    run. A pop is detected from the first `damage` event on a target, which then
+    relocates synchronously (so leftover shotgun pellets can't double-count).
+  - Spawn placement is map-agnostic: candidates are sampled on a ring around the
+    arena centre and validated against geometry overlap (`firstOverlap`) +
+    line-of-sight (`hasLineOfSight`) so every target is reachable + shootable.
+  - Live HUD (`#aimlab-hud`): countdown timer (turns red ≤10s), targets popped,
+    accuracy (pellet hits / shots). Soft-pauses when the pointer unlocks (Esc).
+  - Results card (`#aimlab-results`): big score, **NEW PERSONAL BEST** badge,
+    accuracy, persisted personal best (`ilc.aimlab.best`), XP earned
+    (4 XP/target, fed into the real progression), an **ad slot** (`aimlab`,
+    registered in `Ads.ts`), and Retry / Quit.
+  - Personal best is surfaced on the main-menu button itself
+    (“✦ Aim Lab (Target Rush) · best N”) as a "beat this" hook.
+  - Game integration is intentionally tiny: a typed `Game.aimLab` field, one
+    `update(dt)` call in the tick, and one defensive guard in the kill handler.
+    Everything else lives in `AimLab.ts` + `main.ts` DOM wiring.
+
+### Status log
+- ✅ Phase 13A — Aim Lab (Target Rush). DONE (client typecheck + build green;
+  server typecheck green/unchanged). New `modes/AimLab.ts` + `AimTarget`
+  (Damageable). Menu button + in-run HUD + results overlay + CSS + `aimlab` ad
+  slot. Personal best persisted + shown on the menu button. Zero protocol/server/
+  controller changes; solo FFA, Practice, and MP paths untouched (verified by
+  re-running both tsc passes + the client build). App chunk ~62.6 KB gzip
+  (~+1.5 KB for the whole mode, no new deps).
+

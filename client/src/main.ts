@@ -22,6 +22,7 @@ import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
+import { AimLab, type AimLabResult } from './modes/AimLab';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -57,6 +58,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
+const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
 const practiceBadge = document.getElementById('practice-badge')!;
@@ -83,6 +85,7 @@ const sbGoal = document.getElementById('sb-goal')!;
 let scoreboardOpen = false;
 
 const game = new Game(canvas);
+game.aimLab = new AimLab(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
@@ -228,6 +231,7 @@ gfxButtons.forEach((btn) => {
 });
 
 function startGame(mode: 'combat' | 'practice' = 'combat') {
+  stopAimLab();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -248,6 +252,7 @@ function startGame(mode: 'combat' | 'practice' = 'combat') {
  * Bots are skipped while game.mp is non-null (Game.tick gates on it).
  */
 function startOnline() {
+  stopAimLab();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -292,6 +297,7 @@ function startOnline() {
 }
 
 function quitToMenu() {
+  stopAimLab();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -373,7 +379,99 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuPractice.addEventListener('click', () => startGame('practice'));
+menuAimlab.addEventListener('click', () => startAimLab());
 backToMenu.addEventListener('click', quitToMenu);
+
+// ─── Aim Lab (Target Rush) ─────────────────────────────────────────────────
+const aimlabHud = document.getElementById('aimlab-hud')!;
+const alTime = document.getElementById('al-time')!;
+const alScore = document.getElementById('al-score')!;
+const alAcc = document.getElementById('al-acc')!;
+const aimlabResults = document.getElementById('aimlab-results')!;
+const alrScore = document.getElementById('alr-score')!;
+const alrAcc = document.getElementById('alr-acc')!;
+const alrBest = document.getElementById('alr-best')!;
+const alrXp = document.getElementById('alr-xp')!;
+const alrNewbest = document.getElementById('alr-newbest')!;
+const alrRetry = document.getElementById('alr-retry') as HTMLButtonElement;
+const alrQuit = document.getElementById('alr-quit') as HTMLButtonElement;
+
+/** Refresh the Aim Lab menu button with the current personal best, so players
+ *  see their target to beat without entering the mode. */
+function refreshAimlabButton() {
+  const best = game.aimLab?.bestScore ?? 0;
+  menuAimlab.textContent = best > 0
+    ? `✦ Aim Lab (Target Rush) · best ${best}`
+    : '✦ Aim Lab (Target Rush)';
+}
+refreshAimlabButton();
+
+game.aimLab!.onTick = (timeLeft, score, accuracy) => {
+  alTime.textContent = timeLeft.toFixed(1);
+  alTime.classList.toggle('al-low', timeLeft <= 10);
+  alScore.textContent = String(score);
+  alAcc.textContent = `${Math.round(accuracy * 100)}%`;
+};
+game.aimLab!.onEnd = (r: AimLabResult) => {
+  aimlabHud.classList.add('hidden');
+  showAimLabResults(r);
+};
+
+/** Stop any running Aim Lab run and hide all of its UI. Safe to call anytime. */
+function stopAimLab() {
+  if (game.aimLab?.active) game.aimLab.stop();
+  aimlabHud.classList.add('hidden');
+  aimlabResults.classList.add('hidden');
+}
+
+/** Launch (or restart) a Target Rush run on the Practice arena. */
+function startAimLab() {
+  // Leave any MP session first.
+  if (game.mp) {
+    game.mp.disconnect();
+    game.mp = null;
+    onlineBadge.classList.add('hidden');
+    game.onMpChanged();
+  }
+  hidePostMatch();
+  aimlabResults.classList.add('hidden');
+
+  // Practice map (no bots), then drop the player into the aim arena.
+  game.setMode('practice');
+  announcer.reset();
+  const c = game.aimLab!.arenaCenter;
+  game.player.setPosition(c.x, c.y, c.z);
+
+  game.aimLab!.start();
+
+  practiceBadge.classList.add('hidden');
+  aimlabHud.classList.remove('hidden');
+  mainMenu.classList.add('hidden');
+  pauseOverlay.classList.add('hidden');
+  game.input.requestPointerLock();
+}
+
+function showAimLabResults(r: AimLabResult) {
+  game.audio.play('match_end');
+  alrScore.textContent = String(r.score);
+  alrAcc.textContent = `${Math.round(r.accuracy * 100)}%`;
+  alrBest.textContent = String(r.best);
+  alrXp.textContent = `+${r.xpEarned}`;
+  alrNewbest.classList.toggle('hidden', !r.isNewBest);
+  aimlabResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  refreshAimlabButton();
+  Ads.refreshSlot('aimlab');
+}
+
+alrRetry.addEventListener('click', () => {
+  aimlabResults.classList.add('hidden');
+  startAimLab();
+});
+alrQuit.addEventListener('click', () => {
+  aimlabResults.classList.add('hidden');
+  quitToMenu();
+});
 
 // Resume: re-acquire pointer lock without re-running setMode (that would
 // rebuild the map). The lock-change handler hides the pause overlay.

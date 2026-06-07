@@ -86,6 +86,12 @@
 
         <!-- Practice Range badge — top-center, only shown in practice mode. -->
         <div id="practice-badge" class="hidden">PRACTICE RANGE · No bots · ESC to return</div>
+        <!-- Aim Lab HUD — top-center timer + score + accuracy during a run. -->
+        <div id="aimlab-hud" class="hidden">
+          <div class="al-time" id="al-time">60.0</div>
+          <div class="al-stat"><span id="al-score">0</span><label>POPPED</label></div>
+          <div class="al-stat"><span id="al-acc">0%</span><label>ACCURACY</label></div>
+        </div>
         <!-- Online badge — shown while connected to MP. Includes player count. -->
         <div id="online-badge" class="hidden">ONLINE · <span id="online-count">1</span> players</div>
 
@@ -185,7 +191,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.12</p>
+          <p class="subtitle">Browser arena shooter · v0.13</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -229,13 +235,14 @@
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
+            <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
             <button class="menu-btn" id="menu-about">About</button>
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.12.0 — damage indicators, low-HP tension, tracers</div>
+          <div>v0.13.0 — Aim Lab: Target Rush trainer + personal bests</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -288,6 +295,35 @@
           <div class="pm-buttons">
             <button class="menu-btn primary" id="pm-play-again">▸ Play Again</button>
             <button class="menu-btn" id="pm-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aim Lab results card. Shown when a Target Rush run ends. Natural
+           ad breakpoint (player paused, deciding whether to retry). -->
+      <div id="aimlab-results" class="hidden">
+        <div class="aimlab-card">
+          <h2 id="alr-title">TIME!</h2>
+          <p class="alr-sub">Target Rush — 60 seconds</p>
+
+          <div class="alr-score-wrap">
+            <div class="alr-score" id="alr-score">0</div>
+            <div class="alr-score-label">targets popped</div>
+            <div class="alr-newbest hidden" id="alr-newbest">★ NEW PERSONAL BEST ★</div>
+          </div>
+
+          <div class="alr-stats">
+            <div class="alr-stat"><span id="alr-acc">0%</span><label>Accuracy</label></div>
+            <div class="alr-stat"><span id="alr-best">0</span><label>Personal Best</label></div>
+            <div class="alr-stat"><span id="alr-xp">+0</span><label>XP Earned</label></div>
+          </div>
+
+          <!-- Ad slot — end-of-run is a natural breakpoint. -->
+          <div class="ad-slot" id="ad-aimlab" data-ad-slot="aimlab"></div>
+
+          <div class="alr-buttons">
+            <button class="menu-btn primary" id="alr-retry">▸ Retry</button>
+            <button class="menu-btn" id="alr-quit">Quit to Menu</button>
           </div>
         </div>
       </div>

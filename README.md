@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 13 — v0.13.0. Aim Lab (Target Rush): a Krunker-style 60-second aim trainer with personal bests, accuracy tracking, XP rewards, and a post-run ad breakpoint — fully self-contained (no protocol/server/controller changes). Built on Phase 12 combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -361,9 +361,33 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Aim Lab: Target Rush (this round, v0.13.0)
+
+A Krunker-style **Aim Trainer**, fully self-contained and additive (no protocol,
+server, or controller changes — solo + MP both untouched).
+
+- **Aim Lab (Target Rush).** A 60-second flick sprint launched from the main
+  menu. Glowing targets pop into the Practice arena; pop as many as you can.
+  - Targets are `Damageable`s shot through the existing raycast/weapon pipeline,
+    but carry huge HP so they never emit `kill` events — the killfeed, announcer,
+    lifetime stats, and combat XP stay clean. A pop is the first `damage` hit,
+    after which the target relocates (map-agnostic placement validated by
+    geometry-overlap + line-of-sight so it's always reachable).
+  - Live HUD: countdown (red ≤10s), targets popped, accuracy. Soft-pauses on Esc.
+  - Results card: score, **NEW PERSONAL BEST** badge, accuracy, persisted best
+    (`ilc.aimlab.best`), XP earned (4/target into real progression), an AdSense
+    breakpoint slot, and Retry / Quit. Personal best is shown on the menu button.
+  - New `client/src/modes/AimLab.ts`; `Game.aimLab` field + one tick call;
+    `main.ts` DOM wiring; `aimlab` ad slot in `Ads.ts`.
+
+### Bundle size
+
+Production client: **~190 KB gzipped** total (engine 121 + app 63 + CSS 7 + HTML 6).
+~+1.5 KB this phase for the whole Aim Lab. No new dependencies.
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 

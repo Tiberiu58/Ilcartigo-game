@@ -38,6 +38,7 @@ import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
+import type { AimLab } from '../modes/AimLab';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -83,6 +84,9 @@ export class Game {
   private currentMap: GameMap = TEST_MAP;
   /** Optional multiplayer session — null when single-player. */
   mp: MultiplayerSession | null = null;
+  /** Optional Aim Lab (Target Rush) trainer — null unless the player launched
+   *  it from the menu. Created + driven by main.ts; ticked here. */
+  aimLab: AimLab | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
 
@@ -276,6 +280,11 @@ export class Game {
     });
 
     this.bus.on('kill', (e) => {
+      // Defensive: Aim Lab targets carry huge HP so they never emit `kill`
+      // events (keeps killfeed/announcer/progression clean). This guard makes
+      // that contract explicit — no combat XP/stats/effects fire during a run.
+      if (this.aimLab?.active) return;
+
       const youKilled = this.isLocalPlayer(e.attackerId);
       const youDied   = this.isLocalPlayer(e.targetId);
 
@@ -787,6 +796,7 @@ export class Game {
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
     this.world.update();        // expires Engineer barrier solids when their TTL is up
+    if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {
