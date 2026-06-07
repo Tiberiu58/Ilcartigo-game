@@ -28,7 +28,7 @@
 
 import * as THREE from 'three';
 import { World } from '../core/World';
-import type { GameMap } from './Map';
+import type { GameMap, PickupSpawn } from './Map';
 
 const PALETTE = {
   sand:        0xd9b87a,    // ground / open spaces
@@ -58,6 +58,17 @@ const FFA_SPAWNS: THREE.Vector3[] = [
 const TDM_TEAM_SPAWNS: [THREE.Vector3, THREE.Vector3] = [
   new THREE.Vector3(0, SPAWN_Y,  36),     // North team
   new THREE.Vector3(0, SPAWN_Y, -36),     // South team
+];
+
+// Arena power-ups (Phase 13). Health on the two long lanes, a contested
+// Damage Boost in the central plaza, and Haste on the east/west flanks to
+// reward rotation. All on open ground, clear of solids.
+const PICKUP_SPAWNS: PickupSpawn[] = [
+  { kind: 'health', pos: new THREE.Vector3(  0, SPAWN_Y,  24) },   // north lane
+  { kind: 'health', pos: new THREE.Vector3(  0, SPAWN_Y, -24) },   // south alley
+  { kind: 'damage', pos: new THREE.Vector3(  0, SPAWN_Y,  12) },   // central, contested
+  { kind: 'haste',  pos: new THREE.Vector3( 24, SPAWN_Y,   0) },   // east flank
+  { kind: 'haste',  pos: new THREE.Vector3(-24, SPAWN_Y,   0) },   // west flank
 ];
 
 export function buildSandstone(world: World) {
@@ -274,6 +285,7 @@ export const SANDSTONE_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xffd9a0,
+    pickupSpawns: PICKUP_SPAWNS,
   },
   build: buildSandstone,
 };

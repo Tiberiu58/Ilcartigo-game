@@ -15,6 +15,22 @@ import type { World } from '../core/World';
 
 export type MapId = 'practice' | 'sandstone' | 'industrial';
 
+/**
+ * Arena power-up kinds (Phase 13). Quake/Krunker-style pickups that spawn at
+ * fixed map locations, get consumed on touch, and respawn on a timer:
+ *   - health: instant heal
+ *   - damage: timed outgoing-damage boost
+ *   - haste:  timed move-speed boost
+ * Effects + timings live in core/Pickups.ts (PICKUPS registry).
+ */
+export type PickupKind = 'health' | 'damage' | 'haste';
+
+/** One power-up spawn location on a map. `pos` is feet-level (like a spawn). */
+export interface PickupSpawn {
+  kind: PickupKind;
+  pos: THREE.Vector3;
+}
+
 export interface MapMeta {
   id: MapId;
   displayName: string;
@@ -25,6 +41,8 @@ export interface MapMeta {
   teamSpawns?: [THREE.Vector3, THREE.Vector3];
   /** Color of the post-respawn screen-flash; defaults to bright cyan. */
   spawnFlashColor?: number;
+  /** Arena power-up spawn points (Phase 13). Optional — Practice has none. */
+  pickupSpawns?: PickupSpawn[];
 }
 
 export interface GameMap {

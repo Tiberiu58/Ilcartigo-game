@@ -58,8 +58,10 @@ export class WeaponInventory {
   setPrimary(id: WeaponId): WeaponId {
     if (id === 'pistol') return this.weapons[0].config.id as WeaponId;
     const prevMul = this.weapons[0]?.reloadMultiplier ?? 1.0;
+    const prevDmg = this.weapons[0]?.damageMultiplier ?? 1.0;
     this.weapons[0] = new Weapon(WEAPON_LIBRARY[id], this.world, this.bus, this.ownerId);
     this.weapons[0].reloadMultiplier = prevMul;
+    this.weapons[0].damageMultiplier = prevDmg;
     this.active = 0;
     this.scoped = false;
     return id;
@@ -68,6 +70,11 @@ export class WeaponInventory {
   /** Apply a global reload multiplier (Rush passive). */
   setReloadMultiplier(m: number) {
     for (const w of this.weapons) w.reloadMultiplier = m;
+  }
+
+  /** Apply a global outgoing-damage multiplier (arena Damage Boost power-up). */
+  setDamageMultiplier(m: number) {
+    for (const w of this.weapons) w.damageMultiplier = m;
   }
 
   get current(): Weapon { return this.weapons[this.active]; }

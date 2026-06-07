@@ -38,6 +38,8 @@ import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
+import { PickupManager, PICKUPS } from './Pickups';
+import type { PickupKind } from '../maps/Map';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -85,6 +87,14 @@ export class Game {
   mp: MultiplayerSession | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
+  /** Arena power-ups (health / damage boost / haste). Built per combat map. */
+  pickups!: PickupManager;     // assigned in constructor
+  /** performance.now() ms until which the Damage Boost power-up is active (0 = off). */
+  private damageBoostUntil = 0;
+  /** performance.now() ms until which the Haste power-up is active (0 = off). */
+  private hasteUntil = 0;
+  private lastBoostActive = false;
+  private lastHasteActive = false;
 
   /**
    * Returns true if `id` refers to the local player. In solo, the local
@@ -206,6 +216,7 @@ export class Game {
     this.tracers = new TracerPool(this.scene, 32);
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
+    this.pickups = new PickupManager(this.scene);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
@@ -316,6 +327,9 @@ export class Game {
     // Initial spawn: 2s of grace so the player can orient on first load.
     this.playerActor.health.grantInvulnerability(SPAWN_PROTECTION_SECONDS);
 
+    // Build arena power-ups for the starting (combat) map.
+    this.rebuildPickups();
+
     window.addEventListener('resize', this.onResize);
   }
 
@@ -398,6 +412,8 @@ export class Game {
    */
   onMpChanged() {
     this.syncBotState();
+    // Pickups are solo-only for now (MP power-ups are server-driven, Phase 13C).
+    this.rebuildPickups();
   }
 
   /**
@@ -426,6 +442,8 @@ export class Game {
     this.player.setPosition(spawn.x, spawn.y, spawn.z);
     this.player.speedMultiplier = 1.0;
     this.playerActor.isCloaked = false;
+    // Power-ups are lost on death (arena convention).
+    this.clearPowerups();
     // Local respawn SFX. In MP the server respawns us; the tick-level edge
     // detector picks that path up via the dead→alive transition.
     this.audio.play('respawn');
@@ -508,6 +526,9 @@ export class Game {
     for (const b of this.bots) b.respawn();
     // Reset player too.
     this.respawnPlayer();
+    // Rebuild arena power-ups for the new map (pickup meshes live in the scene,
+    // not in World.mapObjects, so world.clear() didn't drop them).
+    this.rebuildPickups();
   }
 
   /**
@@ -616,6 +637,73 @@ export class Game {
     this.matchKills.clear();
     this.matchDeaths.clear();
     this.matchEnded = false;
+  }
+
+  /**
+   * Rebuild the arena power-ups for the current map. Pickups exist only in
+   * SOLO combat for now (MP power-ups are server-authoritative — Phase 13C).
+   * Practice mode has none. Safe to call any time; clears existing first.
+   */
+  rebuildPickups() {
+    this.pickups.clear();
+    const solo = !this.mp;
+    this.pickups.setServerMode(!solo);
+    if (this.mode === 'combat' && solo) {
+      this.pickups.build(this.currentMap.meta.pickupSpawns ?? []);
+    }
+    this.clearPowerups();
+  }
+
+  /** Clear any active timed power-up effects (on death / map change / mode swap). */
+  private clearPowerups() {
+    this.damageBoostUntil = 0;
+    this.hasteUntil = 0;
+    this.lastBoostActive = false;
+    this.lastHasteActive = false;
+    this.player.powerupSpeed = 1.0;
+    this.inventory.setDamageMultiplier(1.0);
+  }
+
+  /**
+   * Touch handler for a solo pickup. Returns true if the pickup is consumed
+   * (so the PickupManager hides it + schedules respawn), false to leave it
+   * (e.g. health when already at full HP — don't waste it).
+   */
+  private tryConsumePickup(kind: PickupKind): boolean {
+    const cfg = PICKUPS[kind];
+    if (kind === 'health') {
+      const h = this.playerActor.health;
+      if (h.dead || h.current >= h.max) return false;
+      h.heal(cfg.heal ?? 0);
+    } else if (kind === 'damage') {
+      this.damageBoostUntil = performance.now() + cfg.durationSeconds * 1000;
+    } else if (kind === 'haste') {
+      this.hasteUntil = performance.now() + cfg.durationSeconds * 1000;
+    }
+    this.audio.play(`pickup_${kind}` as SoundId);
+    this.bus.emit('pickup', { kind, durationMs: cfg.durationSeconds * 1000 });
+    return true;
+  }
+
+  /** Apply / expire timed power-up effects. Called each tick. */
+  private applyPowerupEffects() {
+    const now = performance.now();
+    const boost = now < this.damageBoostUntil;
+    const haste = now < this.hasteUntil;
+    if (boost !== this.lastBoostActive) {
+      this.lastBoostActive = boost;
+      this.inventory.setDamageMultiplier(boost ? (PICKUPS.damage.multiplier ?? 1) : 1);
+    }
+    if (haste !== this.lastHasteActive) {
+      this.lastHasteActive = haste;
+      this.player.powerupSpeed = haste ? (PICKUPS.haste.multiplier ?? 1) : 1;
+    }
+  }
+
+  /** Remaining seconds on a timed power-up (0 if inactive). For the HUD tray. */
+  powerupRemaining(kind: PickupKind): number {
+    const until = kind === 'damage' ? this.damageBoostUntil : kind === 'haste' ? this.hasteUntil : 0;
+    return Math.max(0, (until - performance.now()) / 1000);
   }
 
   private onResize = () => {
@@ -787,6 +875,11 @@ export class Game {
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
     this.world.update();        // expires Engineer barrier solids when their TTL is up
+
+    // Arena power-ups: animate + (solo) detect touches; expire timed effects.
+    const alive = !this.playerActor.health.dead;
+    this.pickups.update(dt, alive ? this.player.pos : null, (k) => this.tryConsumePickup(k));
+    this.applyPowerupEffects();
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

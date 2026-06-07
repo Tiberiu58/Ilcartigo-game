@@ -218,6 +218,9 @@ export class Weapon {
   private reloadRemaining = 0;
   /** Scales reload time. Rush passive sets this to 0.7 (30% faster). */
   reloadMultiplier = 1.0;
+  /** Scales outgoing damage. Arena "Damage Boost" power-up sets this to 1.5
+   *  while active (Phase 13). 1.0 = baseline. Applied in computeDamage. */
+  damageMultiplier = 1.0;
   private currentSpread = 0;
   private recoilPitchAccum = 0;
   private recoilYawAccum = 0;
@@ -399,7 +402,7 @@ export class Weapon {
       mul = 1 - t * (1 - c.falloffMinMultiplier);
     }
     if (isHeadshot) mul *= c.headshotMultiplier;
-    return c.baseDamage * mul;
+    return c.baseDamage * mul * this.damageMultiplier;
   }
 }
 

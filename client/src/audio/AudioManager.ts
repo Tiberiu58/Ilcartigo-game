@@ -65,6 +65,12 @@ export const SOUND_FILES = {
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
 
+  // Arena power-up pickups (Phase 13). One grab cue per kind + a respawn ping.
+  pickup_health: 'pickup_health.wav',
+  pickup_damage: 'pickup_damage.wav',
+  pickup_haste:  'pickup_haste.wav',
+  pickup_respawn:'pickup_respawn.wav',
+
   // Announcer specials (Phase 12E) — one-off callouts, escalating stings.
   first_blood:   'first_blood.wav',
   revenge:       'revenge.wav',

@@ -40,7 +40,7 @@
 
 import * as THREE from 'three';
 import { World } from '../core/World';
-import type { GameMap } from './Map';
+import type { GameMap, PickupSpawn } from './Map';
 
 const PALETTE = {
   concrete:     0x5a5550,    // floor — weathered, slightly warm gray
@@ -70,6 +70,17 @@ const FFA_SPAWNS: THREE.Vector3[] = [
 const TDM_TEAM_SPAWNS: [THREE.Vector3, THREE.Vector3] = [
   new THREE.Vector3(-30, SPAWN_Y,  35),
   new THREE.Vector3( 30, SPAWN_Y, -35),
+];
+
+// Arena power-ups (Phase 13). Health in the warehouse + SE yard, a contested
+// Damage Boost dead-center under the catwalks, and Haste on opposite flanks.
+// All on open concrete, clear of containers / pillars / stairs.
+const PICKUP_SPAWNS: PickupSpawn[] = [
+  { kind: 'health', pos: new THREE.Vector3(-30, SPAWN_Y,   0) },   // warehouse interior
+  { kind: 'health', pos: new THREE.Vector3( 40, SPAWN_Y, -20) },   // SE yard
+  { kind: 'damage', pos: new THREE.Vector3( 15, SPAWN_Y,   0) },   // dead center, under catwalks
+  { kind: 'haste',  pos: new THREE.Vector3(-20, SPAWN_Y,  28) },   // N warehouse flank
+  { kind: 'haste',  pos: new THREE.Vector3( 42, SPAWN_Y,  25) },   // NE yard flank
 ];
 
 export function buildIndustrial(world: World) {
@@ -414,6 +425,7 @@ export const INDUSTRIAL_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xa05028,
+    pickupSpawns: PICKUP_SPAWNS,
   },
   build: buildIndustrial,
 };

@@ -8,6 +8,7 @@
  */
 
 import type * as THREE from 'three';
+import type { PickupKind } from '../maps/Map';
 
 export interface DamageEvent {
   attackerId: string;
@@ -43,6 +44,9 @@ export type GameEvents = {
   // Local-only feedback events (not networked):
   hitConfirm: { isHeadshot: boolean };
   screenShake: { intensity: number; duration: number };
+  /** Local player grabbed an arena power-up (Phase 13). Drives the HUD tray,
+   *  announcer callout, and SFX. `durationMs` is 0 for instant pickups (health). */
+  pickup: { kind: PickupKind; durationMs: number };
 };
 
 type Handler<T> = (payload: T) => void;
