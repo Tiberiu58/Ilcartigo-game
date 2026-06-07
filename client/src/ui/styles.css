@@ -1185,6 +1185,24 @@ body.kill-flash #app::after {
   color: var(--muted);
 }
 
+/* --- Crosshair presets -------------------------------------------------- */
+.ch-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ch-preset {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.ch-preset:hover { background: rgba(245, 212, 66, 0.14); border-color: var(--accent); }
+
 /* Drill-select overlay. */
 #aimlab-select {
   position: fixed;

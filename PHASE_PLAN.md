@@ -180,4 +180,11 @@ green each step.**
   best across drills on the menu button. `AimTarget` radius is now per-instance;
   the target pool rebuilds when a drill's count/radius changes. Results card +
   Retry are drill-aware. App chunk ~63 KB gzip (~+0.5 KB).
+- ✅ Phase 13C — Crosshair preset packs. DONE (client typecheck + build green).
+  Eight one-click crosshair presets (Classic / Dot / Cross / Tight / Open /
+  Sniper / Pro Green / Cyan) in the Crosshair settings tab. Each preset fills
+  every existing control (color/size/thickness/gap/outline/dot), updates the
+  live + preview crosshair via the shared CSS vars, and persists to
+  localStorage — behaving exactly as if dialed in by hand. Pure settings/CSS;
+  zero gameplay risk. A hallmark Krunker personalization touch.
 

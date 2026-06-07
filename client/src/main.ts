@@ -189,6 +189,56 @@ chDot.addEventListener('change', () => {
   localStorage.setItem('ilc.ch.dot', String(chDot.checked));
 });
 
+// ─── Crosshair presets ──────────────────────────────────────────────────────
+// One-click crosshair packs (Krunker-style). Each preset fills every control,
+// updates the live + preview crosshair, and persists — so it behaves exactly
+// as if the player had dialed each slider in by hand.
+interface ChPreset {
+  color: string; size: number; thickness: number; gap: number;
+  outline: boolean; dot: boolean;
+}
+const CH_PRESETS: Record<string, ChPreset> = {
+  classic: { color: '#f5d442', size: 8,  thickness: 2, gap: 0,  outline: true,  dot: true  },
+  dot:     { color: '#ffffff', size: 2,  thickness: 2, gap: 20, outline: true,  dot: true  },
+  cross:   { color: '#f5d442', size: 10, thickness: 2, gap: 4,  outline: true,  dot: false },
+  tight:   { color: '#ff3b3b', size: 6,  thickness: 2, gap: 0,  outline: true,  dot: true  },
+  open:    { color: '#ffffff', size: 12, thickness: 3, gap: 8,  outline: true,  dot: false },
+  sniper:  { color: '#00ff66', size: 4,  thickness: 1, gap: 14, outline: true,  dot: true  },
+  pro:     { color: '#00ff66', size: 7,  thickness: 2, gap: 3,  outline: false, dot: false },
+  cyan:    { color: '#4ac8ff', size: 9,  thickness: 2, gap: 2,  outline: true,  dot: true  },
+};
+
+function applyCrosshairPreset(p: ChPreset) {
+  chColor.value = p.color;        chColorVal.textContent = p.color;
+  chSize.value = String(p.size);  chSizeVal.textContent = String(p.size);
+  chThickness.value = String(p.thickness); chThicknessVal.textContent = String(p.thickness);
+  chGapBase.value = String(p.gap); chGapBaseVal.textContent = String(p.gap);
+  chOutline.checked = p.outline;
+  chDot.checked = p.dot;
+
+  applyChVar('--ch-color', p.color);
+  applyChVar('--ch-size', `${p.size}px`);
+  applyChVar('--ch-thickness', `${p.thickness}px`);
+  applyChVar('--ch-gap-base', `${p.gap}px`);
+  applyChVar('--ch-outline', p.outline ? '1' : '0');
+  applyChVar('--ch-dot', p.dot ? 'block' : 'none');
+
+  localStorage.setItem('ilc.ch.color', p.color);
+  localStorage.setItem('ilc.ch.size', String(p.size));
+  localStorage.setItem('ilc.ch.thickness', String(p.thickness));
+  localStorage.setItem('ilc.ch.gap', String(p.gap));
+  localStorage.setItem('ilc.ch.outline', String(p.outline));
+  localStorage.setItem('ilc.ch.dot', String(p.dot));
+}
+
+document.querySelectorAll<HTMLButtonElement>('#ch-presets .ch-preset').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const preset = CH_PRESETS[btn.dataset.preset ?? 'classic'];
+    if (preset) applyCrosshairPreset(preset);
+    game.audio.play('ui_click');
+  });
+});
+
 // ─── Audio settings ─────────────────────────────────────────────────────────
 const audioMaster = document.getElementById('audio-master') as HTMLInputElement;
 const audioMasterVal = document.getElementById('audio-master-val')!;
