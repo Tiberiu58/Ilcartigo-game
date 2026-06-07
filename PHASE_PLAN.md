@@ -179,3 +179,34 @@ controllers that multiplies alongside Surge's `speedMultiplier`.
 
 ### Phase 13 COMPLETE — A–D shipped, protocol v3, solo + MP intact, abilities untouched.
 
+---
+
+## Phase 14 — MP Weapon Authority (autonomous build, v0.14.0)
+
+A fairness/correctness fix with real feel impact. The MVP server hardcoded AR
+damage (24 / head ×1.8 / 200 m / no falloff) for EVERY weapon online — sniper
+headshots did 24, shotguns did 24 total, etc. Weapon choice barely mattered in
+MP. Phase 14 makes the authoritative hitscan weapon-aware.
+
+Server-only (no protocol or client changes — the client already sends the real
+`weaponId`, and damage/kill events already carry it):
+- `WEAPON_TABLE` mirrors the client `WEAPON_LIBRARY` (damage, headshot mult,
+  range, falloff, pellets, baseSpread, fireRate).
+- `castPellet()` extracted (wall + rewound-player nearest hit for one ray);
+  `weaponDamage()` mirrors `Weapon.computeDamage` (distance falloff + headshot).
+- Shotgun fires all 9 pellets through a seeded spread cone (`perturbDir` mirrors
+  `Weapon.firePellet`); per-target pellet damage is summed into one Damage event.
+- Weapon-spoof guard (claimed id must be the player's primary or pistol, else
+  falls back to primary). Fire-rate guard drops shots faster than 0.5× the
+  nominal interval (anti-cheat groundwork, generous tolerance).
+- Per-player `rngState` + `lastFireAt` added to ServerPlayer.
+
+### Status log
+- ✅ Phase 14 — MP weapon authority. DONE (server typecheck + client typecheck +
+  client build green). Headless Room damage test: AR body 24 / head 43.2, SMG 14,
+  sniper headshot 111 (one-shot), pistol 22, shotgun ~112 point-blank (multi-
+  pellet), Damage Boost ×1.5 → 36, rapid-fire 2nd shot rejected, spoofed sniper
+  claim while holding SMG resolves to 14. v0.14.0 + docs.
+
+### Phase 14 COMPLETE — server-authoritative per-weapon hit-reg, no protocol/client change, solo + MP intact.
+

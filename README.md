@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 13 — v0.13.0. Arena power-ups: Health (+45), Damage Boost (×1.5, 15s) and Haste (×1.4, 12s) spawn at fixed map spots, get consumed on touch, and respawn on a timer — solo (local) + multiplayer (server-authoritative, protocol v3). Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. MP weapon authority: the server now models each weapon (AR / SMG / Sniper / Shotgun / Pistol) with its real damage, headshot multiplier, range, falloff, and pellet spread — so online your sniper one-shot-headshots and your shotgun shreds up close, instead of every gun doing AR damage. Plus a fire-rate guard (anti-cheat groundwork). Built on Phase 13 arena power-ups: Health (+45), Damage Boost (×1.5, 15s) and Haste (×1.4, 12s) spawn at fixed map spots, get consumed on touch, and respawn on a timer — solo (local) + multiplayer (server-authoritative, protocol v3). Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -420,14 +420,44 @@ health 50→95 on grab). Typecheck (client + server) + client build all green.
 Production client: **~198 KB gzipped** total (engine 122 + app 63 + CSS 7 +
 HTML 6). ~+3 KB this phase. No new dependencies.
 
+## Phase 14 — MP Weapon Authority (this round, v0.14.0)
+
+A correctness/fairness fix that materially changes how online play *feels*.
+Before Phase 14 the server hardcoded **AR damage (24, head ×1.8, 200 m, no
+falloff) for every weapon** in MP — so online a sniper headshot did 24 (not
+111), a shotgun did 24 total (not a point-blank shred), an SMG did 24, etc.
+Weapon choice barely mattered online.
+
+Now the server (`server/src/Room.ts`) owns a `WEAPON_TABLE` mirroring the
+client's `WEAPON_LIBRARY`, and the lag-comp hitscan models each weapon properly:
+- **Per-weapon damage + headshot multiplier + max range + distance falloff**
+  (mirrors `Weapon.computeDamage`). Sniper headshot = one-shot again; SMG melts
+  up close but falls off; pistol/AR/sniper ranges differ.
+- **Shotgun pellets** — the server fires all 9 pellets through a seeded spread
+  cone (mirrors `Weapon.firePellet`) and sums per-target damage into one Damage
+  event, so the shotgun is a real close-range weapon online.
+- **Weapon-spoof guard** — the claimed `weaponId` is accepted only if it's
+  actually the player's primary or the pistol; otherwise it falls back to their
+  primary (a client can't claim sniper damage while holding an SMG).
+- **Fire-rate guard** — shots arriving faster than 0.5× the weapon's nominal
+  interval are dropped (anti-cheat groundwork; generous so it never trips
+  legitimate play).
+
+No protocol or client changes — the client already sends the real `weaponId`,
+and damage/kill events already carry it. Verified with a headless `Room` damage
+test: AR body 24 / head 43.2, SMG 14, sniper headshot 111 (one-shot), pistol 22,
+shotgun ~112 point-blank (all pellets), Damage Boost ×1.5 → 36, rapid-fire 2nd
+shot rejected, and a spoofed `sniper` claim while holding an SMG resolving to
+14. Typecheck (client + server) + client build all green.
+
 ## Project status
 
-13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **arena power-ups (health / damage boost / haste — solo + server-authoritative MP)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **arena power-ups (health / damage boost / haste — solo + server-authoritative MP)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~198 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, arena power-ups. v0.13.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives + arena power-ups. Protocol v3. v0.13.0.
+- `/client` — Vite + TS + Three.js game client. `~198 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, arena power-ups. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Per-weapon lag-comp hitscan (damage/falloff/pellets) + fire-rate guard. Networked abilities + barriers. Authoritative match-end + class passives + arena power-ups. Protocol v3. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
