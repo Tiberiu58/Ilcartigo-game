@@ -187,4 +187,14 @@ green each step.**
   live + preview crosshair via the shared CSS vars, and persists to
   localStorage — behaving exactly as if dialed in by hand. Pure settings/CSS;
   zero gameplay risk. A hallmark Krunker personalization touch.
+- ✅ Phase 13D — Aim Lab bests in Profile. DONE (client typecheck + build green).
+  Added an "Aim Lab Bests" section to the Profile settings tab (ProfileUI)
+  showing each drill's persistent personal best, re-rendered on account change
+  (so a new best appears the moment a run's XP lands). Single source of truth:
+  ProfileUI reads the same `DRILLS` registry/keys AimLab writes. Ties the new
+  training loop into the existing progression/retention surface.
+
+### Phase 13 COMPLETE — Aim Lab (2 drills) + crosshair presets + Profile
+integration shipped. No protocol/server/controller changes; solo + MP intact.
+Client tsc + build green throughout; app chunk ~63 KB gzip.
 
