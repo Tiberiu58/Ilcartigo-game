@@ -22,7 +22,7 @@ import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
-import { AimLab, type AimLabResult } from './modes/AimLab';
+import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -379,15 +379,18 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuPractice.addEventListener('click', () => startGame('practice'));
-menuAimlab.addEventListener('click', () => startAimLab());
+menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
 
 // ─── Aim Lab (Target Rush) ─────────────────────────────────────────────────
+const aimlabSelect = document.getElementById('aimlab-select')!;
+const alsBackBtn = document.getElementById('als-back') as HTMLButtonElement;
 const aimlabHud = document.getElementById('aimlab-hud')!;
 const alTime = document.getElementById('al-time')!;
 const alScore = document.getElementById('al-score')!;
 const alAcc = document.getElementById('al-acc')!;
 const aimlabResults = document.getElementById('aimlab-results')!;
+const alrDrill = document.getElementById('alr-drill')!;
 const alrScore = document.getElementById('alr-score')!;
 const alrAcc = document.getElementById('alr-acc')!;
 const alrBest = document.getElementById('alr-best')!;
@@ -396,15 +399,39 @@ const alrNewbest = document.getElementById('alr-newbest')!;
 const alrRetry = document.getElementById('alr-retry') as HTMLButtonElement;
 const alrQuit = document.getElementById('alr-quit') as HTMLButtonElement;
 
-/** Refresh the Aim Lab menu button with the current personal best, so players
- *  see their target to beat without entering the mode. */
+/** Last drill played — drives the results card's Retry button. */
+let lastDrill: DrillId = 'rush';
+
+/** Refresh the Aim Lab menu button with the best across drills, so players see
+ *  their target to beat without entering the mode. */
 function refreshAimlabButton() {
-  const best = game.aimLab?.bestScore ?? 0;
-  menuAimlab.textContent = best > 0
-    ? `✦ Aim Lab (Target Rush) · best ${best}`
-    : '✦ Aim Lab (Target Rush)';
+  const best = Math.max(game.aimLab?.bestFor('rush') ?? 0, game.aimLab?.bestFor('precision') ?? 0);
+  menuAimlab.textContent = best > 0 ? `✦ Aim Lab · best ${best}` : '✦ Aim Lab (Target Rush)';
 }
 refreshAimlabButton();
+
+/** Show the drill picker (from the main menu). */
+function openAimlabSelect() {
+  stopAimLab();
+  for (const id of Object.keys(DRILLS) as DrillId[]) {
+    const el = document.getElementById(`als-best-${id}`);
+    if (el) el.textContent = String(game.aimLab?.bestFor(id) ?? 0);
+  }
+  mainMenu.classList.add('hidden');
+  aimlabSelect.classList.remove('hidden');
+  game.audio.play('ui_click');
+}
+function closeAimlabSelect() {
+  aimlabSelect.classList.add('hidden');
+}
+aimlabSelect.querySelectorAll<HTMLButtonElement>('.als-card').forEach((card) => {
+  card.addEventListener('click', () => {
+    const drill = (card.dataset.drill ?? 'rush') as DrillId;
+    closeAimlabSelect();
+    startAimLab(drill);
+  });
+});
+alsBackBtn.addEventListener('click', () => { closeAimlabSelect(); quitToMenu(); });
 
 game.aimLab!.onTick = (timeLeft, score, accuracy) => {
   alTime.textContent = timeLeft.toFixed(1);
@@ -420,12 +447,14 @@ game.aimLab!.onEnd = (r: AimLabResult) => {
 /** Stop any running Aim Lab run and hide all of its UI. Safe to call anytime. */
 function stopAimLab() {
   if (game.aimLab?.active) game.aimLab.stop();
+  aimlabSelect.classList.add('hidden');
   aimlabHud.classList.add('hidden');
   aimlabResults.classList.add('hidden');
 }
 
-/** Launch (or restart) a Target Rush run on the Practice arena. */
-function startAimLab() {
+/** Launch (or restart) a drill run on the Practice arena. */
+function startAimLab(drill: DrillId = 'rush') {
+  lastDrill = drill;
   // Leave any MP session first.
   if (game.mp) {
     game.mp.disconnect();
@@ -434,6 +463,7 @@ function startAimLab() {
     game.onMpChanged();
   }
   hidePostMatch();
+  aimlabSelect.classList.add('hidden');
   aimlabResults.classList.add('hidden');
 
   // Practice map (no bots), then drop the player into the aim arena.
@@ -442,7 +472,7 @@ function startAimLab() {
   const c = game.aimLab!.arenaCenter;
   game.player.setPosition(c.x, c.y, c.z);
 
-  game.aimLab!.start();
+  game.aimLab!.start(drill);
 
   practiceBadge.classList.add('hidden');
   aimlabHud.classList.remove('hidden');
@@ -453,6 +483,7 @@ function startAimLab() {
 
 function showAimLabResults(r: AimLabResult) {
   game.audio.play('match_end');
+  alrDrill.textContent = r.drillName;
   alrScore.textContent = String(r.score);
   alrAcc.textContent = `${Math.round(r.accuracy * 100)}%`;
   alrBest.textContent = String(r.best);
@@ -466,7 +497,7 @@ function showAimLabResults(r: AimLabResult) {
 
 alrRetry.addEventListener('click', () => {
   aimlabResults.classList.add('hidden');
-  startAimLab();
+  startAimLab(lastDrill);
 });
 alrQuit.addEventListener('click', () => {
   aimlabResults.classList.add('hidden');

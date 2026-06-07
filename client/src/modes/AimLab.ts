@@ -1,22 +1,25 @@
 /**
- * AimLab — "Target Rush" solo aim trainer (Phase 13).
+ * AimLab — solo aim trainer (Phase 13), Krunker-style.
  *
- * A self-contained training mode in the spirit of Krunker's aim trainer: a
- * 60-second sprint where glowing targets pop into the arena and you flick to
- * them as fast as you can. Score = targets popped; accuracy = pellet hits /
- * shots. A persistent personal best gives a clean "beat your score" retention
- * hook, and the post-run results card is a natural ad breakpoint.
+ * A self-contained "Training" hub with multiple drills. Each drill is a timed
+ * sprint where glowing targets pop into the arena and you flick to them as fast
+ * as you can. Score = targets popped; accuracy = pellet hits / shots. Each drill
+ * keeps its own persistent personal best — a clean "beat your score" hook — and
+ * the post-run results card is a natural ad breakpoint.
+ *
+ * Drills (Phase 13B):
+ *   - rush       : Target Rush — 4 big-ish targets, close ring, 60s. Fast & loud.
+ *   - precision  : Flick Precision — 2 small targets, far ring, 45s, 2× XP.
  *
  * Design constraints (why this is low-risk):
- *   - Additive. It reuses the existing Weapon → bus('shot'|'damage'|'kill')
- *     pipeline and World.raycast/Damageable system. Targets ARE Damageables,
- *     so the player shoots them exactly like a bot.
+ *   - Additive. Reuses the existing Weapon → bus('shot'|'damage') pipeline and
+ *     the World.raycast/Damageable system. Targets ARE Damageables.
  *   - No protocol / server / controller changes. Solo-only.
- *   - Does NOT pollute combat progression: Game's kill handler early-returns
- *     while AimLab is active, so aim-target pops don't award combat XP, touch
- *     lifetime stats, or fire kill effects. AimLab grants its own XP at the end.
+ *   - Targets carry huge HP so they NEVER reach 0 → no `kill` events fire for
+ *     them → killfeed, announcer, and combat progression stay untouched. A pop
+ *     is the first `damage` event on a target, after which it relocates.
  *
- * Lifecycle is driven entirely from main.ts (start/stop) + Game.tick (update).
+ * Lifecycle is driven from main.ts (start/stop) + Game.tick (update).
  */
 
 import * as THREE from 'three';
@@ -26,22 +29,41 @@ import { Health } from '../entities/Health';
 
 /** Arena centre on the Practice map — an open, clear patch of the combat area. */
 const ARENA_CENTER = new THREE.Vector3(0, 0.5, 25);
-/** Seconds per run. */
-const RUN_SECONDS = 60;
-/** How many targets are alive at once. */
-const TARGET_COUNT = 4;
-/** Target spawn ring around the player's start (horizontal distance). */
-const MIN_DIST = 6;
-const MAX_DIST = 22;
 /** Target vertical band above the arena floor. */
 const MIN_Y = 1.2;
 const MAX_Y = 5.0;
-/** localStorage key for the persistent personal best (targets popped). */
-const PB_KEY = 'ilc.aimlab.best';
-/** XP granted per target popped (rewards engagement; modest vs combat). */
-const XP_PER_TARGET = 4;
+
+export type DrillId = 'rush' | 'precision';
+
+export interface DrillConfig {
+  id: DrillId;
+  name: string;
+  blurb: string;
+  durationSec: number;
+  targetCount: number;
+  minDist: number;
+  maxDist: number;
+  radius: number;
+  xpPerTarget: number;
+  pbKey: string;
+}
+
+export const DRILLS: Record<DrillId, DrillConfig> = {
+  rush: {
+    id: 'rush', name: 'Target Rush', blurb: 'Pop as many as you can · 60s',
+    durationSec: 60, targetCount: 4, minDist: 6, maxDist: 22,
+    radius: 0.55, xpPerTarget: 4, pbKey: 'ilc.aimlab.best',
+  },
+  precision: {
+    id: 'precision', name: 'Flick Precision', blurb: 'Small + far · 45s · 2× XP',
+    durationSec: 45, targetCount: 2, minDist: 14, maxDist: 32,
+    radius: 0.34, xpPerTarget: 8, pbKey: 'ilc.aimlab.best.precision',
+  },
+};
 
 export interface AimLabResult {
+  drill: DrillId;
+  drillName: string;
   score: number;
   shots: number;
   hits: number;
@@ -54,8 +76,8 @@ export interface AimLabResult {
 /**
  * A single glowing target. Any hit pops it (AimLab relocates it on the first
  * `damage` event). HP is set absurdly high precisely so the target NEVER
- * reaches 0 — that means no `kill` events fire for targets, so the killfeed,
- * announcer, and combat progression stay completely untouched during a run.
+ * reaches 0 — no `kill` events for targets, so the killfeed, announcer, and
+ * combat progression stay completely untouched during a run.
  */
 class AimTarget implements Damageable {
   readonly id: string;
@@ -65,7 +87,7 @@ class AimTarget implements Damageable {
   readonly group = new THREE.Group();
   /** World-space CENTRE of the target (not feet). */
   readonly position = new THREE.Vector3();
-  static readonly RADIUS = 0.55;
+  readonly radius: number;
 
   private core: THREE.Mesh;
   private shell: THREE.Mesh;
@@ -73,17 +95,17 @@ class AimTarget implements Damageable {
   private _max = new THREE.Vector3();
   private phase = Math.random() * Math.PI * 2;
 
-  constructor(id: string, scene: THREE.Scene) {
+  constructor(id: string, scene: THREE.Scene, radius: number) {
     this.id = id;
-    const R = AimTarget.RADIUS;
+    this.radius = radius;
     this.shell = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(R, 0),
+      new THREE.IcosahedronGeometry(radius, 0),
       new THREE.MeshLambertMaterial({
         color: 0x4ac8ff, emissive: 0x1d6fa0, emissiveIntensity: 0.9, flatShading: true,
       }),
     );
     this.core = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(R * 0.45, 0),
+      new THREE.IcosahedronGeometry(radius * 0.45, 0),
       new THREE.MeshBasicMaterial({ color: 0xfff4c2 }),
     );
     this.group.add(this.shell);
@@ -93,7 +115,7 @@ class AimTarget implements Damageable {
   }
 
   bodyAABB(): HitAABB {
-    const R = AimTarget.RADIUS;
+    const R = this.radius;
     this._min.set(this.position.x - R, this.position.y - R, this.position.z - R);
     this._max.set(this.position.x + R, this.position.y + R, this.position.z + R);
     return { min: this._min, max: this._max };
@@ -134,6 +156,7 @@ export class AimLab {
   private targets: AimTarget[] = [];
   active = false;
 
+  private drill: DrillConfig = DRILLS.rush;
   private timeLeft = 0;
   private elapsed = 0;
   private score = 0;
@@ -152,21 +175,26 @@ export class AimLab {
     this.game = game;
   }
 
-  get bestScore(): number {
-    const n = Number(localStorage.getItem(PB_KEY));
+  /** Personal best (targets popped) for a given drill. */
+  bestFor(drill: DrillId): number {
+    const n = Number(localStorage.getItem(DRILLS[drill].pbKey));
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
+
+  /** Best for the most recent / default drill (back-compat convenience). */
+  get bestScore(): number { return this.bestFor('rush'); }
 
   /** Arena centre — used by the launcher to position the player. */
   get arenaCenter(): THREE.Vector3 { return ARENA_CENTER; }
 
   /** Begin (or restart) a run. Assumes the player is already in the arena. */
-  start() {
+  start(drill: DrillId = 'rush') {
     this.stop();                 // clean any prior run + listeners
+    this.drill = DRILLS[drill];
     this.ensureTargets();
 
     this.active = true;
-    this.timeLeft = RUN_SECONDS;
+    this.timeLeft = this.drill.durationSec;
     this.elapsed = 0;
     this.score = 0;
     this.shots = 0;
@@ -175,9 +203,9 @@ export class AimLab {
     // Place every target at a fresh, validated spot.
     for (const t of this.targets) this.relocate(t);
 
-    // Listen to the existing combat pipeline. Targets never die (huge HP), so
-    // a pop is simply the first `damage` event landing on a target — we score
-    // it and relocate the target synchronously, which also stops any remaining
+    // Listen to the existing combat pipeline. Targets never die (huge HP), so a
+    // pop is simply the first `damage` event landing on a target — we score it
+    // and relocate the target synchronously, which also stops any remaining
     // pellets in the same blast from double-counting (the target has moved).
     const isLocal = (id: string) => this.game.isLocalPlayer(id);
     this.unsubs.push(this.game.bus.on('shot', (e) => {
@@ -209,16 +237,22 @@ export class AimLab {
     }
   }
 
+  /** Ensure the target pool matches the current drill (count + radius). */
   private ensureTargets() {
-    if (this.targets.length === TARGET_COUNT) {
+    const want = this.drill.targetCount;
+    const radiusMatches = this.targets.length > 0 && this.targets[0].radius === this.drill.radius;
+    if (this.targets.length === want && radiusMatches) {
       // Re-register (start() unregisters on stop()).
       for (const t of this.targets) this.game.world.registerDamageable(t);
       return;
     }
-    for (const t of this.targets) t.dispose(this.game.scene);
+    for (const t of this.targets) {
+      this.game.world.unregisterDamageable(t.id);
+      t.dispose(this.game.scene);
+    }
     this.targets = [];
-    for (let i = 0; i < TARGET_COUNT; i++) {
-      const t = new AimTarget(`aimtarget_${i}`, this.game.scene);
+    for (let i = 0; i < want; i++) {
+      const t = new AimTarget(`aimtarget_${i}`, this.game.scene, this.drill.radius);
       this.targets.push(t);
       this.game.world.registerDamageable(t);
     }
@@ -226,9 +260,11 @@ export class AimLab {
 
   /** Find a clear, line-of-sight-visible spot for a target and place it there. */
   private relocate(t: AimTarget) {
+    const R = this.drill.radius;
+    _half.set(R, R, R);
     for (let tries = 0; tries < 40; tries++) {
       const ang = Math.random() * Math.PI * 2;
-      const dist = MIN_DIST + Math.random() * (MAX_DIST - MIN_DIST);
+      const dist = this.drill.minDist + Math.random() * (this.drill.maxDist - this.drill.minDist);
       const y = MIN_Y + Math.random() * (MAX_Y - MIN_Y);
       _cand.set(
         ARENA_CENTER.x + Math.cos(ang) * dist,
@@ -244,7 +280,7 @@ export class AimLab {
       let clash = false;
       for (const o of this.targets) {
         if (o === t || !o.group.visible) continue;
-        if (o.position.distanceTo(_cand) < AimTarget.RADIUS * 4) { clash = true; break; }
+        if (o.position.distanceTo(_cand) < R * 4) { clash = true; break; }
       }
       if (clash) continue;
       t.placeAt(_cand);
@@ -276,15 +312,16 @@ export class AimLab {
 
   private finish() {
     const score = this.score;
-    const prevBest = this.bestScore;
+    const prevBest = this.bestFor(this.drill.id);
     const isNewBest = score > prevBest;
     const best = isNewBest ? score : prevBest;
-    if (isNewBest) localStorage.setItem(PB_KEY, String(score));
+    if (isNewBest) localStorage.setItem(this.drill.pbKey, String(score));
 
-    const xpEarned = score * XP_PER_TARGET;
+    const xpEarned = score * this.drill.xpPerTarget;
     if (xpEarned > 0) this.game.account.awardXP(xpEarned);
 
     const result: AimLabResult = {
+      drill: this.drill.id, drillName: this.drill.name,
       score, shots: this.shots, hits: this.hits,
       accuracy: this.accuracy(), best, isNewBest, xpEarned,
     };
@@ -297,4 +334,4 @@ export class AimLab {
 
 const _cand = new THREE.Vector3();
 const _eye = new THREE.Vector3();
-const _half = new THREE.Vector3(AimTarget.RADIUS, AimTarget.RADIUS, AimTarget.RADIUS);
+const _half = new THREE.Vector3();

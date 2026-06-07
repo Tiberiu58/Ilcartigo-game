@@ -171,4 +171,13 @@ green each step.**
   controller changes; solo FFA, Practice, and MP paths untouched (verified by
   re-running both tsc passes + the client build). App chunk ~62.6 KB gzip
   (~+1.5 KB for the whole mode, no new deps).
+- ✅ Phase 13B — Aim Lab drills + drill-select hub. DONE (client typecheck +
+  build green). Turned the Aim Lab into a small Training hub with a `DRILLS`
+  registry + a drill-select screen (`#aimlab-select`) shown from the menu. Two
+  drills: **Target Rush** (4 targets, 6–22m ring, 60s, 4 XP/target) and **Flick
+  Precision** (2 small targets, 14–32m ring, 45s, 8 XP/target). Per-drill
+  personal best (separate localStorage keys), shown on each drill card + the
+  best across drills on the menu button. `AimTarget` radius is now per-instance;
+  the target pool rebuilds when a drill's count/radius changes. Results card +
+  Retry are drill-aware. App chunk ~63 KB gzip (~+0.5 KB).
 

@@ -366,8 +366,11 @@ Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML
 A Krunker-style **Aim Trainer**, fully self-contained and additive (no protocol,
 server, or controller changes — solo + MP both untouched).
 
-- **Aim Lab (Target Rush).** A 60-second flick sprint launched from the main
-  menu. Glowing targets pop into the Practice arena; pop as many as you can.
+- **Aim Lab — a Training hub** launched from the main menu, with a drill-select
+  screen and two drills (each with its own persistent personal best): **Target
+  Rush** (4 targets, close ring, 60s) and **Flick Precision** (2 small, far
+  targets, 45s, 2× XP). Glowing targets pop into the Practice arena; pop as many
+  as you can.
   - Targets are `Damageable`s shot through the existing raycast/weapon pipeline,
     but carry huge HP so they never emit `kill` events — the killfeed, announcer,
     lifetime stats, and combat XP stay clean. A pop is the first `damage` hit,

@@ -299,12 +299,36 @@
         </div>
       </div>
 
-      <!-- Aim Lab results card. Shown when a Target Rush run ends. Natural
-           ad breakpoint (player paused, deciding whether to retry). -->
+      <!-- Aim Lab drill-select screen. Shown when the player opens the Aim Lab
+           from the menu. Each card shows that drill's personal best. -->
+      <div id="aimlab-select" class="hidden">
+        <div class="aimlab-card">
+          <h2>AIM LAB</h2>
+          <p class="alr-sub">Pick a drill · train your flicks</p>
+          <div class="als-grid">
+            <button class="als-card" data-drill="rush">
+              <div class="als-name">Target Rush</div>
+              <div class="als-blurb">Pop as many as you can · 60s</div>
+              <div class="als-best">best <b id="als-best-rush">0</b></div>
+            </button>
+            <button class="als-card" data-drill="precision">
+              <div class="als-name">Flick Precision</div>
+              <div class="als-blurb">Small + far · 45s · 2× XP</div>
+              <div class="als-best">best <b id="als-best-precision">0</b></div>
+            </button>
+          </div>
+          <div class="alr-buttons">
+            <button class="menu-btn" id="als-back">Back to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aim Lab results card. Shown when a run ends. Natural ad breakpoint
+           (player paused, deciding whether to retry). -->
       <div id="aimlab-results" class="hidden">
         <div class="aimlab-card">
           <h2 id="alr-title">TIME!</h2>
-          <p class="alr-sub">Target Rush — 60 seconds</p>
+          <p class="alr-sub" id="alr-drill">Target Rush</p>
 
           <div class="alr-score-wrap">
             <div class="alr-score" id="alr-score">0</div>
