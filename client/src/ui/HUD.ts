@@ -10,6 +10,7 @@ import type { WeaponInventory } from '../weapons/WeaponInventory';
 import type { AbilityRunner } from '../classes/AbilityRunner';
 import type { PlayerController } from '../entities/PlayerController';
 import { Game } from '../core/Game';
+import { PICKUPS } from '../core/Pickups';
 
 const KILLFEED_MAX = 5;
 const KILLFEED_TTL = 5000; // ms
@@ -36,6 +37,10 @@ export class HUD {
   private slotChips: HTMLElement[];
   private spawnProtect: HTMLElement;
   private lowHpVignette: HTMLElement;
+  private powerupTint: HTMLElement;
+  private powerupTray: HTMLElement;
+  private puChips: Map<'damage' | 'haste', { chip: HTMLElement; time: HTMLElement; fill: HTMLElement }> = new Map();
+  private lastBoostShown = false;
   private matchScore: HTMLElement;
   private msYouKills: HTMLElement;
   private msGoal: HTMLElement;
@@ -94,6 +99,19 @@ export class HUD {
     this.slotChips = Array.from(document.querySelectorAll<HTMLElement>('.slot-chip'));
     this.spawnProtect = document.getElementById('spawn-protect')!;
     this.lowHpVignette = document.getElementById('lowhp-vignette')!;
+    this.powerupTint = document.getElementById('powerup-tint')!;
+    this.powerupTray = document.getElementById('powerup-tray')!;
+    for (const kind of ['damage', 'haste'] as const) {
+      const chip = this.powerupTray.querySelector<HTMLElement>(`.pu-chip[data-pu="${kind}"]`)!;
+      this.puChips.set(kind, {
+        chip,
+        time: chip.querySelector<HTMLElement>('.pu-time')!,
+        fill: chip.querySelector<HTMLElement>('.pu-bar-fill')!,
+      });
+      // Theme each chip with its power-up colour.
+      const hex = '#' + PICKUPS[kind].color.toString(16).padStart(6, '0');
+      chip.style.setProperty('--pu-c', hex);
+    }
     this.matchScore = document.getElementById('match-score')!;
     this.msYouKills = document.getElementById('ms-you-kills')!;
     this.msGoal = document.getElementById('ms-goal')!;
@@ -187,6 +205,7 @@ export class HUD {
     this.tickAbilityPill();
     this.tickCrosshairSpread();
     this.tickLowHp();
+    this.tickPowerups();
     this.tickMatchScore();
     this.tickRespawnCountdown();
   }
@@ -212,6 +231,38 @@ export class HUD {
     if (now - this.lastHeartbeatAt >= interval) {
       this.lastHeartbeatAt = now;
       this.game.audio.play('heartbeat', 0.7);
+    }
+  }
+
+  /**
+   * Active power-up tray + Damage Boost edge tint (Phase 13). Reads remaining
+   * time from the Game each frame; shows a chip with a draining bar per active
+   * timed buff, and toggles the warm edge tint while Damage Boost is up.
+   */
+  private tickPowerups() {
+    let anyActive = false;
+    for (const kind of ['damage', 'haste'] as const) {
+      const remaining = this.game.powerupRemaining(kind);
+      const ui = this.puChips.get(kind)!;
+      const active = remaining > 0;
+      if (active) {
+        anyActive = true;
+        const frac = Math.max(0, Math.min(1, remaining / PICKUPS[kind].durationSeconds));
+        ui.fill.style.width = `${frac * 100}%`;
+        ui.time.textContent = `${Math.ceil(remaining)}s`;
+      }
+      if (ui.chip.classList.contains('hidden') === active) {
+        ui.chip.classList.toggle('hidden', !active);
+      }
+    }
+    if (this.powerupTray.classList.contains('hidden') === anyActive) {
+      this.powerupTray.classList.toggle('hidden', !anyActive);
+    }
+    // Damage Boost edge tint — edge-toggled.
+    const boost = this.game.powerupRemaining('damage') > 0;
+    if (boost !== this.lastBoostShown) {
+      this.lastBoostShown = boost;
+      this.powerupTint.classList.toggle('hidden', !boost);
     }
   }
 

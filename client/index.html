@@ -57,6 +57,28 @@
              Toggled by HUD.tick. -->
         <div id="lowhp-vignette" class="hidden"></div>
 
+        <!-- Damage Boost edge tint — subtle warm vignette while the boost is
+             active. Toggled by HUD.tick. -->
+        <div id="powerup-tint" class="hidden"></div>
+
+        <!-- Active power-up tray — left edge. One chip per active timed buff
+             (Damage Boost / Haste) with a draining countdown bar. HUD.tick
+             populates it from game.powerupRemaining(). -->
+        <div id="powerup-tray" class="hidden">
+          <div class="pu-chip hidden" data-pu="damage">
+            <span class="pu-glyph">⚔</span>
+            <span class="pu-label">DAMAGE</span>
+            <span class="pu-time">0s</span>
+            <div class="pu-bar"><div class="pu-bar-fill"></div></div>
+          </div>
+          <div class="pu-chip hidden" data-pu="haste">
+            <span class="pu-glyph">»</span>
+            <span class="pu-label">HASTE</span>
+            <span class="pu-time">0s</span>
+            <div class="pu-bar"><div class="pu-bar-fill"></div></div>
+          </div>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>

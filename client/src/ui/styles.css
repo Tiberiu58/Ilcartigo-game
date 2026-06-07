@@ -508,6 +508,77 @@ body.kill-flash #app::after {
   50%      { opacity: 0.95; }
 }
 
+/* ── Arena power-ups (Phase 13) ─────────────────────────────────────────── */
+
+/* Damage Boost edge tint — a subtle warm glow while the boost is active. */
+#powerup-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: inset 0 0 110px 8px rgba(255, 122, 42, 0.30);
+  animation: pu-tint-pulse 1.8s ease-in-out infinite;
+}
+#powerup-tint.hidden { display: none; }
+@keyframes pu-tint-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.95; }
+}
+
+/* Active power-up tray — left edge, vertically centred. */
+#powerup-tray {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 8;
+}
+#powerup-tray.hidden { display: none; }
+.pu-chip {
+  --pu-c: #ff7a2a;
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  min-width: 150px;
+  padding: 7px 11px 9px;
+  background: rgba(12, 14, 18, 0.72);
+  border-left: 3px solid var(--pu-c);
+  border-radius: 6px;
+  color: #fff;
+  font: 600 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 14px -2px var(--pu-c);
+  animation: pu-chip-in 0.18s ease-out;
+}
+.pu-chip.hidden { display: none; }
+.pu-glyph { color: var(--pu-c); font-size: 15px; text-align: center; }
+.pu-label { color: #e8ecf2; }
+.pu-time { color: var(--pu-c); font-variant-numeric: tabular-nums; }
+.pu-bar {
+  grid-column: 1 / -1;
+  margin-top: 7px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+.pu-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--pu-c);
+  border-radius: 2px;
+  transition: width 0.12s linear;
+}
+@keyframes pu-chip-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 #debug-hud {
   position: absolute;
   top: 16px; left: 16px;

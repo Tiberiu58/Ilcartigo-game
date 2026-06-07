@@ -114,6 +114,16 @@ export class Announcer {
     });
   }
 
+  /**
+   * Power-up callout (Phase 13) — a brief banner when the local player grabs
+   * an arena pickup ("DAMAGE BOOST" etc). Lower drama than a kill special, so
+   * it uses a fixed sub-line. The grab SFX is played by the Game; we only show
+   * the banner. Safe to fire mid-streak — it's infrequent.
+   */
+  announcePickup(label: string, color: string) {
+    this.show({ text: label, color, sound: 'ui_click' as SoundId, scale: 1.15 }, 'POWER-UP');
+  }
+
   /** Reset all state — call on match reset / mode switch so stale streaks
    *  don't carry across matches. */
   reset() {

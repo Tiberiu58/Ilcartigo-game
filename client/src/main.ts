@@ -22,6 +22,7 @@ import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
+import { PICKUPS } from './core/Pickups';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -87,6 +88,12 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+
+// Power-up grab → brief announcer banner ("DAMAGE BOOST" etc).
+game.bus.on('pickup', (e) => {
+  const cfg = PICKUPS[e.kind];
+  announcer.announcePickup(cfg.label, '#' + cfg.color.toString(16).padStart(6, '0'));
+});
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
