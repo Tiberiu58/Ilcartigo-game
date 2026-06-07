@@ -122,3 +122,60 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ### Phase 12 COMPLETE — A–F + polish shipped, no protocol change, solo + MP intact.
 
+---
+
+## Phase 13 — Arena Power-Ups (autonomous build, v0.13.0)
+
+The biggest gap to a true *arena* shooter (Quake/Krunker lineage) was map
+flow: there was nothing to fight *over* between kills. Phase 13 adds
+power-ups that spawn at fixed map spots, get consumed on touch, and respawn on
+a timer — creating contested objectives, rotation decisions, and "power
+moments." More dynamic matches = longer sessions = more natural ad breakpoints
+(revenue), all without touching the core gunplay.
+
+Guiding constraint: **don't clobber abilities, keep both controllers + both
+Protocol.ts in sync, typecheck + build green each step, never break solo/MP.**
+
+Three power-ups: **Health** (+45 instant, refused when full), **Damage Boost**
+(×1.5 outgoing dmg, 15s), **Haste** (×1.4 speed, 12s). Effects are orthogonal
+to abilities — `Weapon.damageMultiplier` + a separate `powerupSpeed` on BOTH
+controllers that multiplies alongside Surge's `speedMultiplier`.
+
+- **13A — Core + solo.** `core/Pickups.ts` (PICKUPS registry + PickupManager:
+  glowing bobbing meshes, ground ring, point light, respawn timers, solo touch
+  detection). `MapMeta.pickupSpawns` (5 per map on Sandstone + Industrial,
+  open ground). Game applies/expires effects, heals (skips when full), clears
+  on death/map/mode change. New `pickup_*` sound ids + `pickup` bus event.
+- **13B — Feedback.** Left-edge HUD power-up tray (per-buff countdown bar),
+  Damage Boost edge tint, `Announcer.announcePickup` callout. index.html +
+  HUD.tickPowerups + styles.css.
+- **13C — Server-authoritative MP (protocol v3).** `ServerWelcome.pickups[]` +
+  `ServerPickupEvent` + `EV.Pickup` (both Protocol.ts in sync). Server
+  PICKUPS_BY_MAP mirrors each client map (same kinds/order/positions); per-tick
+  respawn + effect expiry + overlap detection; applyPickup heals / sets
+  damageBoostUntil / sets controller.powerupSpeed; onFire multiplies by boost;
+  respawn + resetMatch clear/restore. Client builds pickups in serverMode,
+  applies welcome availability, mirrors the local timed buff on its own grab.
+  `powerupSpeed` added to ServerController in lockstep with PlayerController.
+- **13D — Docs + version bump.** v0.13.0 (client+server package.json + lockfiles
+  + menu subtitle/footer), README Phase 13 section + audio-catalog additions,
+  PHASE_PLAN status log.
+
+### Status log
+- ✅ Phase 13A — Pickup core + solo. DONE (typecheck + build green; headless
+  PickupManager test confirms touch, refuse-when-full leaves it grabbable, no
+  re-grab after consume, server-mode no-touch). Orthogonal effect plumbing so
+  Surge/Haste + abilities never clobber each other.
+- ✅ Phase 13B — Feedback. DONE (typecheck + build green). HUD tray + edge tint
+  edge-toggled from `game.powerupRemaining()`; announcer callout wired from the
+  `pickup` bus event.
+- ✅ Phase 13C — Server-authoritative MP. DONE (client + server typecheck +
+  client build green). Headless Room test: 5 pickups, damage grab broadcasts
+  the right index/kind/byId/durationMs, boost set, health refused at full then
+  grabbed when hurt (50→95). Protocol bumped to v3, both files in sync; both
+  controllers' `powerupSpeed` in sync.
+- ✅ Phase 13D — Docs + version. DONE. v0.13.0 across package.json + lockfiles
+  + menu, README + audio catalog + PHASE_PLAN updated.
+
+### Phase 13 COMPLETE — A–D shipped, protocol v3, solo + MP intact, abilities untouched.
+

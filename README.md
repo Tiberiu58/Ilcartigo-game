@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 13 — v0.13.0. Arena power-ups: Health (+45), Damage Boost (×1.5, 15s) and Haste (×1.4, 12s) spawn at fixed map spots, get consumed on touch, and respawn on a timer — solo (local) + multiplayer (server-authoritative, protocol v3). Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -294,6 +294,15 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `revenge.wav` | Revenge-kill announcer sting | "revenge sting", "vengeance" |
 | `comeback.wav` | Comeback announcer sting | "comeback", "rise up sting" |
 
+**Phase 13 additions to the catalog** (arena power-ups — same drop-in rules):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `pickup_health.wav` | Health pack grab — warm restorative chime | "health pickup", "heal up" |
+| `pickup_damage.wav` | Damage Boost grab — aggressive power-up | "power up damage", "quad damage" |
+| `pickup_haste.wav` | Haste grab — speedy whoosh / ramp | "speed boost", "haste power up" |
+| `pickup_respawn.wav` | Pickup respawn ping (reserved, currently unused) | "item respawn", "spawn ping" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -361,14 +370,64 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Arena Power-Ups (this round, v0.13.0)
+
+The biggest *gameplay* (not just feedback) addition since multiplayer: Quake/
+Krunker-style arena power-ups that spawn at fixed map locations, get consumed
+on touch, and respawn on a timer. They create map control, rotation decisions,
+and "power moments" — and because matches get more dynamic, players stay longer
+(→ more natural ad breakpoints between matches).
+
+**Three power-ups** (`client/src/core/Pickups.ts` — `PICKUPS` registry):
+- **Health** (green) — instant +45 HP (clamped; refused when already full so it
+  isn't wasted). Respawns in 18s.
+- **Damage Boost** (orange) — outgoing damage ×1.5 for 15s, with a warm
+  screen-edge tint + tray timer. Respawns in 30s.
+- **Haste** (cyan) — move speed ×1.4 for 12s. Respawns in 25s.
+
+**Visuals:** a glowing octahedron core (bobbing + spinning) inside a faint
+additive shell, a flat ground ring, and a coloured point light. On pickup the
+core/light hide and the ring dims until respawn.
+
+**Spawns:** 5 per map on open ground (`MapMeta.pickupSpawns`) — Sandstone (lane
+health, contested central Damage Boost, flank Haste) + Industrial (warehouse/
+yard health, dead-centre Damage Boost, flank Haste).
+
+**Ability-safe plumbing:** effects are orthogonal so nothing clobbers anything —
+`Weapon.damageMultiplier` (Boost) and a separate `PlayerController.powerupSpeed`
+(Haste) that multiplies *alongside* Surge's `speedMultiplier` instead of
+overwriting it. Mirrored into the server `Controller.powerupSpeed`. Power-ups
+are lost on death.
+
+**Solo + MP:** solo runs touch/respawn locally; MP is **server-authoritative
+(protocol v3)** — the server owns availability, overlap, respawn timers, and
+effect application (heal, damage ×1.5 in the lag-comp hitscan, controller
+speed). `ServerWelcome.pickups[]` seeds state; every take/respawn broadcasts a
+`ServerPickupEvent` indexed identically on both sides. The grabber's client
+mirrors the timed buff for HUD + movement prediction; HP/damage stay
+server-truth.
+
+**Feedback:** a left-edge power-up tray (per-buff countdown bar), the Damage
+Boost edge tint, an announcer callout on grab, and four new `pickup_*` sound ids
+(silent until `.wav`s land — see the audio guide).
+
+Verified: headless `PickupManager` + `Room` tests (touch / refuse-when-full /
+no re-grab / server-mode no-touch; correct broadcast payload, boost applied,
+health 50→95 on grab). Typecheck (client + server) + client build all green.
+
+### Bundle size
+
+Production client: **~198 KB gzipped** total (engine 122 + app 63 + CSS 7 +
+HTML 6). ~+3 KB this phase. No new dependencies.
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **arena power-ups (health / damage boost / haste — solo + server-authoritative MP)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~198 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, arena power-ups. v0.13.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives + arena power-ups. Protocol v3. v0.13.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
