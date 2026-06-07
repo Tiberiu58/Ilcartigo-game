@@ -25,7 +25,7 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'dmr', 'pistol']);
 
 const TICK_HZ = 32;
 const TICK_MS = 1000 / TICK_HZ;
@@ -214,6 +214,7 @@ const WEAPON_TABLE: Record<string, ServerWeapon> = {
   smg:     { baseDamage: 14, headshotMultiplier: 1.6,  maxRange: 120, falloffStart: 14,  falloffEnd: 45,  falloffMinMultiplier: 0.4,  pellets: 1, baseSpread: 0.010, fireRate: 14 },
   sniper:  { baseDamage: 60, headshotMultiplier: 1.85, maxRange: 240, falloffStart: 200, falloffEnd: 240, falloffMinMultiplier: 0.85, pellets: 1, baseSpread: 0.0,   fireRate: 1.0 },
   shotgun: { baseDamage: 12, headshotMultiplier: 1.4,  maxRange: 60,  falloffStart: 6,   falloffEnd: 22,  falloffMinMultiplier: 0.3,  pellets: 9, baseSpread: 0.055, fireRate: 1.4 },
+  dmr:     { baseDamage: 45, headshotMultiplier: 2.0,  maxRange: 180, falloffStart: 60,  falloffEnd: 140, falloffMinMultiplier: 0.7,  pellets: 1, baseSpread: 0.0015, fireRate: 3.5 },
   pistol:  { baseDamage: 22, headshotMultiplier: 1.7,  maxRange: 90,  falloffStart: 18,  falloffEnd: 55,  falloffMinMultiplier: 0.55, pellets: 1, baseSpread: 0.003, fireRate: 5.5 },
 };
 const HITSCAN_FALLBACK = 'ar';

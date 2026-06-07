@@ -210,3 +210,25 @@ Server-only (no protocol or client changes — the client already sends the real
 
 ### Phase 14 COMPLETE — server-authoritative per-weapon hit-reg, no protocol/client change, solo + MP intact.
 
+---
+
+## Phase 15 — New Weapon: Marksman / DMR (autonomous build, v0.15.0)
+
+With the server now weapon-aware (Phase 14), adding weapons is cheap + safe.
+The Marksman (`dmr`) is a semi-auto precision rifle between AR and Sniper:
+45 dmg, ×2.0 headshot, 180 m, light scope (FOV 55), 3.5 rps, very accurate.
+3-shot body / 2-headshot kill — rewards aim without the Sniper's one-shot.
+
+- Client: `DMR_CONFIG` in `WEAPON_LIBRARY` (WeaponId union auto-extends);
+  `buildDMR` procedural viewmodel; `fire_dmr` sound id; "Marksman" loadout
+  button (menu wiring already generic over `data-weapon`).
+- Server: `WEAPON_TABLE` + `VALID_WEAPONS` entries → authoritative online like
+  any gun. `WEAPON_BUILDERS Record<WeaponId>` keeps the viewmodel exhaustive
+  (compile fails if a weapon lacks a model).
+
+### Status log
+- ✅ Phase 15 — Marksman weapon. DONE (client + server typecheck + client build
+  green). Headless Room test: DMR body 45 / headshot 90. v0.15.0 + docs.
+
+### Phase 15 COMPLETE — arsenal 5→6, solo + MP intact.
+

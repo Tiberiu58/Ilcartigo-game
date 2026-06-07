@@ -181,6 +181,7 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   smg: buildSMG,
   sniper: buildSniper,
   shotgun: buildShotgun,
+  dmr: buildDMR,
   pistol: buildPistol,
 };
 
@@ -225,6 +226,17 @@ function buildShotgun(p: THREE.Group): number {
   p.add(box(0.08, 0.13, 0.10, 0x2a1810, 0, -0.12, 0.18));     // grip
   p.add(box(0.18, 0.04, 0.10, 0x232931, 0, -0.08, 0.05));     // pump
   return -0.65;
+}
+
+function buildDMR(p: THREE.Group): number {
+  p.add(box(0.15, 0.12, 0.48, 0x24303a, 0, 0, 0));            // body — gunmetal blue
+  p.add(box(0.10, 0.10, 0.26, 0x39434f, 0, -0.02, 0.32));     // stock
+  p.add(box(0.05, 0.05, 0.58, 0x12161b, 0, 0.02, -0.44));     // long barrel
+  p.add(box(0.10, 0.09, 0.16, 0x121417, 0, 0.10, -0.02));     // compact scope body
+  p.add(box(0.06, 0.06, 0.05, 0x6fd0a0, 0, 0.10, -0.11));     // scope lens (green)
+  p.add(box(0.08, 0.15, 0.09, 0x232931, 0, -0.13, 0.16));     // grip
+  p.add(box(0.09, 0.17, 0.09, 0x232931, 0, -0.14, 0.0));      // mag
+  return -0.74;
 }
 
 function buildPistol(p: THREE.Group): number {

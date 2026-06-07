@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. MP weapon authority: the server now models each weapon (AR / SMG / Sniper / Shotgun / Pistol) with its real damage, headshot multiplier, range, falloff, and pellet spread — so online your sniper one-shot-headshots and your shotgun shreds up close, instead of every gun doing AR damage. Plus a fire-rate guard (anti-cheat groundwork). Built on Phase 13 arena power-ups: Health (+45), Damage Boost (×1.5, 15s) and Haste (×1.4, 12s) spawn at fixed map spots, get consumed on touch, and respawn on a timer — solo (local) + multiplayer (server-authoritative, protocol v3). Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 15 — v0.15.0. New weapon — the **Marksman** (semi-auto DMR): a precision rifle slotting between AR and Sniper (45 dmg, ×2.0 headshot, light scope, very accurate, 3-shot body / 2-headshot kill). Fully wired solo + MP (server weapon table). Built on Phase 14 MP weapon authority: the server models each weapon's real damage, headshot multiplier, range, falloff, and pellet spread (plus a fire-rate guard). Built on Phase 13 arena power-ups: Health (+45), Damage Boost (×1.5, 15s) and Haste (×1.4, 12s) spawn at fixed map spots, get consumed on touch, and respawn on a timer — solo (local) + multiplayer (server-authoritative, protocol v3). Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -450,14 +450,38 @@ shotgun ~112 point-blank (all pellets), Damage Boost ×1.5 → 36, rapid-fire 2n
 shot rejected, and a spoofed `sniper` claim while holding an SMG resolving to
 14. Typecheck (client + server) + client build all green.
 
+## Phase 15 — New Weapon: Marksman (this round, v0.15.0)
+
+The arsenal grows from 5 to 6. The **Marksman** (`dmr`) is a semi-auto
+precision rifle that fills the long-standing gap between the spray-friendly AR
+and the hard-scoped Sniper:
+
+- **45 damage, ×2.0 headshot, 180 m range** with gentle falloff (60→140 m) —
+  a 3-shot body kill, or two headshots on anyone.
+- **Very accurate** (tiny base spread) with a **light marksman scope** (FOV 55,
+  not the Sniper's deep zoom), semi-auto at 3.5 rps. Rewards aim without the
+  Sniper's one-shot dominance.
+
+Cleanly slotted into the existing systems with no new mechanics:
+- `DMR_CONFIG` in `WEAPON_LIBRARY` (the `WeaponId` union auto-extends);
+  procedural `buildDMR` viewmodel (gunmetal body, compact green-lens scope);
+  `fire_dmr` sound id; a "Marksman" loadout button (the menu wiring is generic).
+- Server `WEAPON_TABLE` + `VALID_WEAPONS` entries so it's authoritative online
+  exactly like every other gun (Phase 14). Headless Room test confirms 45 body
+  / 90 headshot.
+
+Typecheck (client + server) + client build green. The `WEAPON_BUILDERS`
+`Record<WeaponId, …>` makes the viewmodel exhaustive — TS would fail the build
+if a weapon were added without its model.
+
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **arena power-ups (health / damage boost / haste — solo + server-authoritative MP)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **arena power-ups (health / damage boost / haste — solo + server-authoritative MP)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~198 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, arena power-ups. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Per-weapon lag-comp hitscan (damage/falloff/pellets) + fire-rate guard. Networked abilities + barriers. Authoritative match-end + class passives + arena power-ups. Protocol v3. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~198 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, arena power-ups, 6 weapons (AR/SMG/Marksman/Sniper/Shotgun/Pistol). v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Per-weapon lag-comp hitscan (damage/falloff/pellets) + fire-rate guard. Networked abilities + barriers. Authoritative match-end + class passives + arena power-ups. Protocol v3. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

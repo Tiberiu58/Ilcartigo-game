@@ -167,6 +167,35 @@ export const SHOTGUN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Marksman (DMR) — semi-auto precision rifle. Fills the gap between AR and
+// Sniper: hard-hitting + very accurate + light scope, but no one-shot kill and
+// a slower cadence than the AR. Rewards aim without the Sniper's hard-scope.
+// 3-shot body kill (45×3); two headshots (45×2.0=90 each) drop anyone.
+export const DMR_CONFIG: WeaponConfig = {
+  id: 'dmr',
+  displayName: 'Marksman',
+  fireRate: 3.5,
+  automatic: false,
+  magSize: 12,
+  reloadTime: 2.0,
+  reserveAmmo: -1,
+  baseDamage: 45,
+  headshotMultiplier: 2.0,
+  maxRange: 180,
+  falloffStart: 60,
+  falloffEnd: 140,
+  falloffMinMultiplier: 0.7,
+  baseSpread: 0.0015,
+  maxSpread: 0.03,
+  spreadPerShot: 0.012,
+  spreadDecay: 0.5,
+  recoilPitch: 0.03,
+  recoilYaw: 0.004,
+  recoilDecay: 0.5,
+  scopeFov: 55,          // light marksman scope (not the Sniper's deep zoom)
+  slot: 'primary',
+};
+
 // Pistol — semi-auto sidearm. Always equipped, decent damage, no reserve cap.
 export const PISTOL_CONFIG: WeaponConfig = {
   id: 'pistol',
@@ -197,6 +226,7 @@ export const WEAPON_LIBRARY = {
   smg: SMG_CONFIG,
   sniper: SNIPER_CONFIG,
   shotgun: SHOTGUN_CONFIG,
+  dmr: DMR_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;
