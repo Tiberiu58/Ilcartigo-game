@@ -13,7 +13,7 @@
  * (We don't have a shared package, intentionally — keeps the build simple.)
  */
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** Default WebSocket port. Match in server.ts and NetClient. */
 export const DEFAULT_NET_PORT = 3001;
@@ -226,6 +226,27 @@ export interface ServerWelcome {
   serverTick: number;
   tickHz: number;
   players: PlayerSnapshot[];
+  /** Arena power-up availability, indexed by the map's pickupSpawns order
+   *  (Phase 13). true = on the field, false = consumed/respawning. */
+  pickups: boolean[];
+}
+
+/**
+ * Arena power-up state change (Phase 13). Server-authoritative: the server
+ * owns spawn/consume/respawn + applies effects. Indexed by the map's
+ * pickupSpawns order (identical on client + server).
+ *   - taken:   available=false, with kind + byId + durationMs (the grabber).
+ *   - respawn: available=true (kind/byId/durationMs omitted).
+ */
+export interface ServerPickupEvent {
+  index: number;
+  available: boolean;
+  /** 'health' | 'damage' | 'haste' — present on a take. */
+  kind?: string;
+  /** Player id who grabbed it — present on a take. */
+  byId?: string;
+  /** Effect duration in ms (timed buffs) — present on a take. */
+  durationMs?: number;
 }
 
 /**
@@ -291,4 +312,5 @@ export const EV = {
   Err:          'e',
   MatchOver:    'M',
   MatchReset:   'R',
+  Pickup:       'P',
 } as const;

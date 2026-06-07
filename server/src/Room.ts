@@ -21,7 +21,7 @@ import {
   type ClientFireRequest, type ServerShotEvent, type ServerDamageEvent, type ServerKillEvent,
   type Vec3, type ClientAbilityRequest, type ServerAbilityCast,
   type ServerAddSolid, type ServerRemoveSolid, type ClientHello,
-  type ServerMatchOver, type ServerMatchReset,
+  type ServerMatchOver, type ServerMatchReset, type ServerPickupEvent,
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
@@ -54,6 +54,50 @@ const SPAWNS_BY_MAP: Record<string, ReadonlyArray<Vec3>> = {
     [ 42, 0.5, -28],     // SE yard corner
   ],
 };
+
+// ── Arena power-ups (Phase 13) ──────────────────────────────────────────────
+// MUST mirror each client map's MapMeta.pickupSpawns (same kinds, same order,
+// same positions) so client + server agree on pickup INDEX. Effects/timings
+// mirror client/src/core/Pickups.ts (PICKUPS).
+type PickupKind = 'health' | 'damage' | 'haste';
+
+const PICKUP_CONFIG: Record<PickupKind, { heal: number; mult: number; durationS: number; respawnS: number }> = {
+  health: { heal: 45, mult: 1,   durationS: 0,  respawnS: 18 },
+  damage: { heal: 0,  mult: 1.5, durationS: 15, respawnS: 30 },
+  haste:  { heal: 0,  mult: 1.4, durationS: 12, respawnS: 25 },
+};
+
+interface PickupSpawnDef { kind: PickupKind; pos: Vec3; }
+
+const PICKUPS_BY_MAP: Record<string, ReadonlyArray<PickupSpawnDef>> = {
+  sandstone: [
+    { kind: 'health', pos: [  0, 0.5,  24] },
+    { kind: 'health', pos: [  0, 0.5, -24] },
+    { kind: 'damage', pos: [  0, 0.5,  12] },
+    { kind: 'haste',  pos: [ 24, 0.5,   0] },
+    { kind: 'haste',  pos: [-24, 0.5,   0] },
+  ],
+  industrial: [
+    { kind: 'health', pos: [-30, 0.5,   0] },
+    { kind: 'health', pos: [ 40, 0.5, -20] },
+    { kind: 'damage', pos: [ 15, 0.5,   0] },
+    { kind: 'haste',  pos: [-20, 0.5,  28] },
+    { kind: 'haste',  pos: [ 42, 0.5,  25] },
+  ],
+};
+
+/** Horizontal grab radius (m) — mirror PICKUP_RADIUS in client Pickups.ts. */
+const PICKUP_RADIUS = 1.5;
+/** Vertical grab tolerance (m) — mirror PICKUP_VRANGE in client Pickups.ts. */
+const PICKUP_VRANGE = 2.5;
+
+interface PickupRuntime {
+  kind: PickupKind;
+  pos: Vec3;
+  available: boolean;
+  /** Date.now() ms when a consumed pickup respawns. */
+  availableAt: number;
+}
 
 interface AbilityState {
   /** Wall-clock ms when the ability is next castable (cooldown). */
@@ -92,6 +136,10 @@ interface ServerPlayer {
   invulnUntil: number;
   /** Ability bookkeeping. */
   ability: AbilityState;
+  /** Arena Damage Boost active until this Date.now() ms (0 = off). */
+  damageBoostUntil: number;
+  /** Arena Haste active until this Date.now() ms (0 = off). */
+  hasteUntil: number;
 }
 
 /** Networked Engineer Barrier (or future temp solids). */
@@ -146,6 +194,8 @@ export class Room {
   readonly mapId: string;
   private staticSolids: readonly SolidAABB[];
   private spawns: ReadonlyArray<Vec3>;
+  /** Arena power-up runtime state (Phase 13), indexed to match the client map. */
+  private pickups: PickupRuntime[] = [];
   /** Networked temporary solids (Engineer Barriers). */
   private tempSolids = new Map<number, TempSolid>();
   private nextSolidId = 1;
@@ -167,6 +217,9 @@ export class Room {
     this.mapId = COLLISION_BY_MAP[mapId] ? mapId : 'sandstone';
     this.staticSolids = COLLISION_BY_MAP[this.mapId];
     this.spawns = SPAWNS_BY_MAP[this.mapId] ?? SPAWNS_BY_MAP['sandstone'];
+    // Build arena power-up runtime state from the map's pickup list.
+    const defs = PICKUPS_BY_MAP[this.mapId] ?? [];
+    this.pickups = defs.map((d) => ({ kind: d.kind, pos: d.pos, available: true, availableAt: 0 }));
   }
 
   start() {
@@ -216,6 +269,8 @@ export class Room {
         surgeMultiplier: 1,
         cloakActive: false,
       },
+      damageBoostUntil: 0,
+      hasteUntil: 0,
     };
     this.players.set(socket.id, p);
 
@@ -227,6 +282,7 @@ export class Room {
       serverTick: this.tick,
       tickHz: TICK_HZ,
       players: Array.from(this.players.values()).map((pp) => this.toSnapshot(pp)),
+      pickups: this.pickups.map((p) => p.available),
     };
     socket.emit(EV.Welcome, welcome);
 
@@ -268,6 +324,8 @@ export class Room {
 
     // Tick ability state: expire durations, regen charges, expire temp solids.
     this.tickAbilities();
+    // Tick arena power-ups: respawn timers, effect expiry, overlap pickups.
+    this.tickPickups(now);
 
     // Apply each player's queued inputs.
     for (const p of this.players.values()) {
@@ -431,8 +489,10 @@ export class Room {
       // For MVP we hardcode the AR damage. Real impl would look up per-weapon.
       const baseDamage = 24;
       const headMul = 1.8;
-      const damage = baseDamage * (bestHead ? headMul : 1);
       const now = Date.now();
+      // Arena Damage Boost — multiply the shooter's outgoing damage while active.
+      const boostMul = now < shooter.damageBoostUntil ? PICKUP_CONFIG.damage.mult : 1;
+      const damage = baseDamage * (bestHead ? headMul : 1) * boostMul;
       if (now < bestTarget.invulnUntil) {
         // Target is invulnerable — emit no damage.
       } else {
@@ -501,6 +561,81 @@ export class Room {
     p.ability.cloakActive = false;
     p.cloaked = false;
     p.controller.speedMultiplier = 1;
+    // Arena power-ups are lost on death (matches the client's solo behaviour).
+    p.damageBoostUntil = 0;
+    p.hasteUntil = 0;
+    p.controller.powerupSpeed = 1;
+  }
+
+  // ── Arena power-ups (Phase 13) ─────────────────────────────────────────────
+
+  /**
+   * Per-tick power-up bookkeeping: respawn consumed pickups, expire timed
+   * effects (Damage Boost / Haste), and detect player overlaps (authoritative
+   * — the server owns who grabs what + applies the effect). Broadcasts a
+   * ServerPickupEvent on every take + respawn so all clients stay in sync.
+   */
+  private tickPickups(now: number) {
+    // Respawn timers.
+    for (let i = 0; i < this.pickups.length; i++) {
+      const ps = this.pickups[i];
+      if (!ps.available && now >= ps.availableAt) {
+        ps.available = true;
+        this.broadcastPickup({ index: i, available: true });
+      }
+    }
+
+    // Expire timed effects.
+    for (const p of this.players.values()) {
+      if (p.hasteUntil > 0 && now >= p.hasteUntil) {
+        p.hasteUntil = 0;
+        p.controller.powerupSpeed = 1;
+      }
+      if (p.damageBoostUntil > 0 && now >= p.damageBoostUntil) {
+        p.damageBoostUntil = 0;
+      }
+    }
+
+    // Overlap detection — first alive player within range grabs it this tick.
+    for (const p of this.players.values()) {
+      if (!p.alive) continue;
+      for (let i = 0; i < this.pickups.length; i++) {
+        const ps = this.pickups[i];
+        if (!ps.available) continue;
+        const dx = p.controller.position[0] - ps.pos[0];
+        const dz = p.controller.position[2] - ps.pos[2];
+        const dy = p.controller.position[1] - ps.pos[1];
+        if (dx * dx + dz * dz > PICKUP_RADIUS * PICKUP_RADIUS) continue;
+        if (Math.abs(dy) > PICKUP_VRANGE) continue;
+        if (!this.applyPickup(p, ps.kind, now)) continue;   // e.g. health when full
+        ps.available = false;
+        ps.availableAt = now + PICKUP_CONFIG[ps.kind].respawnS * 1000;
+        this.broadcastPickup({
+          index: i, available: false, kind: ps.kind, byId: p.id,
+          durationMs: PICKUP_CONFIG[ps.kind].durationS * 1000,
+        });
+      }
+    }
+  }
+
+  /** Apply a power-up's effect to a player. Returns false if it can't be used
+   *  (health at full) so the pickup stays on the field. */
+  private applyPickup(p: ServerPlayer, kind: PickupKind, now: number): boolean {
+    const cfg = PICKUP_CONFIG[kind];
+    if (kind === 'health') {
+      if (p.hp >= p.maxHp) return false;
+      p.hp = Math.min(p.maxHp, p.hp + cfg.heal);
+    } else if (kind === 'damage') {
+      p.damageBoostUntil = now + cfg.durationS * 1000;
+    } else if (kind === 'haste') {
+      p.hasteUntil = now + cfg.durationS * 1000;
+      p.controller.powerupSpeed = cfg.mult;
+    }
+    return true;
+  }
+
+  private broadcastPickup(ev: ServerPickupEvent) {
+    this.io.emit(EV.Pickup, ev);
   }
 
   // ── Match lifecycle ───────────────────────────────────────────────────────
@@ -532,6 +667,12 @@ export class Room {
       p.kills = 0;
       p.deaths = 0;
       this.respawn(p.id);
+    }
+    // Restore all arena power-ups to the field for the fresh match.
+    for (let i = 0; i < this.pickups.length; i++) {
+      this.pickups[i].available = true;
+      this.pickups[i].availableAt = 0;
+      this.broadcastPickup({ index: i, available: true });
     }
     const msg: ServerMatchReset = {};
     this.io.emit(EV.MatchReset, msg);

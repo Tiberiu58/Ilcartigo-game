@@ -32,8 +32,9 @@ import type {
   Snapshot, ServerWelcome, ServerShotEvent, ServerKillEvent, ServerDamageEvent,
   ServerPlayerJoined, ServerPlayerLeft,
   ServerAbilityCast, ServerAddSolid, ServerRemoveSolid, Vec3,
-  ServerMatchOver, ServerMatchReset,
+  ServerMatchOver, ServerMatchReset, ServerPickupEvent,
 } from './Protocol';
+import type { PickupKind } from '../maps/Map';
 
 interface NetworkedBarrier {
   solidId: number;
@@ -136,6 +137,7 @@ export class MultiplayerSession {
       onLeave: (m) => this.handleLeave(m),
       onMatchOver: (m) => this.handleMatchOver(m),
       onMatchReset: (m) => this.handleMatchReset(m),
+      onPickup: (m) => this.handlePickup(m),
       onError: (m) => {
         console.warn('[net] server error:', m.code, m.message);
       },
@@ -261,6 +263,14 @@ export class MultiplayerSession {
     // Industrial) and stale state.
     if (m.mapId === 'sandstone' || m.mapId === 'industrial') {
       this.game.setCombatMap(m.mapId);
+    }
+
+    // Apply the server's authoritative power-up availability (now that the
+    // map — and therefore the pickup meshes — are built for the right map).
+    if (m.pickups) {
+      for (let i = 0; i < m.pickups.length; i++) {
+        this.game.pickups.setAvailability(i, m.pickups[i]);
+      }
     }
 
     // Spawn RemotePlayers for everyone already here.
@@ -426,7 +436,23 @@ export class MultiplayerSession {
    */
   private handleMatchReset(_m: ServerMatchReset) {
     this.game.resetMatchScore();
+    // Clear any local timed-buff display; the server re-broadcasts pickup
+    // availability for the fresh match.
+    this.game.clearPowerups();
     this.onMatchReset?.();
+  }
+
+  /**
+   * Server-authoritative arena power-up state change (Phase 13). Updates the
+   * pickup mesh visibility; on a take by US, mirrors the timed buff locally
+   * (HUD tray + tint + movement prediction) and fires the grab feedback. The
+   * actual HP / damage / authoritative speed live on the server.
+   */
+  private handlePickup(m: ServerPickupEvent) {
+    this.game.pickups.setAvailability(m.index, m.available);
+    if (!m.available && m.byId === this.myId && m.kind) {
+      this.game.applyNetworkPowerup(m.kind as PickupKind, m.durationMs ?? 0);
+    }
   }
 
   /** Ask the server to start a fresh match (Play Again button in MP). */

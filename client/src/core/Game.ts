@@ -311,6 +311,9 @@ export class Game {
         this.account.recordDeath();
         this.localStreak = 0;
         this.audio.play('death');
+        // Lose timed power-ups on death (server clears its side on respawn;
+        // this clears the local HUD tray + movement prediction immediately).
+        this.clearPowerups();
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
         if (!this.mp) {
           setTimeout(() => this.respawnPlayer(), 1800);
@@ -646,16 +649,32 @@ export class Game {
    */
   rebuildPickups() {
     this.pickups.clear();
-    const solo = !this.mp;
-    this.pickups.setServerMode(!solo);
-    if (this.mode === 'combat' && solo) {
+    // In MP the server owns availability + effects (serverMode = no local
+    // touch detection); we still build the meshes so they render. In solo we
+    // build + drive them locally.
+    this.pickups.setServerMode(!!this.mp);
+    if (this.mode === 'combat') {
       this.pickups.build(this.currentMap.meta.pickupSpawns ?? []);
     }
     this.clearPowerups();
   }
 
+  /**
+   * Apply a server-driven power-up grab to the local player (MP). The actual
+   * HP / damage / authoritative speed live on the server; locally we mirror the
+   * timed-buff window so (a) the HUD tray + tint show, (b) movement prediction
+   * applies Haste's speed so we don't fight the server's correction. Health is
+   * reflected via the snapshot's hp, so we only fire feedback for it.
+   */
+  applyNetworkPowerup(kind: PickupKind, durationMs: number) {
+    if (kind === 'damage') this.damageBoostUntil = performance.now() + durationMs;
+    else if (kind === 'haste') this.hasteUntil = performance.now() + durationMs;
+    this.audio.play(`pickup_${kind}` as SoundId);
+    this.bus.emit('pickup', { kind, durationMs });
+  }
+
   /** Clear any active timed power-up effects (on death / map change / mode swap). */
-  private clearPowerups() {
+  clearPowerups() {
     this.damageBoostUntil = 0;
     this.hasteUntil = 0;
     this.lastBoostActive = false;
