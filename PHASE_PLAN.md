@@ -178,4 +178,27 @@ build green each step, solo + MP both keep working.**
 
 ### Phase 13 COMPLETE — A–E shipped. Minimap + speed lines + impact FX (pure client) + map health pickups (protocol v3, server-authoritative MP + solo). Solo + MP both intact (smoke-tested).
 
+---
+
+## Phase 14 — Combat & Personalization Juice (autonomous build)
+
+A deliberately **pure-client, zero-protocol** round to balance risk after the
+v3 pickup change — small, high-feel touches that reinforce Krunker's instant
+feedback + visible-progression loops (retention → ad impressions).
+
+- **14A — Dynamic crosshair hit feedback.** The crosshair briefly recolours +
+  scale-pops on a confirmed hit: white = body, gold = headshot, red = kill.
+  Reinforces the existing hitmarker without overpowering it; reverts to the
+  user's chosen colour. Pure CSS + a small HUD method off the hitConfirm / kill
+  bus events.
+- **14B — Floating score / heal popups.** A tasteful "+10 XP" gold toast on each
+  local frag and a green "+40 HP" on a health-pack grab, drifting up + fading
+  just right of centre — the running progression tally Krunker pops on every
+  kill. New `ui/ScorePopup.ts` (static API), wired from the kill bus handler
+  (main.ts) + `PickupManager.feedback`.
+
+### Status log
+- ✅ Phase 14A — Crosshair hit feedback. DONE (client tsc + build green). Transient `ch-fb-hit/head/kill` + `ch-pop` classes on `#crosshair`, cleared after 90/170 ms; HUD `crosshairFeedback()` off hitConfirm + local-kill events.
+- ✅ Phase 14B — Score/heal popups. DONE. New `ui/ScorePopup.ts` static toaster (#score-popups, capped at 6, CSS rise+fade). "+10 XP" on local frags, "+40 HP" on grabs. App chunk ~64 KB gzip.
+
 

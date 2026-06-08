@@ -19,6 +19,7 @@ import {
   PICKUPS_BY_MAP, HEALTH_PICKUP_AMOUNT, PICKUP_RESPAWN_MS,
   PICKUP_RADIUS, PICKUP_VERTICAL_TOLERANCE, type PickupDef,
 } from '../maps/Pickups';
+import { ScorePopup } from '../ui/ScorePopup';
 
 interface PickupEntry {
   def: PickupDef;
@@ -155,6 +156,7 @@ export class PickupManager {
   /** Local grab feedback: heal SFX + a brief green screen flash. */
   private feedback() {
     this.game.audio.play('pickup_health');
+    ScorePopup.pop(`+${HEALTH_PICKUP_AMOUNT} HP`, 'heal');
     const el = document.getElementById('heal-flash');
     if (el) {
       el.classList.remove('show');

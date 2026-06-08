@@ -23,6 +23,7 @@ import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
+import { ScorePopup } from './ui/ScorePopup';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -89,6 +90,14 @@ const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer
 const damageDir = new DamageDirection(game);
 void damageDir;
 const minimap = new Minimap(game, document.getElementById('minimap') as HTMLCanvasElement);
+
+// Floating "+10 XP" toast on each local frag (visible progression). The kill
+// effect / announcer handle the splashier feedback; this is the running tally.
+game.bus.on('kill', (e) => {
+  if (game.isLocalPlayer(e.attackerId) && !game.isLocalPlayer(e.targetId)) {
+    ScorePopup.pop('+10 XP', 'xp');
+  }
+});
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);

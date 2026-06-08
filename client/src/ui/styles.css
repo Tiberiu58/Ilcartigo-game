@@ -130,6 +130,17 @@ html, body, #app {
   left: 0;
   transform: translateX(var(--ch-gap));
 }
+/* Dynamic hit feedback (Phase 14A): the crosshair briefly recolours + pops on
+   a confirmed hit. White = body, gold = headshot, red = kill. Toggled by HUD
+   via transient classes; clears back to the user's --ch-color afterwards. */
+#crosshair.ch-pop { transform: translate(-50%, -50%) scale(1.3); transition: transform 0.07s ease-out; }
+#crosshair.ch-fb-hit  .ch-line,
+#crosshair.ch-fb-hit  .ch-dot  { background: #ffffff; }
+#crosshair.ch-fb-head .ch-line,
+#crosshair.ch-fb-head .ch-dot  { background: #ffd23f; }
+#crosshair.ch-fb-kill .ch-line,
+#crosshair.ch-fb-kill .ch-dot  { background: #ff4040; }
+
 .ch-dot {
   position: absolute;
   display: var(--ch-dot);
@@ -443,6 +454,32 @@ body.kill-flash #app::after {
 @keyframes kill-flash-fade {
   from { opacity: 1; }
   to   { opacity: 0; }
+}
+
+/* Floating score / heal popups — drift up + fade just right of centre. */
+#score-popups {
+  position: absolute;
+  left: 50%; top: 56%;
+  transform: translateX(60px);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  z-index: 5;
+}
+.score-pop {
+  font: 800 18px/1 'JetBrains Mono', Consolas, monospace;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  animation: score-pop-rise 0.9s ease-out forwards;
+}
+.score-pop-xp   { color: #ffd23f; }
+.score-pop-heal { color: #36e08a; }
+@keyframes score-pop-rise {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.8); }
+  18%  { opacity: 1; transform: translateY(0) scale(1.1); }
+  35%  { transform: translateY(-2px) scale(1); }
+  100% { opacity: 0; transform: translateY(-26px) scale(1); }
 }
 
 /* Heal flash — soft green vignette pulse when you grab a health pickup. A

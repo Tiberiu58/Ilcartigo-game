@@ -65,6 +65,7 @@ export class HUD {
   private lastActive = false;
   private hitmarkerTimer: number | null = null;
   private damageFlashTimer: number | null = null;
+  private crosshairFbTimer: number | null = null;
 
   /** Low-HP danger state. Vignette shows + a heartbeat throbs below threshold. */
   private lowHp = false;
@@ -110,7 +111,10 @@ export class HUD {
     this.apDots = Array.from(this.abilityPill.querySelectorAll<HTMLElement>('.ap-dot'));
 
     // Player-shot hits → hitmarker (local-only event).
-    bus.on('hitConfirm', ({ isHeadshot }) => this.flashHitmarker(isHeadshot));
+    bus.on('hitConfirm', ({ isHeadshot }) => {
+      this.flashHitmarker(isHeadshot);
+      this.crosshairFeedback(isHeadshot ? 'head' : 'hit');
+    });
 
     // Damage taken → red vignette.
     bus.on('damage', ({ targetId }) => {
@@ -126,6 +130,7 @@ export class HUD {
       // Kill-confirm marker when YOU got the kill (not a suicide/fall).
       if (this.game.isLocalPlayer(e.attackerId) && !this.game.isLocalPlayer(e.targetId)) {
         this.flashKillMarker();
+        this.crosshairFeedback('kill');
       }
 
       // Death → start respawn countdown. Cleared when HP comes back.
@@ -356,6 +361,23 @@ export class HUD {
       this.hitmarker.classList.remove('show');
       this.hitmarker.classList.add('fade');
     }, 140);
+  }
+
+  /**
+   * Brief crosshair recolour + scale pop on a confirmed hit. White = body,
+   * gold = headshot, red = kill. Clears back to the user's chosen colour after
+   * a short window. Kill feedback lasts a touch longer so it reads as the
+   * bigger event. Edge classes are cleared first so rapid hits restart cleanly.
+   */
+  private crosshairFeedback(kind: 'hit' | 'head' | 'kill') {
+    const ch = this.crosshair;
+    ch.classList.remove('ch-fb-hit', 'ch-fb-head', 'ch-fb-kill', 'ch-pop');
+    void ch.offsetWidth;
+    ch.classList.add(`ch-fb-${kind}`, 'ch-pop');
+    if (this.crosshairFbTimer !== null) window.clearTimeout(this.crosshairFbTimer);
+    this.crosshairFbTimer = window.setTimeout(() => {
+      ch.classList.remove('ch-fb-hit', 'ch-fb-head', 'ch-fb-kill', 'ch-pop');
+    }, kind === 'kill' ? 170 : 90);
   }
 
   private flashDamage() {
