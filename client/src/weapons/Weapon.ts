@@ -167,6 +167,34 @@ export const SHOTGUN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Marksman — semi-auto precision rifle (DMR). Fills the gap between the AR's
+// auto spray and the Sniper's scoped one-shot: hard-hitting per-click, pinpoint
+// when paced, but punishing bloom if you spam. No scope — handles fast, rewards
+// aim. 3-shot body, 2-shot with one head (40 + 80 = 120 > 100 HP).
+export const MARKSMAN_CONFIG: WeaponConfig = {
+  id: 'marksman',
+  displayName: 'Marksman',
+  fireRate: 4.5,
+  automatic: false,
+  magSize: 12,
+  reloadTime: 2.0,
+  reserveAmmo: -1,
+  baseDamage: 40,
+  headshotMultiplier: 2.0,
+  maxRange: 220,
+  falloffStart: 60,
+  falloffEnd: 140,
+  falloffMinMultiplier: 0.7,
+  baseSpread: 0.0015,
+  maxSpread: 0.03,
+  spreadPerShot: 0.02,         // spamming blooms hard — pace your shots
+  spreadDecay: 0.5,
+  recoilPitch: 0.03,
+  recoilYaw: 0.004,
+  recoilDecay: 0.7,
+  slot: 'primary',
+};
+
 // Pistol — semi-auto sidearm. Always equipped, decent damage, no reserve cap.
 export const PISTOL_CONFIG: WeaponConfig = {
   id: 'pistol',
@@ -197,6 +225,7 @@ export const WEAPON_LIBRARY = {
   smg: SMG_CONFIG,
   sniper: SNIPER_CONFIG,
   shotgun: SHOTGUN_CONFIG,
+  marksman: MARKSMAN_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;

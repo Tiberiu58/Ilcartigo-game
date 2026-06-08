@@ -25,7 +25,7 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'pistol']);
 
 /**
  * Server-authoritative per-weapon damage. MIRRORS the client's WeaponConfig
@@ -53,6 +53,7 @@ const SERVER_WEAPONS: Record<string, ServerWeapon> = {
   smg:     { baseDamage: 14, headMul: 1.6,  falloffStart: 14,  falloffEnd: 45,  falloffMin: 0.4  },
   sniper:  { baseDamage: 60, headMul: 1.85, falloffStart: 200, falloffEnd: 240, falloffMin: 0.85 },
   shotgun: { baseDamage: 52, headMul: 1.4,  falloffStart: 6,   falloffEnd: 22,  falloffMin: 0.18 },
+  marksman:{ baseDamage: 40, headMul: 2.0,  falloffStart: 60,  falloffEnd: 140, falloffMin: 0.7  },
   pistol:  { baseDamage: 22, headMul: 1.7,  falloffStart: 18,  falloffEnd: 55,  falloffMin: 0.55 },
 };
 
