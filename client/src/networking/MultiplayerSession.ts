@@ -147,6 +147,7 @@ export class MultiplayerSession {
       onLeave: (m) => this.handleLeave(m),
       onMatchOver: (m) => this.handleMatchOver(m),
       onMatchReset: (m) => this.handleMatchReset(m),
+      onPickup: (m) => this.game.pickups.applyServerUpdate(m.id, m.available, m.byId),
       onError: (m) => {
         console.warn('[net] server error:', m.code, m.message);
       },
@@ -281,6 +282,10 @@ export class MultiplayerSession {
       rp.ingest(p, Date.now());
       this.remotes.set(p.id, rp);
     }
+    // Adopt the server's authoritative pickup states (after the map swap above
+    // so the pads exist for the right map).
+    if (m.pickups) this.game.pickups.applyWelcomeStates(m.pickups);
+
     // Now that the server has us in its player map, tell it which class +
     // weapon we picked. Without this every ability trigger gets rejected.
     this.sendHello();

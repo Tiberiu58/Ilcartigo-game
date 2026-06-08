@@ -22,6 +22,7 @@ import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot } from '../entities/Bot';
+import { PickupManager } from '../entities/PickupManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -76,6 +77,8 @@ export class Game {
   readonly impacts: ImpactFX;
   readonly castFX: CastFX;
   readonly dmgNumbers: DamageNumbers;
+  /** Map health pickups — authoritative in solo, server-driven in MP. */
+  readonly pickups: PickupManager;
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -214,6 +217,7 @@ export class Game {
     this.impacts = new ImpactFX(this.scene, 36);
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
+    this.pickups = new PickupManager(this);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
@@ -409,6 +413,10 @@ export class Game {
    */
   onMpChanged() {
     this.syncBotState();
+    // Pickups: connecting/disconnecting changes who owns pickup state. Reset to
+    // all-available; MP then applies the server's authoritative states via the
+    // Welcome handler, and solo just keeps them all present.
+    this.pickups.resetAll();
   }
 
   /**
@@ -798,6 +806,7 @@ export class Game {
     this.impacts.update(dt);    // tick pooled bullet-impact sparks/puffs
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
+    this.pickups.update(dt);    // animate + (solo) run map health pickups
     this.world.update();        // expires Engineer barrier solids when their TTL is up
 
     // Screen shake — random offset, decays exponentially.

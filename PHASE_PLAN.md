@@ -155,10 +155,24 @@ build green each step, solo + MP both keep working.**
   texture; 2–3 sprites per impact scatter + fade in ~0.18s. Works everywhere
   shots flow: local + bot shots via the `shot` bus event, MP remote shots via
   `MultiplayerSession.handleShot`. New `weapons/ImpactFX.ts`.
+- **13D — Map health pickups.** Floating health pads (4 per combat map) restore
+  +40 HP, then respawn after 12 s. The first real gameplay-loop addition since
+  the class abilities — map control + a reason to keep moving, classic arena
+  shooter. **Server-authoritative in MP** (the headline risk): server tracks
+  availability, checks overlap each tick, heals the grabber's authoritative HP
+  (only if hurt — no waste at full HP), broadcasts a `ServerPickupUpdate`, and
+  restores all pads on rematch. **Client-local logic in solo** — identical
+  overlap→heal→cooldown→respawn run by `PickupManager`. Protocol bumped to **v3**
+  (`PickupState`, `ServerWelcome.pickups`, `ServerPickupUpdate`, `EV.Pickup`,
+  mirrored in both Protocol.ts files). Shared placement/tuning in
+  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (MapCollision-style duplication).
+  Local grab feedback: `pickup_health` SFX + a green `#heal-flash` vignette
+  (dedicated element so it never collides with rush/ghost/kill pseudo-elements).
 
 ### Status log
 - ✅ Phase 13A — Minimap/radar. DONE (client typecheck + build green; server tsc green). New `ui/Minimap.ts` (canvas radar, DPR-aware, north-up, aspect-fit, map-change-cached geometry). World gained `staticSolids` getter + `collectJumpPadAABBs()`; MultiplayerSession gained `forEachRemoteBlip`; Game gained `currentMapId`. Killfeed nudged below the radar so the two top-right HUD elements stack. Floor/ground boxes filtered (top ≤ 0.4m). Toggle in Settings → General, persisted.
 - ✅ Phase 13B — Speed lines. DONE. `#speed-lines` conic-streak + edge-vignette overlay, opacity driven per-frame from horizontal speed; off-switch via `body.no-speedlines`. Toggle in Settings → General, persisted. No camera/FOV changes (kept the existing FOV pipeline untouched).
 - ✅ Phase 13C — Bullet-impact FX. DONE (client tsc + build green). New `weapons/ImpactFX.ts` — pooled additive spark sprites (shared radial texture), warm dust on world hits / red sparks on flesh, scatter + fade ~0.18s. Hooked into the `shot` bus handler (local + bots) and `MultiplayerSession.handleShot` (MP remotes). App chunk ~62.7 KB gzip.
+- ✅ Phase 13D — Map health pickups. DONE (client+server tsc + client build green; MP handshake validated by ad-hoc socket.io smoke test — Welcome carries 4 available pickups @ protocol v3, snapshots flow, two clients see each other, `tickPickups` survives ticks; temp test not committed). New `entities/PickupManager.ts` (solo-authoritative + MP-reflecting, map-change rebuild, bobbing green crystal+cross pads), shared `maps/Pickups.ts` ⇆ `server/src/Pickups.ts`, server `Room.tickPickups`/`broadcastPickup` + Welcome states + rematch restore, protocol v3 additions mirrored both sides + NetClient `onPickup`. `pickup_health` SFX id + `#heal-flash` green vignette. Full-HP players don't waste packs (guard mirrored client+server).
 
 

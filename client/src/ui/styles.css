@@ -445,6 +445,19 @@ body.kill-flash #app::after {
   to   { opacity: 0; }
 }
 
+/* Heal flash — soft green vignette pulse when you grab a health pickup. A
+   dedicated element (not #app::before/::after) so it never collides with the
+   rush/ghost-active or kill-flash pseudo-elements. */
+#heal-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(60, 220, 130, 0.5) 100%);
+  opacity: 0;
+  z-index: 6;
+}
+#heal-flash.show { animation: kill-flash-fade 0.35s ease-out forwards; }
+
 /* Damage-direction flash: red vignette pulse on hit. */
 #damage-flash {
   position: absolute;
