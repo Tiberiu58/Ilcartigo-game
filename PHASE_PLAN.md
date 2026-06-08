@@ -122,3 +122,37 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ### Phase 12 COMPLETE — A–F + polish shipped, no protocol change, solo + MP intact.
 
+---
+
+## Phase 13 — Rank Up & Reward Spectacle (autonomous build, v0.13.0)
+
+The retention pillar. Krunker keeps you coming back by making your *level* visible,
+celebrated, and aspirational. ILCARTIGO already tracks XP + a derived level, but it's
+buried in a settings tab — there's no rank identity, no level-up moment, no juicy
+on-kill reward feedback. Phase 13 surfaces all of it. This is the loop that pairs
+directly with AdSense: more return visits + longer sessions = more ad impressions at
+the natural breakpoints we already built.
+
+Guiding constraint (same as Phase 12): **no protocol changes, no new deps, client-only,
+typecheck + build green each step, solo + MP both keep working.**
+
+- **13A — Rank tiers + level-up celebration.** A named rank ladder derived from level
+  (Recruit → … → Mythic), each with an accent colour + glyph. A persistent rank badge
+  on the HUD and on the main menu. When XP crosses a level boundary, a full-screen
+  "LEVEL UP" banner pops with the new level + rank + a sound sting. New
+  `account/Ranks.ts` (pure data/helpers) + `ui/ProgressionFX.ts` (badges, banner,
+  popups). New `level_up` sound id.
+- **13B — Floating "+XP" reward popups.** Every local kill floats a "+10 XP" chip
+  (headshots tagged) near the crosshair that drifts up and fades — the instant,
+  dopamine-tight feedback Krunker nails. Driven by `ui/ProgressionFX.ts` off the kill bus.
+- **13C — Crosshair preset packs + dynamic-crosshair toggle.** One-click crosshair
+  presets (Classic / Dot / Cross / T-style / Precision) plus a "Dynamic crosshair"
+  toggle so players who want a static reticle can freeze the firing-spread gap. All on
+  the existing CSS-var crosshair pipeline; persisted like the other crosshair settings.
+
+### Status log
+- ✅ Phase 13A — Rank tiers + level-up celebration. DONE (client tsc + build green; app 62 KB gzip). New `account/Ranks.ts` (8-tier ladder Recruit→Mythic, colour+glyph, `rankForLevel`/`rankProgress`). New `ui/ProgressionFX.ts` drives a shared rank badge on the HUD (bottom-left) + main menu (under subtitle) and a full-screen "LEVEL UP · Lv N · RANK" banner that pops on a net level increase (XP spends that lower the level re-sync the badge silently, no false celebration). New `level_up` sound id (silent until .wav added). Badges re-sync on every account mutation.
+- ✅ Phase 13B — Floating "+XP" reward popups. DONE. ProgressionFX listens to the kill bus; every local kill floats a "+10 XP" (headshots tagged "· HS", pink) chip near the crosshair that rises + fades (1.1s, horizontal jitter so stacked kills don't overlap). Skips suicides/falls. `rewardPopup()` is public for future post-match/challenge reuse.
+- ✅ Phase 13C — Crosshair presets + dynamic toggle. DONE. 5 one-click shape presets write through to the existing crosshair inputs + CSS vars + localStorage (colour left untouched — it's personal). New `--ch-top` var lets the T-Style preset hide the top pip; new `--ch-dynamic` var + "Dynamic crosshair" checkbox lets HUD.tickCrosshairSpread freeze the firing-spread gap for a fixed reticle. Both persisted (`ilc.ch.top` / `ilc.ch.dynamic`). Preview crosshair honours both new vars too.
+
+

@@ -18,6 +18,7 @@ import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
+import { ProgressionFX } from './ui/ProgressionFX';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -87,6 +88,9 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+// Progression spectacle — rank badges (HUD + menu), level-up banner, +XP popups.
+const progression = new ProgressionFX(game.account, game.audio, game.bus, (id) => game.isLocalPlayer(id));
+void progression;
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -184,6 +188,77 @@ chOutline.addEventListener('change', () => {
 chDot.addEventListener('change', () => {
   applyChVar('--ch-dot', chDot.checked ? 'block' : 'none');
   localStorage.setItem('ilc.ch.dot', String(chDot.checked));
+});
+
+// ── Top-line visibility (T-style preset hides it) ──────────────────────────
+// Persisted separately from the preset so a custom tweak survives reloads.
+const savedChTop = (localStorage.getItem('ilc.ch.top') ?? 'true') === 'true';
+applyChVar('--ch-top', savedChTop ? 'block' : 'none');
+
+// ── Dynamic crosshair toggle ───────────────────────────────────────────────
+// When off, HUD.tickCrosshairSpread freezes the firing-spread gap (it reads
+// the --ch-dynamic CSS var). Defaults on (the Krunker-feel behaviour).
+const chDynamic = document.getElementById('ch-dynamic') as HTMLInputElement;
+const savedChDynamic = (localStorage.getItem('ilc.ch.dynamic') ?? 'true') === 'true';
+chDynamic.checked = savedChDynamic;
+applyChVar('--ch-dynamic', savedChDynamic ? '1' : '0');
+chDynamic.addEventListener('change', () => {
+  applyChVar('--ch-dynamic', chDynamic.checked ? '1' : '0');
+  localStorage.setItem('ilc.ch.dynamic', String(chDynamic.checked));
+});
+
+// ── Crosshair presets ──────────────────────────────────────────────────────
+// One-click shape packs. Colour is intentionally left untouched (it's a
+// personal pick); each preset sets size / thickness / gap / outline / dot /
+// top-line. Applying a preset writes through to the same inputs + CSS vars +
+// localStorage the manual controls use, so the UI stays in sync.
+interface CrosshairSpec {
+  size: number; thickness: number; gap: number;
+  outline: boolean; dot: boolean; top: boolean;
+}
+const CH_PRESETS: Record<string, CrosshairSpec> = {
+  classic:   { size: 8,  thickness: 2, gap: 2,  outline: true,  dot: true,  top: true },
+  dot:       { size: 2,  thickness: 3, gap: 16, outline: true,  dot: true,  top: true },
+  cross:     { size: 12, thickness: 2, gap: 0,  outline: true,  dot: false, top: true },
+  tstyle:    { size: 10, thickness: 2, gap: 3,  outline: true,  dot: false, top: false },
+  precision: { size: 6,  thickness: 1, gap: 4,  outline: true,  dot: true,  top: true },
+};
+
+function applyCrosshairSpec(s: CrosshairSpec) {
+  chSize.value = String(s.size);
+  chSizeVal.textContent = String(s.size);
+  applyChVar('--ch-size', `${s.size}px`);
+  localStorage.setItem('ilc.ch.size', String(s.size));
+
+  chThickness.value = String(s.thickness);
+  chThicknessVal.textContent = String(s.thickness);
+  applyChVar('--ch-thickness', `${s.thickness}px`);
+  localStorage.setItem('ilc.ch.thickness', String(s.thickness));
+
+  chGapBase.value = String(s.gap);
+  chGapBaseVal.textContent = String(s.gap);
+  applyChVar('--ch-gap-base', `${s.gap}px`);
+  localStorage.setItem('ilc.ch.gap', String(s.gap));
+
+  chOutline.checked = s.outline;
+  applyChVar('--ch-outline', s.outline ? '1' : '0');
+  localStorage.setItem('ilc.ch.outline', String(s.outline));
+
+  chDot.checked = s.dot;
+  applyChVar('--ch-dot', s.dot ? 'block' : 'none');
+  localStorage.setItem('ilc.ch.dot', String(s.dot));
+
+  applyChVar('--ch-top', s.top ? 'block' : 'none');
+  localStorage.setItem('ilc.ch.top', String(s.top));
+}
+
+document.querySelectorAll<HTMLButtonElement>('#ch-presets .ch-preset-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const spec = CH_PRESETS[btn.dataset.preset ?? 'classic'];
+    if (!spec) return;
+    applyCrosshairSpec(spec);
+    game.audio.play('ui_click');
+  });
 });
 
 // ─── Audio settings ─────────────────────────────────────────────────────────

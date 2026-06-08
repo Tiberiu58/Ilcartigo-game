@@ -72,6 +72,20 @@
           <div id="announcer-sub"></div>
         </div>
 
+        <!-- Level-up celebration banner — pops when XP crosses a level boundary.
+             Driven by ProgressionFX.ts. -->
+        <div id="levelup-banner" class="hidden">
+          <div class="lu-kicker">LEVEL UP</div>
+          <div class="lu-level" id="lu-level">LEVEL 1</div>
+          <div class="lu-rank" id="lu-rank">Recruit</div>
+        </div>
+
+        <!-- Floating "+XP" reward chips on kills. ProgressionFX.ts appends here. -->
+        <div id="reward-popups"></div>
+
+        <!-- Rank badge — level + tier, bottom-left. Synced by ProgressionFX.ts. -->
+        <div id="rank-badge"></div>
+
         <!-- Respawn countdown overlay during the death window. -->
         <div id="respawn-countdown" class="hidden">
           <div class="rc-label">You died</div>
@@ -185,7 +199,9 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.12</p>
+          <p class="subtitle">Browser arena shooter · v0.13</p>
+          <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
+          <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -381,6 +397,13 @@
 
             <section class="settings-pane" data-pane="crosshair">
               <h3>Crosshair</h3>
+              <div class="ch-presets" id="ch-presets">
+                <button class="ch-preset-btn" data-preset="classic">Classic</button>
+                <button class="ch-preset-btn" data-preset="dot">Dot</button>
+                <button class="ch-preset-btn" data-preset="cross">Cross</button>
+                <button class="ch-preset-btn" data-preset="tstyle">T-Style</button>
+                <button class="ch-preset-btn" data-preset="precision">Precision</button>
+              </div>
               <div class="crosshair-preview">
                 <!-- Static preview crosshair — uses the same vars as the live one. -->
                 <div class="ch-preview-frame">
@@ -419,6 +442,11 @@
                 <input id="ch-dot" type="checkbox" checked />
                 <span class="set-label">Center dot</span>
               </label>
+              <label class="set-row checkbox-row">
+                <input id="ch-dynamic" type="checkbox" checked />
+                <span class="set-label">Dynamic crosshair</span>
+              </label>
+              <p class="set-note">Dynamic crosshair expands the gap with your firing spread (moving / jumping widens it). Turn it off for a fixed reticle.</p>
             </section>
 
             <section class="settings-pane" data-pane="audio">
