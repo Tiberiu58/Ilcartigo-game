@@ -186,6 +186,9 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
   skin grid showing each skin's mastery progress / lock state, click to equip.
 
 ### Status log
+- ✅ Phase 14 polish — Bumped client+server to v0.14.0 (package.json + lockfiles + menu subtitle/footer), README Phase 14 section + top-status + deliverables/status updated. Client tsc + build green (app ~63 KB gzip), server tsc green.
+
+### Phase 14 COMPLETE — A–D + polish shipped. Client-only, zero protocol, solo + MP intact.
 - ✅ Phase 14A–D — Weapon mastery & skins. DONE (client tsc + build green, app ~63 KB gzip; server untouched). `WEAPON_SKINS` registry (6 weapons × 4 skins, default + 3 mastery-gated at 15/50/150 kills) + helpers in Cosmetics.ts. `Account` extended migration-safe (`weaponKills` + `equippedWeaponSkin`) with `recordWeaponKill` (returns the freshly-crossed skin), `isWeaponSkinUnlocked` (derived from mastery — no XP path), `equipWeaponSkin`, `equippedWeaponSkinColor`. Viewmodel tints the body mesh (first child = largest box in every builder) per equipped skin, re-applied after every (re)build so it survives swaps + cloak. Game records weapon kills on local kills, emits a new local-only `masteryUnlock` bus event on a fresh unlock, and pushes equipped tints to the viewmodel on boot + every account change. ProgressionFX pops a coloured "{WEAPON} SKIN: {name}" reward chip on unlock. New Cosmetics subsection: weapon picker tabs (with live mastery counts) + skin grid with per-skin mastery progress bars. Skins are first-person-only (viewmodel tints) → zero protocol, MP unaffected.
 
 

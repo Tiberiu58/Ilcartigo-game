@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 13 — v0.13.0. Rank Up & Reward Spectacle: an 8-tier rank ladder (Recruit → Mythic) with HUD + menu badges, a full-screen level-up celebration, floating "+XP" kill popups, one-click crosshair presets + a dynamic-crosshair toggle, **per-weapon server damage** (weapon choice finally matters in MP), and a new **Marksman** (semi-auto DMR) weapon. Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Weapon Mastery & Skins: every weapon now levels up as you frag with it (15 / 50 / 150 kills) to unlock first-person weapon skins, with mastery-progress UI, an unlock celebration chip, and per-weapon equip. Built on Phase 13 — v0.13.0 Rank Up & Reward Spectacle: an 8-tier rank ladder (Recruit → Mythic) with HUD + menu badges, a full-screen level-up celebration, floating "+XP" kill popups, one-click crosshair presets + a dynamic-crosshair toggle, **per-weapon server damage** (weapon choice finally matters in MP), and the **Marksman** (semi-auto DMR) weapon. Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -415,14 +415,41 @@ the audio asset guide above.
 Production client: **~190 KB gzipped** total (engine 120 + app 62 + CSS 8 + HTML 6).
 ~+3 KB this phase (rank ladder + progression FX + Marksman). No new dependencies.
 
+## Phase 14 — Weapon Mastery & Skins (this round, v0.14.0)
+
+A proven Krunker-style retention loop on top of Phase 13's progression spectacle:
+get kills with a weapon → climb its **mastery** → unlock **weapon skins** for it. More
+to chase per weapon = more reasons to keep playing (retention → ad revenue). Entirely
+client-side + account-driven, zero protocol, solo + MP both unaffected (weapon skins
+are first-person viewmodel tints — they never need to sync; remotes don't render your
+viewmodel).
+
+- **Mastery tracking.** `Account` records per-weapon lifetime kills (`weaponKills`,
+  migration-safe), bumped on every local kill alongside the existing lifetime stats.
+- **Mastery-gated skins.** `WEAPON_SKINS` registry — each of the 6 weapons (AR / SMG /
+  Marksman / Sniper / Shotgun / Pistol) gets a default + 3 skins, unlocked purely by
+  mastery kills (15 / 50 / 150 — no XP cost; mastery *is* the currency). The equipped
+  skin tints the first-person viewmodel's body.
+- **Unlock celebration.** Crossing a skin's kill threshold emits a local-only
+  `masteryUnlock` bus event → a coloured "{WEAPON} SKIN: {name}" reward chip via
+  ProgressionFX.
+- **Weapon Skins UI.** New Cosmetics-tab section: a weapon picker (with live per-weapon
+  mastery counts) + a skin grid showing each skin's mastery-progress bar / lock state;
+  click an unlocked skin to equip it.
+
+### Bundle size
+
+Production client: **~192 KB gzipped** total (engine 120 + app 63 + CSS 8 + HTML 6).
+~+2 KB this phase (registry + mastery UI). No new dependencies.
+
 ## Project status
 
-13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **rank ladder + level-up celebration + "+XP" popups + crosshair presets + per-weapon MP damage + the Marksman** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, rank ladder + level-up celebration + "+XP" popups + crosshair presets + per-weapon MP damage + the Marksman, **weapon mastery + unlockable weapon skins** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, rank ladder + level-up celebration, "+XP" popups, crosshair presets, 5 weapons (AR/SMG/Marksman/Sniper/Shotgun + Pistol). v0.13.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Per-weapon damage + falloff. Protocol v2. v0.13.0.
+- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, rank ladder + level-up celebration, "+XP" popups, crosshair presets, weapon mastery + skins, 5 weapons (AR/SMG/Marksman/Sniper/Shotgun + Pistol). v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Per-weapon damage + falloff. Protocol v2. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
