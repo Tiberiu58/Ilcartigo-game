@@ -354,6 +354,10 @@ export class MultiplayerSession {
       : origin.clone().add(new THREE.Vector3(...m.dir).multiplyScalar(200));
     // Red tracer for remote shots, same as bot shots in single-player.
     this.game.tracers.spawn(origin, end, 0.14, 0xff5a3a);
+    // Impact burst at the landing point — flesh (a player target) vs world.
+    if (m.hits.length > 0) {
+      this.game.impacts.spawn(end, m.hits[0].targetId !== null);
+    }
   }
 
   private handleDamage(m: ServerDamageEvent) {

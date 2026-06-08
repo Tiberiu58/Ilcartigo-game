@@ -149,9 +149,16 @@ build green each step, solo + MP both keep working.**
   CSS overlay driven by `--speed-lines-op` from the frame loop — deliberately
   does NOT touch the camera FOV pipeline (managed in Game.tick) to stay safe.
   New `#speed-lines` element, General-tab toggle (`ilc.speedlines`).
+- **13C — Bullet-impact FX.** Every shot that lands pops a small additive burst
+  at the hit point — a warm dust puff on world geometry, a red spark on flesh
+  (player/bot). Pooled (sparks fire on every shot) with one shared soft radial
+  texture; 2–3 sprites per impact scatter + fade in ~0.18s. Works everywhere
+  shots flow: local + bot shots via the `shot` bus event, MP remote shots via
+  `MultiplayerSession.handleShot`. New `weapons/ImpactFX.ts`.
 
 ### Status log
 - ✅ Phase 13A — Minimap/radar. DONE (client typecheck + build green; server tsc green). New `ui/Minimap.ts` (canvas radar, DPR-aware, north-up, aspect-fit, map-change-cached geometry). World gained `staticSolids` getter + `collectJumpPadAABBs()`; MultiplayerSession gained `forEachRemoteBlip`; Game gained `currentMapId`. Killfeed nudged below the radar so the two top-right HUD elements stack. Floor/ground boxes filtered (top ≤ 0.4m). Toggle in Settings → General, persisted.
 - ✅ Phase 13B — Speed lines. DONE. `#speed-lines` conic-streak + edge-vignette overlay, opacity driven per-frame from horizontal speed; off-switch via `body.no-speedlines`. Toggle in Settings → General, persisted. No camera/FOV changes (kept the existing FOV pipeline untouched).
+- ✅ Phase 13C — Bullet-impact FX. DONE (client tsc + build green). New `weapons/ImpactFX.ts` — pooled additive spark sprites (shared radial texture), warm dust on world hits / red sparks on flesh, scatter + fade ~0.18s. Hooked into the `shot` bus handler (local + bots) and `MultiplayerSession.handleShot` (MP remotes). App chunk ~62.7 KB gzip.
 
 

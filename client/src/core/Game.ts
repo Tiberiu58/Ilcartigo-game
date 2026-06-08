@@ -26,6 +26,7 @@ import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
+import { ImpactFX } from '../weapons/ImpactFX';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
@@ -72,6 +73,7 @@ export class Game {
   abilities!: AbilityRunner;       // assigned in constructor after bots exist
   private baseFov = 90;
   readonly tracers: TracerPool;
+  readonly impacts: ImpactFX;
   readonly castFX: CastFX;
   readonly dmgNumbers: DamageNumbers;
   readonly audio = new AudioManager();
@@ -209,6 +211,7 @@ export class Game {
     this.inventory = new WeaponInventory('ar', this.world, this.bus, 'player');
     this.viewmodel = new Viewmodel(this.camera);
     this.tracers = new TracerPool(this.scene, 32);
+    this.impacts = new ImpactFX(this.scene, 36);
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
 
@@ -251,6 +254,9 @@ export class Game {
       // bot tracers stay the warm red so you can read incoming fire.
       const tracerColor = isPlayer ? this.account.equippedTracerColor() : 0xff5a3a;
       this.tracers.spawn(start, end, isPlayer ? 0.08 : 0.14, tracerColor);
+      // Impact burst where the shot landed — red spark on flesh (targetId set),
+      // warm dust on world geometry. Skips shots that hit nothing (max range).
+      if (e.hit) this.impacts.spawn(e.hit.point, e.hit.targetId !== null);
       if (isPlayer) this.viewmodel.onFire();
 
       // Audio. Local shots play unspatialized; remote/bot shots play spatial
@@ -789,6 +795,7 @@ export class Game {
 
     // --- 5. Effects + world tick ---
     this.tracers.update(dt);
+    this.impacts.update(dt);    // tick pooled bullet-impact sparks/puffs
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
     this.world.update();        // expires Engineer barrier solids when their TTL is up
