@@ -200,5 +200,9 @@ feedback + visible-progression loops (retention → ad impressions).
 ### Status log
 - ✅ Phase 14A — Crosshair hit feedback. DONE (client tsc + build green). Transient `ch-fb-hit/head/kill` + `ch-pop` classes on `#crosshair`, cleared after 90/170 ms; HUD `crosshairFeedback()` off hitConfirm + local-kill events.
 - ✅ Phase 14B — Score/heal popups. DONE. New `ui/ScorePopup.ts` static toaster (#score-popups, capped at 6, CSS rise+fade). "+10 XP" on local frags, "+40 HP" on grabs. App chunk ~64 KB gzip.
+- ✅ Phase 14C — Weapon-finish cosmetics. DONE (client tsc + build green). New `FINISHES` registry (6, 0–2500 XP) emissive sheen over the viewmodel + `findFinish`/`DEFAULT_FINISH`. Account extended migration-safe (`unlockedFinishes`/`equippedFinish`, default kept unlocked on old saves) + `equippedFinishEmissive`. `Viewmodel.setFinish` applies emissive to every Lambert part, re-applied after each weapon rebuild; `Game.applyEquippedFinish` wired on boot + account change. New "Weapon Finish" grid in the Cosmetics tab. Deepens the unlock loop (retention → ad revenue).
+- ✅ Phase 14 polish — Bumped client+server to v0.14.0 (+ menu subtitle/footer). README Phase 14 section + deliverables/status. Client+server tsc + client build green; app chunk ~64.5 KB gzip.
+
+### Phase 14 COMPLETE — A–C + polish shipped, pure client, no protocol change, solo + MP intact.
 
 

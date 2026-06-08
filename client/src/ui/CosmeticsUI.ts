@@ -12,7 +12,7 @@
  */
 
 import type { Account } from '../account/Account';
-import { KILL_EFFECTS, TRACERS, skinsForClass, findKillEffect, findTracer, type SkinConfig, type KillEffectConfig, type TracerConfig } from '../account/Cosmetics';
+import { KILL_EFFECTS, TRACERS, FINISHES, skinsForClass, findKillEffect, findTracer, findFinish, type SkinConfig, type KillEffectConfig, type TracerConfig, type FinishConfig } from '../account/Cosmetics';
 import { CLASS_LIBRARY, CLASS_ORDER, type ClassId } from '../classes/types';
 
 export class CosmeticsUI {
@@ -21,6 +21,7 @@ export class CosmeticsUI {
   private skinsEl: HTMLElement;
   private effectsEl: HTMLElement;
   private tracersEl: HTMLElement;
+  private finishesEl: HTMLElement;
   private levelEl: HTMLElement;
   private xpEl: HTMLElement;
   private fillEl: HTMLElement;
@@ -31,6 +32,7 @@ export class CosmeticsUI {
     this.skinsEl = document.getElementById('cos-skins')!;
     this.effectsEl = document.getElementById('cos-effects')!;
     this.tracersEl = document.getElementById('cos-tracers')!;
+    this.finishesEl = document.getElementById('cos-finishes')!;
     this.levelEl = document.getElementById('cos-level')!;
     this.xpEl = document.getElementById('cos-xp')!;
     this.fillEl = document.getElementById('cos-xp-fill')!;
@@ -44,6 +46,7 @@ export class CosmeticsUI {
     this.renderSkins();
     this.renderEffects();
     this.renderTracers();
+    this.renderFinishes();
   }
 
   private renderSummary() {
@@ -119,6 +122,37 @@ export class CosmeticsUI {
       <div class="cos-name">${escape(e.displayName)}</div>
       <div class="cos-status">${status}</div>
     </div>`;
+  }
+
+  private renderFinishes() {
+    if (!this.finishesEl) return;
+    this.finishesEl.innerHTML = FINISHES.map((f) => this.finishCardHtml(f)).join('');
+    this.finishesEl.querySelectorAll<HTMLElement>('[data-finish-id]').forEach((el) => {
+      const id = el.dataset.finishId!;
+      el.addEventListener('click', () => this.handleFinishClick(id));
+    });
+  }
+
+  private finishCardHtml(f: FinishConfig): string {
+    const unlocked = this.account.isFinishUnlocked(f.id);
+    const equipped = this.account.equippedFinish() === f.id;
+    const status = !unlocked ? `${f.cost} XP` : equipped ? 'EQUIPPED' : 'EQUIP';
+    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    const hex = '#' + f.swatch.toString(16).padStart(6, '0');
+    return `<div class="${cls}" data-finish-id="${f.id}" style="--body-c: ${hex}; --head-c: ${hex}">
+      <div class="cos-swatch"><div class="head"></div><div class="body"></div></div>
+      <div class="cos-name">${escape(f.displayName)}</div>
+      <div class="cos-status">${status}</div>
+    </div>`;
+  }
+
+  private handleFinishClick(id: string) {
+    if (!this.account.isFinishUnlocked(id)) {
+      const cfg = findFinish(id);
+      if (!cfg) return;
+      if (!this.account.tryUnlockFinish(id, cfg.cost)) return;
+    }
+    this.account.equipFinish(id);
   }
 
   private tracerCardHtml(t: TracerConfig): string {

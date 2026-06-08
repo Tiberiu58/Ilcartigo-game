@@ -173,7 +173,38 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
 
+export type FinishId = string;        // e.g. 'finish-gold'
+
+export interface FinishConfig {
+  id: FinishId;
+  displayName: string;
+  /** Emissive tint applied to every viewmodel part (hex). 0 = no glow. */
+  emissive: number;
+  /** Swatch colour for the cosmetics grid. */
+  swatch: number;
+  cost: number;
+}
+
+/**
+ * Weapon finishes — an emissive sheen over the first-person viewmodel. The
+ * classic arena-shooter unlock you see every second you hold a gun. Default is
+ * no glow (matches the base mesh), so equipping nothing changes nothing.
+ */
+export const FINISHES: ReadonlyArray<FinishConfig> = [
+  { id: 'finish-standard', displayName: 'Standard',   emissive: 0x000000, swatch: 0x3a4250, cost: 0    },
+  { id: 'finish-gold',     displayName: 'Gilded',     emissive: 0x4a3500, swatch: 0xffcc33, cost: 350  },
+  { id: 'finish-frost',    displayName: 'Frostforge', emissive: 0x0a3344, swatch: 0x4cd0ff, cost: 600  },
+  { id: 'finish-toxic',    displayName: 'Toxic',      emissive: 0x143a08, swatch: 0x9cff3a, cost: 1000 },
+  { id: 'finish-crimson',  displayName: 'Crimson',    emissive: 0x3a0808, swatch: 0xff4040, cost: 1500 },
+  { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
+];
+
+export const DEFAULT_FINISH: FinishId = 'finish-standard';
+
 /** Lookup helpers. */
+export function findFinish(id: FinishId): FinishConfig | undefined {
+  return FINISHES.find((f) => f.id === id);
+}
 export function findSkin(id: SkinId): SkinConfig | undefined {
   return SKINS.find((s) => s.id === id);
 }

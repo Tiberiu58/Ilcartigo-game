@@ -213,6 +213,7 @@ export class Game {
 
     this.inventory = new WeaponInventory('ar', this.world, this.bus, 'player');
     this.viewmodel = new Viewmodel(this.camera);
+    this.viewmodel.setFinish(this.account.equippedFinishEmissive());
     this.tracers = new TracerPool(this.scene, 32);
     this.impacts = new ImpactFX(this.scene, 36);
     this.castFX = new CastFX(this.scene);
@@ -540,6 +541,12 @@ export class Game {
     this.playerActor.health.setMax(100 + (passive.bonusMaxHp ?? 0));
     // Weapons: reload multiplier (Rush).
     this.inventory.setReloadMultiplier(passive.reloadMultiplier ?? 1.0);
+  }
+
+  /** Re-apply the equipped weapon-finish cosmetic to the viewmodel. Called on
+   *  any account change (equip) from main.ts. */
+  applyEquippedFinish() {
+    this.viewmodel.setFinish(this.account.equippedFinishEmissive());
   }
 
   /** Change class — called from the main menu or on respawn (we allow now). */

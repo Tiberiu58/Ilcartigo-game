@@ -639,7 +639,10 @@ if (resetBtn) {
 
 // Re-send hello whenever the equipped skin changes — server needs the new
 // skin id for snapshot.skinId, otherwise other players see the old color.
-game.account.onChange(() => game.mp?.sendHello());
+game.account.onChange(() => {
+  game.mp?.sendHello();
+  game.applyEquippedFinish();
+});
 
 // ─── Post-match overlay ────────────────────────────────────────────────────
 const postmatchOverlay = document.getElementById('postmatch-overlay')!;

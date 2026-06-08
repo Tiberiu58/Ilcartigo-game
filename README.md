@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 13 — v0.13.0. Spatial awareness & movement juice: top-right tactical **minimap/radar**, **speed lines** on bhop, pooled **bullet-impact FX** (sparks/dust), and **map health pickups** (server-authoritative MP + solo, protocol v3). Built on Phase 12 (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Combat & personalization juice: **dynamic crosshair hit feedback**, floating **score/heal popups**, and **weapon-finish cosmetics**. Built on Phase 13 (minimap/radar, speed lines, bullet-impact FX, map health pickups — protocol v3), Phase 12 (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -402,14 +402,36 @@ plus the first real gameplay-loop addition since class abilities.
 Production client: **~190 KB gzipped** total (engine 121 + app 64 + CSS 7 + HTML 6).
 ~+3 KB this phase. No new dependencies.
 
+## Phase 14 — Combat & Personalization Juice (this round, v0.14.0)
+
+A pure-client, zero-protocol round of high-feel touches reinforcing Krunker's
+instant-feedback + visible-progression loops (retention → ad impressions).
+
+- **A. Dynamic crosshair hit feedback.** The crosshair briefly recolours +
+  scale-pops on a confirmed hit — white = body, gold = headshot, red = kill —
+  then reverts to your chosen colour. Pure CSS + a small HUD method off the
+  hitConfirm / kill bus events.
+- **B. Floating score / heal popups.** A tasteful "+10 XP" gold toast on each
+  local frag and a green "+40 HP" on a health-pack grab, drifting up + fading.
+  New `ui/ScorePopup.ts` (static API), wired from the kill bus + `PickupManager`.
+- **C. Weapon-finish cosmetics.** A new unlockable axis you see every second you
+  hold a gun — an emissive sheen over the viewmodel (Standard free, then Gilded /
+  Frostforge / Toxic / Crimson / Voidlight at 350–2500 XP). `Account` extended
+  migration-safe (`unlockedFinishes` + `equippedFinish`). `Viewmodel.setFinish`
+  re-applies after each weapon rebuild. New "Weapon Finish" grid in Cosmetics.
+
+### Bundle size
+
+Production client: **~191 KB gzipped** total. ~+1 KB this phase, no new deps.
+
 ## Project status
 
-13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **minimap/radar + speed lines + bullet-impact FX + map health pickups** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, minimap/radar + speed lines + bullet-impact FX + map health pickups, **crosshair hit feedback + score popups + weapon-finish cosmetics** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups. v0.13.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.13.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, weapon-finish cosmetics. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

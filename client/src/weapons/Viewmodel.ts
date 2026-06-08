@@ -40,6 +40,10 @@ export class Viewmodel {
   // Hidden flag — sniper scope hides the viewmodel completely.
   private hidden = false;
 
+  // Equipped weapon-finish emissive tint (Phase 14C cosmetic). Re-applied after
+  // every geometry rebuild (swap) so the finish persists across weapons.
+  private finishEmissive = 0x000000;
+
   constructor(camera: THREE.PerspectiveCamera) {
     this.group = new THREE.Group();
     this.group.position.copy(this.restPos);
@@ -91,6 +95,23 @@ export class Viewmodel {
         mat.opacity = 1;
         mat.depthWrite = true;
       }
+    });
+  }
+
+  /**
+   * Set the weapon-finish emissive tint (cosmetic). Stored + applied to every
+   * content mesh; re-applied automatically on each weapon rebuild so the finish
+   * follows you across swaps. 0x000000 = no glow (Standard).
+   */
+  setFinish(emissive: number) {
+    this.finishEmissive = emissive;
+    this.applyFinish();
+  }
+
+  private applyFinish() {
+    this.content.traverse((n) => {
+      const mat = (n as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined;
+      if (mat && mat.emissive) mat.emissive.setHex(this.finishEmissive);
     });
   }
 
@@ -172,6 +193,8 @@ export class Viewmodel {
     const muzzleZ = WEAPON_BUILDERS[id](this.content);
     this.muzzleAnchor.position.set(0, 0.02, muzzleZ);
     this.flashMesh.position.copy(this.muzzleAnchor.position);
+    // Re-apply the equipped finish to the freshly-built meshes.
+    this.applyFinish();
   }
 }
 
