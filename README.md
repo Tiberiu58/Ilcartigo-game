@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 13 — v0.13.0. Spatial awareness & movement juice: top-right tactical **minimap/radar**, **speed lines** on bhop, pooled **bullet-impact FX** (sparks/dust), and **map health pickups** (server-authoritative MP + solo, protocol v3). Built on Phase 12 (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -294,6 +294,12 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `revenge.wav` | Revenge-kill announcer sting | "revenge sting", "vengeance" |
 | `comeback.wav` | Comeback announcer sting | "comeback", "rise up sting" |
 
+**Phase 13 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `pickup_health.wav` | Health-pack grab chime | "health pickup", "heal collect", "powerup grab" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -361,14 +367,49 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Spatial Awareness & Movement Juice (this round, v0.13.0)
+
+After Phase 12 closed the combat-*feedback* gap, Phase 13 closes the *spatial
+awareness* gap and rewards the movement that's always been the game's best part —
+plus the first real gameplay-loop addition since class abilities.
+
+- **A. Minimap / tactical radar.** Top-right canvas radar (the single most
+  Krunker-defining missing HUD piece). North-up, whole-arena aspect-fit. Draws
+  the static collision footprint (walls/buildings/cover — tall boxes brighter),
+  jump pads (yellow), health pickups (green crosses, dimmed on cooldown), a teal
+  heading-arrow for you, and red enemy dots — solo bots or MP remotes, hiding
+  cloaked + dead. Pure client; geometry cached per map, draw throttled to 25 Hz.
+  Toggle in Settings → General. New `ui/Minimap.ts`.
+- **B. Speed lines.** Radial motion streaks at the screen edges that ramp in
+  above bhop-tier speed (start 10.5, saturate 18 u/s). CSS-only overlay driven
+  per-frame — deliberately does NOT touch the camera FOV pipeline. Toggle in
+  Settings → General.
+- **C. Bullet-impact FX.** Every landed shot pops a small additive burst at the
+  hit point — warm dust on world geometry, red sparks on flesh. Pooled (impacts
+  fire every shot) with one shared soft radial texture. Works for local, bot,
+  and MP-remote shots. New `weapons/ImpactFX.ts`.
+- **D. Map health pickups.** Floating health pads (4 per combat map) restore
+  +40 HP and respawn after 12 s. **Server-authoritative in MP** (overlap → heal
+  the grabber's authoritative HP, only when hurt → cooldown → respawn, broadcast;
+  restored on rematch). **Client-local logic in solo** via `PickupManager`.
+  Protocol bumped to **v3** (`PickupState`, `ServerWelcome.pickups`,
+  `ServerPickupUpdate`, `EV.Pickup`, mirrored both sides). Shared placement in
+  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts`. Grab feedback: `pickup_health`
+  SFX + a green `#heal-flash` vignette. New `entities/PickupManager.ts`.
+
+### Bundle size
+
+Production client: **~190 KB gzipped** total (engine 121 + app 64 + CSS 7 + HTML 6).
+~+3 KB this phase. No new dependencies.
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **minimap/radar + speed lines + bullet-impact FX + map health pickups** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups. v0.13.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.13.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

@@ -97,6 +97,11 @@ export class PickupManager {
     }
   }
 
+  /** Enumerate pickup pads for the minimap: world x/z + current availability. */
+  forEachPad(cb: (x: number, z: number, available: boolean) => void) {
+    for (const e of this.entries.values()) cb(e.def.pos[0], e.def.pos[2], e.available);
+  }
+
   /** Reset all pickups to available (e.g. MP match reset, or solo mode swap). */
   resetAll() {
     for (const e of this.entries.values()) {

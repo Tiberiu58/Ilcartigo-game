@@ -154,6 +154,15 @@ export class Minimap {
       ctx.fillRect(this.toX(p.x) - 2, this.toY(p.z) - 2, 4, 4);
     }
 
+    // Health pickups — green crosses (dimmed while on respawn cooldown).
+    this.game.pickups.forEachPad((wx, wz, available) => {
+      const x = this.toX(wx);
+      const y = this.toY(wz);
+      ctx.fillStyle = available ? '#36e08a' : 'rgba(54, 224, 138, 0.28)';
+      ctx.fillRect(x - 3, y - 1, 6, 2);
+      ctx.fillRect(x - 1, y - 3, 2, 6);
+    });
+
     // Enemies — red dots. Solo bots, or MP remotes (skip cloaked + dead).
     ctx.fillStyle = '#ff5a5a';
     if (this.game.mp) {
