@@ -107,6 +107,17 @@ export class MultiplayerSession {
     return true;
   }
 
+  /**
+   * Enumerate remote players for the minimap. Yields each remote's interpolated
+   * world x/z plus its cloaked + dead flags so the radar can hide stealthed /
+   * downed players. Cheap; called at most once per minimap redraw.
+   */
+  forEachRemoteBlip(cb: (x: number, z: number, cloaked: boolean, dead: boolean) => void) {
+    for (const rp of this.remotes.values()) {
+      cb(rp.group.position.x, rp.group.position.z, rp.cloaked, rp.hp <= 0);
+    }
+  }
+
   /** Subscribers. Mirror the local bus shape so existing HUD listeners keep working. */
   onWelcome?: (msg: ServerWelcome) => void;
   onDisconnect?: (reason: string) => void;

@@ -122,3 +122,36 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ### Phase 12 COMPLETE — A–F + polish shipped, no protocol change, solo + MP intact.
 
+---
+
+## Phase 13 — Spatial Awareness & Movement Juice (autonomous build, v0.13.0)
+
+After Phase 12 closed the combat-*feedback* gap, the next biggest Krunker delta is
+*spatial awareness* — you can't see the arena layout or where enemies are at a
+glance — and the *movement* (already the best part of the game) has no visual
+payoff when you're flying on a bhop chain. Phase 13 adds both, plus deepens the
+options players keep coming back to tweak (retention → ad impressions).
+
+Guiding constraint (unchanged): **no protocol changes, no new deps, typecheck +
+build green each step, solo + MP both keep working.**
+
+- **13A — Minimap / tactical radar.** Top-right canvas radar (the single most
+  Krunker-defining missing HUD piece). North-up, whole-arena fit with aspect
+  preserved. Draws the static collision footprint (walls/buildings/cover, tall
+  boxes brighter), jump pads (yellow ticks), a teal heading-arrow for you, and
+  red enemy dots — solo bots or MP remotes, hiding cloaked + dead. Pure client:
+  reads `World.staticSolids` + `World.collectJumpPadAABBs()` (new read
+  accessors), bot positions, and `MultiplayerSession.forEachRemoteBlip` (new).
+  Geometry cache rebuilds only on map change; per-frame draw throttled to 25 Hz.
+  New `ui/Minimap.ts`, `#minimap` canvas, General-tab toggle (`ilc.minimap`).
+- **13B — Speed lines.** Radial motion streaks at the screen edges that ramp in
+  above bhop-tier speed (start 10.5, saturate 18 u/s → max 0.55 opacity). Pure
+  CSS overlay driven by `--speed-lines-op` from the frame loop — deliberately
+  does NOT touch the camera FOV pipeline (managed in Game.tick) to stay safe.
+  New `#speed-lines` element, General-tab toggle (`ilc.speedlines`).
+
+### Status log
+- ✅ Phase 13A — Minimap/radar. DONE (client typecheck + build green; server tsc green). New `ui/Minimap.ts` (canvas radar, DPR-aware, north-up, aspect-fit, map-change-cached geometry). World gained `staticSolids` getter + `collectJumpPadAABBs()`; MultiplayerSession gained `forEachRemoteBlip`; Game gained `currentMapId`. Killfeed nudged below the radar so the two top-right HUD elements stack. Floor/ground boxes filtered (top ≤ 0.4m). Toggle in Settings → General, persisted.
+- ✅ Phase 13B — Speed lines. DONE. `#speed-lines` conic-streak + edge-vignette overlay, opacity driven per-frame from horizontal speed; off-switch via `body.no-speedlines`. Toggle in Settings → General, persisted. No camera/FOV changes (kept the existing FOV pipeline untouched).
+
+

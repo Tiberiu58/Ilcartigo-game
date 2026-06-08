@@ -508,6 +508,36 @@ body.kill-flash #app::after {
   50%      { opacity: 0.95; }
 }
 
+/* Speed lines — radial motion streaks at the screen edges. Opacity is driven
+   per-frame from main.ts (--speed-lines-op). A faint conic streak texture over
+   a darkening edge vignette sells the "going fast" feel without a 3D pass. */
+#speed-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--speed-lines-op, 0);
+  transition: opacity 0.12s linear;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(255, 255, 255, 0.05) 0deg, rgba(255, 255, 255, 0) 2deg 6deg),
+    radial-gradient(ellipse at center,
+      rgba(0, 0, 0, 0) 52%, rgba(180, 210, 255, 0.16) 100%);
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 46%, #000 86%);
+  mask-image: radial-gradient(ellipse at center, transparent 46%, #000 86%);
+}
+/* Hard off-switch from the General settings toggle. */
+body.no-speedlines #speed-lines { display: none; }
+
+/* Minimap / tactical radar — top-right corner. The canvas itself is sized in
+   JS (Minimap.ts) via width/height attrs; this just positions it. */
+#minimap {
+  position: absolute;
+  top: 16px; right: 16px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+#minimap.hidden { display: none; }
+
 #debug-hud {
   position: absolute;
   top: 16px; left: 16px;
@@ -717,11 +747,14 @@ body.kill-flash #app::after {
 
 #killfeed {
   position: absolute;
-  top: 16px; right: 16px;
+  /* Sits below the minimap (16px top + 168px canvas + gap) so the two
+     top-right HUD elements stack instead of overlapping. */
+  top: 196px; right: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   pointer-events: none;
+  align-items: flex-end;
 }
 .kf-entry {
   background: var(--panel);

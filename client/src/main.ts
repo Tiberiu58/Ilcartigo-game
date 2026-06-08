@@ -18,6 +18,7 @@ import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
+import { Minimap } from './ui/Minimap';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -87,6 +88,7 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+const minimap = new Minimap(game, document.getElementById('minimap') as HTMLCanvasElement);
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -110,6 +112,27 @@ sensSlider.addEventListener('input', () => {
   sensVal.textContent = v.toFixed(2);
   game.setSensitivity(v);
   localStorage.setItem('ilc.sens', String(v));
+});
+
+// ─── Minimap + speed-lines toggles (General tab) ────────────────────────────
+const optMinimap = document.getElementById('opt-minimap') as HTMLInputElement;
+const optSpeedlines = document.getElementById('opt-speedlines') as HTMLInputElement;
+
+const savedMinimap = (localStorage.getItem('ilc.minimap') ?? 'true') === 'true';
+optMinimap.checked = savedMinimap;
+minimap.setEnabled(savedMinimap);
+optMinimap.addEventListener('change', () => {
+  minimap.setEnabled(optMinimap.checked);
+  localStorage.setItem('ilc.minimap', String(optMinimap.checked));
+});
+
+let speedLinesEnabled = (localStorage.getItem('ilc.speedlines') ?? 'true') === 'true';
+optSpeedlines.checked = speedLinesEnabled;
+document.body.classList.toggle('no-speedlines', !speedLinesEnabled);
+optSpeedlines.addEventListener('change', () => {
+  speedLinesEnabled = optSpeedlines.checked;
+  document.body.classList.toggle('no-speedlines', !speedLinesEnabled);
+  localStorage.setItem('ilc.speedlines', String(speedLinesEnabled));
 });
 
 // ─── Crosshair customizer ───────────────────────────────────────────────────
@@ -545,10 +568,33 @@ game.input.onPointerLockChange = (locked) => {
   }
 };
 
+// ─── Speed lines ─────────────────────────────────────────────────────────────
+// Radial streaks ramp in above bhop-tier speed. RUN_SPEED is 8.4 and the bhop
+// hard-cap ~9.66, so we start the effect at ~10.5 (you have to actually be
+// chaining jumps / sliding / Surging) and saturate around 18.
+const SPEED_LINES_START = 10.5;
+const SPEED_LINES_FULL = 18;
+const SPEED_LINES_MAX_OP = 0.55;
+const speedLinesEl = document.getElementById('speed-lines')!;
+let lastSpeedOp = -1;
+function updateSpeedLines(speed: number) {
+  let op = 0;
+  if (speedLinesEnabled && game.input.pointerLocked && speed > SPEED_LINES_START) {
+    const t = Math.min(1, (speed - SPEED_LINES_START) / (SPEED_LINES_FULL - SPEED_LINES_START));
+    op = +(t * SPEED_LINES_MAX_OP).toFixed(2);
+  }
+  if (op !== lastSpeedOp) {
+    lastSpeedOp = op;
+    speedLinesEl.style.setProperty('--speed-lines-op', String(op));
+  }
+}
+
 // Throttle debug HUD updates to ~10Hz to avoid layout thrash.
 let lastHudUpdate = 0;
 game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
+  minimap.tick();
+  updateSpeedLines(speed);
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;

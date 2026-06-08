@@ -96,6 +96,11 @@ export class Game {
    * This is the single biggest cross-cutting fix between Phase 9 → Phase 10:
    * every previous `=== 'player'` check failed in MP.
    */
+  /** Id of the currently-built map. Used by the minimap to detect map swaps. */
+  get currentMapId(): MapId {
+    return this.currentMap.meta.id;
+  }
+
   isLocalPlayer(id: string): boolean {
     if (id === 'player') return true;
     if (this.mp && id === this.mp.myId) return true;
