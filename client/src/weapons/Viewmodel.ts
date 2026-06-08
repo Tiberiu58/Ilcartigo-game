@@ -40,6 +40,10 @@ export class Viewmodel {
   // Hidden flag — sniper scope hides the viewmodel completely.
   private hidden = false;
 
+  // Per-weapon body tint (equipped weapon skin). Applied to the body mesh after
+  // each (re)build so it survives weapon swaps. Undefined = stock look.
+  private skinTints: Partial<Record<WeaponId, number>> = {};
+
   constructor(camera: THREE.PerspectiveCamera) {
     this.group = new THREE.Group();
     this.group.position.copy(this.restPos);
@@ -172,6 +176,30 @@ export class Viewmodel {
     const muzzleZ = WEAPON_BUILDERS[id](this.content);
     this.muzzleAnchor.position.set(0, 0.02, muzzleZ);
     this.flashMesh.position.copy(this.muzzleAnchor.position);
+    this.applyTint();
+  }
+
+  /**
+   * Set the equipped weapon-skin tints (weaponId → body colour). Re-applies to
+   * the currently-built weapon immediately so equipping a skin in the menu
+   * shows on the held gun without a swap.
+   */
+  setSkinTints(tints: Partial<Record<WeaponId, number>>) {
+    this.skinTints = { ...tints };
+    this.applyTint();
+  }
+
+  /** Tint the body mesh (first child = the largest box in every builder) to the
+   *  current weapon's equipped skin colour, or leave it stock if none. */
+  private applyTint() {
+    const body = this.content.children[0] as THREE.Mesh | undefined;
+    if (!body) return;
+    const mat = body.material as THREE.MeshLambertMaterial | undefined;
+    if (!mat || !('color' in mat)) return;
+    const tint = this.skinTints[this.currentId];
+    if (tint !== undefined) mat.color.setHex(tint);
+    // No "else reset" needed — buildFor always rebuilds fresh stock materials
+    // before applyTint runs, so the default look is whatever the builder set.
   }
 }
 

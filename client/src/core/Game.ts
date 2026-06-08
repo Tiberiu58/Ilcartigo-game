@@ -30,7 +30,7 @@ import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
 import { Account } from '../account/Account';
-import { findKillEffect } from '../account/Cosmetics';
+import { findKillEffect, WEAPON_SKIN_ORDER } from '../account/Cosmetics';
 import { AudioManager, type SoundId } from '../audio/AudioManager';
 import { TEST_MAP } from '../maps/TestMap';
 import { SANDSTONE_MAP } from '../maps/SandstoneMap';
@@ -288,6 +288,16 @@ export class Game {
       if (youKilled) {
         this.account.awardXP(10);
         this.account.recordKill(e.isHeadshot);
+        // Weapon mastery — bump this weapon's kill count; celebrate a fresh
+        // skin unlock via the bus (ProgressionFX pops a reward chip).
+        const unlocked = this.account.recordWeaponKill(e.weaponId);
+        if (unlocked && unlocked.color !== undefined) {
+          this.bus.emit('masteryUnlock', {
+            weaponId: e.weaponId,
+            skinName: unlocked.displayName,
+            color: unlocked.color,
+          });
+        }
         // Track best-streak high-water mark from the per-match streak.
         this.localStreak++;
         this.account.recordStreak(this.localStreak);
@@ -316,7 +326,22 @@ export class Game {
     // Initial spawn: 2s of grace so the player can orient on first load.
     this.playerActor.health.grantInvulnerability(SPAWN_PROTECTION_SECONDS);
 
+    // Equipped weapon-skin tints → viewmodel, now and on any account change
+    // (equipping a skin, or a mastery unlock auto-applying its colour).
+    this.refreshWeaponSkins();
+    this.account.onChange(() => this.refreshWeaponSkins());
+
     window.addEventListener('resize', this.onResize);
+  }
+
+  /** Push the equipped weapon-skin body tints (per weapon) to the viewmodel. */
+  refreshWeaponSkins() {
+    const tints: Partial<Record<WeaponId, number>> = {};
+    for (const id of WEAPON_SKIN_ORDER) {
+      const c = this.account.equippedWeaponSkinColor(id);
+      if (c !== null) tints[id as WeaponId] = c;
+    }
+    this.viewmodel.setSkinTints(tints);
   }
 
   /**

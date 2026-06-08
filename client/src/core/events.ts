@@ -43,6 +43,8 @@ export type GameEvents = {
   // Local-only feedback events (not networked):
   hitConfirm: { isHeadshot: boolean };
   screenShake: { intensity: number; duration: number };
+  /** A weapon skin just unlocked via mastery — drives a reward popup. */
+  masteryUnlock: { weaponId: string; skinName: string; color: number };
 };
 
 type Handler<T> = (payload: T) => void;

@@ -83,6 +83,12 @@ export class ProgressionFX {
         this.rewardPopup(`+10 XP${e.isHeadshot ? ' · HS' : ''}`, e.isHeadshot ? '#ff6a8a' : '#ffd24a');
       }
     });
+
+    // Weapon mastery unlock → a distinct reward chip in the skin's colour.
+    bus.on('masteryUnlock', (e) => {
+      const hex = '#' + (e.color & 0xffffff).toString(16).padStart(6, '0');
+      this.rewardPopup(`${e.weaponId.toUpperCase()} SKIN: ${e.skinName}`, hex);
+    });
   }
 
   /** Refresh the HUD + menu rank badges from the current level. */

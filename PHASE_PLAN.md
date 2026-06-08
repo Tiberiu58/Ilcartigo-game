@@ -160,4 +160,32 @@ typecheck + build green each step, solo + MP both keep working.**
 
 ### Phase 13 COMPLETE — A–E + polish shipped. Client features zero-protocol; server changes additive (no protocol bump). Solo + MP intact.
 
+---
+
+## Phase 14 — Weapon Mastery & Skins (autonomous build, v0.14.0)
+
+A proven Krunker-style retention loop layered on the progression we just surfaced:
+get kills with a weapon → climb its *mastery* → unlock weapon skins for it. More to
+chase per weapon = more reasons to keep playing (retention → ad revenue). Entirely
+client-side + account-driven, zero protocol, solo + MP both unaffected (weapon skins
+are first-person viewmodel tints — they don't need to sync; remotes never render your
+viewmodel anyway).
+
+Guiding constraint: **no protocol changes, no new deps, typecheck + build green each step.**
+
+- **14A — Weapon mastery tracking.** `Account` records per-weapon lifetime kills
+  (`weaponKills`, migration-safe). Recorded on every local kill alongside the existing
+  lifetime stats.
+- **14B — Weapon skins (mastery-gated).** A `WEAPON_SKINS` registry: each of the 6
+  weapons (AR / SMG / Marksman / Sniper / Shotgun / Pistol) gets a default + 3 skins,
+  unlocked purely by mastery kills (15 / 50 / 150 — no XP cost; mastery *is* the
+  currency). Equipped skin tints the first-person viewmodel body.
+- **14C — Mastery-unlock celebration.** Crossing a skin's kill threshold emits a
+  `masteryUnlock` bus event → a "+{WEAPON} SKIN" reward chip via ProgressionFX.
+- **14D — Weapon Skins UI.** New section in the Cosmetics tab: a weapon picker + a
+  skin grid showing each skin's mastery progress / lock state, click to equip.
+
+### Status log
+- ✅ Phase 14A–D — Weapon mastery & skins. DONE (client tsc + build green, app ~63 KB gzip; server untouched). `WEAPON_SKINS` registry (6 weapons × 4 skins, default + 3 mastery-gated at 15/50/150 kills) + helpers in Cosmetics.ts. `Account` extended migration-safe (`weaponKills` + `equippedWeaponSkin`) with `recordWeaponKill` (returns the freshly-crossed skin), `isWeaponSkinUnlocked` (derived from mastery — no XP path), `equipWeaponSkin`, `equippedWeaponSkinColor`. Viewmodel tints the body mesh (first child = largest box in every builder) per equipped skin, re-applied after every (re)build so it survives swaps + cloak. Game records weapon kills on local kills, emits a new local-only `masteryUnlock` bus event on a fresh unlock, and pushes equipped tints to the viewmodel on boot + every account change. ProgressionFX pops a coloured "{WEAPON} SKIN: {name}" reward chip on unlock. New Cosmetics subsection: weapon picker tabs (with live mastery counts) + skin grid with per-skin mastery progress bars. Skins are first-person-only (viewmodel tints) → zero protocol, MP unaffected.
+
 

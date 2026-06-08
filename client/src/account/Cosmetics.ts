@@ -173,6 +173,94 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
 
+export type WeaponSkinId = string;    // e.g. 'ar-midas', 'sniper-dragon'
+
+export interface WeaponSkinConfig {
+  id: WeaponSkinId;
+  /** Weapon this skin belongs to (matches WeaponId strings). */
+  weaponId: string;
+  displayName: string;
+  /** Body tint (hex). Omitted on the default skin = no tint (stock look). */
+  color?: number;
+  /** Lifetime kills with this weapon required to unlock. 0 = free/default. */
+  killReq: number;
+}
+
+/** Mastery thresholds for the three non-default skins per weapon. */
+const MASTERY_REQS = [15, 50, 150];
+
+/** Build the 4 entries (default + 3 mastery skins) for one weapon. */
+function makeWeaponSkins(
+  weaponId: string,
+  defaultName: string,
+  variants: ReadonlyArray<{ displayName: string; color: number }>,
+): WeaponSkinConfig[] {
+  const out: WeaponSkinConfig[] = [
+    { id: `${weaponId}-default`, weaponId, displayName: defaultName, killReq: 0 },
+  ];
+  for (let i = 0; i < variants.length; i++) {
+    out.push({
+      id: `${weaponId}-${variants[i].displayName.toLowerCase().replace(/\s+/g, '-')}`,
+      weaponId,
+      displayName: variants[i].displayName,
+      color: variants[i].color,
+      killReq: MASTERY_REQS[i] ?? MASTERY_REQS[MASTERY_REQS.length - 1],
+    });
+  }
+  return out;
+}
+
+/**
+ * Weapon skins — first-person viewmodel body tints, unlocked by *mastery*
+ * (lifetime kills with that weapon), not XP. Mastery is the reward currency:
+ * you earn a skin by using the gun. Default skin = stock look (no tint).
+ */
+export const WEAPON_SKINS: ReadonlyArray<WeaponSkinConfig> = [
+  ...makeWeaponSkins('ar', 'Standard', [
+    { displayName: 'Woodland', color: 0x4a5a32 },
+    { displayName: 'Arctic',   color: 0xc6d2dc },
+    { displayName: 'Midas',    color: 0xf5c542 },
+  ]),
+  ...makeWeaponSkins('smg', 'Standard', [
+    { displayName: 'Hornet',   color: 0xffc14a },
+    { displayName: 'Toxic',    color: 0x8fdc3a },
+    { displayName: 'Vaporwave',color: 0xff5ad0 },
+  ]),
+  ...makeWeaponSkins('marksman', 'Standard', [
+    { displayName: 'Recon',    color: 0x3c6b5a },
+    { displayName: 'Crimson',  color: 0xc23030 },
+    { displayName: 'Obsidian', color: 0x222a34 },
+  ]),
+  ...makeWeaponSkins('sniper', 'Standard', [
+    { displayName: 'Tundra',   color: 0xbcd0dc },
+    { displayName: 'Nightfall',color: 0x2a3050 },
+    { displayName: 'Dragon',   color: 0xd83c2a },
+  ]),
+  ...makeWeaponSkins('shotgun', 'Standard', [
+    { displayName: 'Rust',     color: 0x8a4a28 },
+    { displayName: 'Forest',   color: 0x35502f },
+    { displayName: 'Brass',    color: 0xc8a850 },
+  ]),
+  ...makeWeaponSkins('pistol', 'Standard', [
+    { displayName: 'Slate',    color: 0x556070 },
+    { displayName: 'Ivory',    color: 0xe8e2d0 },
+    { displayName: 'Neon',     color: 0x30d0ff },
+  ]),
+];
+
+/** Weapon ids in the order the UI should present them. */
+export const WEAPON_SKIN_ORDER = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'pistol'] as const;
+
+export function weaponSkinsFor(weaponId: string): WeaponSkinConfig[] {
+  return WEAPON_SKINS.filter((s) => s.weaponId === weaponId);
+}
+export function findWeaponSkin(id: WeaponSkinId): WeaponSkinConfig | undefined {
+  return WEAPON_SKINS.find((s) => s.id === id);
+}
+export function defaultWeaponSkin(weaponId: string): WeaponSkinId {
+  return `${weaponId}-default`;
+}
+
 /** Lookup helpers. */
 export function findSkin(id: SkinId): SkinConfig | undefined {
   return SKINS.find((s) => s.id === id);
