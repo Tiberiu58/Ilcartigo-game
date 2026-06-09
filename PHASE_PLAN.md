@@ -122,3 +122,33 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ### Phase 12 COMPLETE — A–F + polish shipped, no protocol change, solo + MP intact.
 
+---
+
+## Phase 13 — Arena Depth: Weapon Fidelity + Pickups + Game Modes (autonomous build, v0.13.0)
+
+By the end of Phase 12 the *feel* is Krunker-grade, but the **arena itself is
+static** — no reasons to fight over the map, every weapon behaves like an AR
+online, and there is only one game mode. Phase 13 adds the depth that keeps an
+arena shooter sticky (longer sessions → more natural ad breakpoints):
+
+Guiding constraint: **typecheck + build green each step; never break solo or MP.**
+Protocol changes are allowed but versioned + mirrored in both `Protocol.ts`.
+
+- **13A — Server per-weapon damage + multi-pellet hitscan.** The server hard-coded
+  AR damage (24 / 1.8× head) for *every* weapon and cast a single ray — so the
+  Sniper did 24 (not 60), the Shotgun fired one pellet, the SMG over-performed.
+  New `server/src/WeaponStats.ts` mirrors the client weapon table; the server now
+  computes damage with per-weapon base/head/falloff and fires N spread pellets for
+  the Shotgun, accumulating damage per target. No protocol change. Pure fairness.
+- **13B — Arena pickups (health / armor / ammo).** Map-placed pickup pads that
+  respawn on a timer. Health restores HP, Armor grants a depleting overshield,
+  Ammo refills reserves. Works in **solo** (client-authoritative) and **MP**
+  (server-authoritative spawn/claim, protocol bumped). HUD pickup toast + SFX.
+- **13C — Overshield/armor HUD + damage model.** A second blue bar above HP; armor
+  soaks damage first, both solo + MP. Surfaces the armor pickup.
+- **13D — Team Deathmatch mode** (stretch) — team assignment, team spawns (maps
+  already define `teamSpawns`), team score to goal, friendly-fire off.
+- **13E — README + version bump + polish sweep.**
+
+### Status log
+

@@ -338,11 +338,17 @@ export class MultiplayerSession {
     // Skip our own shots — already rendered locally before send.
     if (m.shooterId === this.myId) return;
     const origin = new THREE.Vector3(...m.origin);
-    const end = m.hits.length > 0
-      ? new THREE.Vector3(...m.hits[0].point)
-      : origin.clone().add(new THREE.Vector3(...m.dir).multiplyScalar(200));
-    // Red tracer for remote shots, same as bot shots in single-player.
-    this.game.tracers.spawn(origin, end, 0.14, 0xff5a3a);
+    // Red tracer for remote shots, same as bot shots in single-player. Pellet
+    // weapons (Shotgun) report one hit per pellet — fan out a tracer to each so
+    // a remote shotgun blast reads as a spread, not a single line.
+    if (m.hits.length > 0) {
+      for (const h of m.hits) {
+        this.game.tracers.spawn(origin, new THREE.Vector3(...h.point), 0.14, 0xff5a3a);
+      }
+    } else {
+      const end = origin.clone().add(new THREE.Vector3(...m.dir).multiplyScalar(200));
+      this.game.tracers.spawn(origin, end, 0.14, 0xff5a3a);
+    }
   }
 
   private handleDamage(m: ServerDamageEvent) {
