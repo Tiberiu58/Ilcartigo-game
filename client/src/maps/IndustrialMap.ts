@@ -414,11 +414,13 @@ export const INDUSTRIAL_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xa05028,
-    // Spread across the yard. (13C adds an armor pad up on the L1 catwalk.)
+    // Spread across the yard + an armor pad up on the L1 catwalk (high ground).
+    // Order/index MUST match the server's PICKUPS_BY_MAP.industrial.
     pickups: [
       { type: 'health', pos: [-20, 0,  20] },
       { type: 'health', pos: [ 20, 0,  20] },
       { type: 'health', pos: [  0, 0, -20] },
+      { type: 'armor',  pos: [ 0, 0, 0] },
     ],
   },
   build: buildIndustrial,

@@ -336,6 +336,8 @@ export class MultiplayerSession {
       }
       this.game.playerActor.health.max = 100;        // MVP: fixed max
     }
+    // Armor (overshield) from server is authoritative too — drives the HUD bar.
+    this.game.playerActor.health.armor = self.armor ?? 0;
     void RECONCILE_DT;                                // reserved for full replay impl
   }
 

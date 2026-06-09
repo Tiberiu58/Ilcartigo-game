@@ -10,12 +10,21 @@ export class Health {
   max: number;
   current: number;
   dead = false;
+  /** Overshield (armor). Absorbs incoming damage 1:1 before HP. Gained only via
+   *  the armor pickup; does not regenerate; zeroed on respawn. 0 = no armor. */
+  armor = 0;
+  armorMax = 100;
   /** performance.now() timestamp until which incoming damage is ignored. */
   private invulnUntil = 0;
 
   constructor(max: number) {
     this.max = max;
     this.current = max;
+  }
+
+  /** Add overshield, clamped to armorMax (armor pickup). */
+  addArmor(amount: number) {
+    this.armor = Math.min(this.armorMax, this.armor + amount);
   }
 
   /** Change max HP (Vanguard passive). Preserves current/max ratio so swapping
@@ -43,6 +52,12 @@ export class Health {
   takeDamage(amount: number): boolean {
     if (this.dead) return false;
     if (this.isInvulnerable) return false;
+    // Overshield absorbs damage 1:1 until depleted, remainder hits HP.
+    if (this.armor > 0) {
+      const absorbed = Math.min(this.armor, amount);
+      this.armor -= absorbed;
+      amount -= absorbed;
+    }
     this.current = Math.max(0, this.current - amount);
     if (this.current === 0) {
       this.dead = true;
@@ -56,9 +71,10 @@ export class Health {
     this.current = Math.min(this.max, this.current + amount);
   }
 
-  /** Resets HP + alive state. Caller should grantInvulnerability separately. */
+  /** Resets HP + alive state (+ clears armor). Caller should grantInvulnerability separately. */
   reset() {
     this.current = this.max;
     this.dead = false;
+    this.armor = 0;
   }
 }

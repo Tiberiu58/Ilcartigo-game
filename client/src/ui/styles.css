@@ -657,12 +657,30 @@ body.kill-flash #app::after {
   color: var(--muted);
   letter-spacing: 2px;
 }
+#health-panel .hp-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 #health-panel .hp-bar {
   position: relative;
   width: 160px; height: 10px;
   background: rgba(0,0,0,0.4);
   border-radius: 2px;
   overflow: hidden;
+}
+#armor-bar {
+  width: 160px; height: 5px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#armor-bar.hidden { display: none; }
+#armor-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #3b82f6, #7cc4ff);
+  transition: width 0.15s ease-out;
 }
 #hp-fill {
   height: 100%;

@@ -58,7 +58,7 @@ const SPAWNS_BY_MAP: Record<string, ReadonlyArray<Vec3>> = {
 
 // ── Arena pickups ────────────────────────────────────────────────────────────
 // Layout MUST mirror each client map's MapMeta.pickups (same order = same id).
-// Only health pads ship in Phase 13B; armor/ammo arrive in 13C.
+// Health + armor pads ship now; the `ammo` type is supported but unplaced.
 interface PickupSpawnS { type: string; pos: Vec3; }
 const PICKUPS_BY_MAP: Record<string, ReadonlyArray<PickupSpawnS>> = {
   sandstone: [
@@ -66,15 +66,18 @@ const PICKUPS_BY_MAP: Record<string, ReadonlyArray<PickupSpawnS>> = {
     { type: 'health', pos: [-22, 0, 0] },
     { type: 'health', pos: [ 0, 0,  22] },
     { type: 'health', pos: [ 0, 0, -22] },
+    { type: 'armor',  pos: [ 24, 4.5, 24] },
   ],
   industrial: [
     { type: 'health', pos: [-20, 0,  20] },
     { type: 'health', pos: [ 20, 0,  20] },
     { type: 'health', pos: [  0, 0, -20] },
+    { type: 'armor',  pos: [ 0, 0, 0] },
   ],
 };
 const PICKUP_RESPAWN_MS: Record<string, number> = { health: 15000, armor: 22000, ammo: 12000 };
 const PICKUP_AMOUNT: Record<string, number> = { health: 50, armor: 50, ammo: 0 };
+const ARMOR_MAX = 100;
 const PICKUP_RADIUS_XZ = 1.7;
 const PICKUP_RADIUS_Y = 2.2;
 
@@ -109,6 +112,8 @@ interface ServerPlayer {
   controller: ServerController;
   hp: number;
   maxHp: number;
+  /** Overshield (armor). Absorbs damage 1:1 before HP. 0 = none. */
+  armor: number;
   alive: boolean;
   cloaked: boolean;
   kills: number;
@@ -235,6 +240,7 @@ export class Room {
       controller,
       hp: 100,
       maxHp: 100,
+      armor: 0,
       alive: true,
       cloaked: false,
       kills: 0,
@@ -359,6 +365,7 @@ export class Room {
       yaw: p.controller.yaw,
       pitch: p.controller.pitch,
       hp: p.hp,
+      armor: p.armor,
       classId: p.classId,
       weaponId: p.weaponId,
       skinId: p.skinId,
@@ -475,7 +482,14 @@ export class Room {
     const now = Date.now();
     for (const { target, amount, head, point } of dmgByTarget.values()) {
       if (now < target.invulnUntil) continue;     // spawn-protected
-      target.hp = Math.max(0, target.hp - amount);
+      // Overshield absorbs 1:1 before HP (mirrors client Health.takeDamage).
+      let remaining = amount;
+      if (target.armor > 0) {
+        const absorbed = Math.min(target.armor, remaining);
+        target.armor -= absorbed;
+        remaining -= absorbed;
+      }
+      target.hp = Math.max(0, target.hp - remaining);
       const dmgEvent: ServerDamageEvent = {
         attackerId: shooterId,
         targetId: target.id,
@@ -522,6 +536,7 @@ export class Room {
     p.controller.velocity[1] = 0;
     p.controller.velocity[2] = 0;
     p.hp = p.maxHp;
+    p.armor = 0;
     p.alive = true;
     p.invulnUntil = Date.now() + 2000;
     // Reset ability state to a fresh ability of the same id.
@@ -572,12 +587,14 @@ export class Room {
    *  wasting a health pad at full HP. */
   private pickupBenefits(p: ServerPlayer, type: string): boolean {
     if (type === 'health') return p.hp < p.maxHp;
-    return true;   // armor (13C) / ammo — always claimable server-side
+    if (type === 'armor')  return p.armor < ARMOR_MAX;
+    return true;   // ammo — always claimable server-side (client applies it)
   }
 
   /** Apply a pickup's server-side effect. Ammo is client-side (no server ammo). */
   private applyPickupEffect(p: ServerPlayer, type: string) {
     if (type === 'health') p.hp = Math.min(p.maxHp, p.hp + (PICKUP_AMOUNT[type] ?? 50));
+    else if (type === 'armor') p.armor = Math.min(ARMOR_MAX, p.armor + (PICKUP_AMOUNT[type] ?? 50));
   }
 
   /** Current pickup cooldowns (only pads still respawning) for the Welcome msg. */

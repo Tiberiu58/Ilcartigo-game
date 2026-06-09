@@ -127,6 +127,9 @@ export interface PlayerSnapshot {
   yaw: number;
   pitch: number;
   hp: number;
+  /** Overshield (armor) — only meaningful for the local player's HUD; 0/absent
+   *  means none. Remote viewers don't render an armor bar. */
+  armor?: number;
   classId: string;
   weaponId: string;
   /** Cosmetic skin id; optional (older clients may not send it). */

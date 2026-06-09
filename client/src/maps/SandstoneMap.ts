@@ -274,13 +274,15 @@ export const SANDSTONE_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xffd9a0,
-    // Contested lane mouths between the corner buildings. (13C adds an armor
-    // pad on the central tower's mid-tier once the overshield model lands.)
+    // Contested lane mouths between the corner buildings + an armor pad on the
+    // central tower's mid-tier (rewards taking the high ground). Order/index
+    // MUST match the server's PICKUPS_BY_MAP.sandstone.
     pickups: [
       { type: 'health', pos: [ 22, 0, 0] },
       { type: 'health', pos: [-22, 0, 0] },
       { type: 'health', pos: [ 0, 0,  22] },
       { type: 'health', pos: [ 0, 0, -22] },
+      { type: 'armor',  pos: [ 24, 4.5, 24] },
     ],
   },
   build: buildSandstone,

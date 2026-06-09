@@ -25,6 +25,9 @@ export class HUD {
 
   private hpFill: HTMLElement;
   private hpNum: HTMLElement;
+  private armorBar: HTMLElement;
+  private armorFill: HTMLElement;
+  private lastArmor = -1;
   private ammoCur: HTMLElement;
   private ammoMax: HTMLElement;
   private ammoWeapon: HTMLElement;
@@ -85,6 +88,8 @@ export class HUD {
 
     this.hpFill = document.getElementById('hp-fill')!;
     this.hpNum = document.getElementById('hp-num')!;
+    this.armorBar = document.getElementById('armor-bar')!;
+    this.armorFill = document.getElementById('armor-fill')!;
     this.ammoCur = document.getElementById('ammo-cur')!;
     this.ammoMax = document.getElementById('ammo-max')!;
     this.ammoWeapon = document.getElementById('ammo-weapon')!;
@@ -152,6 +157,17 @@ export class HUD {
       this.lastHp = hp;
       this.hpFill.style.width = `${(hp / this.playerHealth.max) * 100}%`;
       this.hpNum.textContent = String(Math.ceil(hp));
+    }
+
+    // Armor (overshield) bar — only visible while we have armor.
+    const armor = this.playerHealth.armor;
+    if (armor !== this.lastArmor) {
+      this.lastArmor = armor;
+      const hasArmor = armor > 0;
+      this.armorBar.classList.toggle('hidden', !hasArmor);
+      if (hasArmor) {
+        this.armorFill.style.width = `${(armor / this.playerHealth.armorMax) * 100}%`;
+      }
     }
 
     const w = this.inventory.current;

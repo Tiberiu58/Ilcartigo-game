@@ -444,7 +444,7 @@ export class Game {
     switch (type) {
       case 'health': return this.playerActor.health.current < this.playerActor.health.max;
       case 'ammo':   return this.inventory.current.ammo < this.inventory.current.config.magSize;
-      case 'armor':  return true;   // overshield model lands in Phase 13C
+      case 'armor':  return this.playerActor.health.armor < this.playerActor.health.armorMax;
       default:       return false;
     }
   }
@@ -454,7 +454,7 @@ export class Game {
     switch (type) {
       case 'health': this.playerActor.health.heal(PICKUP_CONFIG.health.amount); break;
       case 'ammo':   this.inventory.refillAmmo(); break;
-      case 'armor':  break;          // Phase 13C
+      case 'armor':  this.playerActor.health.addArmor(PICKUP_CONFIG.armor.amount); break;
     }
   }
 
