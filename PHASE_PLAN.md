@@ -176,6 +176,10 @@ defaults to 1.0, so zero regression to existing play).
 - **14B — README + version bump.**
 
 ### Status log
+- ✅ Phase 14A — Adrenaline speed powerup. DONE + headless-verified (server speed pad claims index 5, sets controller.buffSpeedMultiplier=1.4 + buff window; server+client tsc + build green). New `buffSpeedMultiplier` on both controllers, multiplied alongside the Surge `speedMultiplier` (stacks, no clobber, defaults to 1.0 = zero regression). New `speed` pickup type + one orange pad/map (Sandstone plaza index 5, Industrial NE yard index 4), lockstep client meta + server table. Solo client timer; MP server-authoritative buff/expiry + client prediction on claim; reset on respawn. HUD buff chip with live countdown + `pickup_speed` SFX. No protocol change.
+- ✅ Phase 14B — v0.14.0 bump + docs. DONE. Client+server package.json + menu subtitle/footer to v0.14.0; README Phase 14 section + status/deliverables + audio catalog (pickup_speed). Typecheck (client+server) + client build green.
+
+### Phase 14 COMPLETE — Adrenaline speed powerup shipped (solo + MP), no protocol change, movement buff is a no-op-by-default layer so existing play is untouched.
 
 ### Status log
 - ✅ Phase 13A — Server per-weapon damage + multi-pellet hitscan. DONE (server+client tsc, client build green; damage math unit-verified: Sniper 60 body / 111 head, Shotgun 12×9 close, AR 24, SMG 14, Pistol 37.4 head). New `server/src/WeaponStats.ts` (trimmed mirror of the client weapon table) + `computeWeaponDamage` (falloff+head). `onFire` rewinds targets once, fires `pellets` deterministic-spread rays (tick+id seeded PRNG), accumulates per-target damage into one Damage/Kill event. Remote shotgun fans a tracer per pellet. No protocol change.

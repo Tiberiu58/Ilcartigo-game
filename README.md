@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 13 — v0.13.0. Arena depth: server-authoritative per-weapon damage + multi-pellet shotgun hitscan (MP weapons now behave correctly), arena **pickups** (health + armor/overshield pads, solo + MP, protocol v3), an overshield damage model + HUD armor bar, and crosshair presets. Built on Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Powerups: an **Adrenaline** speed-boost pad (timed +40% move speed via a buff layer that stacks with Surge, solo + MP) with a HUD buff chip. Built on Phase 13 (server-authoritative per-weapon damage + multi-pellet shotgun hitscan, arena health/armor pickups, overshield model + HUD armor bar, crosshair presets) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -301,6 +301,7 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `pickup_health.wav` | Health pad pickup chime | "health pickup", "heal up" |
 | `pickup_armor.wav` | Armor/overshield pickup | "shield pickup", "armor up" |
 | `pickup_ammo.wav` | Ammo refill pickup | "ammo pickup", "reload pickup" |
+| `pickup_speed.wav` | Adrenaline speed-buff pickup | "power up speed", "whoosh boost" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -414,14 +415,37 @@ headless tests) and solo + MP kept intact.
 Production client: **~190 KB gzipped** total (engine 121 + app 63 + CSS 7 + HTML 6).
 ~+3 KB this phase for the whole pickup/armor/preset layer. No new dependencies.
 
+## Phase 14 — Powerups & Buffs (this round, v0.14.0)
+
+Pickups gave the arena reasons to fight (Phase 13); powerups add *momentum
+swings* — the Krunker/Quake "I took the power position" feeling. Built directly
+on the Phase 13 pickup system and kept SAFE: the movement buff is a separate
+multiplicative layer (`buffSpeedMultiplier`, default 1.0) so existing play has
+zero regression.
+
+- **A. Adrenaline speed powerup.** A new orange `speed` pad (one per map at a
+  power spot — Sandstone plaza, Industrial NE yard) grants a timed **+40% ground
+  speed** for 6 s. Implemented as `buffSpeedMultiplier` on BOTH movement
+  controllers, multiplied *alongside* the Surge `speedMultiplier` so the two
+  stack and neither clobbers the other. SOLO runs a client buff timer; MP is
+  server-authoritative (the buff is applied + expired on the server so the sim
+  and remote views match, with the claiming client predicting on the claim
+  event). The buff resets on respawn. A pulsing **buff chip** shows the live
+  countdown; the pickup toast + `pickup_speed` SFX are wired. No protocol change
+  — it reuses `ServerPickupClaimed` and a shared duration constant.
+
+### Bundle size
+
+Production client: **~191 KB gzipped** total (engine 122 + app 63 + CSS 7 + HTML 6).
+
 ## Project status
 
-13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **server per-weapon damage + multi-pellet hitscan + arena pickups + armor/overshield** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, server per-weapon damage + multi-pellet hitscan + arena pickups + armor/overshield, **Adrenaline speed powerup** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, arena pickups (health + armor), overshield HUD, crosshair presets. v0.13.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp per-weapon multi-pellet hitscan. Networked abilities + barriers + arena pickups. Authoritative match-end + class passives + armor model. Protocol v3. v0.13.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, arena pickups (health + armor + speed powerup), overshield HUD, buff chip, crosshair presets. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp per-weapon multi-pellet hitscan. Networked abilities + barriers + arena pickups + speed buff. Authoritative match-end + class passives + armor model. Protocol v3. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
