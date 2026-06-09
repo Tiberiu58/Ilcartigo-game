@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 13 — v0.13.0. Arena depth: server-authoritative per-weapon damage + multi-pellet shotgun hitscan (MP weapons now behave correctly), arena **pickups** (health + armor/overshield pads, solo + MP, protocol v3), an overshield damage model + HUD armor bar, and crosshair presets. Built on Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -294,6 +294,14 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `revenge.wav` | Revenge-kill announcer sting | "revenge sting", "vengeance" |
 | `comeback.wav` | Comeback announcer sting | "comeback", "rise up sting" |
 
+**Phase 13 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `pickup_health.wav` | Health pad pickup chime | "health pickup", "heal up" |
+| `pickup_armor.wav` | Armor/overshield pickup | "shield pickup", "armor up" |
+| `pickup_ammo.wav` | Ammo refill pickup | "ammo pickup", "reload pickup" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -361,14 +369,59 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Arena Depth: Weapon Fidelity + Pickups + Armor (this round, v0.13.0)
+
+By Phase 12 the *feel* was Krunker-grade, but the **arena itself was static** —
+no reasons to fight over the map, and every weapon behaved like an AR online.
+Phase 13 adds the depth that keeps an arena shooter sticky (longer sessions →
+more natural ad breakpoints), with each sub-phase verified (typecheck + build +
+headless tests) and solo + MP kept intact.
+
+- **A. Server per-weapon damage + multi-pellet hitscan.** The server hard-coded
+  AR damage (24 / 1.8× head) for *every* weapon and cast a single ray — so in MP
+  the Sniper hit for 24 (not 60), the Shotgun fired one pellet instead of nine,
+  and the SMG over-performed. New `server/src/WeaponStats.ts` mirrors the client
+  weapon table; `onFire` now computes per-weapon base/head/falloff and fires N
+  deterministic-spread pellets, accumulating damage per target into one
+  Damage/Kill event. Remote shotgun blasts fan a tracer per pellet. No protocol
+  change — pure fairness.
+- **B. Arena health pickups (solo + MP).** Map-placed pads that respawn on a
+  timer give players a reason to fight over the arena. New `entities/Pickups.ts`
+  (`PickupManager`) owns the floating spinning visual + bob and claim logic;
+  `MapMeta.pickups` defines per-map layout (Sandstone 4 / Industrial 3 health
+  pads at contested lane mouths), mirrored server-side in `Room.PICKUPS_BY_MAP`
+  **by index**. SOLO claims are client-authoritative (proximity + a benefit gate
+  so you can't waste a pad at full HP); MP claims are server-authoritative
+  (`Room.tickPickups` heals server-side, reflected via snapshot, broadcasts
+  `ServerPickupClaimed`; `Welcome.pickups` carries cooldowns for late joiners;
+  rematch re-arms all pads). Protocol bumped to **v3**. HUD pickup toast +
+  `pickup_*` SFX ids.
+- **C. Armor / overshield model + armor pickups.** A second survivability
+  resource: overshield absorbs incoming damage 1:1 before HP, gained only via
+  armor pads, zeroed on respawn, no regen. Inserted at the `Health` primitive
+  (client) so bots — which never gain armor — are unaffected; mirrored in
+  `ServerPlayer.armor` with the same absorb-before-HP rule in `onFire`.
+  `PlayerSnapshot.armor` syncs the local HUD bar online. One armor pad per map at
+  a high-ground/contested spot (Sandstone NE rooftop, Industrial yard centre). A
+  new thin blue **armor bar** sits above the HP bar (hidden at 0).
+- **D. MP max-HP HUD fix + crosshair presets.** `PlayerSnapshot.maxHp` so the
+  local HP bar normalises to the real max online (Vanguard's 115 no longer reads
+  as a 100-capped bar). One-click crosshair presets (Dot / Small / Cross / Large)
+  in the Crosshair settings tab.
+
+### Bundle size
+
+Production client: **~190 KB gzipped** total (engine 121 + app 63 + CSS 7 + HTML 6).
+~+3 KB this phase for the whole pickup/armor/preset layer. No new dependencies.
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+13 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **server per-weapon damage + multi-pellet hitscan + arena pickups + armor/overshield** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, arena pickups (health + armor), overshield HUD, crosshair presets. v0.13.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp per-weapon multi-pellet hitscan. Networked abilities + barriers + arena pickups. Authoritative match-end + class passives + armor model. Protocol v3. v0.13.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
@@ -378,11 +431,12 @@ Things deliberately left for later:
 - **Deploy** — finish the Fly.io (server) + Vercel (site/client) deploy. Config is written; needs account setup + a registered domain (see `PHASE_PLAN.md`).
 - **Audio assets** — the full SFX pipeline is wired (weapons, hits, abilities, footsteps, jumps, killstreak stings, UI); drop CC0 `.wav`s into `client/public/assets/sounds/` per the catalog and they "just work."
 - **Real account backend** (Supabase / Firebase) for cross-device progression + a real (server-validated) leaderboard.
-- **TDM game mode** — team assignment, team spawns (maps already define `teamSpawns`), team scoring.
+- **TDM game mode** — team assignment, team spawns (maps already define `teamSpawns`), team scoring. (Blocked on a server game-mode concept — one process currently runs one FFA room — and bot-vs-bot targeting for a solo variant.)
 - **Matchmaking + multiple rooms** instead of one shared FFA.
 - **Anti-cheat** beyond server authority (movement validation, fire rate caps).
-- **More cosmetics**: crosshair preset packs, tracer colors, victory poses.
-- **Bot AI improvements**: per-map waypoints, stair climbing.
+- **More pickups**: speed/damage powerups (needs a buff layer separate from the Surge speedMultiplier), ammo pads (infra + `ammo` type already wired, just unplaced).
+- **More cosmetics**: victory poses, weapon skins.
+- **Bot AI improvements**: per-map waypoints, stair climbing, bot-vs-bot.
 
 ---
 
