@@ -151,4 +151,5 @@ Protocol changes are allowed but versioned + mirrored in both `Protocol.ts`.
 - **13E — README + version bump + polish sweep.**
 
 ### Status log
+- ✅ Phase 13A — Server per-weapon damage + multi-pellet hitscan. DONE (server+client tsc, client build green; damage math unit-verified: Sniper 60 body / 111 head, Shotgun 12×9 close, AR 24, SMG 14, Pistol 37.4 head). New `server/src/WeaponStats.ts` (trimmed mirror of the client weapon table) + `computeWeaponDamage` (falloff+head). `onFire` rewinds targets once, fires `pellets` deterministic-spread rays (tick+id seeded PRNG), accumulates per-target damage into one Damage/Kill event. Remote shotgun fans a tracer per pellet. No protocol change.
 

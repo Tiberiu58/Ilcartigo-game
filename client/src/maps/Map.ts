@@ -15,6 +15,17 @@ import type { World } from '../core/World';
 
 export type MapId = 'practice' | 'sandstone' | 'industrial';
 
+/** Arena pickup kinds. `health` restores HP, `armor` grants overshield,
+ *  `ammo` refills the active mag. Layout is map-defined + mirrored server-side
+ *  (Room.PICKUPS_BY_MAP) by array index so only timing crosses the wire. */
+export type PickupType = 'health' | 'armor' | 'ammo';
+
+export interface PickupSpawn {
+  type: PickupType;
+  /** Ground position [x, y, z]; the visual icon floats above it. */
+  pos: [number, number, number];
+}
+
 export interface MapMeta {
   id: MapId;
   displayName: string;
@@ -25,6 +36,10 @@ export interface MapMeta {
   teamSpawns?: [THREE.Vector3, THREE.Vector3];
   /** Color of the post-respawn screen-flash; defaults to bright cyan. */
   spawnFlashColor?: number;
+  /** Arena pickups (health/armor/ammo pads). Order is significant — the index
+   *  is the pickup id used on the wire. Keep in sync with the server's
+   *  PICKUPS_BY_MAP. Omitted/empty = no pickups (e.g. Practice). */
+  pickups?: PickupSpawn[];
 }
 
 export interface GameMap {

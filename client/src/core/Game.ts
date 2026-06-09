@@ -28,6 +28,8 @@ import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
+import { PickupManager, PICKUP_CONFIG } from '../entities/Pickups';
+import type { PickupType } from '../maps/Map';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
 import { Account } from '../account/Account';
 import { findKillEffect } from '../account/Cosmetics';
@@ -74,6 +76,8 @@ export class Game {
   readonly tracers: TracerPool;
   readonly castFX: CastFX;
   readonly dmgNumbers: DamageNumbers;
+  /** Arena pickups (health/armor/ammo pads). Loaded per map. */
+  readonly pickups: PickupManager;
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -206,6 +210,8 @@ export class Game {
     this.tracers = new TracerPool(this.scene, 32);
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
+    this.pickups = new PickupManager(this.scene);
+    this.pickups.load(this.currentMap.meta.pickups);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
@@ -432,6 +438,44 @@ export class Game {
     if (this.mode === 'combat') this.audio.play('spawn_protect');
   }
 
+  /** Whether the local player would currently benefit from a pickup type. Used
+   *  to gate solo claims so you don't waste a health pad at full HP. */
+  private canClaimPickup(type: PickupType): boolean {
+    switch (type) {
+      case 'health': return this.playerActor.health.current < this.playerActor.health.max;
+      case 'ammo':   return this.inventory.current.ammo < this.inventory.current.config.magSize;
+      case 'armor':  return true;   // overshield model lands in Phase 13C
+      default:       return false;
+    }
+  }
+
+  /** Apply a pickup's effect to the local player (SOLO, or MP ammo-by-claimer). */
+  private applyPickupEffect(type: PickupType) {
+    switch (type) {
+      case 'health': this.playerActor.health.heal(PICKUP_CONFIG.health.amount); break;
+      case 'ammo':   this.inventory.refillAmmo(); break;
+      case 'armor':  break;          // Phase 13C
+    }
+  }
+
+  /**
+   * MP: the server broadcast a pickup claim. Hide the pad until `availableAt`.
+   * HP-affecting effects (health/armor) are applied server-side and arrive via
+   * the next Snapshot; `ammo` is applied locally if WE claimed it. We only fire
+   * the HUD feedback when the local player was the claimer.
+   */
+  applyServerPickup(id: number, byId: string, type: string, availableAt: number) {
+    this.pickups.applyServerClaim(id, availableAt);
+    if (!this.isLocalPlayer(byId)) return;
+    if (type === 'ammo') this.inventory.refillAmmo();
+    this.bus.emit('pickup', { type: type as PickupType, byLocal: true });
+  }
+
+  /** MP: seed pickup cooldown state from the Welcome message (late-join sync). */
+  applyPickupCooldowns(list: ReadonlyArray<{ id: number; availableAt: number }>) {
+    this.pickups.setCooldowns(list);
+  }
+
   /**
    * Pick a spawn point. In Practice mode the first spawn is always used (it's
    * the lab pad). In Combat mode we score each spawn by its *minimum* distance
@@ -498,6 +542,10 @@ export class Game {
     this.world.clear();
     this.currentMap = MAPS[id];
     this.currentMap.build(this.world);
+    // Pickups live in their own scene group (not World.solids), so rebuild them
+    // explicitly after the world is cleared. In MP the server's Welcome cooldown
+    // snapshot will hide any pads currently on respawn timers.
+    this.pickups.load(this.currentMap.meta.pickups);
 
     // The new map sets its own fog/lighting. Re-apply graphics quality so the
     // pixel ratio + fog distance reflect the current preset (fog._baseFar
@@ -787,6 +835,17 @@ export class Game {
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
     this.world.update();        // expires Engineer barrier solids when their TTL is up
+
+    // Arena pickups: animate always; claim only in solo combat (MP claims are
+    // server-authoritative and arrive via applyServerPickup).
+    this.pickups.update(dt);
+    if (!this.mp && this.mode === 'combat' && !this.playerActor.health.dead) {
+      const claimed = this.pickups.trySoloClaim(this.player.pos, (t) => this.canClaimPickup(t));
+      if (claimed) {
+        this.applyPickupEffect(claimed.type);
+        this.bus.emit('pickup', { type: claimed.type, byLocal: true });
+      }
+    }
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

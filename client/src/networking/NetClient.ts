@@ -19,7 +19,7 @@ import {
   type Snapshot, type ServerWelcome, type ServerShotEvent, type ServerKillEvent,
   type ServerDamageEvent, type ServerPlayerJoined, type ServerPlayerLeft, type ServerError,
   type ServerAbilityCast, type ServerAddSolid, type ServerRemoveSolid,
-  type ServerMatchOver, type ServerMatchReset,
+  type ServerMatchOver, type ServerMatchReset, type ServerPickupClaimed,
 } from './Protocol';
 
 export interface NetClientCallbacks {
@@ -37,6 +37,7 @@ export interface NetClientCallbacks {
   onDisconnect?: (reason: string) => void;
   onMatchOver?: (msg: ServerMatchOver) => void;
   onMatchReset?: (msg: ServerMatchReset) => void;
+  onPickup?: (msg: ServerPickupClaimed) => void;
 }
 
 export class NetClient {
@@ -78,6 +79,7 @@ export class NetClient {
     this.socket.on(EV.Err,         (m: ServerError)          => this.cbs.onError?.(m));
     this.socket.on(EV.MatchOver,   (m: ServerMatchOver)      => this.cbs.onMatchOver?.(m));
     this.socket.on(EV.MatchReset,  (m: ServerMatchReset)     => this.cbs.onMatchReset?.(m));
+    this.socket.on(EV.Pickup,      (m: ServerPickupClaimed)  => this.cbs.onPickup?.(m));
     this.socket.on('disconnect',   (r: string)               => this.cbs.onDisconnect?.(r));
   }
 

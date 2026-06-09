@@ -10,6 +10,7 @@ import type { WeaponInventory } from '../weapons/WeaponInventory';
 import type { AbilityRunner } from '../classes/AbilityRunner';
 import type { PlayerController } from '../entities/PlayerController';
 import { Game } from '../core/Game';
+import type { SoundId } from '../audio/AudioManager';
 
 const KILLFEED_MAX = 5;
 const KILLFEED_TTL = 5000; // ms
@@ -35,6 +36,8 @@ export class HUD {
   private scopeOverlay: HTMLElement;
   private slotChips: HTMLElement[];
   private spawnProtect: HTMLElement;
+  private pickupToast: HTMLElement;
+  private pickupToastTimer: number | null = null;
   private lowHpVignette: HTMLElement;
   private matchScore: HTMLElement;
   private msYouKills: HTMLElement;
@@ -93,6 +96,7 @@ export class HUD {
     this.scopeOverlay = document.getElementById('scope-overlay')!;
     this.slotChips = Array.from(document.querySelectorAll<HTMLElement>('.slot-chip'));
     this.spawnProtect = document.getElementById('spawn-protect')!;
+    this.pickupToast = document.getElementById('pickup-toast')!;
     this.lowHpVignette = document.getElementById('lowhp-vignette')!;
     this.matchScore = document.getElementById('match-score')!;
     this.msYouKills = document.getElementById('ms-you-kills')!;
@@ -115,6 +119,11 @@ export class HUD {
     // Damage taken → red vignette.
     bus.on('damage', ({ targetId }) => {
       if (this.game.isLocalPlayer(targetId)) this.flashDamage();
+    });
+
+    // Pickup claimed by the local player → toast + SFX.
+    bus.on('pickup', ({ type, byLocal }) => {
+      if (byLocal) this.showPickupToast(type);
     });
 
     // Kills → killfeed. Shortens MP socket ids to a 6-char tag for readability.
@@ -356,6 +365,23 @@ export class HUD {
       this.hitmarker.classList.remove('show');
       this.hitmarker.classList.add('fade');
     }, 140);
+  }
+
+  /** Brief banner + SFX when the local player grabs an arena pickup. */
+  private showPickupToast(type: 'health' | 'armor' | 'ammo') {
+    const label = type === 'health' ? '+50 HEALTH'
+      : type === 'armor' ? '+50 ARMOR'
+      : 'AMMO REFILLED';
+    this.pickupToast.textContent = label;
+    this.pickupToast.className = `pickup-${type}`;   // clears 'hidden' + sets colour
+    void this.pickupToast.offsetWidth;               // restart the animation
+    this.pickupToast.classList.add('show');
+    this.game.audio.play(`pickup_${type}` as SoundId);
+    if (this.pickupToastTimer !== null) window.clearTimeout(this.pickupToastTimer);
+    this.pickupToastTimer = window.setTimeout(() => {
+      this.pickupToast.classList.remove('show');
+      this.pickupToast.classList.add('hidden');
+    }, 1200);
   }
 
   private flashDamage() {

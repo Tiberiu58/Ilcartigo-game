@@ -261,6 +261,12 @@ export class Weapon {
     this.reloadRemaining = this.config.reloadTime * this.reloadMultiplier;
   }
 
+  /** Instantly top up the magazine (ammo pickup). Cancels any in-flight reload. */
+  refill() {
+    this.ammoInMag = this.config.magSize;
+    this.reloadRemaining = 0;
+  }
+
   update(dt: number) {
     if (this.cooldown > 0) this.cooldown = Math.max(0, this.cooldown - dt);
     if (this.reloadRemaining > 0) {

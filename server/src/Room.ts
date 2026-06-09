@@ -22,7 +22,7 @@ import {
   type ClientFireRequest, type ServerShotEvent, type ServerDamageEvent, type ServerKillEvent,
   type Vec3, type ClientAbilityRequest, type ServerAbilityCast,
   type ServerAddSolid, type ServerRemoveSolid, type ClientHello,
-  type ServerMatchOver, type ServerMatchReset,
+  type ServerMatchOver, type ServerMatchReset, type ServerPickupClaimed,
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
@@ -55,6 +55,36 @@ const SPAWNS_BY_MAP: Record<string, ReadonlyArray<Vec3>> = {
     [ 42, 0.5, -28],     // SE yard corner
   ],
 };
+
+// ── Arena pickups ────────────────────────────────────────────────────────────
+// Layout MUST mirror each client map's MapMeta.pickups (same order = same id).
+// Only health pads ship in Phase 13B; armor/ammo arrive in 13C.
+interface PickupSpawnS { type: string; pos: Vec3; }
+const PICKUPS_BY_MAP: Record<string, ReadonlyArray<PickupSpawnS>> = {
+  sandstone: [
+    { type: 'health', pos: [ 22, 0, 0] },
+    { type: 'health', pos: [-22, 0, 0] },
+    { type: 'health', pos: [ 0, 0,  22] },
+    { type: 'health', pos: [ 0, 0, -22] },
+  ],
+  industrial: [
+    { type: 'health', pos: [-20, 0,  20] },
+    { type: 'health', pos: [ 20, 0,  20] },
+    { type: 'health', pos: [  0, 0, -20] },
+  ],
+};
+const PICKUP_RESPAWN_MS: Record<string, number> = { health: 15000, armor: 22000, ammo: 12000 };
+const PICKUP_AMOUNT: Record<string, number> = { health: 50, armor: 50, ammo: 0 };
+const PICKUP_RADIUS_XZ = 1.7;
+const PICKUP_RADIUS_Y = 2.2;
+
+interface RoomPickup {
+  id: number;
+  type: string;
+  pos: Vec3;
+  /** Wall-clock ms when it becomes available again (0 = available now). */
+  availableAt: number;
+}
 
 interface AbilityState {
   /** Wall-clock ms when the ability is next castable (cooldown). */
@@ -150,6 +180,8 @@ export class Room {
   /** Networked temporary solids (Engineer Barriers). */
   private tempSolids = new Map<number, TempSolid>();
   private nextSolidId = 1;
+  /** Arena pickups for this map (authoritative claim/respawn). */
+  private pickups: RoomPickup[] = [];
   private tick = 0;
   private tickInterval: NodeJS.Timeout | null = null;
   /** True once a player has hit MATCH_KILL_GOAL. Blocks re-triggering match
@@ -168,6 +200,8 @@ export class Room {
     this.mapId = COLLISION_BY_MAP[mapId] ? mapId : 'sandstone';
     this.staticSolids = COLLISION_BY_MAP[this.mapId];
     this.spawns = SPAWNS_BY_MAP[this.mapId] ?? SPAWNS_BY_MAP['sandstone'];
+    const layout = PICKUPS_BY_MAP[this.mapId] ?? [];
+    this.pickups = layout.map((p, i) => ({ id: i, type: p.type, pos: p.pos, availableAt: 0 }));
   }
 
   start() {
@@ -228,6 +262,7 @@ export class Room {
       serverTick: this.tick,
       tickHz: TICK_HZ,
       players: Array.from(this.players.values()).map((pp) => this.toSnapshot(pp)),
+      pickups: this.pickupCooldownSnapshot(Date.now()),
     };
     socket.emit(EV.Welcome, welcome);
 
@@ -298,6 +333,10 @@ export class Room {
       const cutoff = now - POS_HISTORY_MS;
       while (p.posHistory.length > 0 && p.posHistory[0].t < cutoff) p.posHistory.shift();
     }
+
+    // Arena pickups — claim checks happen before the snapshot so a heal shows
+    // up the same tick the pad is grabbed.
+    this.tickPickups(now);
 
     // Broadcast snapshots. Each player gets their own ackSeq.
     const allPlayers = Array.from(this.players.values()).map((p) => this.toSnapshot(p));
@@ -497,6 +536,57 @@ export class Room {
     p.controller.speedMultiplier = 1;
   }
 
+  // ── Arena pickups ─────────────────────────────────────────────────────────
+
+  /**
+   * Authoritative pickup claims. Each tick, any alive player standing on an
+   * available pad that they'd benefit from claims it: the effect is applied
+   * server-side (health → heal, reflected in the snapshot), the pad goes on
+   * cooldown, and a ServerPickupClaimed is broadcast so every client hides the
+   * pad + the claimer gets HUD feedback. `ammo` (none placed yet) applies
+   * client-side on the claimer; the server only owns the claim + respawn timing.
+   */
+  private tickPickups(now: number) {
+    if (this.pickups.length === 0) return;
+    for (const p of this.players.values()) {
+      if (!p.alive) continue;
+      const pos = p.controller.position;
+      for (const pk of this.pickups) {
+        if (pk.availableAt > now) continue;
+        if (Math.abs(pos[0] - pk.pos[0]) > PICKUP_RADIUS_XZ) continue;
+        if (Math.abs(pos[2] - pk.pos[2]) > PICKUP_RADIUS_XZ) continue;
+        if (Math.abs(pos[1] - pk.pos[1]) > PICKUP_RADIUS_Y) continue;
+        if (!this.pickupBenefits(p, pk.type)) continue;
+
+        this.applyPickupEffect(p, pk.type);
+        pk.availableAt = now + (PICKUP_RESPAWN_MS[pk.type] ?? 15000);
+        const msg: ServerPickupClaimed = {
+          id: pk.id, byId: p.id, type: pk.type, availableAt: pk.availableAt,
+        };
+        this.io.emit(EV.Pickup, msg);
+      }
+    }
+  }
+
+  /** Whether a player would benefit from claiming a pickup right now. Prevents
+   *  wasting a health pad at full HP. */
+  private pickupBenefits(p: ServerPlayer, type: string): boolean {
+    if (type === 'health') return p.hp < p.maxHp;
+    return true;   // armor (13C) / ammo — always claimable server-side
+  }
+
+  /** Apply a pickup's server-side effect. Ammo is client-side (no server ammo). */
+  private applyPickupEffect(p: ServerPlayer, type: string) {
+    if (type === 'health') p.hp = Math.min(p.maxHp, p.hp + (PICKUP_AMOUNT[type] ?? 50));
+  }
+
+  /** Current pickup cooldowns (only pads still respawning) for the Welcome msg. */
+  private pickupCooldownSnapshot(now: number): Array<{ id: number; availableAt: number }> {
+    return this.pickups
+      .filter((pk) => pk.availableAt > now)
+      .map((pk) => ({ id: pk.id, availableAt: pk.availableAt }));
+  }
+
   // ── Match lifecycle ───────────────────────────────────────────────────────
 
   /**
@@ -527,6 +617,8 @@ export class Room {
       p.deaths = 0;
       this.respawn(p.id);
     }
+    // Fresh match → all pads available again. Clients re-show on MatchReset.
+    for (const pk of this.pickups) pk.availableAt = 0;
     const msg: ServerMatchReset = {};
     this.io.emit(EV.MatchReset, msg);
     console.log('[room] match reset — fresh game');

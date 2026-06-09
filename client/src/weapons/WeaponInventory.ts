@@ -70,6 +70,11 @@ export class WeaponInventory {
     for (const w of this.weapons) w.reloadMultiplier = m;
   }
 
+  /** Top up both weapons' magazines (ammo pickup). */
+  refillAmmo() {
+    for (const w of this.weapons) w.refill();
+  }
+
   get current(): Weapon { return this.weapons[this.active]; }
   get activeSlot(): Slot { return this.active; }
   get isScoped(): boolean { return this.scoped; }

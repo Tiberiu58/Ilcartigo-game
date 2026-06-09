@@ -13,7 +13,7 @@
  * (We don't have a shared package, intentionally — keeps the build simple.)
  */
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** Default WebSocket port. Match in server.ts and NetClient. */
 export const DEFAULT_NET_PORT = 3001;
@@ -226,6 +226,32 @@ export interface ServerWelcome {
   serverTick: number;
   tickHz: number;
   players: PlayerSnapshot[];
+  /** Current pickup cooldown state (only entries on cooldown are sent; any
+   *  pickup id not listed is available now). The id→position→type layout is
+   *  mirrored from the map table on both sides, so only timing needs syncing. */
+  pickups?: NetPickup[];
+}
+
+/** Networked pickup cooldown — `id` indexes the map's mirrored pickup table. */
+export interface NetPickup {
+  id: number;
+  /** Wall-clock ms when it becomes available again. <= now means active. */
+  availableAt: number;
+}
+
+/**
+ * Broadcast when a player claims a pickup. The server is authoritative on WHO
+ * got it and WHEN it respawns. HP-affecting types (health/armor) are applied
+ * server-side and reflected via the next Snapshot; `ammo` is applied locally by
+ * the claiming client (the server doesn't model ammo).
+ */
+export interface ServerPickupClaimed {
+  id: number;
+  byId: string;
+  /** 'health' | 'armor' | 'ammo' */
+  type: string;
+  /** Wall-clock ms when the pickup respawns. */
+  availableAt: number;
 }
 
 /**
@@ -291,4 +317,5 @@ export const EV = {
   Err:          'e',
   MatchOver:    'M',
   MatchReset:   'R',
+  Pickup:       'P',
 } as const;

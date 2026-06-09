@@ -370,6 +370,39 @@ body.ghost-active #app::before {
   }
 }
 
+/* Arena pickup toast — brief banner above the HUD centre when you grab a pad. */
+#pickup-toast {
+  position: absolute;
+  left: 50%; top: 40%;
+  transform: translate(-50%, 8px);
+  font: 800 18px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  background: rgba(10, 18, 24, 0.78);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 6;
+  --pk-c: #4ade80;
+  color: var(--pk-c);
+  border-bottom: 2px solid var(--pk-c);
+  text-shadow: 0 0 12px var(--pk-c);
+}
+#pickup-toast.hidden { display: none; }
+#pickup-toast.pickup-health { --pk-c: #4ade80; }
+#pickup-toast.pickup-armor  { --pk-c: #5aa9ff; }
+#pickup-toast.pickup-ammo   { --pk-c: #f5d442; }
+#pickup-toast.show {
+  animation: pickup-pop 1.2s ease-out forwards;
+}
+@keyframes pickup-pop {
+  0%   { opacity: 0; transform: translate(-50%, 14px) scale(0.9); }
+  15%  { opacity: 1; transform: translate(-50%, 0) scale(1.04); }
+  30%  { transform: translate(-50%, 0) scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -8px) scale(1); }
+}
+
 /* Sniper scope — round lens cutout via four black corner masks. */
 #scope-overlay {
   position: absolute;

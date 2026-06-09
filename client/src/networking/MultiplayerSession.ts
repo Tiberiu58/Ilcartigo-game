@@ -136,6 +136,7 @@ export class MultiplayerSession {
       onLeave: (m) => this.handleLeave(m),
       onMatchOver: (m) => this.handleMatchOver(m),
       onMatchReset: (m) => this.handleMatchReset(m),
+      onPickup: (m) => this.game.applyServerPickup(m.id, m.byId, m.type, m.availableAt),
       onError: (m) => {
         console.warn('[net] server error:', m.code, m.message);
       },
@@ -270,6 +271,10 @@ export class MultiplayerSession {
       rp.ingest(p, Date.now());
       this.remotes.set(p.id, rp);
     }
+    // Seed pickup cooldown state (hide any pads currently respawning) so a
+    // late-joiner doesn't see a pad that someone grabbed seconds ago.
+    if (m.pickups) this.game.applyPickupCooldowns(m.pickups);
+
     // Now that the server has us in its player map, tell it which class +
     // weapon we picked. Without this every ability trigger gets rejected.
     this.sendHello();
@@ -432,6 +437,7 @@ export class MultiplayerSession {
    */
   private handleMatchReset(_m: ServerMatchReset) {
     this.game.resetMatchScore();
+    this.game.pickups.resetAll();
     this.onMatchReset?.();
   }
 
