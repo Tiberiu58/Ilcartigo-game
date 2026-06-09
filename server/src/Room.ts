@@ -67,17 +67,22 @@ const PICKUPS_BY_MAP: Record<string, ReadonlyArray<PickupSpawnS>> = {
     { type: 'health', pos: [ 0, 0,  22] },
     { type: 'health', pos: [ 0, 0, -22] },
     { type: 'armor',  pos: [ 24, 4.5, 24] },
+    { type: 'speed',  pos: [ 0, 0,  8] },
   ],
   industrial: [
     { type: 'health', pos: [-20, 0,  20] },
     { type: 'health', pos: [ 20, 0,  20] },
     { type: 'health', pos: [  0, 0, -20] },
     { type: 'armor',  pos: [ 0, 0, 0] },
+    { type: 'speed',  pos: [ 25, 0, 15] },
   ],
 };
-const PICKUP_RESPAWN_MS: Record<string, number> = { health: 15000, armor: 22000, ammo: 12000 };
-const PICKUP_AMOUNT: Record<string, number> = { health: 50, armor: 50, ammo: 0 };
+const PICKUP_RESPAWN_MS: Record<string, number> = { health: 15000, armor: 22000, ammo: 12000, speed: 25000 };
+const PICKUP_AMOUNT: Record<string, number> = { health: 50, armor: 50, ammo: 0, speed: 0 };
 const ARMOR_MAX = 100;
+// Adrenaline speed buff — MUST mirror the client's SPEED_BUFF in Pickups.ts.
+const SPEED_BUFF_MULT = 1.4;
+const SPEED_BUFF_MS = 6000;
 const PICKUP_RADIUS_XZ = 1.7;
 const PICKUP_RADIUS_Y = 2.2;
 
@@ -114,6 +119,8 @@ interface ServerPlayer {
   maxHp: number;
   /** Overshield (armor). Absorbs damage 1:1 before HP. 0 = none. */
   armor: number;
+  /** Adrenaline speed-buff expiry (wall-clock ms; 0 = none). */
+  speedBuffUntil: number;
   alive: boolean;
   cloaked: boolean;
   kills: number;
@@ -241,6 +248,7 @@ export class Room {
       hp: 100,
       maxHp: 100,
       armor: 0,
+      speedBuffUntil: 0,
       alive: true,
       cloaked: false,
       kills: 0,
@@ -538,6 +546,8 @@ export class Room {
     p.controller.velocity[2] = 0;
     p.hp = p.maxHp;
     p.armor = 0;
+    p.speedBuffUntil = 0;
+    p.controller.buffSpeedMultiplier = 1;
     p.alive = true;
     p.invulnUntil = Date.now() + 2000;
     // Reset ability state to a fresh ability of the same id.
@@ -596,6 +606,10 @@ export class Room {
   private applyPickupEffect(p: ServerPlayer, type: string) {
     if (type === 'health') p.hp = Math.min(p.maxHp, p.hp + (PICKUP_AMOUNT[type] ?? 50));
     else if (type === 'armor') p.armor = Math.min(ARMOR_MAX, p.armor + (PICKUP_AMOUNT[type] ?? 50));
+    else if (type === 'speed') {
+      p.controller.buffSpeedMultiplier = SPEED_BUFF_MULT;
+      p.speedBuffUntil = Date.now() + SPEED_BUFF_MS;
+    }
   }
 
   /** Current pickup cooldowns (only pads still respawning) for the Welcome msg. */
@@ -921,6 +935,11 @@ export class Room {
   private tickAbilities() {
     const now = Date.now();
     for (const p of this.players.values()) {
+      // Expire the Adrenaline speed buff.
+      if (p.speedBuffUntil > 0 && now >= p.speedBuffUntil) {
+        p.speedBuffUntil = 0;
+        p.controller.buffSpeedMultiplier = 1;
+      }
       // Duration abilities — expire active state.
       if (p.ability.activeUntil > 0 && now >= p.ability.activeUntil) {
         p.ability.activeUntil = 0;

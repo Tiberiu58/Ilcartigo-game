@@ -421,6 +421,7 @@ export const INDUSTRIAL_MAP: GameMap = {
       { type: 'health', pos: [ 20, 0,  20] },
       { type: 'health', pos: [  0, 0, -20] },
       { type: 'armor',  pos: [ 0, 0, 0] },
+      { type: 'speed',  pos: [ 25, 0, 15] },
     ],
   },
   build: buildIndustrial,

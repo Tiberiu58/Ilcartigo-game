@@ -120,6 +120,10 @@ export class PlayerController {
 
   /** Movement-speed multiplier (Rush "Surge" ability). Multiplies the active speed cap. */
   speedMultiplier = 1.0;
+  /** Powerup speed buff (Adrenaline pickup). Stacks multiplicatively WITH
+   *  speedMultiplier so a Surge + speed-pad combo compounds and neither resets
+   *  the other. Defaults to 1.0 (no-op). */
+  buffSpeedMultiplier = 1.0;
   /** FOV nudge from abilities (e.g. Surge +8). Game adds this to baseFov when computing target FOV. */
   abilityFovOffset = 0;
 
@@ -301,7 +305,7 @@ export class PlayerController {
       // Pick wishSpeed by stance + input direction.
       const wishSpeed = this.computeGroundWishSpeed();
       if (hasInput && wishSpeed > 0) {
-        this.accelerate(this._wishDirWorld, wishSpeed * this.speedMultiplier, GROUND_ACCEL, dt);
+        this.accelerate(this._wishDirWorld, wishSpeed * this.speedMultiplier * this.buffSpeedMultiplier, GROUND_ACCEL, dt);
       }
 
       // Jump.

@@ -44,7 +44,7 @@ export type GameEvents = {
   hitConfirm: { isHeadshot: boolean };
   screenShake: { intensity: number; duration: number };
   /** Local player claimed an arena pickup — drives the HUD toast + SFX. */
-  pickup: { type: 'health' | 'armor' | 'ammo'; byLocal: boolean };
+  pickup: { type: 'health' | 'armor' | 'ammo' | 'speed'; byLocal: boolean };
 };
 
 type Handler<T> = (payload: T) => void;

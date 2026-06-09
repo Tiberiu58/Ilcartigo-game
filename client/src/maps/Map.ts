@@ -16,9 +16,10 @@ import type { World } from '../core/World';
 export type MapId = 'practice' | 'sandstone' | 'industrial';
 
 /** Arena pickup kinds. `health` restores HP, `armor` grants overshield,
- *  `ammo` refills the active mag. Layout is map-defined + mirrored server-side
- *  (Room.PICKUPS_BY_MAP) by array index so only timing crosses the wire. */
-export type PickupType = 'health' | 'armor' | 'ammo';
+ *  `ammo` refills the active mag, `speed` grants a timed move-speed buff. Layout
+ *  is map-defined + mirrored server-side (Room.PICKUPS_BY_MAP) by array index so
+ *  only timing crosses the wire. */
+export type PickupType = 'health' | 'armor' | 'ammo' | 'speed';
 
 export interface PickupSpawn {
   type: PickupType;

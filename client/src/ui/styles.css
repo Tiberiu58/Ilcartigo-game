@@ -392,6 +392,31 @@ body.ghost-active #app::before {
 #pickup-toast.pickup-health { --pk-c: #4ade80; }
 #pickup-toast.pickup-armor  { --pk-c: #5aa9ff; }
 #pickup-toast.pickup-ammo   { --pk-c: #f5d442; }
+#pickup-toast.pickup-speed  { --pk-c: #ffa53a; }
+
+/* Active-buff chip — bottom-center-ish, above the ability pill. */
+#buff-chip {
+  position: absolute;
+  left: 50%; bottom: 96px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 800 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: #ffa53a;
+  background: rgba(20, 14, 6, 0.8);
+  border: 1px solid rgba(255, 165, 58, 0.55);
+  border-radius: 14px;
+  padding: 5px 12px;
+  pointer-events: none;
+  text-shadow: 0 0 8px rgba(255, 165, 58, 0.6);
+  z-index: 6;
+}
+#buff-chip.hidden { display: none; }
+#buff-chip .buff-icon { font-size: 15px; animation: buff-blink 0.7s ease-in-out infinite; }
+#buff-chip .buff-time { color: #ffd9a0; min-width: 26px; text-align: right; }
+@keyframes buff-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 #pickup-toast.show {
   animation: pickup-pop 1.2s ease-out forwards;
 }

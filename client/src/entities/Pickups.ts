@@ -24,7 +24,12 @@ export const PICKUP_CONFIG: Record<PickupType, { color: number; respawnMs: numbe
   health: { color: 0x4ade80, respawnMs: 15000, amount: 50 },
   armor:  { color: 0x5aa9ff, respawnMs: 22000, amount: 50 },
   ammo:   { color: 0xf5d442, respawnMs: 12000, amount: 0 },
+  speed:  { color: 0xffa53a, respawnMs: 25000, amount: 0 },
 };
+
+/** Adrenaline speed buff — shared by client (prediction) + server (authority).
+ *  Keep MS/MULT in sync with the server's SPEED_BUFF_* in Room.ts. */
+export const SPEED_BUFF = { mult: 1.4, durationMs: 6000 };
 
 /** Horizontal + vertical capture half-extents around a pickup. */
 const CLAIM_RADIUS_XZ = 1.7;
@@ -177,6 +182,11 @@ export class PickupManager {
     } else if (type === 'armor') {
       // A faceted shield-ish octahedron.
       g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.32), mat));
+    } else if (type === 'speed') {
+      // A forward-leaning cone (a "fast" chevron feel).
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.5, 4), mat);
+      cone.rotation.z = -0.5;
+      g.add(cone);
     } else {
       // Ammo — a small upright box (mag).
       g.add(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.42, 0.26), mat));

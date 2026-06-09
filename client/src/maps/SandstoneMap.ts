@@ -283,6 +283,7 @@ export const SANDSTONE_MAP: GameMap = {
       { type: 'health', pos: [ 0, 0,  22] },
       { type: 'health', pos: [ 0, 0, -22] },
       { type: 'armor',  pos: [ 24, 4.5, 24] },
+      { type: 'speed',  pos: [ 0, 0,  8] },
     ],
   },
   build: buildSandstone,

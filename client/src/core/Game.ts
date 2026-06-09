@@ -28,7 +28,7 @@ import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
-import { PickupManager, PICKUP_CONFIG } from '../entities/Pickups';
+import { PickupManager, PICKUP_CONFIG, SPEED_BUFF } from '../entities/Pickups';
 import type { PickupType } from '../maps/Map';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
 import { Account } from '../account/Account';
@@ -431,6 +431,8 @@ export class Game {
     const spawn = this.pickSafeSpawn();
     this.player.setPosition(spawn.x, spawn.y, spawn.z);
     this.player.speedMultiplier = 1.0;
+    this.player.buffSpeedMultiplier = 1.0;
+    this.speedBuffUntil = 0;
     this.playerActor.isCloaked = false;
     // Local respawn SFX. In MP the server respawns us; the tick-level edge
     // detector picks that path up via the dead→alive transition.
@@ -445,6 +447,7 @@ export class Game {
       case 'health': return this.playerActor.health.current < this.playerActor.health.max;
       case 'ammo':   return this.inventory.current.ammo < this.inventory.current.config.magSize;
       case 'armor':  return this.playerActor.health.armor < this.playerActor.health.armorMax;
+      case 'speed':  return true;    // always grabbable — refreshes the buff
       default:       return false;
     }
   }
@@ -455,6 +458,7 @@ export class Game {
       case 'health': this.playerActor.health.heal(PICKUP_CONFIG.health.amount); break;
       case 'ammo':   this.inventory.refillAmmo(); break;
       case 'armor':  this.playerActor.health.addArmor(PICKUP_CONFIG.armor.amount); break;
+      case 'speed':  this.applySpeedBuff(); break;
     }
   }
 
@@ -467,8 +471,27 @@ export class Game {
   applyServerPickup(id: number, byId: string, type: string, availableAt: number) {
     this.pickups.applyServerClaim(id, availableAt);
     if (!this.isLocalPlayer(byId)) return;
+    // Client-applied effects (server owns hp/armor via snapshot): ammo refill +
+    // the speed buff (we predict our own movement, so apply it locally too).
     if (type === 'ammo') this.inventory.refillAmmo();
+    if (type === 'speed') this.applySpeedBuff();
     this.bus.emit('pickup', { type: type as PickupType, byLocal: true });
+  }
+
+  /** Local player's Adrenaline buff window (performance.now() ms). 0 = none. */
+  private speedBuffUntil = 0;
+
+  /** Apply (or refresh) the local speed buff for prediction + HUD. The server
+   *  enforces it authoritatively in MP; this keeps our local movement matching. */
+  private applySpeedBuff() {
+    this.player.buffSpeedMultiplier = SPEED_BUFF.mult;
+    this.speedBuffUntil = performance.now() + SPEED_BUFF.durationMs;
+  }
+
+  /** Seconds remaining on the local speed buff (0 if inactive). HUD reads this. */
+  speedBuffRemaining(): number {
+    if (this.speedBuffUntil === 0) return 0;
+    return Math.max(0, (this.speedBuffUntil - performance.now()) / 1000);
   }
 
   /** MP: seed pickup cooldown state from the Welcome message (late-join sync). */
@@ -839,6 +862,11 @@ export class Game {
     // Arena pickups: animate always; claim only in solo combat (MP claims are
     // server-authoritative and arrive via applyServerPickup).
     this.pickups.update(dt);
+    // Expire the local speed buff when its window closes.
+    if (this.speedBuffUntil !== 0 && now >= this.speedBuffUntil) {
+      this.speedBuffUntil = 0;
+      this.player.buffSpeedMultiplier = 1.0;
+    }
     if (!this.mp && this.mode === 'combat' && !this.playerActor.health.dead) {
       const claimed = this.pickups.trySoloClaim(this.player.pos, (t) => this.canClaimPickup(t));
       if (claimed) {

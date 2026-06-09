@@ -41,6 +41,9 @@ export class HUD {
   private spawnProtect: HTMLElement;
   private pickupToast: HTMLElement;
   private pickupToastTimer: number | null = null;
+  private buffChip: HTMLElement;
+  private buffTime: HTMLElement;
+  private lastBuffShown = false;
   private lowHpVignette: HTMLElement;
   private matchScore: HTMLElement;
   private msYouKills: HTMLElement;
@@ -102,6 +105,8 @@ export class HUD {
     this.slotChips = Array.from(document.querySelectorAll<HTMLElement>('.slot-chip'));
     this.spawnProtect = document.getElementById('spawn-protect')!;
     this.pickupToast = document.getElementById('pickup-toast')!;
+    this.buffChip = document.getElementById('buff-chip')!;
+    this.buffTime = document.getElementById('buff-time')!;
     this.lowHpVignette = document.getElementById('lowhp-vignette')!;
     this.matchScore = document.getElementById('match-score')!;
     this.msYouKills = document.getElementById('ms-you-kills')!;
@@ -211,9 +216,21 @@ export class HUD {
 
     this.tickAbilityPill();
     this.tickCrosshairSpread();
+    this.tickBuffs();
     this.tickLowHp();
     this.tickMatchScore();
     this.tickRespawnCountdown();
+  }
+
+  /** Active-buff chip — shows the Adrenaline speed buff countdown while it runs. */
+  private tickBuffs() {
+    const remaining = this.game.speedBuffRemaining();
+    const show = remaining > 0;
+    if (show !== this.lastBuffShown) {
+      this.lastBuffShown = show;
+      this.buffChip.classList.toggle('hidden', !show);
+    }
+    if (show) this.buffTime.textContent = remaining.toFixed(1);
   }
 
   /**
@@ -384,9 +401,10 @@ export class HUD {
   }
 
   /** Brief banner + SFX when the local player grabs an arena pickup. */
-  private showPickupToast(type: 'health' | 'armor' | 'ammo') {
+  private showPickupToast(type: 'health' | 'armor' | 'ammo' | 'speed') {
     const label = type === 'health' ? '+50 HEALTH'
       : type === 'armor' ? '+50 ARMOR'
+      : type === 'speed' ? 'SPEED BOOST'
       : 'AMMO REFILLED';
     this.pickupToast.textContent = label;
     this.pickupToast.className = `pickup-${type}`;   // clears 'hidden' + sets colour

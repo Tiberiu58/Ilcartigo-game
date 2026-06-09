@@ -157,6 +157,26 @@ Protocol changes are allowed but versioned + mirrored in both `Protocol.ts`.
 
 ### Phase 13 COMPLETE — A–E shipped. Protocol v3 (pickups + armor + maxHp). Solo + MP intact; per-weapon MP damage, arena health/armor pickups, overshield model, crosshair presets.
 
+---
+
+## Phase 14 — Powerups & Buffs (autonomous build, v0.14.0)
+
+Pickups gave the arena reasons to fight; powerups add *momentum swings* — the
+Krunker/Quake "I grabbed the power position" feeling. Built on the Phase 13
+pickup system, kept SAFE (movement buff is a separate multiplicative layer that
+defaults to 1.0, so zero regression to existing play).
+
+- **14A — Speed powerup ("Adrenaline").** A timed +40% ground-speed buff via a
+  new `buffSpeedMultiplier` on BOTH controllers (multiplied alongside, not over,
+  the Surge `speedMultiplier` — they stack, neither clobbers the other). New
+  `speed` pickup type, one pad per map at a power spot. Solo: client buff timer.
+  MP: server-authoritative buff + duration (so the sim + remote views match),
+  client predicts on claim. HUD buff chip with a countdown. No protocol bump
+  (reuses ServerPickupClaimed; the buff duration is a shared constant).
+- **14B — README + version bump.**
+
+### Status log
+
 ### Status log
 - ✅ Phase 13A — Server per-weapon damage + multi-pellet hitscan. DONE (server+client tsc, client build green; damage math unit-verified: Sniper 60 body / 111 head, Shotgun 12×9 close, AR 24, SMG 14, Pistol 37.4 head). New `server/src/WeaponStats.ts` (trimmed mirror of the client weapon table) + `computeWeaponDamage` (falloff+head). `onFire` rewinds targets once, fires `pellets` deterministic-spread rays (tick+id seeded PRNG), accumulates per-target damage into one Damage/Kill event. Remote shotgun fans a tracer per pellet. No protocol change.
 - ✅ Phase 13B — Arena health pickups (solo + MP). DONE + headless-verified (claim heals 50→100, broadcasts ServerPickupClaimed, full-HP benefit gate blocks waste; server+client tsc + build green). New `entities/Pickups.ts` (PickupManager: spinning floating visual + bob, solo proximity claim with benefit gate, MP server-claim/cooldown reflect, resetAll on rematch). `MapMeta.pickups` per-map layout (Sandstone 4 / Industrial 3 lane-mouth health pads), mirrored server-side `Room.PICKUPS_BY_MAP` by index. Server `tickPickups` is authoritative in MP (heal applied server-side, reflected in snapshot). Protocol → v3 (NetPickup, ServerPickupClaimed, EV.Pickup, Welcome.pickups). HUD pickup toast + `pickup_*` SFX ids. Weapon.refill/Inventory.refillAmmo added for the upcoming ammo pad.
