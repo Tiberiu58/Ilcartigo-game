@@ -124,31 +124,77 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ---
 
-## Phase 13 — Gun Game mode (v0.13.0)
+## Phase 13 — Aim Lab + Solo Depth (autonomous build, v0.13.0)
 
-The first NEW GAME MODE — mode variety is the #1 driver of replay value in arena
-shooters (Krunker has a dozen). Self-contained, solo-vs-bots for v1, no protocol
-or MP changes, fully browser-verified.
+Krunker has a beloved **Aim Trainer**. ILCARTIGO had instant combat feedback
+(Phase 12) but no low-pressure way to *practise* and *measure* aim — and no
+extra solo loop to pull players back between matches. Phase 13 adds a complete,
+self-contained **Aim Lab (Target Rush)** mode: a 60-second flick sprint with a
+persistent personal best and a clean post-run results card (a natural AdSense
+breakpoint). It's a strong retention + revenue hook and very on-brand for the
+Krunker feel.
 
-- **Weapon ladder** `smg → ar → shotgun → sniper → pistol` (`GUNGAME_LADDER`).
-  Each kill advances the killer one rung; the player's gun visibly swaps in hand.
-  First to land a kill on the FINAL rung (pistol) wins → post-match overlay.
-- **New `modes/GunGame.ts`** — bus-driven, decoupled via a small `GunGameHost`
-  interface (isLocalPlayer / setPlayerPrimaryWeapon / playSound). Tracks per-
-  participant tiers; bots race too (their tier advances, weapon stays fixed for v1).
-- **`GameMode` extended** to `'combat' | 'practice' | 'gungame'` + an `isCombatMode()`
-  helper so bots/spawn-protection/map logic treat Gun Game like Combat.
-- **New `Game.setPlayerPrimaryWeapon(id)`** — swaps primary + viewmodel. Pistol is
-  special-cased (it's the secondary slot; `setPrimary` rejects it) → selects slot 1.
-  **Caught + fixed during verification**: without this the final rung silently
-  stayed on sniper.
-- **HUD**: new top-center Gun Game ticker — "LVL n/5 · WEAPON" + filled pips.
-  Shown only in gungame mode; hidden on quit/other modes.
-- **Menu**: new "🔫 Gun Game (vs Bots)" button. Play Again restarts the ladder;
-  Quit restores the player's chosen loadout weapon.
-- Verified in-browser end-to-end: starts on SMG, climbs AR→SHOTGUN→SNIPER→PISTOL
-  over 4 kills, 5th kill (on pistol) fires the win + post-match. Typecheck (client)
-  + build green; app chunk ~61.6 KB gzip.
+Guiding constraint (same as Phase 12): **no protocol changes, no server changes,
+no controller changes, no new deps. Solo + MP both untouched. Typecheck + build
+green each step.**
 
-### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
+- **13A — Aim Lab: Target Rush.** New `modes/AimLab.ts`. A 60s run on the
+  Practice arena where glowing targets pop in and you flick to them as fast as
+  you can. Self-contained and additive:
+  - Targets are `Damageable`s shot through the *existing* `World.raycast` +
+    `Weapon` → `bus('shot'|'damage')` pipeline — the player shoots them exactly
+    like a bot.
+  - Targets carry huge HP so they **never** emit `kill` events — that keeps the
+    killfeed, announcer, lifetime stats, and combat XP completely clean during a
+    run. A pop is detected from the first `damage` event on a target, which then
+    relocates synchronously (so leftover shotgun pellets can't double-count).
+  - Spawn placement is map-agnostic: candidates are sampled on a ring around the
+    arena centre and validated against geometry overlap (`firstOverlap`) +
+    line-of-sight (`hasLineOfSight`) so every target is reachable + shootable.
+  - Live HUD (`#aimlab-hud`): countdown timer (turns red ≤10s), targets popped,
+    accuracy (pellet hits / shots). Soft-pauses when the pointer unlocks (Esc).
+  - Results card (`#aimlab-results`): big score, **NEW PERSONAL BEST** badge,
+    accuracy, persisted personal best (`ilc.aimlab.best`), XP earned
+    (4 XP/target, fed into the real progression), an **ad slot** (`aimlab`,
+    registered in `Ads.ts`), and Retry / Quit.
+  - Personal best is surfaced on the main-menu button itself
+    (“✦ Aim Lab (Target Rush) · best N”) as a "beat this" hook.
+  - Game integration is intentionally tiny: a typed `Game.aimLab` field, one
+    `update(dt)` call in the tick, and one defensive guard in the kill handler.
+    Everything else lives in `AimLab.ts` + `main.ts` DOM wiring.
+
+### Status log
+- ✅ Phase 13A — Aim Lab (Target Rush). DONE (client typecheck + build green;
+  server typecheck green/unchanged). New `modes/AimLab.ts` + `AimTarget`
+  (Damageable). Menu button + in-run HUD + results overlay + CSS + `aimlab` ad
+  slot. Personal best persisted + shown on the menu button. Zero protocol/server/
+  controller changes; solo FFA, Practice, and MP paths untouched (verified by
+  re-running both tsc passes + the client build). App chunk ~62.6 KB gzip
+  (~+1.5 KB for the whole mode, no new deps).
+- ✅ Phase 13B — Aim Lab drills + drill-select hub. DONE (client typecheck +
+  build green). Turned the Aim Lab into a small Training hub with a `DRILLS`
+  registry + a drill-select screen (`#aimlab-select`) shown from the menu. Two
+  drills: **Target Rush** (4 targets, 6–22m ring, 60s, 4 XP/target) and **Flick
+  Precision** (2 small targets, 14–32m ring, 45s, 8 XP/target). Per-drill
+  personal best (separate localStorage keys), shown on each drill card + the
+  best across drills on the menu button. `AimTarget` radius is now per-instance;
+  the target pool rebuilds when a drill's count/radius changes. Results card +
+  Retry are drill-aware. App chunk ~63 KB gzip (~+0.5 KB).
+- ✅ Phase 13C — Crosshair preset packs. DONE (client typecheck + build green).
+  Eight one-click crosshair presets (Classic / Dot / Cross / Tight / Open /
+  Sniper / Pro Green / Cyan) in the Crosshair settings tab. Each preset fills
+  every existing control (color/size/thickness/gap/outline/dot), updates the
+  live + preview crosshair via the shared CSS vars, and persists to
+  localStorage — behaving exactly as if dialed in by hand. Pure settings/CSS;
+  zero gameplay risk. A hallmark Krunker personalization touch.
+- ✅ Phase 13D — Aim Lab bests in Profile. DONE (client typecheck + build green).
+  Added an "Aim Lab Bests" section to the Profile settings tab (ProfileUI)
+  showing each drill's persistent personal best, re-rendered on account change
+  (so a new best appears the moment a run's XP lands). Single source of truth:
+  ProfileUI reads the same `DRILLS` registry/keys AimLab writes. Ties the new
+  training loop into the existing progression/retention surface.
+
+### Phase 13 COMPLETE — Aim Lab (2 drills) + crosshair presets + Profile
+integration shipped. No protocol/server/controller changes; solo + MP intact.
+Client tsc + build green throughout; app chunk ~63 KB gzip.
 

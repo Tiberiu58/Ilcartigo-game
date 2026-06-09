@@ -23,6 +23,7 @@ import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
+import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -59,6 +60,7 @@ const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
+const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
 const practiceBadge = document.getElementById('practice-badge')!;
@@ -85,6 +87,7 @@ const sbGoal = document.getElementById('sb-goal')!;
 let scoreboardOpen = false;
 
 const game = new Game(canvas);
+game.aimLab = new AimLab(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
@@ -216,6 +219,56 @@ chDot.addEventListener('change', () => {
   localStorage.setItem('ilc.ch.dot', String(chDot.checked));
 });
 
+// ─── Crosshair presets ──────────────────────────────────────────────────────
+// One-click crosshair packs (Krunker-style). Each preset fills every control,
+// updates the live + preview crosshair, and persists — so it behaves exactly
+// as if the player had dialed each slider in by hand.
+interface ChPreset {
+  color: string; size: number; thickness: number; gap: number;
+  outline: boolean; dot: boolean;
+}
+const CH_PRESETS: Record<string, ChPreset> = {
+  classic: { color: '#f5d442', size: 8,  thickness: 2, gap: 0,  outline: true,  dot: true  },
+  dot:     { color: '#ffffff', size: 2,  thickness: 2, gap: 20, outline: true,  dot: true  },
+  cross:   { color: '#f5d442', size: 10, thickness: 2, gap: 4,  outline: true,  dot: false },
+  tight:   { color: '#ff3b3b', size: 6,  thickness: 2, gap: 0,  outline: true,  dot: true  },
+  open:    { color: '#ffffff', size: 12, thickness: 3, gap: 8,  outline: true,  dot: false },
+  sniper:  { color: '#00ff66', size: 4,  thickness: 1, gap: 14, outline: true,  dot: true  },
+  pro:     { color: '#00ff66', size: 7,  thickness: 2, gap: 3,  outline: false, dot: false },
+  cyan:    { color: '#4ac8ff', size: 9,  thickness: 2, gap: 2,  outline: true,  dot: true  },
+};
+
+function applyCrosshairPreset(p: ChPreset) {
+  chColor.value = p.color;        chColorVal.textContent = p.color;
+  chSize.value = String(p.size);  chSizeVal.textContent = String(p.size);
+  chThickness.value = String(p.thickness); chThicknessVal.textContent = String(p.thickness);
+  chGapBase.value = String(p.gap); chGapBaseVal.textContent = String(p.gap);
+  chOutline.checked = p.outline;
+  chDot.checked = p.dot;
+
+  applyChVar('--ch-color', p.color);
+  applyChVar('--ch-size', `${p.size}px`);
+  applyChVar('--ch-thickness', `${p.thickness}px`);
+  applyChVar('--ch-gap-base', `${p.gap}px`);
+  applyChVar('--ch-outline', p.outline ? '1' : '0');
+  applyChVar('--ch-dot', p.dot ? 'block' : 'none');
+
+  localStorage.setItem('ilc.ch.color', p.color);
+  localStorage.setItem('ilc.ch.size', String(p.size));
+  localStorage.setItem('ilc.ch.thickness', String(p.thickness));
+  localStorage.setItem('ilc.ch.gap', String(p.gap));
+  localStorage.setItem('ilc.ch.outline', String(p.outline));
+  localStorage.setItem('ilc.ch.dot', String(p.dot));
+}
+
+document.querySelectorAll<HTMLButtonElement>('#ch-presets .ch-preset').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const preset = CH_PRESETS[btn.dataset.preset ?? 'classic'];
+    if (preset) applyCrosshairPreset(preset);
+    game.audio.play('ui_click');
+  });
+});
+
 // ─── Audio settings ─────────────────────────────────────────────────────────
 const audioMaster = document.getElementById('audio-master') as HTMLInputElement;
 const audioMasterVal = document.getElementById('audio-master-val')!;
@@ -258,6 +311,7 @@ gfxButtons.forEach((btn) => {
 });
 
 function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+  stopAimLab();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -290,6 +344,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
  * Bots are skipped while game.mp is non-null (Game.tick gates on it).
  */
 function startOnline() {
+  stopAimLab();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -334,6 +389,7 @@ function startOnline() {
 }
 
 function quitToMenu() {
+  stopAimLab();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -419,7 +475,130 @@ menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
 menuPractice.addEventListener('click', () => startGame('practice'));
+menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
+
+// ─── Aim Lab (Target Rush) ─────────────────────────────────────────────────
+const aimlabSelect = document.getElementById('aimlab-select')!;
+const alsBackBtn = document.getElementById('als-back') as HTMLButtonElement;
+const aimlabHud = document.getElementById('aimlab-hud')!;
+const alTime = document.getElementById('al-time')!;
+const alScore = document.getElementById('al-score')!;
+const alAcc = document.getElementById('al-acc')!;
+const aimlabResults = document.getElementById('aimlab-results')!;
+const alrDrill = document.getElementById('alr-drill')!;
+const alrScore = document.getElementById('alr-score')!;
+const alrAcc = document.getElementById('alr-acc')!;
+const alrBest = document.getElementById('alr-best')!;
+const alrXp = document.getElementById('alr-xp')!;
+const alrNewbest = document.getElementById('alr-newbest')!;
+const alrRetry = document.getElementById('alr-retry') as HTMLButtonElement;
+const alrQuit = document.getElementById('alr-quit') as HTMLButtonElement;
+
+/** Last drill played — drives the results card's Retry button. */
+let lastDrill: DrillId = 'rush';
+
+/** Refresh the Aim Lab menu button with the best across drills, so players see
+ *  their target to beat without entering the mode. */
+function refreshAimlabButton() {
+  const best = Math.max(game.aimLab?.bestFor('rush') ?? 0, game.aimLab?.bestFor('precision') ?? 0);
+  menuAimlab.textContent = best > 0 ? `✦ Aim Lab · best ${best}` : '✦ Aim Lab (Target Rush)';
+}
+refreshAimlabButton();
+
+/** Show the drill picker (from the main menu). */
+function openAimlabSelect() {
+  stopAimLab();
+  for (const id of Object.keys(DRILLS) as DrillId[]) {
+    const el = document.getElementById(`als-best-${id}`);
+    if (el) el.textContent = String(game.aimLab?.bestFor(id) ?? 0);
+  }
+  mainMenu.classList.add('hidden');
+  aimlabSelect.classList.remove('hidden');
+  game.audio.play('ui_click');
+}
+function closeAimlabSelect() {
+  aimlabSelect.classList.add('hidden');
+}
+aimlabSelect.querySelectorAll<HTMLButtonElement>('.als-card').forEach((card) => {
+  card.addEventListener('click', () => {
+    const drill = (card.dataset.drill ?? 'rush') as DrillId;
+    closeAimlabSelect();
+    startAimLab(drill);
+  });
+});
+alsBackBtn.addEventListener('click', () => { closeAimlabSelect(); quitToMenu(); });
+
+game.aimLab!.onTick = (timeLeft, score, accuracy) => {
+  alTime.textContent = timeLeft.toFixed(1);
+  alTime.classList.toggle('al-low', timeLeft <= 10);
+  alScore.textContent = String(score);
+  alAcc.textContent = `${Math.round(accuracy * 100)}%`;
+};
+game.aimLab!.onEnd = (r: AimLabResult) => {
+  aimlabHud.classList.add('hidden');
+  showAimLabResults(r);
+};
+
+/** Stop any running Aim Lab run and hide all of its UI. Safe to call anytime. */
+function stopAimLab() {
+  if (game.aimLab?.active) game.aimLab.stop();
+  aimlabSelect.classList.add('hidden');
+  aimlabHud.classList.add('hidden');
+  aimlabResults.classList.add('hidden');
+}
+
+/** Launch (or restart) a drill run on the Practice arena. */
+function startAimLab(drill: DrillId = 'rush') {
+  lastDrill = drill;
+  // Leave any MP session first.
+  if (game.mp) {
+    game.mp.disconnect();
+    game.mp = null;
+    onlineBadge.classList.add('hidden');
+    game.onMpChanged();
+  }
+  hidePostMatch();
+  aimlabSelect.classList.add('hidden');
+  aimlabResults.classList.add('hidden');
+
+  // Practice map (no bots), then drop the player into the aim arena.
+  game.setMode('practice');
+  announcer.reset();
+  const c = game.aimLab!.arenaCenter;
+  game.player.setPosition(c.x, c.y, c.z);
+
+  game.aimLab!.start(drill);
+
+  practiceBadge.classList.add('hidden');
+  aimlabHud.classList.remove('hidden');
+  mainMenu.classList.add('hidden');
+  pauseOverlay.classList.add('hidden');
+  game.input.requestPointerLock();
+}
+
+function showAimLabResults(r: AimLabResult) {
+  game.audio.play('match_end');
+  alrDrill.textContent = r.drillName;
+  alrScore.textContent = String(r.score);
+  alrAcc.textContent = `${Math.round(r.accuracy * 100)}%`;
+  alrBest.textContent = String(r.best);
+  alrXp.textContent = `+${r.xpEarned}`;
+  alrNewbest.classList.toggle('hidden', !r.isNewBest);
+  aimlabResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  refreshAimlabButton();
+  Ads.refreshSlot('aimlab');
+}
+
+alrRetry.addEventListener('click', () => {
+  aimlabResults.classList.add('hidden');
+  startAimLab(lastDrill);
+});
+alrQuit.addEventListener('click', () => {
+  aimlabResults.classList.add('hidden');
+  quitToMenu();
+});
 
 // Resume: re-acquire pointer lock without re-running setMode (that would
 // rebuild the map). The lock-change handler hides the pause overlay.

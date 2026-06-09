@@ -7,6 +7,7 @@
  */
 
 import type { Account } from '../account/Account';
+import { DRILLS, type DrillId } from '../modes/AimLab';
 
 export class ProfileUI {
   private account: Account;
@@ -16,6 +17,7 @@ export class ProfileUI {
   private xpFill: HTMLElement;
   private xpText: HTMLElement;
   private statsGrid: HTMLElement;
+  private aimlabBests: HTMLElement | null;
   private challengesList: HTMLElement;
 
   constructor(account: Account) {
@@ -26,6 +28,7 @@ export class ProfileUI {
     this.xpFill = document.getElementById('prof-xp-fill')!;
     this.xpText = document.getElementById('prof-xp-text')!;
     this.statsGrid = document.getElementById('stats-grid')!;
+    this.aimlabBests = document.getElementById('aimlab-bests');
     this.challengesList = document.getElementById('challenges-list')!;
 
     // Name save.
@@ -58,7 +61,22 @@ export class ProfileUI {
     if (!this.statsGrid) return;
     this.renderSummary();
     this.renderStats();
+    this.renderAimlabBests();
     this.renderChallenges();
+  }
+
+  private renderAimlabBests() {
+    if (!this.aimlabBests) return;
+    const cells = (Object.keys(DRILLS) as DrillId[]).map((id) => {
+      const n = Number(localStorage.getItem(DRILLS[id].pbKey));
+      const best = Number.isFinite(n) && n > 0 ? n : 0;
+      return `
+        <div class="stat-cell">
+          <span class="stat-val">${best}</span>
+          <span class="stat-label">${DRILLS[id].name}</span>
+        </div>`;
+    });
+    this.aimlabBests.innerHTML = cells.join('');
   }
 
   private renderSummary() {

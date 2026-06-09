@@ -1188,6 +1188,198 @@ body.kill-flash #app::after {
 }
 .pm-buttons .menu-btn { min-width: 240px; }
 
+/* --- Aim Lab (Target Rush) --------------------------------------------- */
+/* Menu button accent — distinct cyan to read as a "training" entry. */
+.menu-btn.aimlab {
+  border-left: 3px solid #4ac8ff;
+}
+.menu-btn.aimlab:hover { background: rgba(74, 200, 255, 0.12); }
+
+/* In-run HUD — top-center timer + live stats. */
+#aimlab-hud {
+  position: absolute;
+  left: 50%; top: 54px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  background: rgba(20, 25, 35, 0.8);
+  border-left: 3px solid #4ac8ff;
+  border-radius: 4px;
+  padding: 8px 20px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+#aimlab-hud.hidden { display: none; }
+.al-time {
+  font: 800 28px/1 'JetBrains Mono', Consolas, monospace;
+  color: #4ac8ff;
+  min-width: 86px;
+  text-align: center;
+}
+.al-time.al-low { color: #ff5a5a; }
+.al-stat { text-align: center; }
+.al-stat span {
+  display: block;
+  font: 700 18px/1.1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+}
+.al-stat label {
+  font: 600 9px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+/* --- Crosshair presets -------------------------------------------------- */
+.ch-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ch-preset {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.ch-preset:hover { background: rgba(245, 212, 66, 0.14); border-color: var(--accent); }
+
+/* Drill-select overlay. */
+#aimlab-select {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 26;
+}
+#aimlab-select.hidden { display: none; }
+.als-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 22px 0;
+}
+@media (max-width: 560px) { .als-grid { grid-template-columns: 1fr; } }
+.als-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-top: 3px solid #4ac8ff;
+  border-radius: 8px;
+  padding: 18px 16px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: background 0.12s, transform 0.12s;
+}
+.als-card:hover { background: rgba(74, 200, 255, 0.12); transform: translateY(-2px); }
+.als-name {
+  font: 800 18px/1.1 'Segoe UI', sans-serif;
+  color: #6cf0ff;
+  margin-bottom: 6px;
+}
+.als-blurb {
+  font: 600 11px/1.3 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.als-best {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.als-best b { color: var(--accent); font-size: 16px; }
+
+/* Results overlay. */
+#aimlab-results {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 26;
+}
+#aimlab-results.hidden { display: none; }
+.aimlab-card {
+  background: var(--panel);
+  border-top: 4px solid #4ac8ff;
+  border-radius: 10px;
+  width: 520px;
+  max-width: calc(100vw - 40px);
+  padding: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.aimlab-card h2 {
+  font-size: 26px;
+  letter-spacing: 8px;
+  color: #4ac8ff;
+  margin-bottom: 4px;
+}
+.alr-sub {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.alr-score-wrap { margin-bottom: 22px; }
+.alr-score {
+  font: 800 72px/1 'Segoe UI', sans-serif;
+  color: #6cf0ff;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+.alr-score-label {
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.alr-newbest {
+  margin-top: 10px;
+  font: 800 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: #ffd34a;
+  animation: alr-pulse 1s ease-in-out infinite;
+}
+.alr-newbest.hidden { display: none; }
+@keyframes alr-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+.alr-stats {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 14px 12px;
+  margin-bottom: 22px;
+}
+.alr-stat span {
+  display: block;
+  font: 700 22px/1.1 'Segoe UI', sans-serif;
+  color: var(--text);
+}
+.alr-stat label {
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.alr-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.alr-buttons .menu-btn { min-width: 240px; }
+
 /* --- Cosmetics tab ------------------------------------------------------ */
 .cosmetics-summary {
   background: rgba(0, 0, 0, 0.25);
