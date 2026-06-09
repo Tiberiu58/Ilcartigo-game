@@ -18,6 +18,7 @@ import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
+import { GunGame } from './modes/GunGame';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -56,6 +57,7 @@ const pauseOverlay = document.getElementById('pause-overlay')!;
 const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
+const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -87,6 +89,34 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+
+// ─── Gun Game mode ─────────────────────────────────────────────────────────
+// Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter
+// exposes just the three engine surfaces GunGame needs.
+const gunGame = new GunGame(game.bus, {
+  isLocalPlayer: (id) => game.isLocalPlayer(id),
+  setPlayerPrimaryWeapon: (id) => game.setPlayerPrimaryWeapon(id),
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+});
+const ggTicker = document.getElementById('gungame-ticker')!;
+const ggTierEl = document.getElementById('gg-tier')!;
+const ggTotalEl = document.getElementById('gg-total')!;
+const ggWeaponEl = document.getElementById('gg-weapon')!;
+const ggPipsEl = document.getElementById('gg-pips')!;
+
+gunGame.onLocalTierChange = (tier, total, label) => {
+  ggTierEl.textContent = String(tier + 1);   // display 1-based
+  ggTotalEl.textContent = String(total);
+  ggWeaponEl.textContent = label;
+  // Pips: filled up to and including the current rung.
+  ggPipsEl.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<span class="gg-pip${i <= tier ? ' on' : ''}"></span>`).join('');
+};
+gunGame.onWin = (winnerId) => {
+  // Reuse the post-match overlay; it reads matchKills for the scoreboard.
+  game.matchEnded = true;
+  game.onMatchEnded?.(winnerId);
+};
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -227,7 +257,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -236,6 +266,18 @@ function startGame(mode: 'combat' | 'practice' = 'combat') {
   }
   game.setMode(mode);
   announcer.reset();
+
+  // Gun Game: start a fresh ladder for the player + all active bots, and show
+  // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
+  // weapon swap lands on the live inventory.)
+  if (mode === 'gungame') {
+    const participants = [game.localPlayerId(), ...game.bots.map((b) => b.id)];
+    gunGame.start(participants);
+    ggTicker.classList.remove('hidden');
+  } else {
+    ggTicker.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -304,6 +346,9 @@ function quitToMenu() {
   hud.classList.add('hidden');
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
+  ggTicker.classList.add('hidden');
+  // Restore the player's chosen loadout weapon (Gun Game overwrote it).
+  game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
 
 // Class selector. Selection persists in localStorage; takes effect immediately
@@ -372,6 +417,7 @@ if (savedPrimary !== 'ar') {
 
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
+menuGungame.addEventListener('click', () => startGame('gungame'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -679,6 +725,10 @@ pmPlayAgain.addEventListener('click', () => {
     hidePostMatch();
     game.resetMatchScore();
     announcer.reset();
+    // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
+    if (game.mode === 'gungame') {
+      gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    }
     game.input.requestPointerLock();
   }
 });

@@ -122,3 +122,33 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ### Phase 12 COMPLETE — A–F + polish shipped, no protocol change, solo + MP intact.
 
+---
+
+## Phase 13 — Gun Game mode (v0.13.0)
+
+The first NEW GAME MODE — mode variety is the #1 driver of replay value in arena
+shooters (Krunker has a dozen). Self-contained, solo-vs-bots for v1, no protocol
+or MP changes, fully browser-verified.
+
+- **Weapon ladder** `smg → ar → shotgun → sniper → pistol` (`GUNGAME_LADDER`).
+  Each kill advances the killer one rung; the player's gun visibly swaps in hand.
+  First to land a kill on the FINAL rung (pistol) wins → post-match overlay.
+- **New `modes/GunGame.ts`** — bus-driven, decoupled via a small `GunGameHost`
+  interface (isLocalPlayer / setPlayerPrimaryWeapon / playSound). Tracks per-
+  participant tiers; bots race too (their tier advances, weapon stays fixed for v1).
+- **`GameMode` extended** to `'combat' | 'practice' | 'gungame'` + an `isCombatMode()`
+  helper so bots/spawn-protection/map logic treat Gun Game like Combat.
+- **New `Game.setPlayerPrimaryWeapon(id)`** — swaps primary + viewmodel. Pistol is
+  special-cased (it's the secondary slot; `setPrimary` rejects it) → selects slot 1.
+  **Caught + fixed during verification**: without this the final rung silently
+  stayed on sniper.
+- **HUD**: new top-center Gun Game ticker — "LVL n/5 · WEAPON" + filled pips.
+  Shown only in gungame mode; hidden on quit/other modes.
+- **Menu**: new "🔫 Gun Game (vs Bots)" button. Play Again restarts the ladder;
+  Quit restores the player's chosen loadout weapon.
+- Verified in-browser end-to-end: starts on SMG, climbs AR→SHOTGUN→SNIPER→PISTOL
+  over 4 kills, 5th kill (on pistol) fires the win + post-match. Typecheck (client)
+  + build green; app chunk ~61.6 KB gzip.
+
+### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
+

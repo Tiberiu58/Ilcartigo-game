@@ -918,6 +918,50 @@ body.kill-flash #app::after {
   border-left: 3px solid #4ac8a8;
 }
 .menu-btn.online:hover { border-left-color: #4ac8a8; color: #4ac8a8; }
+.menu-btn.gungame {
+  border-left: 3px solid #ff8a3a;
+}
+.menu-btn.gungame:hover { border-left-color: #ff8a3a; color: #ff8a3a; }
+
+/* ── Gun Game ticker (top-center HUD) ───────────────────────────────────── */
+#gungame-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(20, 25, 35, 0.82);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #ff8a3a;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#gungame-ticker.hidden { display: none; }
+.gg-level {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.gg-level #gg-tier { color: #ff8a3a; }
+.gg-weapon {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.gg-pips { display: flex; gap: 4px; }
+.gg-pip {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.gg-pip.on {
+  background: #ff8a3a;
+  box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
+}
 
 .menu-footer {
   grid-area: footer;

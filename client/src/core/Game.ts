@@ -49,7 +49,14 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice';
+export type GameMode = 'combat' | 'practice' | 'gungame';
+
+/** Modes where bots are active threats + the player can die/respawn (i.e. not
+ *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
+ *  ladder layered on top. */
+export function isCombatMode(m: GameMode): boolean {
+  return m === 'combat' || m === 'gungame';
+}
 
 export interface FrameInfo {
   fps: number;
@@ -360,8 +367,8 @@ export class Game {
     // Clear the killfeed — old entries from combat shouldn't carry over.
     document.getElementById('killfeed')?.replaceChildren();
 
-    // Swap the map: Practice uses the test map; Combat uses the selected one.
-    // setMap calls respawnPlayer for us, so don't double-call.
+    // Swap the map: Practice uses the test map; Combat/Gun Game use the
+    // selected one. setMap calls respawnPlayer for us, so don't double-call.
     const targetMapId: MapId = mode === 'practice' ? 'practice' : this.combatMapId;
     if (this.currentMap.meta.id !== targetMapId) {
       this.setMap(targetMapId);
@@ -371,12 +378,30 @@ export class Game {
   }
 
   /**
-   * Bots should be live only when we're in Combat AND not connected to MP.
-   * Called from setMode and from MP connect/disconnect — keeps the "are
+   * Force the local player's active weapon to `id` and put it in hand. Used by
+   * Gun Game to advance the player's gun each kill. The pistol is special — it
+   * lives in the SECONDARY slot (can't be a primary), so we select slot 1 for
+   * it; everything else replaces the primary (slot 0).
+   */
+  setPlayerPrimaryWeapon(id: WeaponId) {
+    if (id === 'pistol') {
+      // Pistol is always the secondary slot — select it rather than trying to
+      // jam it into the primary (WeaponInventory.setPrimary rejects pistol).
+      this.inventory.selectSlot(1);
+    } else {
+      this.inventory.setPrimary(id);
+      this.inventory.selectSlot(0);
+    }
+    this.viewmodel.swapTo(id);
+  }
+
+  /**
+   * Bots should be live only when we're in Combat/Gun Game AND not connected to
+   * MP. Called from setMode and from MP connect/disconnect — keeps the "are
    * bots running?" predicate in one place.
    */
   private syncBotState() {
-    const botsLive = this.mode === 'combat' && !this.mp;
+    const botsLive = isCombatMode(this.mode) && !this.mp;
     for (const b of this.bots) {
       if (botsLive) {
         b.active = true;
@@ -419,7 +444,7 @@ export class Game {
     this.applyClassPassives();
     this.playerActor.health.reset();
     // Practice mode skips invuln — no threats to be invulnerable from.
-    if (this.mode === 'combat') {
+    if (isCombatMode(this.mode)) {
       this.playerActor.health.grantInvulnerability(SPAWN_PROTECTION_SECONDS);
     }
     const spawn = this.pickSafeSpawn();
@@ -429,7 +454,7 @@ export class Game {
     // Local respawn SFX. In MP the server respawns us; the tick-level edge
     // detector picks that path up via the dead→alive transition.
     this.audio.play('respawn');
-    if (this.mode === 'combat') this.audio.play('spawn_protect');
+    if (isCombatMode(this.mode)) this.audio.play('spawn_protect');
   }
 
   /**
