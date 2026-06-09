@@ -127,6 +127,9 @@ export interface PlayerSnapshot {
   yaw: number;
   pitch: number;
   hp: number;
+  /** Max HP (class passive can raise it, e.g. Vanguard 115). Local HUD uses it
+   *  so the bar isn't normalised to a wrong 100 in MP. Optional/back-compat. */
+  maxHp?: number;
   /** Overshield (armor) — only meaningful for the local player's HUD; 0/absent
    *  means none. Remote viewers don't render an armor bar. */
   armor?: number;

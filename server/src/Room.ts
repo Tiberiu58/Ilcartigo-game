@@ -365,6 +365,7 @@ export class Room {
       yaw: p.controller.yaw,
       pitch: p.controller.pitch,
       hp: p.hp,
+      maxHp: p.maxHp,
       armor: p.armor,
       classId: p.classId,
       weaponId: p.weaponId,

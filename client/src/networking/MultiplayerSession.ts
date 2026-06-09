@@ -334,8 +334,10 @@ export class MultiplayerSession {
       } else if (self.hp > 0 && this.game.playerActor.health.dead) {
         this.game.playerActor.health.dead = false;
       }
-      this.game.playerActor.health.max = 100;        // MVP: fixed max
     }
+    // Max HP from server (class passives raise it, e.g. Vanguard 115) so the
+    // HUD bar normalises correctly online.
+    this.game.playerActor.health.max = self.maxHp ?? 100;
     // Armor (overshield) from server is authoritative too — drives the HUD bar.
     this.game.playerActor.health.armor = self.armor ?? 0;
     void RECONCILE_DT;                                // reserved for full replay impl

@@ -186,6 +186,35 @@ chDot.addEventListener('change', () => {
   localStorage.setItem('ilc.ch.dot', String(chDot.checked));
 });
 
+// Crosshair presets — one-click shape bundles. They drive the same controls +
+// vars (and persist), so the sliders/checkboxes update to match. Colour is
+// left untouched (it's a personal pick, not part of the shape).
+const CH_PRESETS: Record<string, { size: number; thickness: number; gap: number; dot: boolean }> = {
+  dot:   { size: 2,  thickness: 3, gap: 0, dot: true },
+  small: { size: 5,  thickness: 2, gap: 2, dot: false },
+  cross: { size: 9,  thickness: 2, gap: 4, dot: false },
+  large: { size: 14, thickness: 3, gap: 6, dot: false },
+};
+function applyCrosshairPreset(name: string) {
+  const p = CH_PRESETS[name];
+  if (!p) return;
+  chSize.value = String(p.size);       chSizeVal.textContent = String(p.size);
+  chThickness.value = String(p.thickness); chThicknessVal.textContent = String(p.thickness);
+  chGapBase.value = String(p.gap);     chGapBaseVal.textContent = String(p.gap);
+  chDot.checked = p.dot;
+  applyChVar('--ch-size', `${p.size}px`);
+  applyChVar('--ch-thickness', `${p.thickness}px`);
+  applyChVar('--ch-gap-base', `${p.gap}px`);
+  applyChVar('--ch-dot', p.dot ? 'block' : 'none');
+  localStorage.setItem('ilc.ch.size', String(p.size));
+  localStorage.setItem('ilc.ch.thickness', String(p.thickness));
+  localStorage.setItem('ilc.ch.gap', String(p.gap));
+  localStorage.setItem('ilc.ch.dot', String(p.dot));
+}
+document.querySelectorAll<HTMLButtonElement>('.ch-preset-btn').forEach((btn) => {
+  btn.addEventListener('click', () => applyCrosshairPreset(btn.dataset.preset ?? ''));
+});
+
 // ─── Audio settings ─────────────────────────────────────────────────────────
 const audioMaster = document.getElementById('audio-master') as HTMLInputElement;
 const audioMasterVal = document.getElementById('audio-master-val')!;
