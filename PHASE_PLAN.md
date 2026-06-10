@@ -207,3 +207,37 @@ never break solo/MP/Gun Game.**
 
 ### Phase 14 COMPLETE — Survival mode shipped, solo + MP + Gun Game intact, no protocol change. App chunk ~63 KB gzip.
 
+---
+
+## Phase 15 — Health pickups (v0.15.0)
+
+Arena sustain — floating med-kits the player walks over to heal. Deepens every
+combat mode and has strong synergy with the new Survival mode (sustain to push
+deeper into the horde). Reserve ammo is infinite in this game, so ammo pickups
+would be no-ops — **health is the meaningful pickup**.
+
+- **Solo + combat-mode only.** MP healing would need server authority (protocol
+  change) → out of scope; pickups are gated to `!mp` + `isCombatMode`. Built/torn
+  down on every map/mode/MP transition via `Game.refreshPickups()`.
+- **`entities/HealthPickup.ts`** — a glowing green med-kit (white cross + ground
+  glow ring) that bobs + spins. Collected on proximity ONLY when the player is
+  below full HP (no waste), heals +40, then goes on a 14s cooldown and respawns.
+- **Placement.** Optional `MapMeta.healthSpawns`; if a map omits it, the engine
+  derives anchors by pulling each FFA spawn ~55% toward centre (open lanes).
+- **Feedback.** Green edge flash + floating "+40 HP" popup + `pickup_health` SFX
+  (silent until the `.wav` lands). New `Game.onHealthPickup` hook.
+
+Guiding constraint: no protocol changes, no new deps, typecheck + build green,
+solo/MP/Gun Game/Survival all intact.
+
+### Status log
+- ✅ Phase 15 — Health pickups. DONE (typecheck + build green; collect/cooldown
+  logic headless-verified). New `entities/HealthPickup.ts`; `Game` owns the set
+  (`refreshPickups()` on map/mode/MP change), heals on collect, fires
+  `onHealthPickup`. `MapMeta.healthSpawns` optional + FFA-derived fallback. New
+  `pickup_health` SoundId. HUD green flash + "+HP" popup. Smoke test confirmed:
+  no collect when far / at full HP, collect when hurt+near, cooldown blocks
+  re-collect, respawns after 14s.
+
+### Phase 15 COMPLETE — Health pickups shipped (solo combat), no protocol change.
+

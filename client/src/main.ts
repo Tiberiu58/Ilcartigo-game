@@ -783,6 +783,17 @@ function hidePostMatch() {
 
 game.onMatchEnded = (winnerId) => showPostMatch(winnerId);
 
+// Health-pickup feedback — green edge flash + a floating "+HP" cue.
+const healthPopup = document.getElementById('health-popup')!;
+game.onHealthPickup = (amount) => {
+  document.body.classList.add('health-flash');
+  setTimeout(() => document.body.classList.remove('health-flash'), 250);
+  healthPopup.textContent = `+${amount} HP`;
+  healthPopup.classList.remove('show');
+  void healthPopup.offsetWidth;   // reflow to restart the animation
+  healthPopup.classList.add('show');
+};
+
 pmPlayAgain.addEventListener('click', () => {
   if (game.mp) {
     // MP: ask the SERVER to start a fresh match. We don't reset locally or

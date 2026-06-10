@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. **Survival (Horde) mode** — wave-based, one-life, score-chasing, with a game-over ad breakpoint. Built on Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 15 — v0.15.0. **Health pickups** — floating med-kits for arena sustain (solo combat, big synergy with Survival). Built on Phase 14 **Survival (Horde) mode** — wave-based, one-life, score-chasing, with a game-over ad breakpoint. Built on Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -395,14 +395,39 @@ after 5 kills. Added an `enabled` guard (set on `start()`, cleared on `stop()`);
 Production client: **~190 KB gzipped** total (engine 120 + app 63 + CSS 8 + HTML 6).
 ~+2 KB this phase for the whole Survival layer. No new dependencies.
 
+## Phase 15 — Health pickups (this round, v0.15.0)
+
+Arena sustain — floating med-kits the player walks over to heal. Deepens every
+combat mode and pairs especially well with Survival (heal up between/within
+waves to push deeper). Reserve ammo is infinite in ILCARTIGO, so ammo pickups
+would be no-ops — **health is the meaningful pickup**.
+
+- **Solo + combat-mode only.** MP healing would need server authority (a protocol
+  change) → out of scope; pickups are gated to `!mp` + combat modes, and rebuilt
+  on every map/mode/MP transition (`Game.refreshPickups()`).
+- **`entities/HealthPickup.ts`** — a glowing green med-kit (white cross + ground
+  glow ring) that bobs + spins. Collected on proximity **only when below full HP**
+  (no waste), heals **+40**, then goes on a **14 s** cooldown and respawns.
+- **Placement.** Optional `MapMeta.healthSpawns`; maps without it get anchors
+  derived from the FFA spawns (pulled ~55 % toward centre — open lanes).
+- **Feedback.** Green screen-edge flash + a floating "+40 HP" popup +
+  `pickup_health` SFX (silent until the `.wav` is added).
+
+New audio id reserved (drop-in, silent until present): `pickup_health.wav`
+("medkit pickup", "health collect", "powerup grab").
+
+### Bundle size
+
+Production client: **~191 KB gzipped** total (engine 121 + app 64 + CSS 8 + HTML 6).
+
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **Survival (Horde) mode** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **Survival (Horde) mode**, **health pickups** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Survival (Horde), scoreboard, killstreaks, profile/stats + survival bests, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Survival (Horde), scoreboard, killstreaks, profile/stats + survival bests, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, health pickups. v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

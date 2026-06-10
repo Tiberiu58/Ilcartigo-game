@@ -23,6 +23,9 @@ export interface MapMeta {
   ffaSpawns: THREE.Vector3[];
   /** Pair of team spawns for TDM. [team0, team1]. Optional — Practice has none. */
   teamSpawns?: [THREE.Vector3, THREE.Vector3];
+  /** Health-pickup anchor points (ground-level). Optional — if omitted the
+   *  engine derives a few from the FFA spawns (lanes between corner + centre). */
+  healthSpawns?: THREE.Vector3[];
   /** Color of the post-respawn screen-flash; defaults to bright cyan. */
   spawnFlashColor?: number;
 }

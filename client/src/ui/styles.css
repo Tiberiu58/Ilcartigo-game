@@ -445,6 +445,34 @@ body.kill-flash #app::after {
   to   { opacity: 0; }
 }
 
+/* Health-pickup flash — brief green edge pulse + "+HP" cue on collect. */
+body.health-flash #app::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(47, 224, 106, 0.35) 100%);
+  z-index: 6;
+  animation: kill-flash-fade 0.25s ease-out forwards;
+}
+#health-popup {
+  position: absolute;
+  left: 50%; top: 58%;
+  transform: translateX(-50%);
+  font: 800 22px/1 'Segoe UI', sans-serif;
+  color: #6dffa0;
+  text-shadow: 0 0 12px rgba(47, 224, 106, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 13;
+  opacity: 0;
+}
+#health-popup.show { animation: health-popup 0.7s ease-out forwards; }
+@keyframes health-popup {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+}
+
 /* Damage-direction flash: red vignette pulse on hit. */
 #damage-flash {
   position: absolute;

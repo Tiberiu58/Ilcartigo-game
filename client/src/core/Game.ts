@@ -22,6 +22,7 @@ import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot, type BotDifficulty } from '../entities/Bot';
+import { HealthPickup } from '../entities/HealthPickup';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -174,10 +175,15 @@ export class Game {
   private _eyePos = new THREE.Vector3();
   private _aimDir = new THREE.Vector3();
 
+  /** Floating health pickups for the current combat map (solo only). */
+  private pickups: HealthPickup[] = [];
+
   onFrame?: (info: FrameInfo) => void;
   /** Fired in MP when the first player hits MATCH_KILL_GOAL kills. Main.ts
    *  uses this to show the post-match overlay. */
   onMatchEnded?: (winnerId: string) => void;
+  /** Fired when the local player collects a health pickup — HUD feedback hook. */
+  onHealthPickup?: (amount: number) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -325,6 +331,9 @@ export class Game {
     // Initial spawn: 2s of grace so the player can orient on first load.
     this.playerActor.health.grantInvulnerability(SPAWN_PROTECTION_SECONDS);
 
+    // Health pickups for the starting (combat) map.
+    this.refreshPickups();
+
     window.addEventListener('resize', this.onResize);
   }
 
@@ -377,6 +386,9 @@ export class Game {
     } else {
       this.respawnPlayer();
     }
+    // Pickups depend on the mode (none in Practice). setMap also refreshes them,
+    // but the same-map branch above doesn't, so do it here unconditionally.
+    this.refreshPickups();
   }
 
   /**
@@ -429,6 +441,33 @@ export class Game {
   private _hordeSeq = 0;
 
   /**
+   * Rebuild the health-pickup set for the current map + mode. Pickups exist
+   * only in solo combat modes (not Practice, not MP — MP healing would need
+   * server authority). Disposes any existing pickups first, so it's safe to
+   * call on every map/mode/MP transition.
+   */
+  private refreshPickups() {
+    for (const p of this.pickups) p.dispose(this.scene);
+    this.pickups = [];
+    if (!isCombatMode(this.mode) || this.mp) return;
+
+    // Use the map's explicit health anchors if it has them, else derive a few
+    // by pulling each FFA spawn ~55% toward the map centre (open lanes between
+    // the corners and the middle), dropped to ground level.
+    const explicit = this.currentMap.meta.healthSpawns;
+    const anchors: THREE.Vector3[] = explicit && explicit.length > 0
+      ? explicit.map((v) => v.clone())
+      : this.currentMap.meta.ffaSpawns.map((s) =>
+          _SCRATCH_BOT_SPAWN.set(s.x * 0.55, 0.5, s.z * 0.55).clone());
+
+    for (const a of anchors) {
+      const p = new HealthPickup(a);
+      this.scene.add(p.group);
+      this.pickups.push(p);
+    }
+  }
+
+  /**
    * Bots should be live only when we're in Combat/Gun Game AND not connected to
    * MP. Called from setMode and from MP connect/disconnect — keeps the "are
    * bots running?" predicate in one place.
@@ -459,6 +498,8 @@ export class Game {
    */
   onMpChanged() {
     this.syncBotState();
+    // Pickups are solo-only — drop them on MP connect, restore on disconnect.
+    this.refreshPickups();
   }
 
   /**
@@ -569,6 +610,8 @@ export class Game {
     for (const b of this.bots) b.respawn();
     // Reset player too.
     this.respawnPlayer();
+    // Rebuild pickups for the new map (positions are map-specific).
+    this.refreshPickups();
   }
 
   /**
@@ -831,6 +874,19 @@ export class Game {
       for (const b of this.bots) {
         if (!b.active) continue;
         b.update(dt, this._eyePos, this.player.vel, this.playerActor.isCloaked);
+      }
+    }
+
+    // --- 3a. Health pickups (solo combat only) ---
+    if (this.pickups.length > 0 && !this.playerActor.health.dead) {
+      const ratio = this.playerActor.health.current / this.playerActor.health.max;
+      for (const p of this.pickups) {
+        const heal = p.update(dt, this.player.pos, ratio);
+        if (heal > 0) {
+          this.playerActor.health.heal(heal);
+          this.audio.play('pickup_health');
+          this.onHealthPickup?.(heal);
+        }
       }
     }
 
