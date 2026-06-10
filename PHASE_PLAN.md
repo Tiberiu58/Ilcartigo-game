@@ -304,3 +304,21 @@ a cluster of Survival bots). Press **G** to lob a frag. Solo + combat-mode only
 
 ### Phase 17 COMPLETE — Frag grenades shipped (solo combat), no protocol change. App chunk ~65 KB gzip.
 
+---
+
+## Phase 18 — Landing-site refresh (marketing / revenue)
+
+The static landing site (`/website`) — which hosts the AdSense display units and
+is the game's front door — still advertised only the original feature set
+(6 classes / 5 weapons / 2 maps / FFA). Refreshed it to match the game so the
+marketing is accurate + compelling (better engagement → better ad performance).
+Zero gameplay risk (static HTML, no build step).
+
+- New **"Four game modes"** section (FFA solo/online, Gun Game, Survival, Practice).
+- New **"Pickups & power-ups"** section (med-kits, Berserk, frag grenades).
+- Hero tagline + Combat how-to updated (mentions modes, power-ups, the **G**
+  grenade key); footer nav links the new Modes section.
+- AdSense slots untouched (still reserved/placeholder until approval).
+
+### Phase 18 COMPLETE — site matches the game; ad slots intact; section tags balanced.
+
