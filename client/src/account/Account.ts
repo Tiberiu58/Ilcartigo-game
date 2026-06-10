@@ -12,7 +12,7 @@
  * Level curve: 1000 XP per level. Simple and predictable.
  */
 
-import { findSkin, findTracer, defaultSkinForClass, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId } from './Cosmetics';
+import { findSkin, findTracer, defaultSkinForClass, findWeaponSkin, defaultWeaponSkin, weaponSkinsFor, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId, type WeaponSkinId, type WeaponSkinConfig } from './Cosmetics';
 import type { ClassId } from '../classes/types';
 
 const STORAGE_KEY = 'ilc.account';
@@ -62,6 +62,10 @@ interface AccountData {
   equippedSkin: Partial<Record<ClassId, SkinId>>;
   equippedKillEffect: KillEffectId;
   equippedTracer: TracerId;
+  /** Lifetime kills per weapon id — drives weapon mastery + skin unlocks. */
+  weaponKills: Record<string, number>;
+  /** Per-weapon equipped skin id. Missing = the weapon's default skin. */
+  equippedWeaponSkin: Record<string, WeaponSkinId>;
   /** Lifetime career stats. */
   stats: LifetimeStats;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
@@ -143,6 +147,8 @@ function freshData(): AccountData {
     equippedSkin: {},
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
+    weaponKills: {},
+    equippedWeaponSkin: {},
     stats: freshStats(),
     name: '',
     daily: freshDaily(freshStats()),
@@ -184,6 +190,12 @@ export class Account {
         equippedTracer: typeof parsed.equippedTracer === 'string'
           ? parsed.equippedTracer
           : fresh.equippedTracer,
+        weaponKills: (parsed.weaponKills && typeof parsed.weaponKills === 'object')
+          ? parsed.weaponKills as Record<string, number>
+          : fresh.weaponKills,
+        equippedWeaponSkin: (parsed.equippedWeaponSkin && typeof parsed.equippedWeaponSkin === 'object')
+          ? parsed.equippedWeaponSkin as Record<string, WeaponSkinId>
+          : fresh.equippedWeaponSkin,
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
@@ -333,6 +345,53 @@ export class Account {
     this.data.equippedTracer = id;
     this.save();
     return true;
+  }
+
+  // ── Weapon mastery + skins ────────────────────────────────────────────────
+
+  /** Lifetime kills with a given weapon (its mastery count). */
+  weaponKillsFor(weaponId: string): number {
+    return this.data.weaponKills[weaponId] ?? 0;
+  }
+
+  /** A weapon skin is unlocked once its weapon's mastery meets the kill req. */
+  isWeaponSkinUnlocked(skin: WeaponSkinConfig): boolean {
+    return this.weaponKillsFor(skin.weaponId) >= skin.killReq;
+  }
+
+  /** Equipped skin id for a weapon, falling back to default if unset/locked. */
+  equippedWeaponSkinId(weaponId: string): WeaponSkinId {
+    const id = this.data.equippedWeaponSkin[weaponId];
+    const skin = id ? findWeaponSkin(id) : undefined;
+    if (skin && skin.weaponId === weaponId && this.isWeaponSkinUnlocked(skin)) return id;
+    return defaultWeaponSkin(weaponId);
+  }
+
+  /** Equipped skin tint colour for a weapon, or null for the stock (default) look. */
+  equippedWeaponSkinColor(weaponId: string): number | null {
+    const skin = findWeaponSkin(this.equippedWeaponSkinId(weaponId));
+    return skin?.color ?? null;
+  }
+
+  /** Equip an unlocked weapon skin. No-op if locked or unknown. */
+  equipWeaponSkin(id: WeaponSkinId): boolean {
+    const skin = findWeaponSkin(id);
+    if (!skin || !this.isWeaponSkinUnlocked(skin)) return false;
+    this.data.equippedWeaponSkin[skin.weaponId] = id;
+    this.save();
+    return true;
+  }
+
+  /**
+   * Record a local-player kill with a weapon → bumps that weapon's mastery.
+   * Returns the skin that JUST unlocked on this kill (its killReq exactly
+   * equals the new count), or null — so callers can celebrate it. Saves once.
+   */
+  recordWeaponKill(weaponId: string): WeaponSkinConfig | null {
+    const next = this.weaponKillsFor(weaponId) + 1;
+    this.data.weaponKills[weaponId] = next;
+    this.save();
+    return weaponSkinsFor(weaponId).find((s) => s.killReq === next) ?? null;
   }
 
   // ── Lifetime stat recording ───────────────────────────────────────────────

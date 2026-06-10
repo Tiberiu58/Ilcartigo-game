@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { ProgressionFX } from './ui/ProgressionFX';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -92,6 +93,9 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+// Progression spectacle — rank badges (HUD + menu), level-up banner, +XP popups.
+const progression = new ProgressionFX(game.account, game.audio, game.bus, (id) => game.isLocalPlayer(id));
+void progression;
 
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter

@@ -22,8 +22,9 @@ import type { GameEventBus } from '../core/events';
 import type { WeaponId } from '../weapons/Weapon';
 
 /** The weapon ladder, bottom (first) → top (last). Reaching past the last
- *  weapon wins. Pistol is intentionally the final rung. */
-export const GUNGAME_LADDER: WeaponId[] = ['smg', 'ar', 'shotgun', 'sniper', 'pistol'];
+ *  weapon wins. Pistol is intentionally the final rung; the Marksman DMR sits
+ *  just below it as a precision step-up from the sniper. */
+export const GUNGAME_LADDER: WeaponId[] = ['smg', 'ar', 'shotgun', 'sniper', 'marksman', 'pistol'];
 
 /** Display labels for each rung (HUD ticker). */
 const WEAPON_LABEL: Record<WeaponId, string> = {
@@ -31,6 +32,7 @@ const WEAPON_LABEL: Record<WeaponId, string> = {
   ar: 'ASSAULT RIFLE',
   shotgun: 'SHOTGUN',
   sniper: 'SNIPER',
+  marksman: 'MARKSMAN',
   pistol: 'PISTOL',
 };
 

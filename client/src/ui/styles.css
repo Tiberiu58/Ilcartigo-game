@@ -88,6 +88,8 @@ html, body, #app {
   --ch-gap: var(--ch-gap-base);
   --ch-outline: 1;
   --ch-dot: block;
+  --ch-top: block;     /* top pip visibility — T-style preset sets this to none */
+  --ch-dynamic: 1;     /* 1 = firing spread widens the gap; 0 = fixed reticle */
 }
 #crosshair {
   position: absolute;
@@ -107,6 +109,7 @@ html, body, #app {
   height: var(--ch-size);
   left: calc(var(--ch-thickness) * -0.5);
   top: 0;
+  display: var(--ch-top);
   transform: translateY(calc((var(--ch-gap) + var(--ch-size)) * -1));
 }
 .ch-bottom {
@@ -1487,6 +1490,53 @@ body.kill-flash #app::after {
   color: var(--muted);
 }
 .cos-card.equipped .cos-status { color: var(--accent); }
+/* Weapon-skin mastery progress bar inside a locked card. */
+.cos-card .cos-mastery {
+  width: 100%; height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.cos-card .cos-mastery-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+/* Weapon picker tabs above the weapon-skin grid. */
+.cos-weapon-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.cos-weapon-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 11px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.cos-weapon-tab:hover { border-color: var(--accent); }
+.cos-weapon-tab.selected {
+  border-color: var(--accent);
+  background: rgba(245, 212, 66, 0.08);
+  color: var(--text);
+}
+.cos-weapon-tab .cwt-name {
+  font: 800 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+}
+.cos-weapon-tab .cwt-kills {
+  font: 600 9px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
 .cos-class-header {
   font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
   letter-spacing: 2px;
@@ -1672,6 +1722,7 @@ body.kill-flash #app::after {
 .ch-preview-frame .ch-top {
   width: var(--ch-thickness);
   height: var(--ch-size);
+  display: var(--ch-top);
   transform: translate(calc(var(--ch-thickness) * -0.5), calc((var(--ch-gap-base) + var(--ch-size)) * -1));
 }
 .ch-preview-frame .ch-bottom {
@@ -2077,3 +2128,168 @@ body.kill-flash #app::after {
 }
 .howto-tips b { color: var(--accent); }
 .howto-card .menu-btn { width: 100%; }
+
+/* ── Phase 13: progression spectacle ─────────────────────────────────────── */
+
+/* Rank badge — shared markup between the HUD (in-game, bottom-left) and the
+   main menu (under the subtitle). Layout differs by container, internals don't. */
+.rb-glyph { font-size: 20px; line-height: 1; text-shadow: 0 0 8px currentColor; }
+.rb-text { display: flex; flex-direction: column; gap: 1px; line-height: 1; }
+.rb-lvl {
+  font: 800 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+.rb-rank {
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.rb-prog {
+  display: block;
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.rb-prog-fill { display: block; height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+/* HUD rank badge — bottom-left, above the health panel. */
+#rank-badge {
+  position: fixed;
+  left: 22px;
+  bottom: 92px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  min-width: 116px;
+  padding: 7px 12px;
+  background: rgba(10, 13, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  backdrop-filter: blur(3px);
+  z-index: 12;
+}
+#rank-badge:empty { display: none; }
+#rank-badge .rb-glyph { grid-row: 1 / 3; }
+#rank-badge .rb-prog { grid-column: 1 / 3; }
+
+/* Menu rank badge — under the subtitle, centered, pill-shaped. */
+.menu-rank {
+  display: inline-grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 9px;
+  row-gap: 4px;
+  min-width: 150px;
+  margin: 0 auto 18px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+.menu-rank:empty { display: none; }
+.menu-rank .rb-glyph { grid-row: 1 / 3; font-size: 24px; }
+.menu-rank .rb-prog { grid-column: 1 / 3; }
+
+/* Level-up banner — center screen, above the announcer's vertical slot. */
+#levelup-banner {
+  --lu-color: var(--accent);
+  position: fixed;
+  top: 32vh;
+  left: 0; right: 0;
+  text-align: center;
+  z-index: 18;
+  pointer-events: none;
+  user-select: none;
+}
+#levelup-banner.hidden { display: none; }
+.lu-kicker {
+  font: 800 16px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 8px;
+  color: var(--lu-color);
+  text-shadow: 0 0 12px var(--lu-color);
+  margin-bottom: 6px;
+}
+.lu-level {
+  font: 900 60px/1 'Segoe UI', 'Arial Black', sans-serif;
+  letter-spacing: 4px;
+  color: #fff;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.9),
+    0 3px 10px rgba(0, 0, 0, 0.8),
+    0 0 28px var(--lu-color);
+  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.5);
+}
+.lu-rank {
+  margin-top: 8px;
+  font: 700 18px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+#levelup-banner.lu-pop { animation: lu-pop 2.2s cubic-bezier(0.16, 0.9, 0.3, 1) forwards; }
+@keyframes lu-pop {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.7); }
+  8%   { opacity: 1; transform: translateY(0)   scale(1.14); }
+  18%  { transform: translateY(0) scale(1.0); }
+  85%  { opacity: 1; transform: translateY(0) scale(1.0); }
+  100% { opacity: 0; transform: translateY(-18px) scale(1.03); }
+}
+
+/* Floating "+XP" reward chips — drift up + fade just below the crosshair. */
+#reward-popups {
+  position: fixed;
+  left: 50%;
+  top: 56%;
+  width: 0; height: 0;
+  z-index: 16;
+  pointer-events: none;
+}
+.reward-chip {
+  position: absolute;
+  left: 0; top: 0;
+  transform: translate(-50%, 0);
+  white-space: nowrap;
+  font: 800 17px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.9), 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 12px currentColor;
+  animation: reward-rise 1.1s ease-out forwards;
+}
+@keyframes reward-rise {
+  0%   { opacity: 0; transform: translate(calc(-50% + var(--rp-jitter, 0px)), 6px) scale(0.8); }
+  18%  { opacity: 1; transform: translate(calc(-50% + var(--rp-jitter, 0px)), 0) scale(1.1); }
+  30%  { transform: translate(calc(-50% + var(--rp-jitter, 0px)), -4px) scale(1.0); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--rp-jitter, 0px)), -52px) scale(1.0); }
+}
+
+/* Crosshair preset buttons. */
+.ch-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ch-preset-btn {
+  flex: 1 1 auto;
+  min-width: 76px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text);
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.ch-preset-btn:hover {
+  background: rgba(245, 212, 66, 0.12);
+  border-color: var(--accent);
+}

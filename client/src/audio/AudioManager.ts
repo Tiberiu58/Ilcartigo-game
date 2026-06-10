@@ -28,6 +28,7 @@ export const SOUND_FILES = {
   fire_smg:      'fire_smg.wav',
   fire_sniper:   'fire_sniper.wav',
   fire_shotgun:  'fire_shotgun.wav',
+  fire_marksman: 'fire_marksman.wav',
   fire_pistol:   'fire_pistol.wav',
   reload:        'reload.wav',
   empty_click:   'empty_click.wav',
@@ -61,6 +62,8 @@ export const SOUND_FILES = {
   kill_feedback: 'kill_feedback.wav',
   match_end:     'match_end.wav',
   ui_click:      'ui_click.wav',
+  // Progression — celebratory sting when XP crosses a level boundary.
+  level_up:      'level_up.wav',
 
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',

@@ -124,77 +124,71 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ---
 
-## Phase 13 — Aim Lab + Solo Depth (autonomous build, v0.13.0)
+## Phase 13 — Rank Up & Reward Spectacle (autonomous build, v0.13.0)
 
-Krunker has a beloved **Aim Trainer**. ILCARTIGO had instant combat feedback
-(Phase 12) but no low-pressure way to *practise* and *measure* aim — and no
-extra solo loop to pull players back between matches. Phase 13 adds a complete,
-self-contained **Aim Lab (Target Rush)** mode: a 60-second flick sprint with a
-persistent personal best and a clean post-run results card (a natural AdSense
-breakpoint). It's a strong retention + revenue hook and very on-brand for the
-Krunker feel.
+The retention pillar. Krunker keeps you coming back by making your *level* visible,
+celebrated, and aspirational. ILCARTIGO already tracks XP + a derived level, but it's
+buried in a settings tab — there's no rank identity, no level-up moment, no juicy
+on-kill reward feedback. Phase 13 surfaces all of it. This is the loop that pairs
+directly with AdSense: more return visits + longer sessions = more ad impressions at
+the natural breakpoints we already built.
 
-Guiding constraint (same as Phase 12): **no protocol changes, no server changes,
-no controller changes, no new deps. Solo + MP both untouched. Typecheck + build
-green each step.**
+Guiding constraint (same as Phase 12): **no protocol changes, no new deps, client-only,
+typecheck + build green each step, solo + MP both keep working.**
 
-- **13A — Aim Lab: Target Rush.** New `modes/AimLab.ts`. A 60s run on the
-  Practice arena where glowing targets pop in and you flick to them as fast as
-  you can. Self-contained and additive:
-  - Targets are `Damageable`s shot through the *existing* `World.raycast` +
-    `Weapon` → `bus('shot'|'damage')` pipeline — the player shoots them exactly
-    like a bot.
-  - Targets carry huge HP so they **never** emit `kill` events — that keeps the
-    killfeed, announcer, lifetime stats, and combat XP completely clean during a
-    run. A pop is detected from the first `damage` event on a target, which then
-    relocates synchronously (so leftover shotgun pellets can't double-count).
-  - Spawn placement is map-agnostic: candidates are sampled on a ring around the
-    arena centre and validated against geometry overlap (`firstOverlap`) +
-    line-of-sight (`hasLineOfSight`) so every target is reachable + shootable.
-  - Live HUD (`#aimlab-hud`): countdown timer (turns red ≤10s), targets popped,
-    accuracy (pellet hits / shots). Soft-pauses when the pointer unlocks (Esc).
-  - Results card (`#aimlab-results`): big score, **NEW PERSONAL BEST** badge,
-    accuracy, persisted personal best (`ilc.aimlab.best`), XP earned
-    (4 XP/target, fed into the real progression), an **ad slot** (`aimlab`,
-    registered in `Ads.ts`), and Retry / Quit.
-  - Personal best is surfaced on the main-menu button itself
-    (“✦ Aim Lab (Target Rush) · best N”) as a "beat this" hook.
-  - Game integration is intentionally tiny: a typed `Game.aimLab` field, one
-    `update(dt)` call in the tick, and one defensive guard in the kill handler.
-    Everything else lives in `AimLab.ts` + `main.ts` DOM wiring.
+- **13A — Rank tiers + level-up celebration.** A named rank ladder derived from level
+  (Recruit → … → Mythic), each with an accent colour + glyph. A persistent rank badge
+  on the HUD and on the main menu. When XP crosses a level boundary, a full-screen
+  "LEVEL UP" banner pops with the new level + rank + a sound sting. New
+  `account/Ranks.ts` (pure data/helpers) + `ui/ProgressionFX.ts` (badges, banner,
+  popups). New `level_up` sound id.
+- **13B — Floating "+XP" reward popups.** Every local kill floats a "+10 XP" chip
+  (headshots tagged) near the crosshair that drifts up and fades — the instant,
+  dopamine-tight feedback Krunker nails. Driven by `ui/ProgressionFX.ts` off the kill bus.
+- **13C — Crosshair preset packs + dynamic-crosshair toggle.** One-click crosshair
+  presets (Classic / Dot / Cross / T-style / Precision) plus a "Dynamic crosshair"
+  toggle so players who want a static reticle can freeze the firing-spread gap. All on
+  the existing CSS-var crosshair pipeline; persisted like the other crosshair settings.
 
 ### Status log
-- ✅ Phase 13A — Aim Lab (Target Rush). DONE (client typecheck + build green;
-  server typecheck green/unchanged). New `modes/AimLab.ts` + `AimTarget`
-  (Damageable). Menu button + in-run HUD + results overlay + CSS + `aimlab` ad
-  slot. Personal best persisted + shown on the menu button. Zero protocol/server/
-  controller changes; solo FFA, Practice, and MP paths untouched (verified by
-  re-running both tsc passes + the client build). App chunk ~62.6 KB gzip
-  (~+1.5 KB for the whole mode, no new deps).
-- ✅ Phase 13B — Aim Lab drills + drill-select hub. DONE (client typecheck +
-  build green). Turned the Aim Lab into a small Training hub with a `DRILLS`
-  registry + a drill-select screen (`#aimlab-select`) shown from the menu. Two
-  drills: **Target Rush** (4 targets, 6–22m ring, 60s, 4 XP/target) and **Flick
-  Precision** (2 small targets, 14–32m ring, 45s, 8 XP/target). Per-drill
-  personal best (separate localStorage keys), shown on each drill card + the
-  best across drills on the menu button. `AimTarget` radius is now per-instance;
-  the target pool rebuilds when a drill's count/radius changes. Results card +
-  Retry are drill-aware. App chunk ~63 KB gzip (~+0.5 KB).
-- ✅ Phase 13C — Crosshair preset packs. DONE (client typecheck + build green).
-  Eight one-click crosshair presets (Classic / Dot / Cross / Tight / Open /
-  Sniper / Pro Green / Cyan) in the Crosshair settings tab. Each preset fills
-  every existing control (color/size/thickness/gap/outline/dot), updates the
-  live + preview crosshair via the shared CSS vars, and persists to
-  localStorage — behaving exactly as if dialed in by hand. Pure settings/CSS;
-  zero gameplay risk. A hallmark Krunker personalization touch.
-- ✅ Phase 13D — Aim Lab bests in Profile. DONE (client typecheck + build green).
-  Added an "Aim Lab Bests" section to the Profile settings tab (ProfileUI)
-  showing each drill's persistent personal best, re-rendered on account change
-  (so a new best appears the moment a run's XP lands). Single source of truth:
-  ProfileUI reads the same `DRILLS` registry/keys AimLab writes. Ties the new
-  training loop into the existing progression/retention surface.
+- ✅ Phase 13A — Rank tiers + level-up celebration. DONE (client tsc + build green; app 62 KB gzip). New `account/Ranks.ts` (8-tier ladder Recruit→Mythic, colour+glyph, `rankForLevel`/`rankProgress`). New `ui/ProgressionFX.ts` drives a shared rank badge on the HUD (bottom-left) + main menu (under subtitle) and a full-screen "LEVEL UP · Lv N · RANK" banner that pops on a net level increase (XP spends that lower the level re-sync the badge silently, no false celebration). New `level_up` sound id (silent until .wav added). Badges re-sync on every account mutation.
+- ✅ Phase 13B — Floating "+XP" reward popups. DONE. ProgressionFX listens to the kill bus; every local kill floats a "+10 XP" (headshots tagged "· HS", pink) chip near the crosshair that rises + fades (1.1s, horizontal jitter so stacked kills don't overlap). Skips suicides/falls. `rewardPopup()` is public for future post-match/challenge reuse.
+- ✅ Phase 13E — New weapon: Marksman (semi-auto precision DMR). DONE (client tsc+build green, app 62 KB gzip; server tsc green). A 5th primary filling the gap between the AR's auto spray and the Sniper's scoped one-shot: semi-auto, 40 dmg / 2.0× head (3-shot body, 2-shot one-head), pinpoint base spread but hard per-shot bloom so spamming is punished — no scope, fast handling. Full end-to-end: `MARKSMAN_CONFIG` + `WEAPON_LIBRARY` (auto-extends `WeaponId`), procedural `buildMarksman` viewmodel (gunmetal body, long barrel, teal low-profile optic), `fire_marksman` sound id, loadout button, and server-side `VALID_WEAPONS` + `SERVER_WEAPONS` entry (kept in sync with 13D's table). Works solo + MP; no protocol change (weaponId is already a free string on the wire, now server-validated against the extended set).
+- ✅ Phase 13D — Per-weapon server damage (MP combat-feel fix). DONE (server tsc green; boots clean at 32Hz, HTTP 200, protocol v2 unchanged). The server previously applied hardcoded AR damage (24 / 1.8×) to EVERY weapon, so weapon choice was cosmetic online — snipers didn't one-shot, SMGs didn't chip. Added `SERVER_WEAPONS` table + `weaponDamage(weaponId, distance, isHeadshot)` mirroring the client's `WeaponConfig` base damage, headshot multiplier, and linear falloff ramp exactly (distance = the hitscan ray's `bestT`). Sniper now one-shots heads (111 > 100, but < Vanguard's 115 — passive still matters), SMG chips, pistol is a real sidearm. SHOTGUN is the one intentional divergence (single aim ray can't replicate 9-pellet spread → tuned 52-dmg center blast w/ hard falloff; documented inline). No protocol change; client doesn't predict its own damage so there's no desync — MP damage numbers are now per-weapon-accurate.
+- ✅ Phase 13C — Crosshair presets + dynamic toggle. DONE. 5 one-click shape presets write through to the existing crosshair inputs + CSS vars + localStorage (colour left untouched — it's personal). New `--ch-top` var lets the T-Style preset hide the top pip; new `--ch-dynamic` var + "Dynamic crosshair" checkbox lets HUD.tickCrosshairSpread freeze the firing-spread gap for a fixed reticle. Both persisted (`ilc.ch.top` / `ilc.ch.dynamic`). Preview crosshair honours both new vars too.
+- ✅ Phase 13 polish — Bumped client+server to v0.13.0 (package.json + lockfiles + menu subtitle/footer), README Phase 13 section + top-status line + audio-catalog additions (`level_up`, `fire_marksman`) + deliverables/status updated. Client tsc + build green (app ~62 KB gzip, ~190 KB total), server tsc green, server boots clean (32Hz, HTTP 200, protocol v2 unchanged).
 
-### Phase 13 COMPLETE — Aim Lab (2 drills) + crosshair presets + Profile
-integration shipped. No protocol/server/controller changes; solo + MP intact.
-Client tsc + build green throughout; app chunk ~63 KB gzip.
+### Phase 13 COMPLETE — A–E + polish shipped. Client features zero-protocol; server changes additive (no protocol bump). Solo + MP intact.
+
+---
+
+## Phase 14 — Weapon Mastery & Skins (autonomous build, v0.14.0)
+
+A proven Krunker-style retention loop layered on the progression we just surfaced:
+get kills with a weapon → climb its *mastery* → unlock weapon skins for it. More to
+chase per weapon = more reasons to keep playing (retention → ad revenue). Entirely
+client-side + account-driven, zero protocol, solo + MP both unaffected (weapon skins
+are first-person viewmodel tints — they don't need to sync; remotes never render your
+viewmodel anyway).
+
+Guiding constraint: **no protocol changes, no new deps, typecheck + build green each step.**
+
+- **14A — Weapon mastery tracking.** `Account` records per-weapon lifetime kills
+  (`weaponKills`, migration-safe). Recorded on every local kill alongside the existing
+  lifetime stats.
+- **14B — Weapon skins (mastery-gated).** A `WEAPON_SKINS` registry: each of the 6
+  weapons (AR / SMG / Marksman / Sniper / Shotgun / Pistol) gets a default + 3 skins,
+  unlocked purely by mastery kills (15 / 50 / 150 — no XP cost; mastery *is* the
+  currency). Equipped skin tints the first-person viewmodel body.
+- **14C — Mastery-unlock celebration.** Crossing a skin's kill threshold emits a
+  `masteryUnlock` bus event → a "+{WEAPON} SKIN" reward chip via ProgressionFX.
+- **14D — Weapon Skins UI.** New section in the Cosmetics tab: a weapon picker + a
+  skin grid showing each skin's mastery progress / lock state, click to equip.
+
+### Status log
+- ✅ Phase 14 polish — Bumped client+server to v0.14.0 (package.json + lockfiles + menu subtitle/footer), README Phase 14 section + top-status + deliverables/status updated. Client tsc + build green (app ~63 KB gzip), server tsc green.
+
+### Phase 14 COMPLETE — A–D + polish shipped. Client-only, zero protocol, solo + MP intact.
+- ✅ Phase 14A–D — Weapon mastery & skins. DONE (client tsc + build green, app ~63 KB gzip; server untouched). `WEAPON_SKINS` registry (6 weapons × 4 skins, default + 3 mastery-gated at 15/50/150 kills) + helpers in Cosmetics.ts. `Account` extended migration-safe (`weaponKills` + `equippedWeaponSkin`) with `recordWeaponKill` (returns the freshly-crossed skin), `isWeaponSkinUnlocked` (derived from mastery — no XP path), `equipWeaponSkin`, `equippedWeaponSkinColor`. Viewmodel tints the body mesh (first child = largest box in every builder) per equipped skin, re-applied after every (re)build so it survives swaps + cloak. Game records weapon kills on local kills, emits a new local-only `masteryUnlock` bus event on a fresh unlock, and pushes equipped tints to the viewmodel on boot + every account change. ProgressionFX pops a coloured "{WEAPON} SKIN: {name}" reward chip on unlock. New Cosmetics subsection: weapon picker tabs (with live mastery counts) + skin grid with per-skin mastery progress bars. Skins are first-person-only (viewmodel tints) → zero protocol, MP unaffected.
+
 

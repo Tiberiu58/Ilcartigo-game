@@ -40,6 +40,10 @@ export class Viewmodel {
   // Hidden flag — sniper scope hides the viewmodel completely.
   private hidden = false;
 
+  // Per-weapon body tint (equipped weapon skin). Applied to the body mesh after
+  // each (re)build so it survives weapon swaps. Undefined = stock look.
+  private skinTints: Partial<Record<WeaponId, number>> = {};
+
   constructor(camera: THREE.PerspectiveCamera) {
     this.group = new THREE.Group();
     this.group.position.copy(this.restPos);
@@ -172,6 +176,30 @@ export class Viewmodel {
     const muzzleZ = WEAPON_BUILDERS[id](this.content);
     this.muzzleAnchor.position.set(0, 0.02, muzzleZ);
     this.flashMesh.position.copy(this.muzzleAnchor.position);
+    this.applyTint();
+  }
+
+  /**
+   * Set the equipped weapon-skin tints (weaponId → body colour). Re-applies to
+   * the currently-built weapon immediately so equipping a skin in the menu
+   * shows on the held gun without a swap.
+   */
+  setSkinTints(tints: Partial<Record<WeaponId, number>>) {
+    this.skinTints = { ...tints };
+    this.applyTint();
+  }
+
+  /** Tint the body mesh (first child = the largest box in every builder) to the
+   *  current weapon's equipped skin colour, or leave it stock if none. */
+  private applyTint() {
+    const body = this.content.children[0] as THREE.Mesh | undefined;
+    if (!body) return;
+    const mat = body.material as THREE.MeshLambertMaterial | undefined;
+    if (!mat || !('color' in mat)) return;
+    const tint = this.skinTints[this.currentId];
+    if (tint !== undefined) mat.color.setHex(tint);
+    // No "else reset" needed — buildFor always rebuilds fresh stock materials
+    // before applyTint runs, so the default look is whatever the builder set.
   }
 }
 
@@ -181,6 +209,7 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   smg: buildSMG,
   sniper: buildSniper,
   shotgun: buildShotgun,
+  marksman: buildMarksman,
   pistol: buildPistol,
 };
 
@@ -225,6 +254,18 @@ function buildShotgun(p: THREE.Group): number {
   p.add(box(0.08, 0.13, 0.10, 0x2a1810, 0, -0.12, 0.18));     // grip
   p.add(box(0.18, 0.04, 0.10, 0x232931, 0, -0.08, 0.05));     // pump
   return -0.65;
+}
+
+function buildMarksman(p: THREE.Group): number {
+  p.add(box(0.14, 0.11, 0.48, 0x26303a, 0, 0, 0));            // body (gunmetal blue)
+  p.add(box(0.10, 0.10, 0.26, 0x39434f, 0, -0.02, 0.32));     // stock
+  p.add(box(0.05, 0.05, 0.60, 0x10141a, 0, 0.02, -0.44));     // long barrel
+  p.add(box(0.10, 0.06, 0.18, 0x111317, 0, 0.095, -0.02));    // low-profile optic
+  p.add(box(0.06, 0.05, 0.05, 0x4ad6a0, 0, 0.095, -0.12));    // optic lens (teal)
+  p.add(box(0.08, 0.17, 0.09, 0x202830, 0, -0.13, 0.04));     // mag
+  p.add(box(0.07, 0.14, 0.09, 0x202830, 0, -0.12, 0.20));     // grip
+  p.add(box(0.05, 0.04, 0.16, 0x10141a, 0, -0.06, -0.30));    // handguard
+  return -0.74;
 }
 
 function buildPistol(p: THREE.Group): number {

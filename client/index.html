@@ -80,6 +80,20 @@
           <div id="announcer-sub"></div>
         </div>
 
+        <!-- Level-up celebration banner — pops when XP crosses a level boundary.
+             Driven by ProgressionFX.ts. -->
+        <div id="levelup-banner" class="hidden">
+          <div class="lu-kicker">LEVEL UP</div>
+          <div class="lu-level" id="lu-level">LEVEL 1</div>
+          <div class="lu-rank" id="lu-rank">Recruit</div>
+        </div>
+
+        <!-- Floating "+XP" reward chips on kills. ProgressionFX.ts appends here. -->
+        <div id="reward-popups"></div>
+
+        <!-- Rank badge — level + tier, bottom-left. Synced by ProgressionFX.ts. -->
+        <div id="rank-badge"></div>
+
         <!-- Respawn countdown overlay during the death window. -->
         <div id="respawn-countdown" class="hidden">
           <div class="rc-label">You died</div>
@@ -199,7 +213,9 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.13</p>
+          <p class="subtitle">Browser arena shooter · v0.14</p>
+          <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
+          <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -235,6 +251,7 @@
             <div class="loadout-grid">
               <button class="loadout-btn selected" data-weapon="ar">AR</button>
               <button class="loadout-btn" data-weapon="smg">SMG</button>
+              <button class="loadout-btn" data-weapon="marksman">Marksman</button>
               <button class="loadout-btn" data-weapon="sniper">Sniper</button>
               <button class="loadout-btn" data-weapon="shotgun">Shotgun</button>
             </div>
@@ -251,7 +268,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.14.0 — Gun Game + Aim Lab</div>
+          <div>v0.14.0 — Gun Game · Aim Lab · rank ladder · weapon mastery</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -455,6 +472,13 @@
 
             <section class="settings-pane" data-pane="crosshair">
               <h3>Crosshair</h3>
+              <div class="ch-presets" id="ch-presets">
+                <button class="ch-preset-btn" data-preset="classic">Classic</button>
+                <button class="ch-preset-btn" data-preset="dot">Dot</button>
+                <button class="ch-preset-btn" data-preset="cross">Cross</button>
+                <button class="ch-preset-btn" data-preset="tstyle">T-Style</button>
+                <button class="ch-preset-btn" data-preset="precision">Precision</button>
+              </div>
               <div class="crosshair-preview">
                 <!-- Static preview crosshair — uses the same vars as the live one. -->
                 <div class="ch-preview-frame">
@@ -506,6 +530,11 @@
                 <input id="ch-dot" type="checkbox" checked />
                 <span class="set-label">Center dot</span>
               </label>
+              <label class="set-row checkbox-row">
+                <input id="ch-dynamic" type="checkbox" checked />
+                <span class="set-label">Dynamic crosshair</span>
+              </label>
+              <p class="set-note">Dynamic crosshair expands the gap with your firing spread (moving / jumping widens it). Turn it off for a fixed reticle.</p>
             </section>
 
             <section class="settings-pane" data-pane="audio">
@@ -549,6 +578,12 @@
               <div class="cos-section">
                 <h4>Bullet Tracer</h4>
                 <div class="cos-grid" id="cos-tracers"></div>
+              </div>
+              <div class="cos-section">
+                <h4>Weapon Skins</h4>
+                <div class="cos-weapon-tabs" id="cos-weapon-tabs"></div>
+                <div class="cos-grid" id="cos-weapon-skins"></div>
+                <p class="set-note">Earn skins by mastering each weapon — kills with that gun unlock its skins (no XP needed). Skins tint your first-person weapon.</p>
               </div>
               <p class="set-note">Earn XP from kills. Skins are per-class — pick a class on the main menu to swap which class's skin is equipped.</p>
               <div class="cos-section" style="margin-top: 28px; border-top: 1px solid var(--border); padding-top: 22px;">

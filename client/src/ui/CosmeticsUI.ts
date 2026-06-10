@@ -12,7 +12,8 @@
  */
 
 import type { Account } from '../account/Account';
-import { KILL_EFFECTS, TRACERS, skinsForClass, findKillEffect, findTracer, type SkinConfig, type KillEffectConfig, type TracerConfig } from '../account/Cosmetics';
+import { KILL_EFFECTS, TRACERS, skinsForClass, findKillEffect, findTracer,
+  WEAPON_SKIN_ORDER, weaponSkinsFor, type SkinConfig, type KillEffectConfig, type TracerConfig, type WeaponSkinConfig } from '../account/Cosmetics';
 import { CLASS_LIBRARY, CLASS_ORDER, type ClassId } from '../classes/types';
 
 export class CosmeticsUI {
@@ -21,9 +22,13 @@ export class CosmeticsUI {
   private skinsEl: HTMLElement;
   private effectsEl: HTMLElement;
   private tracersEl: HTMLElement;
+  private weaponTabsEl: HTMLElement;
+  private weaponSkinsEl: HTMLElement;
   private levelEl: HTMLElement;
   private xpEl: HTMLElement;
   private fillEl: HTMLElement;
+  /** Which weapon's skins the Weapon Skins grid is currently showing. */
+  private selectedWeapon: string = 'ar';
 
   constructor(account: Account) {
     this.account = account;
@@ -31,6 +36,8 @@ export class CosmeticsUI {
     this.skinsEl = document.getElementById('cos-skins')!;
     this.effectsEl = document.getElementById('cos-effects')!;
     this.tracersEl = document.getElementById('cos-tracers')!;
+    this.weaponTabsEl = document.getElementById('cos-weapon-tabs')!;
+    this.weaponSkinsEl = document.getElementById('cos-weapon-skins')!;
     this.levelEl = document.getElementById('cos-level')!;
     this.xpEl = document.getElementById('cos-xp')!;
     this.fillEl = document.getElementById('cos-xp-fill')!;
@@ -44,6 +51,7 @@ export class CosmeticsUI {
     this.renderSkins();
     this.renderEffects();
     this.renderTracers();
+    this.renderWeaponSkins();
   }
 
   private renderSummary() {
@@ -119,6 +127,61 @@ export class CosmeticsUI {
       <div class="cos-name">${escape(e.displayName)}</div>
       <div class="cos-status">${status}</div>
     </div>`;
+  }
+
+  private renderWeaponSkins() {
+    if (!this.weaponTabsEl || !this.weaponSkinsEl) return;
+    // Weapon picker tabs — each shows the weapon name + its mastery count.
+    this.weaponTabsEl.innerHTML = WEAPON_SKIN_ORDER.map((id) => {
+      const sel = id === this.selectedWeapon ? ' selected' : '';
+      const kills = this.account.weaponKillsFor(id);
+      return `<button class="cos-weapon-tab${sel}" data-weapon-tab="${id}">
+        <span class="cwt-name">${id.toUpperCase()}</span>
+        <span class="cwt-kills">${kills} kills</span>
+      </button>`;
+    }).join('');
+    this.weaponTabsEl.querySelectorAll<HTMLElement>('[data-weapon-tab]').forEach((el) => {
+      el.addEventListener('click', () => {
+        this.selectedWeapon = el.dataset.weaponTab!;
+        this.renderWeaponSkins();
+      });
+    });
+    // Skin grid for the selected weapon.
+    this.weaponSkinsEl.innerHTML = weaponSkinsFor(this.selectedWeapon)
+      .map((s) => this.weaponSkinCardHtml(s)).join('');
+    this.weaponSkinsEl.querySelectorAll<HTMLElement>('[data-wskin-id]').forEach((el) => {
+      const id = el.dataset.wskinId!;
+      el.addEventListener('click', () => this.handleWeaponSkinClick(id));
+    });
+  }
+
+  private weaponSkinCardHtml(s: WeaponSkinConfig): string {
+    const unlocked = this.account.isWeaponSkinUnlocked(s);
+    const equipped = this.account.equippedWeaponSkinId(s.weaponId) === s.id;
+    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    // Default skin = stock look → neutral gunmetal swatch.
+    const hex = '#' + (s.color ?? 0x3a4250).toString(16).padStart(6, '0');
+    let status: string;
+    let bar = '';
+    if (equipped) status = 'EQUIPPED';
+    else if (unlocked) status = 'EQUIP';
+    else {
+      const have = this.account.weaponKillsFor(s.weaponId);
+      status = `${have}/${s.killReq} kills`;
+      const pct = Math.max(0, Math.min(100, (have / s.killReq) * 100));
+      bar = `<div class="cos-mastery"><div class="cos-mastery-fill" style="width:${pct.toFixed(0)}%"></div></div>`;
+    }
+    return `<div class="${cls}" data-wskin-id="${s.id}" style="--body-c: ${hex}; --head-c: ${hex}">
+      <div class="cos-swatch cos-swatch-tracer"><div class="bolt"></div></div>
+      <div class="cos-name">${escape(s.displayName)}</div>
+      <div class="cos-status">${status}</div>
+      ${bar}
+    </div>`;
+  }
+
+  private handleWeaponSkinClick(id: string) {
+    // Only equip when unlocked (mastery-gated — no purchase path).
+    this.account.equipWeaponSkin(id);
   }
 
   private tracerCardHtml(t: TracerConfig): string {

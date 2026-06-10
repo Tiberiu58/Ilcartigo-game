@@ -25,7 +25,51 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'pistol']);
+
+/**
+ * Server-authoritative per-weapon damage. MIRRORS the client's WeaponConfig
+ * (client/src/weapons/Weapon.ts) — base damage, headshot multiplier, and the
+ * linear falloff ramp — so weapon identity actually matters online (snipers
+ * one-shot heads, SMGs chip, etc.) instead of every gun dealing AR damage.
+ *
+ * Keep in sync with the client configs. The one intentional divergence is the
+ * SHOTGUN: the client fires 9 spread pellets, but the protocol sends ONE aim
+ * ray per trigger pull, so the server can't replicate the pellet spread. We
+ * approximate a center-mass blast with a single tuned ray (≈4–5 pellets'
+ * worth up close, hard falloff) so it stays a close-range threat without
+ * becoming a hitscan one-shot. If we ever send per-pellet fire, drop this back
+ * to the literal 12-per-pellet value.
+ */
+interface ServerWeapon {
+  baseDamage: number;
+  headMul: number;
+  falloffStart: number;
+  falloffEnd: number;
+  falloffMin: number;
+}
+const SERVER_WEAPONS: Record<string, ServerWeapon> = {
+  ar:      { baseDamage: 24, headMul: 1.8,  falloffStart: 25,  falloffEnd: 70,  falloffMin: 0.6  },
+  smg:     { baseDamage: 14, headMul: 1.6,  falloffStart: 14,  falloffEnd: 45,  falloffMin: 0.4  },
+  sniper:  { baseDamage: 60, headMul: 1.85, falloffStart: 200, falloffEnd: 240, falloffMin: 0.85 },
+  shotgun: { baseDamage: 52, headMul: 1.4,  falloffStart: 6,   falloffEnd: 22,  falloffMin: 0.18 },
+  marksman:{ baseDamage: 40, headMul: 2.0,  falloffStart: 60,  falloffEnd: 140, falloffMin: 0.7  },
+  pistol:  { baseDamage: 22, headMul: 1.7,  falloffStart: 18,  falloffEnd: 55,  falloffMin: 0.55 },
+};
+
+/** Damage for a weapon at a given hit distance. Linear falloff ramp from full
+ *  damage (≤ falloffStart) down to falloffMin (≥ falloffEnd), then headshot
+ *  multiplier. Mirrors Weapon.computeDamage on the client. */
+function weaponDamage(weaponId: string, distance: number, isHeadshot: boolean): number {
+  const w = SERVER_WEAPONS[weaponId] ?? SERVER_WEAPONS.ar;
+  let mul = 1;
+  if (distance > w.falloffStart) {
+    const t = Math.min(1, (distance - w.falloffStart) / (w.falloffEnd - w.falloffStart));
+    mul = 1 - t * (1 - w.falloffMin);
+  }
+  if (isHeadshot) mul *= w.headMul;
+  return w.baseDamage * mul;
+}
 
 const TICK_HZ = 32;
 const TICK_MS = 1000 / TICK_HZ;
@@ -426,12 +470,11 @@ export class Room {
     };
     this.io.emit(EV.Shot, shotEvent);
 
-    // Apply damage if we hit a player.
+    // Apply damage if we hit a player. Per-weapon damage + falloff (bestT is
+    // the hit distance along the normalized ray) so weapon choice matters
+    // online — mirrors the client's WeaponConfig via SERVER_WEAPONS.
     if (bestTarget) {
-      // For MVP we hardcode the AR damage. Real impl would look up per-weapon.
-      const baseDamage = 24;
-      const headMul = 1.8;
-      const damage = baseDamage * (bestHead ? headMul : 1);
+      const damage = weaponDamage(req.weaponId, bestT, bestHead);
       const now = Date.now();
       if (now < bestTarget.invulnUntil) {
         // Target is invulnerable — emit no damage.

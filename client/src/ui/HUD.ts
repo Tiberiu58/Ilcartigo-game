@@ -226,12 +226,19 @@ export class HUD {
    * --ch-gap-base from the document root so settings + dynamic stack cleanly.
    */
   private tickCrosshairSpread() {
-    const w = this.inventory.current;
-    const baseR = Math.max(w.config.baseSpread, w.spread);
-    const r = baseR * this.player.stanceAccuracyPenalty();
-    const dynamicPx = Math.min(18, Math.max(0, r * 140));
+    const rootStyle = getComputedStyle(document.documentElement);
+    // Dynamic crosshair can be disabled in settings (--ch-dynamic: 0) for a
+    // fixed reticle. When off, the gap is just the user's chosen baseline.
+    const dynamicOn = rootStyle.getPropertyValue('--ch-dynamic').trim() !== '0';
+    let dynamicPx = 0;
+    if (dynamicOn) {
+      const w = this.inventory.current;
+      const baseR = Math.max(w.config.baseSpread, w.spread);
+      const r = baseR * this.player.stanceAccuracyPenalty();
+      dynamicPx = Math.min(18, Math.max(0, r * 140));
+    }
     // Read baseline once (cheap — getComputedStyle returns a CSSOM string).
-    const baseStr = getComputedStyle(document.documentElement).getPropertyValue('--ch-gap-base').trim();
+    const baseStr = rootStyle.getPropertyValue('--ch-gap-base').trim();
     const baselinePx = parseFloat(baseStr) || 0;
     this.crosshair.style.setProperty('--ch-gap', `${(baselinePx + dynamicPx).toFixed(1)}px`);
   }
