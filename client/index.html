@@ -65,6 +65,22 @@
           <div class="gg-pips" id="gg-pips"></div>
         </div>
 
+        <!-- Survival ticker — top-center. Wave · enemies left · score.
+             Populated by main.ts via Survival.onStateChange. -->
+        <div id="survival-ticker" class="hidden">
+          <span class="sv-wave">WAVE <span id="sv-wave-n">1</span></span>
+          <span class="sv-sep">·</span>
+          <span class="sv-enemies"><span id="sv-enemies-n">0</span> left</span>
+          <span class="sv-sep">·</span>
+          <span class="sv-score">SCORE <span id="sv-score-n">0</span></span>
+        </div>
+
+        <!-- Survival wave banner — center screen, auto-fades. -->
+        <div id="survival-banner" class="hidden">
+          <div id="sv-banner-main"></div>
+          <div id="sv-banner-sub"></div>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -193,7 +209,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.13</p>
+          <p class="subtitle">Browser arena shooter · v0.14</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -237,6 +253,7 @@
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
+            <button class="menu-btn survival" id="menu-survival">💀 Survival (vs Bots)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
@@ -244,7 +261,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.13.0 — Gun Game mode</div>
+          <div>v0.14.0 — Survival mode</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -297,6 +314,32 @@
           <div class="pm-buttons">
             <button class="menu-btn primary" id="pm-play-again">▸ Play Again</button>
             <button class="menu-btn" id="pm-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Survival game-over card. One life — shown on death with run stats,
+           personal bests, and an ad slot (a natural breakpoint). -->
+      <div id="survival-over" class="hidden">
+        <div class="survival-card">
+          <h2 id="sv-over-title">YOU FELL</h2>
+          <p class="sv-over-sub">The horde overran you.</p>
+
+          <div class="sv-stats">
+            <div class="sv-stat"><span class="sv-stat-n" id="sv-stat-wave">0</span><span class="sv-stat-l">WAVE REACHED</span></div>
+            <div class="sv-stat"><span class="sv-stat-n" id="sv-stat-kills">0</span><span class="sv-stat-l">KILLS</span></div>
+            <div class="sv-stat"><span class="sv-stat-n" id="sv-stat-score">0</span><span class="sv-stat-l">SCORE</span></div>
+          </div>
+
+          <p class="sv-best" id="sv-best">best: wave 0 · 0 pts</p>
+
+          <!-- Ad slot — game-over is a natural breakpoint (player paused,
+               deciding whether to retry). Placeholder until a real AdSense id. -->
+          <div class="ad-slot" id="ad-survival" data-ad-slot="survival"></div>
+
+          <div class="sv-buttons">
+            <button class="menu-btn primary" id="sv-retry">▸ Try Again</button>
+            <button class="menu-btn" id="sv-quit">Quit to Menu</button>
           </div>
         </div>
       </div>

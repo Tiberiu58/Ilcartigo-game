@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { Survival } from './modes/Survival';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -58,6 +59,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuSurvival = document.getElementById('menu-survival') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -117,6 +119,50 @@ gunGame.onWin = (winnerId) => {
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
 };
+
+// ─── Survival (horde) mode ─────────────────────────────────────────────────
+// Wave-based one-life mode. The host adapter exposes the engine surfaces the
+// mode controller needs (spawn/remove bots, spawn points, player pos, sound).
+const survival = new Survival(game.bus, {
+  isLocalPlayer: (id) => game.isLocalPlayer(id),
+  spawnBot: (d, x, y, z) => game.spawnBot(d, x, y, z),
+  removeBot: (id) => game.removeBot(id),
+  getSpawnPoints: () => game.ffaSpawns(),
+  getPlayerPos: () => ({ x: game.player.pos.x, z: game.player.pos.z }),
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+});
+const survivalTicker = document.getElementById('survival-ticker')!;
+const svWaveN = document.getElementById('sv-wave-n')!;
+const svEnemiesN = document.getElementById('sv-enemies-n')!;
+const svScoreN = document.getElementById('sv-score-n')!;
+const survivalBanner = document.getElementById('survival-banner')!;
+const svBannerMain = document.getElementById('sv-banner-main')!;
+const svBannerSub = document.getElementById('sv-banner-sub')!;
+const survivalOver = document.getElementById('survival-over')!;
+const svStatWave = document.getElementById('sv-stat-wave')!;
+const svStatKills = document.getElementById('sv-stat-kills')!;
+const svStatScore = document.getElementById('sv-stat-score')!;
+const svBest = document.getElementById('sv-best')!;
+const svRetry = document.getElementById('sv-retry') as HTMLButtonElement;
+const svQuit = document.getElementById('sv-quit') as HTMLButtonElement;
+let svBannerTimer: ReturnType<typeof setTimeout> | null = null;
+
+survival.onStateChange = (wave, enemies, score) => {
+  svWaveN.textContent = String(wave);
+  svEnemiesN.textContent = String(enemies);
+  svScoreN.textContent = String(score);
+};
+survival.onBanner = (text, sub) => {
+  svBannerMain.textContent = text;
+  svBannerSub.textContent = sub;
+  // Restart the pop animation cleanly each time.
+  survivalBanner.classList.remove('hidden', 'sv-pop');
+  void survivalBanner.offsetWidth;   // reflow so the animation re-triggers
+  survivalBanner.classList.add('sv-pop');
+  if (svBannerTimer) clearTimeout(svBannerTimer);
+  svBannerTimer = setTimeout(() => survivalBanner.classList.add('hidden'), 2200);
+};
+survival.onGameOver = (res) => showSurvivalOver(res);
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -257,25 +303,34 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'survival' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
     onlineBadge.classList.add('hidden');
   }
+  // Make the mode controllers inert before switching; (re)start the right one
+  // below. stop() is idempotent and disposes any leftover horde bots/timers.
+  gunGame.stop();
+  survival.stop();
+  survivalOver.classList.add('hidden');
+  survivalBanner.classList.add('hidden');
+
   game.setMode(mode);
   announcer.reset();
 
-  // Gun Game: start a fresh ladder for the player + all active bots, and show
-  // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
-  // weapon swap lands on the live inventory.)
+  // Show the relevant mode ticker; hide the others. Controllers are started
+  // AFTER setMode so any weapon swap / bot spawn lands on the live state.
+  ggTicker.classList.add('hidden');
+  survivalTicker.classList.add('hidden');
   if (mode === 'gungame') {
     const participants = [game.localPlayerId(), ...game.bots.map((b) => b.id)];
     gunGame.start(participants);
     ggTicker.classList.remove('hidden');
-  } else {
-    ggTicker.classList.add('hidden');
+  } else if (mode === 'survival') {
+    survival.start();
+    survivalTicker.classList.remove('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -295,6 +350,12 @@ function startOnline() {
   // map the server is running, and preseting here would force a flicker
   // (build Sandstone → tear down → build Industrial) when the server is
   // on Industrial.
+  // Single-player mode controllers must not run online.
+  gunGame.stop();
+  survival.stop();
+  ggTicker.classList.add('hidden');
+  survivalTicker.classList.add('hidden');
+  survivalOver.classList.add('hidden');
   game.setMode('combat');
   announcer.reset();
   // Build the MP session bound to the existing Game.
@@ -347,6 +408,13 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
+  // Stop the single-player mode controllers + clear their UI (disposes any
+  // remaining horde bots/timers).
+  gunGame.stop();
+  survival.stop();
+  survivalTicker.classList.add('hidden');
+  survivalBanner.classList.add('hidden');
+  survivalOver.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -418,6 +486,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuSurvival.addEventListener('click', () => startGame('survival'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -510,7 +579,11 @@ function playerName(): string {
  * MP are kept authoritative by the server (snapshot kills + MatchOver).
  */
 function renderScoreboard() {
-  sbMode.textContent = game.mp ? 'Free-for-All · Online' : (game.mode === 'practice' ? 'Practice' : 'Free-for-All · Bots');
+  sbMode.textContent = game.mp ? 'Free-for-All · Online'
+    : game.mode === 'practice' ? 'Practice'
+    : game.mode === 'survival' ? 'Survival · Horde'
+    : game.mode === 'gungame' ? 'Gun Game'
+    : 'Free-for-All · Bots';
   sbGoal.textContent = String(Game.MATCH_KILL_GOAL);
 
   const ids = new Set<string>();
@@ -734,6 +807,39 @@ pmPlayAgain.addEventListener('click', () => {
 });
 pmQuit.addEventListener('click', () => {
   hidePostMatch();
+  quitToMenu();
+});
+
+// ─── Survival game-over card ───────────────────────────────────────────────
+function showSurvivalOver(res: { wave: number; kills: number; score: number }) {
+  game.input.exitPointerLock();
+  // Persist + detect personal bests.
+  const beat = game.account.recordSurvival(res.wave, res.kills, res.score);
+  svStatWave.textContent = String(res.wave);
+  svStatKills.textContent = String(res.kills);
+  svStatScore.textContent = String(res.score);
+  const best = game.account.survival;
+  svBest.textContent = (beat.newBestScore || beat.newBestWave)
+    ? `NEW BEST! wave ${best.bestWave} · ${best.bestScore} pts`
+    : `best: wave ${best.bestWave} · ${best.bestScore} pts`;
+  svBest.classList.toggle('sv-newbest', beat.newBestScore || beat.newBestWave);
+
+  // The run is over — hide the live HUD ticker + banner.
+  survivalTicker.classList.add('hidden');
+  survivalBanner.classList.add('hidden');
+  survivalOver.classList.remove('hidden');
+  hud.classList.add('hidden');
+  // Fresh ad for the game-over slot (a natural breakpoint).
+  Ads.refreshSlot('survival');
+}
+
+svRetry.addEventListener('click', () => {
+  survivalOver.classList.add('hidden');
+  // Full fresh run — startGame resets the mode, respawns, and restarts waves.
+  startGame('survival');
+});
+svQuit.addEventListener('click', () => {
+  survivalOver.classList.add('hidden');
   quitToMenu();
 });
 

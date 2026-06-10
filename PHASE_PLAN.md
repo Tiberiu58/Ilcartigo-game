@@ -152,3 +152,58 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — Survival (Horde) mode (v0.14.0)
+
+The second NEW GAME MODE — a score-chasing, wave-based **Survival** mode. This
+is the ideal next mode because the existing bot AI *only ever targets the
+player*, which is exactly the "you vs an endless horde" fantasy. It's catchy
+(personal high-score chase = retention), gives **natural ad breakpoints**
+(game-over screen, between waves), and needs **no protocol or MP changes** —
+fully client-side, solo, self-contained like Gun Game.
+
+Design:
+- **Waves.** Each wave spawns a batch of bots (count grows, difficulty
+  escalates: wanderer → engager → predictor mix shifts upward). Clear every bot
+  in a wave → short breather + "WAVE n" banner → next wave, harder.
+- **No respawn.** In Survival the player has ONE life. Death = game over (the
+  combat-mode auto-respawn is gated off for `survival`). A dedicated game-over
+  card shows wave reached, kills, score, and your best — with an ad slot.
+- **Score.** `kills*100 + wavesCleared*500`. Persisted bests
+  (`survivalBestWave`, `survivalBestKills`, `survivalBestScore`) in `Account`
+  (migration-safe), surfaced on the game-over card + Profile tab.
+- **Dynamic bots.** `Bot` gains `autoRespawn` (off for survival → no self-respawn)
+  + `dispose()`. `Game` gains `spawnBot()` / `removeBot()` so the mode controller
+  owns wave bot lifecycle. Base 3 combat bots stay deactivated during survival.
+  Same `game.bots` array instance is mutated in place so `Pulse`/ability refs
+  stay valid.
+- **HUD.** New top-center survival ticker (WAVE · ENEMIES · SCORE) + a center
+  wave banner. New `modes/Survival.ts` (bus-driven, decoupled via `SurvivalHost`,
+  mirroring `GunGame`). Menu button "💀 Survival (vs Bots)".
+
+Guiding constraint: **no protocol changes, no new deps, typecheck + build green,
+never break solo/MP/Gun Game.**
+
+### Status log
+- ✅ Phase 14 — Survival (Horde) mode. DONE (typecheck + build green; wave logic
+  headless-verified end-to-end). New `modes/Survival.ts` (bus-driven, decoupled
+  via `SurvivalHost`). `Bot` gained `autoRespawn` (off for horde bots → no
+  self-respawn) + `dispose()`. `Game` gained `spawnBot()` / `removeBot()` /
+  `ffaSpawns()`, `'survival'` GameMode (in `isCombatMode`), base-bot activation
+  narrowed to combat/gungame, and one-life death gating (no auto-respawn in
+  survival). Account extended migration-safe with `SurvivalBest`
+  (bestWave/bestKills/bestScore) + `recordSurvival()`, surfaced on the Profile
+  tab. New HUD survival ticker + center wave banner + game-over card (with an ad
+  slot at the game-over breakpoint → `Ads` `survival` slot). Menu button
+  "💀 Survival (vs Bots)". Headless smoke test confirmed: wave 1 (3 bots) →
+  clear (+500) → breather → wave 2 (4 bots) → player death → game over with
+  arena cleanup; post-death kills are inert.
+- ✅ Audit fix (found building Phase 14): `GunGame` subscribed to the kill bus
+  in its constructor but was never mode-gated — so kills in Combat (and now
+  Survival) would advance the weapon ladder and fire a false post-match
+  "VICTORY" after 5 kills. Added an `enabled` guard (set in `start()`, cleared
+  in new `stop()`); `main.ts` stops both mode controllers on every transition.
+
+### Phase 14 COMPLETE — Survival mode shipped, solo + MP + Gun Game intact, no protocol change. App chunk ~63 KB gzip.
+

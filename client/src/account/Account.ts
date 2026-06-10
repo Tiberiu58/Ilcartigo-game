@@ -37,6 +37,27 @@ function freshStats(): LifetimeStats {
   return { kills: 0, deaths: 0, headshots: 0, matches: 0, wins: 0, bestStreak: 0, playSeconds: 0 };
 }
 
+/** Survival-mode personal bests (highest wave / kills / score in one run). */
+export interface SurvivalBest {
+  bestWave: number;
+  bestKills: number;
+  bestScore: number;
+}
+
+function freshSurvival(): SurvivalBest {
+  return { bestWave: 0, bestKills: 0, bestScore: 0 };
+}
+
+function mergeSurvival(saved: Partial<SurvivalBest> | undefined, fresh: SurvivalBest): SurvivalBest {
+  if (!saved || typeof saved !== 'object') return fresh;
+  const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+  return {
+    bestWave: num(saved.bestWave, fresh.bestWave),
+    bestKills: num(saved.bestKills, fresh.bestKills),
+    bestScore: num(saved.bestScore, fresh.bestScore),
+  };
+}
+
 /** Merge a (possibly partial / possibly undefined) saved stats object onto fresh defaults. */
 function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeStats): LifetimeStats {
   if (!saved || typeof saved !== 'object') return fresh;
@@ -64,6 +85,8 @@ interface AccountData {
   equippedTracer: TracerId;
   /** Lifetime career stats. */
   stats: LifetimeStats;
+  /** Survival-mode personal bests. */
+  survival: SurvivalBest;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
@@ -144,6 +167,7 @@ function freshData(): AccountData {
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
     stats: freshStats(),
+    survival: freshSurvival(),
     name: '',
     daily: freshDaily(freshStats()),
   };
@@ -187,6 +211,7 @@ export class Account {
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
+        survival: mergeSurvival(parsed.survival, fresh.survival),
         name: typeof parsed.name === 'string' ? parsed.name.slice(0, 16) : fresh.name,
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
@@ -263,6 +288,9 @@ export class Account {
     const { kills, deaths } = this.data.stats;
     return deaths === 0 ? kills.toFixed(1) : (kills / deaths).toFixed(2);
   }
+  /** Survival-mode personal bests (read-only snapshot). */
+  get survival(): Readonly<SurvivalBest> { return this.data.survival; }
+
   /** Player display name, or 'You' if unset. */
   get name(): string { return this.data.name || 'You'; }
   /** True if the player has set a custom name. */
@@ -356,6 +384,21 @@ export class Account {
       this.data.stats.bestStreak = streak;
       this.save();
     }
+  }
+
+  /**
+   * Record a finished Survival run, updating personal bests. Returns which
+   * bests (if any) were beaten so the game-over card can celebrate them.
+   */
+  recordSurvival(wave: number, kills: number, score: number): { newBestWave: boolean; newBestScore: boolean } {
+    const s = this.data.survival;
+    const newBestWave = wave > s.bestWave;
+    const newBestScore = score > s.bestScore;
+    if (newBestWave) s.bestWave = wave;
+    if (kills > s.bestKills) s.bestKills = kills;
+    if (newBestScore) s.bestScore = score;
+    this.save();
+    return { newBestWave, newBestScore };
   }
 
   /** Record a finished match (and whether it was won). */

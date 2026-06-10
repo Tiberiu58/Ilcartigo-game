@@ -73,6 +73,10 @@ export class Bot implements Damageable {
   readonly group: THREE.Group;
   /** Soft on/off switch — Practice Range deactivates bots without destroying them. */
   active = true;
+  /** When true (default), the bot self-respawns RESPAWN_DELAY after death. The
+   *  Survival mode sets this false so killed horde bots stay down (the mode
+   *  controller disposes them) instead of endlessly coming back. */
+  autoRespawn = true;
 
   private position = new THREE.Vector3();
   private yaw = 0;
@@ -189,7 +193,10 @@ export class Bot implements Damageable {
         this.position.y - this.deathFallOffset,
         this.position.z,
       );
-      if (this.deathTime >= RESPAWN_DELAY) this.respawn();
+      // Self-respawn only in the modes that want it (Combat / Gun Game). In
+      // Survival, autoRespawn is false: the corpse stays down and the mode
+      // controller disposes it after the fall animation.
+      if (this.deathTime >= RESPAWN_DELAY && this.autoRespawn) this.respawn();
       return;
     }
     this.group.rotation.z = 0;
@@ -325,6 +332,25 @@ export class Bot implements Damageable {
     this.group.rotation.set(0, this.yaw, 0);
     this.syncMesh();
     void this.bus;
+  }
+
+  /**
+   * Permanently remove this bot: unregister it from hit-detection, pull its
+   * mesh from the scene, and free GPU geometry/material. Used by the Survival
+   * mode controller to clear dead horde bots (and to tear the whole wave down
+   * on game-over / quit). After dispose the instance must not be reused.
+   */
+  dispose() {
+    this.active = false;
+    this.world.unregisterDamageable(this.id);
+    this.world.scene.remove(this.group);
+    this.group.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+      else if (mat) mat.dispose();
+    });
   }
 }
 

@@ -21,7 +21,7 @@ import { World } from './World';
 import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
-import { Bot } from '../entities/Bot';
+import { Bot, type BotDifficulty } from '../entities/Bot';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -49,13 +49,13 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'survival';
 
-/** Modes where bots are active threats + the player can die/respawn (i.e. not
+/** Modes where bots are active threats + the player can take damage (i.e. not
  *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
- *  ladder layered on top. */
+ *  ladder layered on top; Survival is a one-life horde mode. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame';
+  return m === 'combat' || m === 'gungame' || m === 'survival';
 }
 
 export interface FrameInfo {
@@ -307,8 +307,10 @@ export class Game {
         this.account.recordDeath();
         this.localStreak = 0;
         this.audio.play('death');
-        // SOLO: run the local respawn loop. MP: server respawns us, just wait.
-        if (!this.mp) {
+        // SOLO Combat/Gun Game: run the local respawn loop. MP: server respawns
+        // us, just wait. SURVIVAL: one life only — no respawn; the Survival mode
+        // controller catches this same kill event and shows the game-over card.
+        if (!this.mp && this.mode !== 'survival') {
           setTimeout(() => this.respawnPlayer(), 1800);
         }
       }
@@ -395,13 +397,47 @@ export class Game {
     this.viewmodel.swapTo(id);
   }
 
+  /** FFA spawn points of the currently-loaded map. Used by the Survival mode to
+   *  place horde waves around the arena. Returned by reference — do not mutate. */
+  ffaSpawns(): THREE.Vector3[] {
+    return this.currentMap.meta.ffaSpawns;
+  }
+
+  /**
+   * Spawn a fresh horde bot at a world position and add it to the live bot set.
+   * Returns its id. Used by the Survival mode controller; the bot is created
+   * with `autoRespawn = false` so a kill keeps it down (the controller disposes
+   * it). Mutates the SAME `this.bots` array instance ability refs hold, so
+   * Pulse/etc. stay valid.
+   */
+  spawnBot(difficulty: BotDifficulty, x: number, y: number, z: number): string {
+    const id = `horde-${this._hordeSeq++}`;
+    const bot = new Bot(id, _SCRATCH_BOT_SPAWN.set(x, y, z), this.world, this.bus, difficulty);
+    bot.autoRespawn = false;
+    this.bots.push(bot);
+    return id;
+  }
+
+  /** Dispose + remove a bot by id (Survival cleanup). No-op if already gone. */
+  removeBot(id: string) {
+    const i = this.bots.findIndex((b) => b.id === id);
+    if (i < 0) return;
+    this.bots[i].dispose();
+    this.bots.splice(i, 1);
+  }
+
+  private _hordeSeq = 0;
+
   /**
    * Bots should be live only when we're in Combat/Gun Game AND not connected to
    * MP. Called from setMode and from MP connect/disconnect — keeps the "are
    * bots running?" predicate in one place.
    */
   private syncBotState() {
-    const botsLive = isCombatMode(this.mode) && !this.mp;
+    // Only the fixed 3 base bots auto-run in Combat / Gun Game. Survival owns
+    // its own dynamically-spawned horde (managed by modes/Survival.ts), so the
+    // base bots stay deactivated there.
+    const botsLive = (this.mode === 'combat' || this.mode === 'gungame') && !this.mp;
     for (const b of this.bots) {
       if (botsLive) {
         b.active = true;
@@ -853,3 +889,4 @@ export class Game {
 const _SCRATCH_END = new THREE.Vector3();
 const _SCRATCH_SPAWN_A = new THREE.Vector3();
 const _SCRATCH_SPAWN_B = new THREE.Vector3();
+const _SCRATCH_BOT_SPAWN = new THREE.Vector3();

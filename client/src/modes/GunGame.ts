@@ -51,6 +51,10 @@ export class GunGame {
   private tiers = new Map<string, number>();
   /** True once someone has won — stops further advancement. */
   private won = false;
+  /** Active only between start() and stop()/win. The kill subscription lives
+   *  for the whole session, so without this guard kills in OTHER modes (Combat,
+   *  Survival) would advance the weapon ladder + fire a false match win. */
+  private enabled = false;
 
   /** Fired when a participant reaches past the final rung. Wired by main.ts to
    *  the post-match overlay. */
@@ -66,12 +70,21 @@ export class GunGame {
   /** Begin a fresh Gun Game: everyone back to rung 0, local player gets the
    *  first weapon. Pass the ids of all participants (local + bots). */
   start(participantIds: string[]) {
+    this.enabled = true;
     this.won = false;
     this.tiers.clear();
     for (const id of participantIds) this.tiers.set(id, 0);
     // Make sure the local player starts on the first ladder weapon.
     this.host.setPlayerPrimaryWeapon(GUNGAME_LADDER[0]);
     this.emitLocalTier(this.localId(participantIds));
+  }
+
+  /** Stop reacting to kills (leaving Gun Game for another mode). Keeps the
+   *  subscription alive but inert until the next start(). */
+  stop() {
+    this.enabled = false;
+    this.won = false;
+    this.tiers.clear();
   }
 
   /** Tear down the kill subscription. */
@@ -86,7 +99,7 @@ export class GunGame {
   }
 
   private onKill(attackerId: string, targetId: string) {
-    if (this.won) return;
+    if (!this.enabled || this.won) return;
     // A participant only advances on a kill of SOMEONE ELSE (no suicide farming).
     if (attackerId === targetId) return;
     if (!this.tiers.has(attackerId)) this.tiers.set(attackerId, 0);

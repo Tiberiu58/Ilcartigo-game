@@ -70,6 +70,7 @@ export class ProfileUI {
 
   private renderStats() {
     const s = this.account.stats;
+    const sv = this.account.survival;
     const cells: Array<[string, string]> = [
       ['Kills', s.kills.toLocaleString()],
       ['Deaths', s.deaths.toLocaleString()],
@@ -79,6 +80,8 @@ export class ProfileUI {
       ['Wins', s.wins.toLocaleString()],
       ['Best Streak', s.bestStreak.toLocaleString()],
       ['Playtime', formatPlaytime(s.playSeconds)],
+      ['Survival Wave', sv.bestWave.toLocaleString()],
+      ['Survival Score', sv.bestScore.toLocaleString()],
     ];
     this.statsGrid.innerHTML = cells.map(([label, val]) => `
       <div class="stat-cell">

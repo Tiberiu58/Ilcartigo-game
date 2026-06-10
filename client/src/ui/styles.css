@@ -922,6 +922,10 @@ body.kill-flash #app::after {
   border-left: 3px solid #ff8a3a;
 }
 .menu-btn.gungame:hover { border-left-color: #ff8a3a; color: #ff8a3a; }
+.menu-btn.survival {
+  border-left: 3px solid #ff5a5a;
+}
+.menu-btn.survival:hover { border-left-color: #ff5a5a; color: #ff5a5a; }
 
 /* ── Gun Game ticker (top-center HUD) ───────────────────────────────────── */
 #gungame-ticker {
@@ -962,6 +966,138 @@ body.kill-flash #app::after {
   background: #ff8a3a;
   box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
 }
+
+/* --- Survival mode ------------------------------------------------------- */
+#survival-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(28, 16, 18, 0.82);
+  padding: 7px 18px;
+  border-radius: 4px;
+  border-left: 3px solid #ff5a5a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+#survival-ticker.hidden { display: none; }
+.sv-wave { color: #ff5a5a; font-weight: 800; }
+.sv-wave #sv-wave-n { color: #ff8f8f; }
+.sv-enemies #sv-enemies-n { color: var(--text); }
+.sv-score { color: var(--text); }
+.sv-score #sv-score-n { color: #ffcf6a; }
+.sv-sep { color: rgba(255, 255, 255, 0.3); }
+
+#survival-banner {
+  position: absolute;
+  left: 50%; top: 30%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 13;
+  pointer-events: none;
+}
+#survival-banner.hidden { display: none; }
+#sv-banner-main {
+  font: 900 44px/1 'Segoe UI', sans-serif;
+  letter-spacing: 6px;
+  color: #ff5a5a;
+  text-shadow: 0 0 24px rgba(255, 60, 60, 0.6), 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+#sv-banner-sub {
+  margin-top: 8px;
+  font: 700 16px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 4px;
+  color: #ffd089;
+  text-transform: uppercase;
+}
+#survival-banner.sv-pop { animation: sv-banner-pop 2.2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards; }
+@keyframes sv-banner-pop {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  12%  { opacity: 1; transform: translateX(-50%) scale(1.05); }
+  20%  { transform: translateX(-50%) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) scale(1); }
+}
+
+#survival-over {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 8, 9, 0.93);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+}
+#survival-over.hidden { display: none; }
+.survival-card {
+  background: var(--panel);
+  border-top: 4px solid #ff5a5a;
+  border-radius: 10px;
+  width: 520px;
+  max-width: calc(100vw - 40px);
+  padding: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.survival-card h2 {
+  font-size: 30px;
+  letter-spacing: 8px;
+  color: #ff5a5a;
+  margin-bottom: 6px;
+}
+.sv-over-sub {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.sv-stats {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+.sv-stat {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 14px 10px;
+  flex: 1;
+}
+.sv-stat-n {
+  display: block;
+  font: 800 30px/1 'Segoe UI', sans-serif;
+  color: var(--text);
+}
+.sv-stat:nth-child(3) .sv-stat-n { color: #ffcf6a; }
+.sv-stat-l {
+  display: block;
+  margin-top: 6px;
+  font: 700 9px/1.2 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+.sv-best {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent-green);
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+.sv-best.sv-newbest { color: #ffcf6a; }
+.sv-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.sv-buttons .menu-btn { min-width: 240px; }
 
 .menu-footer {
   grid-area: footer;
