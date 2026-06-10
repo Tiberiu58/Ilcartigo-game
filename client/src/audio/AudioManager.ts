@@ -67,6 +67,8 @@ export const SOUND_FILES = {
 
   // Health pickup collect cue (Phase 15).
   pickup_health: 'pickup_health.wav',
+  // Berserk power-up grab cue (Phase 16) — big, hype.
+  pickup_berserk: 'pickup_berserk.wav',
 
   // Announcer specials (Phase 12E) — one-off callouts, escalating stings.
   first_blood:   'first_blood.wav',

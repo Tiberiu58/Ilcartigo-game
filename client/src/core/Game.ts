@@ -23,6 +23,7 @@ import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot, type BotDifficulty } from '../entities/Bot';
 import { HealthPickup } from '../entities/HealthPickup';
+import { PowerupPickup, BERSERK_DURATION, BERSERK_DAMAGE_MULT } from '../entities/PowerupPickup';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -177,6 +178,17 @@ export class Game {
 
   /** Floating health pickups for the current combat map (solo only). */
   private pickups: HealthPickup[] = [];
+  /** Berserk power-ups for the current combat map (solo only). */
+  private powerups: PowerupPickup[] = [];
+  /** performance.now() ms until which Berserk (2× damage) is active. 0 = off. */
+  private berserkUntil = 0;
+
+  /** True while the Berserk power-up is active (local player, 2× damage). */
+  get berserkActive(): boolean { return performance.now() < this.berserkUntil; }
+  /** Seconds of Berserk remaining (0 if inactive) — HUD timer. */
+  get berserkRemaining(): number {
+    return Math.max(0, (this.berserkUntil - performance.now()) / 1000);
+  }
 
   onFrame?: (info: FrameInfo) => void;
   /** Fired in MP when the first player hits MATCH_KILL_GOAL kills. Main.ts
@@ -184,6 +196,8 @@ export class Game {
   onMatchEnded?: (winnerId: string) => void;
   /** Fired when the local player collects a health pickup — HUD feedback hook. */
   onHealthPickup?: (amount: number) => void;
+  /** Fired when the local player grabs the Berserk power-up. */
+  onBerserk?: (durationSeconds: number) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -256,8 +270,11 @@ export class Game {
         : _SCRATCH_END.copy(e.origin).addScaledVector(e.direction, range);
       const start = isPlayer ? this._muzzlePos : e.origin;
       // Local player's tracer colour is a cosmetic (equipped tracer); remote /
-      // bot tracers stay the warm red so you can read incoming fire.
-      const tracerColor = isPlayer ? this.account.equippedTracerColor() : 0xff5a3a;
+      // bot tracers stay the warm red so you can read incoming fire. While
+      // Berserk is active, the local player's tracers blaze orange for punch.
+      const tracerColor = isPlayer
+        ? (this.berserkActive ? 0xff8a2a : this.account.equippedTracerColor())
+        : 0xff5a3a;
       this.tracers.spawn(start, end, isPlayer ? 0.08 : 0.14, tracerColor);
       if (isPlayer) this.viewmodel.onFire();
 
@@ -448,7 +465,12 @@ export class Game {
    */
   private refreshPickups() {
     for (const p of this.pickups) p.dispose(this.scene);
+    for (const p of this.powerups) p.dispose(this.scene);
     this.pickups = [];
+    this.powerups = [];
+    // Drop any active Berserk + clear the multiplier on the player's weapons.
+    this.berserkUntil = 0;
+    for (const w of this.inventory.weapons) w.damageMultiplier = 1.0;
     if (!isCombatMode(this.mode) || this.mp) return;
 
     // Use the map's explicit health anchors if it has them, else derive a few
@@ -465,6 +487,24 @@ export class Game {
       this.scene.add(p.group);
       this.pickups.push(p);
     }
+
+    // One Berserk power-up at a contested spot. Use the map's explicit anchor if
+    // set; else derive a semi-central open lane point (midpoint of the first two
+    // FFA spawns, pulled ~40% toward centre — open, not the central tower).
+    const fs = this.currentMap.meta.ffaSpawns;
+    let powerAnchor: THREE.Vector3;
+    if (this.currentMap.meta.powerupSpawn) {
+      powerAnchor = this.currentMap.meta.powerupSpawn.clone();
+    } else if (fs.length >= 2) {
+      powerAnchor = _SCRATCH_BOT_SPAWN.set(
+        ((fs[0].x + fs[1].x) / 2) * 0.4, 0.5, ((fs[0].z + fs[1].z) / 2) * 0.4,
+      ).clone();
+    } else {
+      powerAnchor = _SCRATCH_BOT_SPAWN.set(0, 0.5, 0).clone();
+    }
+    const power = new PowerupPickup(powerAnchor);
+    this.scene.add(power.group);
+    this.powerups.push(power);
   }
 
   /**
@@ -877,18 +917,31 @@ export class Game {
       }
     }
 
-    // --- 3a. Health pickups (solo combat only) ---
-    if (this.pickups.length > 0 && !this.playerActor.health.dead) {
-      const ratio = this.playerActor.health.current / this.playerActor.health.max;
-      for (const p of this.pickups) {
-        const heal = p.update(dt, this.player.pos, ratio);
-        if (heal > 0) {
-          this.playerActor.health.heal(heal);
-          this.audio.play('pickup_health');
-          this.onHealthPickup?.(heal);
+    // --- 3a. Pickups + power-ups (solo combat only) ---
+    if (!this.playerActor.health.dead) {
+      if (this.pickups.length > 0) {
+        const ratio = this.playerActor.health.current / this.playerActor.health.max;
+        for (const p of this.pickups) {
+          const heal = p.update(dt, this.player.pos, ratio);
+          if (heal > 0) {
+            this.playerActor.health.heal(heal);
+            this.audio.play('pickup_health');
+            this.onHealthPickup?.(heal);
+          }
+        }
+      }
+      for (const p of this.powerups) {
+        if (p.update(dt, this.player.pos)) {
+          this.berserkUntil = performance.now() + BERSERK_DURATION * 1000;
+          this.audio.play('pickup_berserk');
+          this.onBerserk?.(BERSERK_DURATION);
         }
       }
     }
+    // Apply Berserk damage multiplier to the player's weapons each frame (so it
+    // survives weapon swaps + auto-expires). Bots keep their own multipliers.
+    const berserkMul = this.berserkActive ? BERSERK_DAMAGE_MULT : 1.0;
+    for (const w of this.inventory.weapons) w.damageMultiplier = berserkMul;
 
     // --- 3b. Multiplayer: send input + interpolate remotes ---
     if (this.mp) {

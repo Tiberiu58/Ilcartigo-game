@@ -60,6 +60,14 @@
         <!-- Health-pickup "+HP" popup — flashed by main.ts on collect. -->
         <div id="health-popup"></div>
 
+        <!-- Berserk power-up indicator — shown while the 2x-damage buff is
+             active; main.ts ticks the countdown. -->
+        <div id="berserk-indicator" class="hidden">
+          <span class="bsk-icon">⚔</span>
+          <span class="bsk-label">BERSERK</span>
+          <span class="bsk-time" id="bsk-time">8.0</span>
+        </div>
+
         <!-- Gun Game ticker — top-center. Shows your weapon-ladder progress.
              Populated by main.ts via GunGame.onLocalTierChange. -->
         <div id="gungame-ticker" class="hidden">
@@ -212,7 +220,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.15</p>
+          <p class="subtitle">Browser arena shooter · v0.16</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -264,7 +272,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.15.0 — Health pickups</div>
+          <div>v0.16.0 — Berserk power-up</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

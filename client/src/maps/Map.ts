@@ -26,6 +26,9 @@ export interface MapMeta {
   /** Health-pickup anchor points (ground-level). Optional — if omitted the
    *  engine derives a few from the FFA spawns (lanes between corner + centre). */
   healthSpawns?: THREE.Vector3[];
+  /** Single Berserk power-up anchor (a contested spot). Optional — if omitted
+   *  the engine derives one semi-central open lane point from the FFA spawns. */
+  powerupSpawn?: THREE.Vector3;
   /** Color of the post-respawn screen-flash; defaults to bright cyan. */
   spawnFlashColor?: number;
 }

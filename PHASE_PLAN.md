@@ -241,3 +241,35 @@ solo/MP/Gun Game/Survival all intact.
 
 ### Phase 15 COMPLETE — Health pickups shipped (solo combat), no protocol change.
 
+---
+
+## Phase 16 — Berserk power-up (v0.16.0)
+
+The classic arena power-up (Quad-Damage rhythm): a single **contested** map
+pickup that grants a temporary **2× damage** buff. Creates hype rampage moments
+and map control — very Krunker/Quake. Extends the Phase 15 pickup system. Solo +
+combat-mode only; **no protocol changes**.
+
+- **`Weapon.damageMultiplier`** (default 1.0) folded into `computeDamage`. Game
+  re-applies it to the player's weapons every frame from a `berserkUntil`
+  timestamp, so it survives weapon swaps + auto-expires (bots unaffected).
+- **`entities/PowerupPickup.ts`** — a glowing red/orange octahedron + halo +
+  ground ring that spins/bobs. Always collectable on proximity, heals nothing,
+  triggers Berserk (8 s), then a long 30 s respawn (worth fighting over).
+- **Placement.** Optional `MapMeta.powerupSpawn`; else a derived semi-central
+  open lane point (midpoint of the first two FFA spawns, 40 % toward centre).
+- **Feedback.** Bottom-left BERSERK pill with a live countdown, a pulsing orange
+  edge vignette while active, a one-shot "BERSERK! · 2× DAMAGE" banner, blazing
+  orange local tracers, and a `pickup_berserk` SFX (silent until the `.wav`).
+
+### Status log
+- ✅ Phase 16 — Berserk power-up. DONE (client + server typecheck + client build
+  green). `Weapon.damageMultiplier` + `computeDamage`; `Game` owns the powerup
+  set + `berserkUntil`, applies the 2× multiplier each frame, exposes
+  `berserkActive`/`berserkRemaining` + `onBerserk`. New `PowerupPickup`, HUD
+  pill + vignette + banner + tracer override, `pickup_berserk` SoundId,
+  `MapMeta.powerupSpawn`. Built/torn down with the rest of the pickups on every
+  map/mode/MP transition.
+
+### Phase 16 COMPLETE — Berserk power-up shipped (solo combat), no protocol change. App chunk ~64 KB gzip.
+

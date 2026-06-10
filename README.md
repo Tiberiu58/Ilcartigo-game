@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. **Health pickups** — floating med-kits for arena sustain (solo combat, big synergy with Survival). Built on Phase 14 **Survival (Horde) mode** — wave-based, one-life, score-chasing, with a game-over ad breakpoint. Built on Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 16 — v0.16.0. **Berserk power-up** — a contested map pickup granting temporary 2× damage (Quad-Damage rhythm). Built on Phase 15 **health pickups** (arena sustain) and Phase 14 **Survival (Horde) mode** — wave-based, one-life, score-chasing, with a game-over ad breakpoint. Built on Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -420,14 +420,39 @@ New audio id reserved (drop-in, silent until present): `pickup_health.wav`
 
 Production client: **~191 KB gzipped** total (engine 121 + app 64 + CSS 8 + HTML 6).
 
+## Phase 16 — Berserk power-up (this round, v0.16.0)
+
+The classic arena power-up (Quad-Damage rhythm): a single **contested** map
+pickup that grants a temporary **2× damage** buff — hype rampage moments + map
+control. Extends the Phase 15 pickup system. Solo + combat-mode only, **no
+protocol changes**.
+
+- **`Weapon.damageMultiplier`** (default 1.0) folded into `computeDamage`. The
+  engine re-applies it to the player's weapons every frame from a `berserkUntil`
+  timestamp, so it survives weapon swaps and auto-expires (bots unaffected).
+- **`entities/PowerupPickup.ts`** — a glowing red/orange octahedron + halo +
+  ground ring. Always collectable on proximity; triggers Berserk (**8 s**), then
+  a long **30 s** respawn (the spot is worth fighting over).
+- **Placement.** Optional `MapMeta.powerupSpawn`; else a derived semi-central
+  open lane point.
+- **Feedback.** Bottom-left BERSERK pill with a live countdown, a pulsing orange
+  edge vignette, a one-shot "BERSERK! · 2× DAMAGE" banner, blazing orange local
+  tracers, and a `pickup_berserk` SFX (silent until the `.wav` is added).
+
+New audio id reserved: `pickup_berserk.wav` ("power up", "quad damage", "hype sting").
+
+### Bundle size
+
+Production client: **~193 KB gzipped** total (engine 122 + app 64 + CSS 8 + HTML 7).
+
 ## Project status
 
-15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **Survival (Horde) mode**, **health pickups** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **Survival (Horde) mode**, **health pickups**, **Berserk power-up** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Survival (Horde), scoreboard, killstreaks, profile/stats + survival bests, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, health pickups. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~193 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Survival (Horde), scoreboard, killstreaks, profile/stats + survival bests, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, health pickups, Berserk power-up. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

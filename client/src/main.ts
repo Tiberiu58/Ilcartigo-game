@@ -415,6 +415,8 @@ function quitToMenu() {
   survivalTicker.classList.add('hidden');
   survivalBanner.classList.add('hidden');
   survivalOver.classList.add('hidden');
+  berserkIndicator.classList.add('hidden');
+  document.body.classList.remove('berserk-active');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -681,6 +683,14 @@ game.onFrame = ({ fps, speed, state, pos }) => {
   }
   // Keep the scoreboard live while it's held open (10Hz is plenty).
   if (scoreboardOpen) renderScoreboard();
+
+  // Berserk countdown / expiry.
+  if (game.berserkActive) {
+    bskTime.textContent = game.berserkRemaining.toFixed(1);
+  } else if (!berserkIndicator.classList.contains('hidden')) {
+    berserkIndicator.classList.add('hidden');
+    document.body.classList.remove('berserk-active');
+  }
 };
 
 // ─── Cosmetics + Profile tabs + account-linked behavior ────────────────────
@@ -792,6 +802,23 @@ game.onHealthPickup = (amount) => {
   healthPopup.classList.remove('show');
   void healthPopup.offsetWidth;   // reflow to restart the animation
   healthPopup.classList.add('show');
+};
+
+// Berserk power-up — show the indicator + a one-shot "BERSERK!" banner; the
+// onFrame loop ticks the countdown and hides it on expiry.
+const berserkIndicator = document.getElementById('berserk-indicator')!;
+const bskTime = document.getElementById('bsk-time')!;
+game.onBerserk = () => {
+  berserkIndicator.classList.remove('hidden');
+  document.body.classList.add('berserk-active');
+  // Reuse the survival banner styling for a punchy one-shot callout.
+  svBannerMain.textContent = 'BERSERK!';
+  svBannerSub.textContent = '2× DAMAGE';
+  survivalBanner.classList.remove('hidden', 'sv-pop');
+  void survivalBanner.offsetWidth;
+  survivalBanner.classList.add('sv-pop');
+  if (svBannerTimer) clearTimeout(svBannerTimer);
+  svBannerTimer = setTimeout(() => survivalBanner.classList.add('hidden'), 2200);
 };
 
 pmPlayAgain.addEventListener('click', () => {

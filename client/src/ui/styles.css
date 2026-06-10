@@ -473,6 +473,53 @@ body.health-flash #app::after {
   100% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
 }
 
+/* Berserk power-up active indicator — bottom-left pill, ticking countdown. */
+#berserk-indicator {
+  position: absolute;
+  left: 24px; bottom: 120px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 4px;
+  background: rgba(40, 14, 6, 0.85);
+  border-left: 3px solid #ff7a2a;
+  box-shadow: 0 0 18px rgba(255, 90, 30, 0.5);
+  z-index: 12;
+  pointer-events: none;
+  animation: bsk-pulse 0.9s ease-in-out infinite;
+}
+#berserk-indicator.hidden { display: none; }
+.bsk-icon { font-size: 16px; color: #ffae3a; }
+.bsk-label {
+  font: 800 13px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ff8a3a;
+}
+.bsk-time {
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+  min-width: 30px;
+}
+@keyframes bsk-pulse {
+  0%, 100% { box-shadow: 0 0 14px rgba(255, 90, 30, 0.45); }
+  50%      { box-shadow: 0 0 24px rgba(255, 120, 40, 0.8); }
+}
+/* Subtle persistent orange edge-tint while Berserk is active. */
+body.berserk-active #app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(255, 80, 20, 0.18) 100%);
+  animation: bsk-vignette 1.1s ease-in-out infinite;
+}
+@keyframes bsk-vignette {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
 /* Damage-direction flash: red vignette pulse on hit. */
 #damage-flash {
   position: absolute;
