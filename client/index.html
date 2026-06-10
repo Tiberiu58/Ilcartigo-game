@@ -168,6 +168,14 @@
           <div class="slot-chip" data-slot="1">2</div>
         </div>
 
+        <!-- Grenade indicator — count + throw key. Hidden in MP/practice.
+             Updated by main.ts via game.onGrenadeCountChanged. -->
+        <div id="grenade-indicator" class="hidden">
+          <span class="gren-key">G</span>
+          <span class="gren-icon">✺</span>
+          <span class="gren-count" id="gren-count">×2</span>
+        </div>
+
         <!-- Ability pill — bottom-center, shows class color, ability name,
              cooldown ring, charge dots, and the E keybind. -->
         <div id="ability-pill">
@@ -220,7 +228,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.16</p>
+          <p class="subtitle">Browser arena shooter · v0.17</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -272,7 +280,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.16.0 — Berserk power-up</div>
+          <div>v0.17.0 — Frag grenades</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -294,7 +302,7 @@
             <div><kbd>Shift</kbd> crouch</div>
             <div><kbd>LMB</kbd> shoot · <kbd>RMB</kbd> scope</div>
             <div><kbd>R</kbd> reload · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>Q</kbd> swap</div>
-            <div><kbd>E</kbd> ability</div>
+            <div><kbd>E</kbd> ability · <kbd>G</kbd> grenade</div>
           </div>
         </div>
       </div>
@@ -368,6 +376,7 @@
             <div class="howto-item"><kbd>LMB</kbd><span>Shoot. <kbd>RMB</kbd> scopes the sniper.</span></div>
             <div class="howto-item"><kbd>R</kbd><span>Reload. <kbd>1</kbd>/<kbd>2</kbd>/<kbd>Q</kbd> swap weapons.</span></div>
             <div class="howto-item"><kbd>E</kbd><span>Class ability — Blink, Dash, Cloak and more.</span></div>
+            <div class="howto-item"><kbd>G</kbd><span>Throw a frag grenade. Grab med-kits + the Berserk power-up around the map.</span></div>
             <div class="howto-item"><kbd>Tab</kbd><span>Hold to see the live scoreboard.</span></div>
             <div class="howto-item"><kbd>Esc</kbd><span>Pause. First to 30 kills wins the match.</span></div>
           </div>

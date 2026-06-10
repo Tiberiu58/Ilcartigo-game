@@ -69,6 +69,9 @@ export const SOUND_FILES = {
   pickup_health: 'pickup_health.wav',
   // Berserk power-up grab cue (Phase 16) — big, hype.
   pickup_berserk: 'pickup_berserk.wav',
+  // Frag grenade (Phase 17) — throw whoosh + explosion boom.
+  grenade_throw: 'grenade_throw.wav',
+  explosion:     'explosion.wav',
 
   // Announcer specials (Phase 12E) — one-off callouts, escalating stings.
   first_blood:   'first_blood.wav',

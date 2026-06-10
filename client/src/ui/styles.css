@@ -473,6 +473,36 @@ body.health-flash #app::after {
   100% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
 }
 
+/* Grenade indicator — bottom-right, near the ammo panel. */
+#grenade-indicator {
+  position: absolute;
+  right: 28px; bottom: 96px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 4px;
+  background: rgba(20, 25, 18, 0.78);
+  border-left: 3px solid #9acd5a;
+  z-index: 11;
+  pointer-events: none;
+}
+#grenade-indicator.hidden { display: none; }
+#grenade-indicator.gren-empty { border-left-color: #6a6a6a; opacity: 0.6; }
+.gren-key {
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+.gren-icon { font-size: 15px; color: #b6e06a; }
+.gren-count {
+  font: 800 15px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+  min-width: 24px;
+}
+
 /* Berserk power-up active indicator — bottom-left pill, ticking countdown. */
 #berserk-indicator {
   position: absolute;

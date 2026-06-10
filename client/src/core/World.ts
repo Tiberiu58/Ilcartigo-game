@@ -126,6 +126,12 @@ export class World {
     if (i >= 0) this.damageables.splice(i, 1);
   }
 
+  /** All registered damageables (player + bots). Read-only — used for AoE
+   *  queries like the grenade explosion. Do not mutate the returned array. */
+  damageableList(): readonly Damageable[] {
+    return this.damageables;
+  }
+
   /** Add a solid box that blocks movement. Returns its AABB so callers can keep a ref. */
   addSolidBox(center: THREE.Vector3, size: THREE.Vector3, mesh?: THREE.Object3D): AABB {
     const half = size.clone().multiplyScalar(0.5);

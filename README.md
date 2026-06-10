@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 16 — v0.16.0. **Berserk power-up** — a contested map pickup granting temporary 2× damage (Quad-Damage rhythm). Built on Phase 15 **health pickups** (arena sustain) and Phase 14 **Survival (Horde) mode** — wave-based, one-life, score-chasing, with a game-over ad breakpoint. Built on Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 17 — v0.17.0. **Frag grenades** (press G) — a throwable with arc + bounce + LoS-gated AoE, for flushing out corners and clusters. Built on Phase 16 **Berserk power-up**, Phase 15 **health pickups**, and Phase 14 **Survival (Horde) mode** — all the new solo-combat depth. Survival is wave-based, one-life, score-chasing, with a game-over ad breakpoint. Built on Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -445,14 +445,37 @@ New audio id reserved: `pickup_berserk.wav` ("power up", "quad damage", "hype st
 
 Production client: **~193 KB gzipped** total (engine 122 + app 64 + CSS 8 + HTML 7).
 
+## Phase 17 — Frag grenades (this round, v0.17.0)
+
+A throwable for combat depth + flush-out tactics (clear a corner, AoE a cluster
+of Survival bots). Press **G** to lob a frag. Solo + combat-mode only (MP would
+desync without server-side projectile authority); **no protocol changes**.
+
+- **`entities/Grenade.ts`** — gravity arc, floor bounce with damping, wall-stop
+  (no tunnelling), **1.3 s** fuse, then detonates.
+- **AoE.** LoS-gated radial falloff — **110** damage at the epicentre → 0 at
+  **6.5 m**, to every live damageable in range **including you** (self-frag).
+  Walls block the blast. New `World.damageableList()`.
+- **Suicide guard.** Self-frags / falls (`attackerId === targetId`) grant no kill
+  credit + no XP — only the death side counts.
+- **Carry + regen.** 2 grenades, refilled each life, regen 1 every 12 s.
+- **Feedback.** Flash + expanding wave VFX, explosion shake, a bottom-right HUD
+  count pill, `grenade_throw` + `explosion` SFX (silent until the `.wav`s land).
+
+New audio ids reserved: `grenade_throw.wav`, `explosion.wav`.
+
+### Bundle size
+
+Production client: **~195 KB gzipped** total (engine 122 + app 66 + CSS 8 + HTML 7).
+
 ## Project status
 
-16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **Survival (Horde) mode**, **health pickups**, **Berserk power-up** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **Survival (Horde) mode**, **health pickups**, **Berserk power-up**, **frag grenades** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~193 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Survival (Horde), scoreboard, killstreaks, profile/stats + survival bests, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, health pickups, Berserk power-up. v0.16.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
+- `/client` — Vite + TS + Three.js game client. `~195 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Survival (Horde), scoreboard, killstreaks, profile/stats + survival bests, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, health pickups, Berserk power-up, frag grenades. v0.17.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

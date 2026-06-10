@@ -24,6 +24,7 @@ import { PlayerActor } from '../entities/PlayerActor';
 import { Bot, type BotDifficulty } from '../entities/Bot';
 import { HealthPickup } from '../entities/HealthPickup';
 import { PowerupPickup, BERSERK_DURATION, BERSERK_DAMAGE_MULT } from '../entities/PowerupPickup';
+import { Grenade } from '../entities/Grenade';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -43,6 +44,13 @@ import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
+
+// Frag grenade tuning (solo combat only).
+const GRENADE_MAX = 2;             // carried at once / refilled on respawn
+const GRENADE_REGEN_SECONDS = 12;  // time to regenerate one grenade
+const GRENADE_THROW_SPEED = 17;    // initial launch speed
+const GRENADE_BLAST_RADIUS = 6.5;  // metres
+const GRENADE_BLAST_DAMAGE = 110;  // damage at the epicentre (linear falloff to 0)
 
 /** Map id → GameMap. All three maps live here. */
 const MAPS: Record<MapId, GameMap> = {
@@ -182,6 +190,15 @@ export class Game {
   private powerups: PowerupPickup[] = [];
   /** performance.now() ms until which Berserk (2× damage) is active. 0 = off. */
   private berserkUntil = 0;
+  /** Active thrown grenades (solo combat only). */
+  private grenades: Grenade[] = [];
+  /** Grenades the player currently carries. */
+  private grenadeStock = GRENADE_MAX;
+  private grenadeRegenTimer = 0;
+
+  /** Grenades the player carries right now — HUD read. */
+  get grenadeCount(): number { return this.grenadeStock; }
+  get grenadeMax(): number { return GRENADE_MAX; }
 
   /** True while the Berserk power-up is active (local player, 2× damage). */
   get berserkActive(): boolean { return performance.now() < this.berserkUntil; }
@@ -198,6 +215,8 @@ export class Game {
   onHealthPickup?: (amount: number) => void;
   /** Fired when the local player grabs the Berserk power-up. */
   onBerserk?: (durationSeconds: number) => void;
+  /** Fired when the local player's grenade count changes (throw / regen / reset). */
+  onGrenadeCountChanged?: (count: number, max: number) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -306,12 +325,17 @@ export class Game {
     });
 
     this.bus.on('kill', (e) => {
-      const youKilled = this.isLocalPlayer(e.attackerId);
+      // A suicide (grenade self-frag / fall) shouldn't credit a kill or XP —
+      // only the death side counts.
+      const suicide = e.attackerId === e.targetId;
+      const youKilled = this.isLocalPlayer(e.attackerId) && !suicide;
       const youDied   = this.isLocalPlayer(e.targetId);
 
       if (youKilled) this.applyShake(0.04, 6);
       // Per-match score tally — works in both solo and MP.
-      this.matchKills.set(e.attackerId, (this.matchKills.get(e.attackerId) ?? 0) + 1);
+      if (!suicide) {
+        this.matchKills.set(e.attackerId, (this.matchKills.get(e.attackerId) ?? 0) + 1);
+      }
       this.matchDeaths.set(e.targetId, (this.matchDeaths.get(e.targetId) ?? 0) + 1);
 
       // XP + kill effect when YOU got the kill.
@@ -471,6 +495,11 @@ export class Game {
     // Drop any active Berserk + clear the multiplier on the player's weapons.
     this.berserkUntil = 0;
     for (const w of this.inventory.weapons) w.damageMultiplier = 1.0;
+    // Reset grenades for the new mode/map.
+    this.clearGrenades();
+    this.grenadeStock = GRENADE_MAX;
+    this.grenadeRegenTimer = 0;
+    this.onGrenadeCountChanged?.(this.grenadeStock, GRENADE_MAX);
     if (!isCombatMode(this.mode) || this.mp) return;
 
     // Use the map's explicit health anchors if it has them, else derive a few
@@ -505,6 +534,71 @@ export class Game {
     const power = new PowerupPickup(powerAnchor);
     this.scene.add(power.group);
     this.powerups.push(power);
+  }
+
+  /** Dispose all in-flight grenades (mode/map change, respawn). */
+  private clearGrenades() {
+    for (const g of this.grenades) g.dispose(this.scene);
+    this.grenades = [];
+  }
+
+  /** Throw a grenade from the eye along the aim. No-op if out of stock. */
+  private throwGrenade() {
+    if (this.grenadeStock <= 0) return;
+    this.grenadeStock--;
+    this.onGrenadeCountChanged?.(this.grenadeStock, GRENADE_MAX);
+    this.player.eyePos(this._eyePos);
+    this.player.aimDir(this._aimDir);
+    const g = new Grenade(this.scene, this._eyePos, this._aimDir, GRENADE_THROW_SPEED);
+    this.grenades.push(g);
+    this.audio.play('grenade_throw');
+  }
+
+  /**
+   * Detonate a grenade: a flash + expanding wave, screen shake if you're close,
+   * and LoS-gated radial falloff damage to every live damageable in range
+   * (including yourself). Damage flows through the normal damage/kill bus so the
+   * killfeed, XP, and death handling all work. Solo only.
+   */
+  private explodeGrenade(at: THREE.Vector3) {
+    this.castFX.flash(at, 0xffb24a, 0.6, 3.2, 0.4);
+    this.castFX.wave(at, 0xff7a2a, 0.5, GRENADE_BLAST_RADIUS, 0.35);
+    this.audio.play('explosion');
+
+    const me = this.localPlayerId();
+    const eye = this.player.eyePos(this._eyePos);
+    if (eye.distanceTo(at) < GRENADE_BLAST_RADIUS * 1.5) {
+      this.applyShake(0.18, 7);
+    }
+
+    // Snapshot the list — takeDamage can flip dead state but not the array.
+    for (const d of this.world.damageableList()) {
+      if (d.health.dead) continue;
+      const box = d.bodyAABB();
+      _BLAST_CENTER.set(
+        (box.min.x + box.max.x) / 2,
+        (box.min.y + box.max.y) / 2,
+        (box.min.z + box.max.z) / 2,
+      );
+      const dist = at.distanceTo(_BLAST_CENTER);
+      if (dist > GRENADE_BLAST_RADIUS) continue;
+      // Walls block the blast.
+      if (!this.world.hasLineOfSight(_BLAST_A.copy(at).setY(at.y + 0.2), _BLAST_CENTER)) continue;
+
+      const dmg = GRENADE_BLAST_DAMAGE * (1 - dist / GRENADE_BLAST_RADIUS);
+      if (dmg <= 0) continue;
+      const killed = d.health.takeDamage(dmg);
+      this.bus.emit('damage', {
+        attackerId: me, targetId: d.id, amount: dmg, isHeadshot: false,
+        hitPoint: _BLAST_CENTER.clone(), weaponId: 'grenade',
+      });
+      if (killed) {
+        this.bus.emit('kill', {
+          attackerId: me, targetId: d.id, weaponId: 'grenade', isHeadshot: false,
+          hitPoint: _BLAST_CENTER.clone(),
+        });
+      }
+    }
   }
 
   /**
@@ -568,6 +662,11 @@ export class Game {
     this.player.setPosition(spawn.x, spawn.y, spawn.z);
     this.player.speedMultiplier = 1.0;
     this.playerActor.isCloaked = false;
+    // Refill grenades each life (solo combat); clear any still in flight.
+    this.clearGrenades();
+    this.grenadeStock = GRENADE_MAX;
+    this.grenadeRegenTimer = 0;
+    this.onGrenadeCountChanged?.(this.grenadeStock, GRENADE_MAX);
     // Local respawn SFX. In MP the server respawns us; the tick-level edge
     // detector picks that path up via the dead→alive transition.
     this.audio.play('respawn');
@@ -874,6 +973,13 @@ export class Game {
     }
     this.abilities.update(dt);
 
+    // Grenade throw (G) — solo combat only, edge-triggered. consumeAction is the
+    // first operand so the edge is always cleared, even when a throw isn't allowed.
+    if (this.input.consumeAction('grenade') && !this.playerActor.health.dead
+        && isCombatMode(this.mode) && !this.mp) {
+      this.throwGrenade();
+    }
+
     // Fire: automatic weapons read held LMB, semi-auto reads edge.
     const wpn = this.inventory.current;
     const wantsFire = !this.playerActor.health.dead && !this.inventory.isSwapping &&
@@ -943,6 +1049,27 @@ export class Game {
     const berserkMul = this.berserkActive ? BERSERK_DAMAGE_MULT : 1.0;
     for (const w of this.inventory.weapons) w.damageMultiplier = berserkMul;
 
+    // Grenades: advance any in flight (even past the player's death so thrown
+    // ordnance still detonates), and regenerate stock over time.
+    if (this.grenades.length > 0) {
+      for (let i = this.grenades.length - 1; i >= 0; i--) {
+        if (this.grenades[i].update(dt, this.world)) {
+          this.explodeGrenade(this.grenades[i].pos);
+          this.grenades[i].dispose(this.scene);
+          this.grenades.splice(i, 1);
+        }
+      }
+    }
+    if (isCombatMode(this.mode) && !this.mp && !this.playerActor.health.dead
+        && this.grenadeStock < GRENADE_MAX) {
+      this.grenadeRegenTimer += dt;
+      if (this.grenadeRegenTimer >= GRENADE_REGEN_SECONDS) {
+        this.grenadeRegenTimer = 0;
+        this.grenadeStock++;
+        this.onGrenadeCountChanged?.(this.grenadeStock, GRENADE_MAX);
+      }
+    }
+
     // --- 3b. Multiplayer: send input + interpolate remotes ---
     if (this.mp) {
       this.mp.sendFrameInput(dt);
@@ -999,3 +1126,5 @@ const _SCRATCH_END = new THREE.Vector3();
 const _SCRATCH_SPAWN_A = new THREE.Vector3();
 const _SCRATCH_SPAWN_B = new THREE.Vector3();
 const _SCRATCH_BOT_SPAWN = new THREE.Vector3();
+const _BLAST_CENTER = new THREE.Vector3();
+const _BLAST_A = new THREE.Vector3();

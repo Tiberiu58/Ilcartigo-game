@@ -273,3 +273,34 @@ combat-mode only; **no protocol changes**.
 
 ### Phase 16 COMPLETE — Berserk power-up shipped (solo combat), no protocol change. App chunk ~64 KB gzip.
 
+---
+
+## Phase 17 — Frag grenades (v0.17.0)
+
+A throwable that adds real combat depth + flush-out tactics (clear a corner, AoE
+a cluster of Survival bots). Press **G** to lob a frag. Solo + combat-mode only
+(MP would desync without server-side projectile authority); **no protocol changes**.
+
+- **`entities/Grenade.ts`** — gravity arc, floor bounce with damping, wall-stop
+  (no tunnelling), 1.3 s fuse, then detonates. Reports "exploded" to Game.
+- **AoE.** `Game.explodeGrenade` does LoS-gated radial falloff (110 dmg at the
+  epicentre → 0 at 6.5 m) to every live damageable in range — **including you**
+  (self-frag). Walls block the blast (`hasLineOfSight`). New `World.damageableList()`.
+- **Suicide guard.** Self-frags / falls (`attackerId === targetId`) now grant no
+  kill credit + no XP — only the death side counts (fixes a latent
+  self-kill-credits-you path; clean for any future suicide).
+- **Carry + regen.** 2 grenades, refilled each life (respawn), regen 1 every 12 s.
+- **Feedback.** Flash + expanding wave VFX, explosion shake when near, bottom-right
+  HUD count pill (greys out at 0), `grenade_throw` + `explosion` SFX (silent until
+  the `.wav`s land). Input gains a `grenade` action (KeyG); how-to + pause hints.
+
+### Status log
+- ✅ Phase 17 — Frag grenades. DONE (client + server typecheck + client build
+  green; ballistics headless-verified — lobs up, floor-clamps, fuses at 1.30 s).
+  New `entities/Grenade.ts`; `Game` owns the throw/update/explode + carry/regen,
+  `World.damageableList()`, suicide guard in the kill handler, `grenade` input
+  binding, HUD count pill, `grenade_throw`/`explosion` SoundIds. Built/torn down
+  + stock-reset with the rest of the pickups on map/mode/MP/respawn transitions.
+
+### Phase 17 COMPLETE — Frag grenades shipped (solo combat), no protocol change. App chunk ~65 KB gzip.
+

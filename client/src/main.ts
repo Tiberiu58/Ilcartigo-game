@@ -334,6 +334,8 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'survival' = 'comba
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
+  // Grenades are a solo combat tool — visible in combat/gungame/survival only.
+  grenadeIndicator.classList.toggle('hidden', mode === 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
   // Pointer-lock request must come from a user gesture — the click counts.
@@ -356,6 +358,7 @@ function startOnline() {
   ggTicker.classList.add('hidden');
   survivalTicker.classList.add('hidden');
   survivalOver.classList.add('hidden');
+  grenadeIndicator.classList.add('hidden');   // grenades are solo-only
   game.setMode('combat');
   announcer.reset();
   // Build the MP session bound to the existing Game.
@@ -417,6 +420,7 @@ function quitToMenu() {
   survivalOver.classList.add('hidden');
   berserkIndicator.classList.add('hidden');
   document.body.classList.remove('berserk-active');
+  grenadeIndicator.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -691,6 +695,14 @@ game.onFrame = ({ fps, speed, state, pos }) => {
     berserkIndicator.classList.add('hidden');
     document.body.classList.remove('berserk-active');
   }
+};
+
+// Grenade count indicator (solo combat only — shown/hidden in startGame).
+const grenadeIndicator = document.getElementById('grenade-indicator')!;
+const grenCount = document.getElementById('gren-count')!;
+game.onGrenadeCountChanged = (count) => {
+  grenCount.textContent = `×${count}`;
+  grenadeIndicator.classList.toggle('gren-empty', count === 0);
 };
 
 // ─── Cosmetics + Profile tabs + account-linked behavior ────────────────────

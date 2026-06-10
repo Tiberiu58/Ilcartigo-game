@@ -17,7 +17,8 @@ export type Action =
   | 'slot1'
   | 'slot2'
   | 'slotLast'
-  | 'ability';
+  | 'ability'
+  | 'grenade';
 
 // Note: Ctrl is intentionally UNBOUND — Ctrl+W closes the browser tab, Ctrl+D
 // bookmarks, and neither can be reliably preventDefault()ed under pointer-lock.
@@ -34,6 +35,7 @@ const DEFAULT_BINDINGS: Record<string, Action> = {
   Digit2: 'slot2',
   KeyQ: 'slotLast',
   KeyE: 'ability',
+  KeyG: 'grenade',
 };
 
 export class Input {
