@@ -148,6 +148,12 @@ export class Game {
   localStreak = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
+  /** XP per kill, plus a precision bonus for headshots. */
+  static readonly KILL_XP = 10;
+  static readonly HEADSHOT_BONUS_XP = 5;
+  /** XP earned from kills THIS match (skill bonuses included). Reset per match;
+   *  read by the post-match screen for an accurate breakdown. */
+  matchKillXp = 0;
   /** Kill goal for SOLO combat vs bots. Shorter than the MP goal so a bots
    *  match wraps in a few minutes and lands on the post-match ad breakpoint —
    *  the largest slice of casual traffic plays solo, so this is the headline
@@ -203,6 +209,9 @@ export class Game {
   /** Fired when a kill pushes the local player up a level mid-match. `newRank`
    *  is non-null only when the level-up also crossed into a new rank tier. */
   onLevelUp?: (level: number, newRank: RankTier | null) => void;
+  /** Fired on each local kill with the XP gained (incl. headshot bonus) for a
+   *  floating "+XP" popup. */
+  onXpGain?: (amount: number, isHeadshot: boolean) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -318,11 +327,16 @@ export class Game {
 
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
+        // Skill-weighted XP: base kill + a headshot bonus. Rewards precision and
+        // makes good play level faster (→ more level-up toasts → retention).
+        const gain = Game.KILL_XP + (e.isHeadshot ? Game.HEADSHOT_BONUS_XP : 0);
         // Capture level/rank before the award so we can fire an in-match
         // level-up / rank-up toast the moment a kill pushes us over the line.
         const lvlBefore = this.account.level;
         const rankBefore = this.account.rank.name;
-        this.account.awardXP(10);
+        this.account.awardXP(gain);
+        this.matchKillXp += gain;
+        this.onXpGain?.(gain, e.isHeadshot);
         if (this.account.level > lvlBefore) {
           const rankNow = this.account.rank;
           this.onLevelUp?.(this.account.level, rankNow.name !== rankBefore ? rankNow : null);
@@ -683,6 +697,7 @@ export class Game {
     this.matchKills.clear();
     this.matchDeaths.clear();
     this.matchEnded = false;
+    this.matchKillXp = 0;
   }
 
   /** Restart a SOLO match (combat or gun game) cleanly: clear the score, reset

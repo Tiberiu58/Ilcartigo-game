@@ -293,3 +293,26 @@ protocol change.
 
 ### Phase 18 COMPLETE — live level-up/rank-up toast shipped, all modes intact, no protocol change.
 
+---
+
+## Phase 19 — Skill-based XP + floating "+XP" popups (v0.19.0)
+
+XP was a flat 10/kill. Phase 19 makes it skill-weighted and *visible*: headshots
+pay a bonus, and every kill floats a "+XP" popup by the crosshair (Krunker's
+"+score" feel). Faster, skill-correlated leveling → more level-up toasts → more
+reasons to keep playing. Pure client-side, no protocol change.
+
+- **`Game.KILL_XP` (10) + `HEADSHOT_BONUS_XP` (5)** — the per-kill award is now
+  `10 (+5 on a headshot)`. `Game.matchKillXp` accumulates the accurate per-match
+  kill XP (bonuses included), reset with the match score and read by the
+  post-match breakdown (was a naive `kills × 10`).
+- **`Game.onXpGain(amount, isHeadshot)`** → a floating `.xp-pop` ("+10" / gold
+  "+15 HS") that rises + fades right of the crosshair; capped at 6 concurrent so
+  a spree can't pile up DOM.
+- Reset hygiene: `matchKillXp` clears in `resetMatchScore`; the MP MatchReset
+  path now also calls `resetMatchScore` + clears the streak so rematches start
+  clean (caught while wiring the accurate breakdown).
+- Typecheck (client + server) + build green; app chunk ~62.8 KB gzip; no new deps.
+
+### Phase 19 COMPLETE — skill XP + floating popups shipped, all modes intact, no protocol change.
+

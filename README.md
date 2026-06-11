@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 18 — v0.18.0. In-match level-up / rank-up toast: a kill that pushes you over a level boundary pops a live toast (rank-ups take the headline in the rank colour). Built on Phase 17 (rank identity: level maps to a named rank tier Rookie → Legend, surfaced on menu/scoreboard/post-match) and Phase 16 (post-match progression celebration: animated level + XP bar and a LEVEL UP / NEW BEST STREAK callout) and Phase 15 (One Shot / OHKO mode: every hit is lethal, a modifier on Combat reusing the solo match flow) and Phase 14 (solo match flow: solo Combat ends at a kill goal → VICTORY/DEFEAT post-match overlay + ad breakpoint, score ticker in solo, Play Again restart) and Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 19 — v0.19.0. Skill-based XP: headshots pay a bonus and every kill floats a "+XP" popup by the crosshair; the per-match XP total is now exact. Built on Phase 18 (in-match level-up / rank-up toast) and Phase 17 (rank identity: level maps to a named rank tier Rookie → Legend, surfaced on menu/scoreboard/post-match) and Phase 16 (post-match progression celebration: animated level + XP bar and a LEVEL UP / NEW BEST STREAK callout) and Phase 15 (One Shot / OHKO mode: every hit is lethal, a modifier on Combat reusing the solo match flow) and Phase 14 (solo match flow: solo Combat ends at a kill goal → VICTORY/DEFEAT post-match overlay + ad breakpoint, score ticker in solo, Play Again restart) and Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -424,14 +424,18 @@ Level now maps to a named **rank tier** (Rookie → Bronze → Silver → Gold �
 
 Leveling up is now felt live: a kill that crosses a level boundary pops a toast under the score ticker, and a **rank-up** takes the headline in the new rank colour. `Game.onLevelUp` fires from the per-kill XP award; a dedicated `#levelup-toast` keeps it from colliding with the kill announcer. Also fixed a latent match-reset bug Phase 14 exposed (setMode early-returns same-mode → stale solo scores). Pure client-side, no protocol change.
 
+## Phase 19 — Skill-based XP + floating "+XP" popups (v0.19.0)
+
+XP is now skill-weighted and visible: headshots pay a bonus (`KILL_XP` 10 + `HEADSHOT_BONUS_XP` 5) and every kill floats a "+XP" popup by the crosshair. `Game.matchKillXp` tracks the exact per-match total (read by the post-match breakdown). Reset hygiene tightened on the MP rematch path. Pure client-side, no protocol change.
+
 ## Project status
 
-18 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode, solo match flow + win/lose stakes, One Shot (OHKO) mode, post-match progression celebration, rank identity, live level-up toast** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+19 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode, solo match flow + win/lose stakes, One Shot (OHKO) mode, post-match progression celebration, rank identity, live level-up toast, skill-based XP** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player (now a real match → VICTORY/DEFEAT), Practice Range, Gun Game, One Shot (OHKO), online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, post-match progression, rank identity, live level-up toast. v0.18.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.18.0.
+- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player (now a real match → VICTORY/DEFEAT), Practice Range, Gun Game, One Shot (OHKO), online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, post-match progression, rank identity, live level-up toast, skill-based XP. v0.19.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.19.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

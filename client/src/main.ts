@@ -346,6 +346,10 @@ function startOnline() {
     // not THIS client clicked Play Again) and drop back into play.
     hidePostMatch();
     announcer.reset();
+    // Server repopulates matchKills from snapshots; clear local tallies + the
+    // per-match XP accumulator so the next post-match breakdown is accurate.
+    game.resetMatchScore();
+    game.localStreak = 0;
     captureMatchStart();
     pmPlayAgain.disabled = false;
     pmPlayAgain.textContent = 'Play Again';
@@ -713,6 +717,18 @@ game.onLevelUp = (level, newRank) => {
   levelupHideTimer = window.setTimeout(() => levelupToast.classList.add('hidden'), 2600);
 };
 
+// ─── Floating "+XP" gain popups ────────────────────────────────────────────
+const xpPopups = document.getElementById('xp-popups')!;
+game.onXpGain = (amount, isHeadshot) => {
+  const el = document.createElement('div');
+  el.className = `xp-pop${isHeadshot ? ' hs' : ''}`;
+  el.textContent = isHeadshot ? `+${amount} HS` : `+${amount}`;
+  xpPopups.appendChild(el);
+  // Cap concurrent popups so a kill spree can't pile up unbounded DOM.
+  while (xpPopups.children.length > 6) xpPopups.removeChild(xpPopups.firstChild!);
+  window.setTimeout(() => { if (el.parentElement) el.parentElement.removeChild(el); }, 950);
+};
+
 // ─── Post-match overlay ────────────────────────────────────────────────────
 const postmatchOverlay = document.getElementById('postmatch-overlay')!;
 const pmTitle = document.getElementById('pm-title')!;
@@ -762,7 +778,6 @@ function showPostMatch(winnerId: string) {
   rows.sort((a, b) => b.kills - a.kills);
 
   const myRank = rows.findIndex((r) => r.isYou) + 1;
-  const myKills = rows.find((r) => r.isYou)?.kills ?? 0;
   const youWon = myRank === 1;
 
   // Lifetime career: count this finished match + win.
@@ -773,8 +788,9 @@ function showPostMatch(winnerId: string) {
   if (youWon) game.account.awardXP(50);
   else if (myRank > 0 && myRank <= 3) game.account.awardXP(25);
   const xpDelta = game.account.xp - xpBefore;
-  // Per-kill XP was already awarded as each kill happened. We total it for display.
-  const xpFromKills = myKills * 10;
+  // Per-kill XP (incl. headshot bonuses) was awarded as each kill happened;
+  // Game tracked the accurate running total so the breakdown matches.
+  const xpFromKills = game.matchKillXp;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
 
   pmTitle.textContent = youWon ? 'VICTORY' : 'DEFEAT';

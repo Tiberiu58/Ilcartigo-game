@@ -49,6 +49,10 @@
 
         <div id="damage-flash"></div>
 
+        <!-- Floating "+XP" gain popups on kills (skill bonuses included).
+             Spawned + auto-removed by main.ts via Game.onXpGain. -->
+        <div id="xp-popups"></div>
+
         <!-- Directional damage indicators — red arcs pointing at the attacker.
              Arc elements are pooled + populated by DamageDirection.ts. -->
         <div id="damage-dir"></div>
@@ -204,7 +208,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.18</p>
+          <p class="subtitle">Browser arena shooter · v0.19</p>
           <!-- Profile chip — name + rank tier + level. Updated from the account
                on boot and on any progression change. -->
           <div class="menu-profile" id="menu-profile">
@@ -263,7 +267,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.18.0 — Level-up toast</div>
+          <div>v0.19.0 — Skill XP rewards</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
