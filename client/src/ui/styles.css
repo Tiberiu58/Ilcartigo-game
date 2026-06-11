@@ -322,6 +322,21 @@ body.ghost-active #app::before {
 }
 #practice-badge.hidden { display: none; }
 
+/* Instagib mode badge — mirrors the practice badge, hot accent. */
+#instagib-badge {
+  position: absolute;
+  left: 50%; top: 18px;
+  transform: translateX(-50%);
+  background: rgba(60, 24, 12, 0.86);
+  color: #ffd0a0;
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #ff7a2a;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+}
+#instagib-badge.hidden { display: none; }
+
 #online-badge {
   position: absolute;
   left: 50%; top: 18px;
@@ -1027,6 +1042,8 @@ body.kill-flash #app::after {
 /* ── Blitz (Time Attack) ─────────────────────────────────────────────────── */
 .menu-btn.blitz { border-left: 3px solid #4ad6ff; }
 .menu-btn.blitz:hover { border-left-color: #4ad6ff; color: #4ad6ff; }
+.menu-btn.instagib { border-left: 3px solid #ff7a2a; }
+.menu-btn.instagib:hover { border-left-color: #ff7a2a; color: #ff7a2a; }
 #blitz-ticker {
   position: absolute;
   left: 50%; top: 60px;

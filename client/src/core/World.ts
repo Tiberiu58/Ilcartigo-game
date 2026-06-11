@@ -35,6 +35,9 @@ interface TemporarySolid {
 
 export class World {
   readonly scene: THREE.Scene;
+  /** Instagib mode (Phase 18): when true, any weapon hit is instantly lethal.
+   *  Read by Weapon.computeDamage. Solo-only — Game sets it per mode. */
+  instagib = false;
   private solids: AABB[] = [];
   private jumpPads: JumpPad[] = [];
   private damageables: Damageable[] = [];

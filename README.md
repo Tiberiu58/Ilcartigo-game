@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 17 — v0.17.0. Two new weapons — **Marksman** (semi-auto DMR: 2-shot body / 1-shot headshot, light scope) and **LMG** (60-round automatic suppression). 7 weapons total, more loadout variety. Built on Phase 16 (Blitz Time Attack mode), Phase 15 (killstreak reward perks), Phase 14 (arena pickups & power-ups), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 18 — v0.18.0. New **Instagib** mode — one shot, one kill: every hit is instantly lethal for everyone, a pure-aim FFA vs bots (pickups + killstreak rewards auto-disabled since they're moot). Four solo modes now (Combat / Gun Game / Blitz / Instagib) + Practice + online FFA. Built on Phase 17 (Marksman + LMG weapons), Phase 16 (Blitz Time Attack mode), Phase 15 (killstreak reward perks), Phase 14 (arena pickups & power-ups), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -490,14 +490,30 @@ procedural viewmodel each), works in every mode.
   the existing flat model). Typecheck (client + server) + build green; app chunk
   **~65.1 KB gzip**.
 
+## Phase 18 — Instagib mode (this round, v0.18.0)
+
+A fourth solo mode — the classic Quake/Krunker **one-shot-one-kill** arena.
+Pure aim, zero TTK, maximum chaos: every hit (any weapon, any range) is
+instantly lethal for everyone. Self-contained, no protocol change, no new deps.
+
+- **Universal one-shot** via a `World.instagib` flag read by `Weapon.computeDamage`
+  (returns lethal). Applies identically to the player and bots — fair, no aim
+  hacks. Solo-only (`syncPickups` sets it from the mode; never in MP).
+- **Pickups + killstreak rewards auto-disabled** in Instagib (heal/shield/damage
+  are moot when everything one-shots) so the mode stays pure.
+- `GameMode` extended to include `'instagib'` (an `isCombatMode`, so bots +
+  spawns + respawn + spawn-protection all apply — you can't be one-shot through
+  your 2s spawn shield). New "⚡ Instagib" menu button + a top-center mode badge.
+- Typecheck (client + server) + build green; app chunk **~65.2 KB gzip**.
+
 ## Project status
 
-17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, Gun Game mode, arena pickups + power-ups, killstreak reward perks, Blitz Time-Attack mode, and **Marksman + LMG weapons** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+18 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, Gun Game mode, arena pickups + power-ups, killstreak reward perks, Blitz Time-Attack mode, Marksman + LMG weapons, and **Instagib mode** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Blitz Time Attack, 7 weapons, arena pickups/power-ups, killstreak rewards, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.17.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Blitz Time Attack, Instagib, 7 weapons, arena pickups/power-ups, killstreak rewards, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.18.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.18.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

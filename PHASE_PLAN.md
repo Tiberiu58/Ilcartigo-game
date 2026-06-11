@@ -301,4 +301,24 @@ More loadout variety drives replay value. Two new weapons, fully self-contained
 
 ### Phase 17 COMPLETE — Marksman + LMG shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 18 — Instagib mode (v0.18.0)
+
+A fourth solo mode — Quake/Krunker one-shot-one-kill. Pure aim, fully self-
+contained, no protocol/MP change.
+
+- **`World.instagib`** flag read by `Weapon.computeDamage` (returns lethal for
+  any hit). Uniform for player + bots (fair). Set solo-only in `syncPickups`.
+- **Pickups + killstreak rewards disabled** in Instagib (moot when everything
+  one-shots) — `syncPickups` excludes the mode.
+- `GameMode` += `'instagib'`; `isCombatMode` covers it (bots/spawns/spawn-
+  protection apply — 2s spawn shield still protects). New "⚡ Instagib" menu
+  button + `#instagib-badge` top-center + CSS.
+- Verified: typecheck (client+server) + build green; app ~65.2 KB gzip. Headless
+  gameplay not run here; logic is a one-line damage short-circuit + mode plumbing
+  mirroring the verified Blitz/Gun Game patterns.
+
+### Phase 18 COMPLETE — Instagib mode shipped, solo + MP intact, no protocol change.
+
 

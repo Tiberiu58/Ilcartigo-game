@@ -51,13 +51,14 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'blitz';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'blitz' | 'instagib';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
- *  the peaceful Practice sandbox). Gun Game + Blitz play like Combat with an
- *  extra rule layered on top (a weapon ladder / a match clock). */
+ *  the peaceful Practice sandbox). Gun Game / Blitz / Instagib all play like
+ *  Combat with an extra rule layered on top (a weapon ladder / a match clock /
+ *  one-shot kills). */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'blitz';
+  return m === 'combat' || m === 'gungame' || m === 'blitz' || m === 'instagib';
 }
 
 /** Blitz (Time Attack) match length, seconds. Most kills when the clock hits
@@ -480,10 +481,13 @@ export class Game {
    * Idempotent — clears then rebuilds from the active map's spawn table.
    */
   private syncPickups() {
-    const live = isCombatMode(this.mode) && !this.mp;
+    // Pickups + killstreak rewards are pointless in Instagib (everything one-
+    // shots), so they're disabled there even though it's a combat mode.
+    const live = isCombatMode(this.mode) && this.mode !== 'instagib' && !this.mp;
     this.pickups.start(live ? this.currentMap.meta.pickupSpawns : undefined);
-    // Killstreak rewards are solo-combat only (MP is server-authoritative).
     this.streakRewards.setEnabled(live);
+    // Instagib: any hit is lethal (solo only; never in MP).
+    this.world.instagib = this.mode === 'instagib' && !this.mp;
   }
 
   /**

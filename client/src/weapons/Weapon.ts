@@ -459,6 +459,8 @@ export class Weapon {
   }
 
   private computeDamage(distance: number, isHeadshot: boolean): number {
+    // Instagib mode: any hit is instantly lethal, regardless of weapon/range.
+    if (this.world.instagib) return 1000;
     const c = this.config;
     let mul = 1;
     if (distance > c.falloffStart) {

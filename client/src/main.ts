@@ -60,10 +60,12 @@ const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
 const menuBlitz = document.getElementById('menu-blitz') as HTMLButtonElement;
+const menuInstagib = document.getElementById('menu-instagib') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
 const practiceBadge = document.getElementById('practice-badge')!;
+const instagibBadge = document.getElementById('instagib-badge')!;
 const onlineBadge = document.getElementById('online-badge')!;
 const onlineCount = document.getElementById('online-count')!;
 const backToMenu = document.getElementById('back-to-menu') as HTMLButtonElement;
@@ -270,7 +272,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'blitz' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'blitz' | 'instagib' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -296,6 +298,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'blitz' = 'combat')
   blitzTicker.classList.toggle('hidden', mode !== 'blitz');
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
+  instagibBadge.classList.toggle('hidden', mode !== 'instagib');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
   // Pointer-lock request must come from a user gesture — the click counts.
@@ -362,6 +365,7 @@ function quitToMenu() {
   mainMenu.classList.remove('hidden');
   hud.classList.add('hidden');
   practiceBadge.classList.add('hidden');
+  instagibBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
   blitzTicker.classList.add('hidden');
@@ -437,6 +441,7 @@ menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
 menuBlitz.addEventListener('click', () => startGame('blitz'));
+menuInstagib.addEventListener('click', () => startGame('instagib'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
