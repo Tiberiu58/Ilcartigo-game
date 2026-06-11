@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 16 — v0.16.0. New **Blitz** mode — a 2-minute Time Attack FFA vs bots: rack up the most kills before the clock hits zero (urgent-flashing match clock, live leader, post-match standings). Built on Phase 15 (killstreak reward perks), Phase 14 (arena pickups & power-ups), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 17 — v0.17.0. Two new weapons — **Marksman** (semi-auto DMR: 2-shot body / 1-shot headshot, light scope) and **LMG** (60-round automatic suppression). 7 weapons total, more loadout variety. Built on Phase 16 (Blitz Time Attack mode), Phase 15 (killstreak reward perks), Phase 14 (arena pickups & power-ups), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -261,6 +261,8 @@ Drop CC0 `.wav` files into `client/public/assets/sounds/` matching these names. 
 | `fire_smg.wav` | SMG burst, rapid lighter pop | "mp5 single shot", "9mm shot" |
 | `fire_sniper.wav` | Bolt-action boom | "sniper rifle shot", "kar98" |
 | `fire_shotgun.wav` | Shotgun blast | "shotgun blast", "12 gauge" |
+| `fire_dmr.wav` | Marksman rifle — sharp single crack (Phase 17) | "dmr shot", "marksman rifle" |
+| `fire_lmg.wav` | LMG — heavy automatic chug (Phase 17) | "lmg shot", "machine gun single" |
 | `fire_pistol.wav` | Pistol crack | "9mm pistol", "glock shot" |
 | `reload.wav` | Magazine click / slide | "magazine reload", "weapon reload" |
 | `empty_click.wav` | Dry trigger click | "empty gun click" |
@@ -470,14 +472,32 @@ Solo vs bots for v1, no protocol change, no new deps.
   button. Pickups + killstreak rewards are fully live in Blitz.
 - Typecheck (client + server) + client build green; app chunk **~64.7 KB gzip**.
 
+## Phase 17 — Marksman + LMG weapons (this round, v0.17.0)
+
+More loadout variety = more ways to play = more replay value. Phase 17 adds two
+weapons that fill real gaps in the arsenal, fully self-contained (data + a
+procedural viewmodel each), works in every mode.
+
+- **Marksman (DMR)** — semi-auto precision rifle. 2-shot body / 1-shot headshot
+  (50 dmg, 2.0× head), very tight spread, a light scope (FOV 55, not the
+  sniper's hard 30), 4.5 RPS. Rewards aim between the AR and the Sniper.
+- **LMG** — automatic suppression weapon: 60-round mag, sustained fire, lower
+  per-shot damage (18, ~6 to kill), heavier recoil climb + slow bloom recovery +
+  a long 3.4s reload. Identity is uptime, not burst.
+- Wired everywhere: `WEAPON_LIBRARY` + procedural `Viewmodel` builders + Gun
+  Game labels + `fire_dmr`/`fire_lmg` sound ids + two new loadout buttons +
+  server `VALID_WEAPONS` (so MP loadout validation accepts them; MP damage uses
+  the existing flat model). Typecheck (client + server) + build green; app chunk
+  **~65.1 KB gzip**.
+
 ## Project status
 
-16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, Gun Game mode, arena pickups + power-ups, killstreak reward perks, and **Blitz Time-Attack mode** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, Gun Game mode, arena pickups + power-ups, killstreak reward perks, Blitz Time-Attack mode, and **Marksman + LMG weapons** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Blitz Time Attack, arena pickups/power-ups, killstreak rewards, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.16.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Blitz Time Attack, 7 weapons, arena pickups/power-ups, killstreak rewards, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.17.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

@@ -167,6 +167,61 @@ export const SHOTGUN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Marksman (DMR) — semi-auto precision rifle. Fills the gap between AR and
+// Sniper: 2-shot body, 1-shot headshot (50×2=100, 50×2.0 head=100), a light
+// scope, very tight spread, slow-ish fire. Rewards aim over spray.
+export const DMR_CONFIG: WeaponConfig = {
+  id: 'dmr',
+  displayName: 'Marksman',
+  fireRate: 4.5,
+  automatic: false,
+  magSize: 12,
+  reloadTime: 2.0,
+  reserveAmmo: -1,
+  baseDamage: 50,
+  headshotMultiplier: 2.0,
+  maxRange: 220,
+  falloffStart: 60,
+  falloffEnd: 160,
+  falloffMinMultiplier: 0.7,
+  baseSpread: 0.0015,
+  maxSpread: 0.03,
+  spreadPerShot: 0.012,
+  spreadDecay: 0.25,
+  recoilPitch: 0.030,
+  recoilYaw: 0.004,
+  recoilDecay: 0.5,
+  scopeFov: 55,                // light scope (not the sniper's hard 30)
+  slot: 'primary',
+};
+
+// LMG — automatic suppression weapon. Huge mag + long sustained fire, but lower
+// per-shot damage, heavy recoil climb, slow bloom recovery, and a long reload.
+// ~6 body shots to kill; its identity is *uptime*, not burst.
+export const LMG_CONFIG: WeaponConfig = {
+  id: 'lmg',
+  displayName: 'LMG',
+  fireRate: 11,
+  automatic: true,
+  magSize: 60,
+  reloadTime: 3.4,
+  reserveAmmo: -1,
+  baseDamage: 18,
+  headshotMultiplier: 1.6,
+  maxRange: 180,
+  falloffStart: 30,
+  falloffEnd: 90,
+  falloffMinMultiplier: 0.55,
+  baseSpread: 0.006,
+  maxSpread: 0.10,
+  spreadPerShot: 0.012,
+  spreadDecay: 0.2,
+  recoilPitch: 0.016,
+  recoilYaw: 0.008,
+  recoilDecay: 0.5,
+  slot: 'primary',
+};
+
 // Pistol — semi-auto sidearm. Always equipped, decent damage, no reserve cap.
 export const PISTOL_CONFIG: WeaponConfig = {
   id: 'pistol',
@@ -197,6 +252,8 @@ export const WEAPON_LIBRARY = {
   smg: SMG_CONFIG,
   sniper: SNIPER_CONFIG,
   shotgun: SHOTGUN_CONFIG,
+  dmr: DMR_CONFIG,
+  lmg: LMG_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;

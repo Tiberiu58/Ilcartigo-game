@@ -31,6 +31,8 @@ const WEAPON_LABEL: Record<WeaponId, string> = {
   ar: 'ASSAULT RIFLE',
   shotgun: 'SHOTGUN',
   sniper: 'SNIPER',
+  dmr: 'MARKSMAN',
+  lmg: 'LMG',
   pistol: 'PISTOL',
 };
 

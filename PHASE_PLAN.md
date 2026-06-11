@@ -280,4 +280,25 @@ killstreak rewards (all live since Blitz is an `isCombatMode`).
 
 ### Phase 16 COMPLETE — Blitz Time-Attack mode shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 17 — Marksman + LMG weapons (v0.17.0)
+
+More loadout variety drives replay value. Two new weapons, fully self-contained
+(config data + a procedural box viewmodel each), live in every mode.
+
+- **Marksman (DMR, `dmr`)** — semi-auto precision: 50 dmg (2-shot body), 2.0×
+  head (1-shot headshot), tight spread, light scope (FOV 55), 4.5 RPS. Bridges
+  AR↔Sniper.
+- **LMG (`lmg`)** — automatic suppression: 60-round mag, 18 dmg, 11 RPS, heavy
+  recoil climb, slow bloom recovery, 3.4s reload. Uptime over burst.
+- Wiring: `WEAPON_LIBRARY` (+2), `Viewmodel` builders `buildDMR`/`buildLMG` (+
+  registered in the exhaustive `WEAPON_BUILDERS`), GunGame `WEAPON_LABEL` (+2,
+  exhaustive), `fire_dmr`/`fire_lmg` sound ids, two loadout buttons, server
+  `VALID_WEAPONS` (+2 so MP accepts the picks; MP damage stays on the existing
+  flat model — a pre-existing simplification, out of scope here). Bots unchanged
+  (fixed weapons). Typecheck (client+server) + build green; app ~65.1 KB gzip.
+
+### Phase 17 COMPLETE — Marksman + LMG shipped, solo + MP intact, no protocol change.
+
 

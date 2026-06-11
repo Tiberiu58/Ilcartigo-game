@@ -181,6 +181,8 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   smg: buildSMG,
   sniper: buildSniper,
   shotgun: buildShotgun,
+  dmr: buildDMR,
+  lmg: buildLMG,
   pistol: buildPistol,
 };
 
@@ -225,6 +227,29 @@ function buildShotgun(p: THREE.Group): number {
   p.add(box(0.08, 0.13, 0.10, 0x2a1810, 0, -0.12, 0.18));     // grip
   p.add(box(0.18, 0.04, 0.10, 0x232931, 0, -0.08, 0.05));     // pump
   return -0.65;
+}
+
+function buildDMR(p: THREE.Group): number {
+  p.add(box(0.15, 0.11, 0.50, 0x26303a, 0, 0, 0));            // long body
+  p.add(box(0.10, 0.10, 0.26, 0x36404c, 0, -0.02, 0.34));     // stock
+  p.add(box(0.05, 0.05, 0.58, 0x12161b, 0, 0.02, -0.46));     // long barrel
+  p.add(box(0.10, 0.09, 0.16, 0x14171c, 0, 0.095, -0.04));    // low-profile optic
+  p.add(box(0.07, 0.07, 0.05, 0x55b0d0, 0, 0.095, -0.13));    // optic lens (cyan)
+  p.add(box(0.08, 0.16, 0.09, 0x232931, 0, -0.13, 0.0));      // mag
+  p.add(box(0.07, 0.13, 0.09, 0x232931, 0, -0.12, 0.18));     // grip
+  return -0.74;
+}
+
+function buildLMG(p: THREE.Group): number {
+  p.add(box(0.19, 0.14, 0.48, 0x2a2f36, 0, 0, 0));            // bulky body
+  p.add(box(0.11, 0.11, 0.24, 0x3a424c, 0, -0.02, 0.30));     // stock
+  p.add(box(0.06, 0.06, 0.56, 0x121519, 0, 0.02, -0.46));     // heavy barrel
+  p.add(box(0.07, 0.05, 0.30, 0x0e1014, 0, 0.07, -0.30));     // barrel shroud
+  p.add(box(0.16, 0.22, 0.20, 0x1f242b, 0, -0.16, -0.02));    // box magazine (big)
+  p.add(box(0.08, 0.14, 0.10, 0x232931, 0, -0.12, 0.18));     // grip
+  p.add(box(0.05, 0.07, 0.14, 0x18181d, 0, -0.10, -0.34));    // bipod stub
+  p.add(box(0.04, 0.05, 0.02, 0xf5d442, 0, 0.12, -0.20));     // front sight
+  return -0.74;
 }
 
 function buildPistol(p: THREE.Group): number {
