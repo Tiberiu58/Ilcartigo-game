@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Solo match flow: solo Combat now ends at a kill goal → VICTORY/DEFEAT post-match overlay + ad breakpoint, score ticker in solo, Play Again restart. Built on Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -361,14 +361,46 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Gun Game mode (v0.13.0)
+
+The first **new game mode** — mode variety is the #1 driver of replay value in
+arena shooters. Self-contained, solo-vs-bots, no protocol/MP changes.
+
+- **Weapon ladder** `smg → ar → shotgun → sniper → pistol`. Each kill advances
+  the killer one rung; the gun visibly swaps in hand. First kill on the final
+  rung (pistol) wins → post-match overlay.
+- New `modes/GunGame.ts` (bus-driven, decoupled via a small `GunGameHost`
+  interface). Bots race too. `GameMode` extended to include `'gungame'` +
+  `isCombatMode()` helper. New `Game.setPlayerPrimaryWeapon(id)`. HUD ladder
+  ticker ("LVL n/5 · WEAPON" + pips). New "🔫 Gun Game (vs Bots)" menu button.
+
+## Phase 14 — Solo match flow + win/lose stakes (v0.14.0)
+
+Solo Combat was endless — no winner, no stakes, **no post-match ad breakpoint**.
+Since most casual traffic plays solo, wiring a real ending here is the highest-
+leverage revenue move and a Krunker-feel upgrade. Client-only, no protocol change,
+MP untouched.
+
+- **Solo combat now ends** at a kill goal (`soloKillGoal = 20`). First participant
+  (you or a bot) to the goal wins → the existing post-match overlay + the
+  **post-match ad slot** fire. MP stays server-authoritative; Gun Game keeps its
+  ladder win; Practice never ends.
+- **`Game.currentKillGoal()`** drives the right target (solo 20 / MP 30) for both
+  the Tab scoreboard and the HUD ticker. The **score ticker now shows in solo**
+  too (was MP-only), with friendly bot leader names.
+- **`Game.restartSoloMatch()`** — Play Again clears the score, resets the streak,
+  respawns the bots + player for an even fresh round.
+- Post-match title is now `VICTORY` / `DEFEAT`; winner + scoreboard names resolve
+  through `participantName` (handle / "Predictor Bot" / short tag).
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode, solo match flow + win/lose stakes** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player (now a real match → VICTORY/DEFEAT), Practice Range, Gun Game, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

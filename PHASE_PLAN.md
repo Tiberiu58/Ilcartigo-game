@@ -152,3 +152,37 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — Solo match flow + win/lose stakes (v0.14.0)
+
+Solo Combat (vs bots) was endless — no winner, no stakes, and crucially **no
+post-match ad breakpoint**. Most casual traffic plays solo, so wiring a real
+match ending here is the single highest-leverage revenue move *and* a Krunker-feel
+upgrade (every match now resolves to VICTORY/DEFEAT). Self-contained, client-only,
+no protocol change, MP untouched.
+
+- **Solo combat now ends.** First participant (you OR a bot) to reach
+  `Game.soloKillGoal` (20) wins → the existing post-match overlay fires with the
+  scoreboard + the **post-match ad slot** (`Ads.refreshSlot('postmatch')`). MP
+  match-end stays server-authoritative; Gun Game keeps its ladder win; Practice
+  never ends. Decided in `Game`'s kill handler, guarded by `!mp && mode==='combat'
+  && !matchEnded`.
+- **`Game.currentKillGoal()`** — returns the solo goal (20) or the MP goal (30)
+  for the current context. The Tab scoreboard goal + the HUD ticker goal both read
+  it, so solo and MP each show the right target.
+- **Score ticker now shows in solo combat too** (was MP-only). Leader name uses
+  the friendly bot label (e.g. "Engager Bot") via `HUD.killerName`, so the ticker
+  reads "leader: Engager Bot (12)" instead of a raw id.
+- **`Game.restartSoloMatch()`** — Play Again in solo now clears the score, resets
+  the local streak, respawns every bot, and re-drops the player, so each round
+  starts even (previously only the score map was cleared). Gun Game still also
+  re-seeds its ladder.
+- **Punchier result + friendly names.** Post-match title is now `VICTORY` /
+  `DEFEAT` (was the flat "MATCH OVER"); the winner line + scoreboard rows resolve
+  bot/MP ids through `participantName` (handle / "Predictor Bot" / short tag).
+- Version bumped to v0.14.0 (client + server + menu subtitle/footer). Typecheck
+  (client + server) + client build all green; app chunk ~61.7 KB gzip.
+
+### Phase 14 COMPLETE — solo match flow shipped, MP + Gun Game + Practice intact, no protocol change.
+

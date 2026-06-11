@@ -148,6 +148,16 @@ export class Game {
   localStreak = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
+  /** Kill goal for SOLO combat vs bots. Shorter than the MP goal so a bots
+   *  match wraps in a few minutes and lands on the post-match ad breakpoint —
+   *  the largest slice of casual traffic plays solo, so this is the headline
+   *  revenue + stakes hook. */
+  soloKillGoal = 20;
+
+  /** The active kill goal for the current context (MP vs solo). */
+  currentKillGoal(): number {
+    return this.mp ? Game.MATCH_KILL_GOAL : this.soloKillGoal;
+  }
 
   private lastTime = 0;
   private rafHandle = 0;
@@ -313,11 +323,20 @@ export class Game {
         }
       }
 
-      // NOTE: match end is NOT decided here. In MP the server is authoritative
-      // and broadcasts MatchOver (handled in MultiplayerSession.handleMatchOver,
-      // which sets matchEnded + fires onMatchEnded with the true winner). Solo
-      // has no match end by design. Clients counting locally would disagree
-      // about who won / when — exactly the bug this replaced.
+      // Match end. In MP the server is authoritative and broadcasts MatchOver
+      // (handled in MultiplayerSession.handleMatchOver) — clients counting
+      // locally would disagree about who won / when, exactly the bug Phase 11
+      // replaced. In SOLO combat there is no server, so we decide it here: the
+      // first participant (you or a bot) to reach soloKillGoal wins the match,
+      // firing the post-match overlay (VICTORY/DEFEAT + ad breakpoint). Gun Game
+      // has its own ladder win; Practice never ends.
+      if (!this.mp && this.mode === 'combat' && !this.matchEnded) {
+        const attackerKills = this.matchKills.get(e.attackerId) ?? 0;
+        if (attackerKills >= this.soloKillGoal) {
+          this.matchEnded = true;
+          this.onMatchEnded?.(e.attackerId);
+        }
+      }
     });
 
     // Initial spawn: 2s of grace so the player can orient on first load.
@@ -641,6 +660,16 @@ export class Game {
     this.matchKills.clear();
     this.matchDeaths.clear();
     this.matchEnded = false;
+  }
+
+  /** Restart a SOLO match (combat or gun game) cleanly: clear the score, reset
+   *  the local streak, respawn every bot, and drop the player back at a fresh
+   *  spawn. Used by Play Again so each round starts even. */
+  restartSoloMatch() {
+    this.resetMatchScore();
+    this.localStreak = 0;
+    for (const b of this.bots) b.respawn();
+    this.respawnPlayer();
   }
 
   private onResize = () => {

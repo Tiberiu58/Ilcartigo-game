@@ -274,11 +274,13 @@ export class HUD {
   }
 
   /**
-   * Match score ticker — shown only in MP combat. Pulls the local player's
-   * kill count from game.matchKills and the current leader's count.
+   * Match score ticker — shown in combat (solo OR MP), hidden in Practice and
+   * Gun Game (which has its own ladder ticker). Pulls the local player's kill
+   * count from game.matchKills and the current leader's count, against the
+   * context-appropriate goal (solo vs MP).
    */
   private tickMatchScore() {
-    const showIt = this.game.mp !== null && this.game.mode === 'combat';
+    const showIt = this.game.mode === 'combat';
     if (!showIt) {
       if (!this.matchScore.classList.contains('hidden')) {
         this.matchScore.classList.add('hidden');
@@ -289,7 +291,7 @@ export class HUD {
     const myId = this.game.localPlayerId();
     const myKills = this.game.matchKills.get(myId) ?? 0;
     this.msYouKills.textContent = String(myKills);
-    this.msGoal.textContent = String(Game.MATCH_KILL_GOAL);
+    this.msGoal.textContent = String(this.game.currentKillGoal());
 
     // Find current leader.
     let leaderId = myId;
@@ -300,7 +302,9 @@ export class HUD {
     if (leaderId === myId) {
       this.msLeader.textContent = 'you lead';
     } else {
-      this.msLeader.textContent = `leader: ${shortId(leaderId)} (${leaderKills})`;
+      // killerName resolves bot ids to a friendly label (e.g. "Engager Bot")
+      // and MP socket ids to a short tag.
+      this.msLeader.textContent = `leader: ${this.killerName(leaderId)} (${leaderKills})`;
     }
   }
 

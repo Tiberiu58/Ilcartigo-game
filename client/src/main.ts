@@ -511,7 +511,7 @@ function playerName(): string {
  */
 function renderScoreboard() {
   sbMode.textContent = game.mp ? 'Free-for-All · Online' : (game.mode === 'practice' ? 'Practice' : 'Free-for-All · Bots');
-  sbGoal.textContent = String(Game.MATCH_KILL_GOAL);
+  sbGoal.textContent = String(game.currentKillGoal());
 
   const ids = new Set<string>();
   // Always include the local player.
@@ -681,12 +681,12 @@ function showPostMatch(winnerId: string) {
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
 
-  pmTitle.textContent = youWon ? 'VICTORY' : 'MATCH OVER';
-  pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : winnerId.slice(0, 6)}</b>`;
+  pmTitle.textContent = youWon ? 'VICTORY' : 'DEFEAT';
+  pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : participantName(winnerId)}</b>`;
 
   // Build scoreboard rows.
   pmScoreboardBody.innerHTML = rows.map((r, i) => {
-    const name = r.isYou ? 'YOU' : r.id.slice(0, 6);
+    const name = r.isYou ? 'YOU' : participantName(r.id);
     return `<div class="pm-row ${r.isYou ? 'you' : ''}">
       <span>#${i + 1}</span>
       <span>${name}</span>
@@ -721,9 +721,10 @@ pmPlayAgain.addEventListener('click', () => {
     pmPlayAgain.disabled = true;
     pmPlayAgain.textContent = 'Waiting for match reset…';
   } else {
-    // Solo: no server — reset locally and resume immediately.
+    // Solo: no server — restart the match (clears score, respawns bots + the
+    // player) and resume immediately.
     hidePostMatch();
-    game.resetMatchScore();
+    game.restartSoloMatch();
     announcer.reset();
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
