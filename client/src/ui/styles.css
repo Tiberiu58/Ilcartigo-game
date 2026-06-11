@@ -1199,6 +1199,50 @@ body.kill-flash #app::after {
   font-family: 'JetBrains Mono', Consolas, monospace;
   letter-spacing: 1px;
 }
+/* ── Post-match progression (level + XP bar + callout) ─────────────────────── */
+.pm-progress {
+  margin: 0 auto 22px;
+  max-width: 380px;
+}
+.pm-callout {
+  text-align: center;
+  font: 800 16px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent);
+  margin-bottom: 10px;
+  animation: pm-callout-pop 0.5s ease-out;
+}
+.pm-callout.hidden { display: none; }
+@keyframes pm-callout-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pm-level-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: #cdd6e0;
+  margin-bottom: 6px;
+}
+.pm-level-xp { opacity: 0.75; }
+.pm-xp-bar {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.pm-xp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), #ffe9a8);
+  border-radius: 5px;
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .pm-buttons {
   display: flex;
   flex-direction: column;

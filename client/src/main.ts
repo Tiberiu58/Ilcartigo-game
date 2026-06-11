@@ -288,6 +288,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
+  captureMatchStart();
   // Pointer-lock request must come from a user gesture — the click counts.
   game.input.requestPointerLock();
 }
@@ -338,6 +339,7 @@ function startOnline() {
     // not THIS client clicked Play Again) and drop back into play.
     hidePostMatch();
     announcer.reset();
+    captureMatchStart();
     pmPlayAgain.disabled = false;
     pmPlayAgain.textContent = 'Play Again';
     game.input.requestPointerLock();
@@ -348,6 +350,7 @@ function startOnline() {
   // means the previous 'combat'→'combat' transition didn't disable them).
   game.onMpChanged();
   session.connect();
+  captureMatchStart();
   // Poll-update the player count off the remotes map (cheap; runs at the
   // game's frame rate via game.onFrame).
   practiceBadge.classList.add('hidden');
@@ -668,6 +671,20 @@ const pmXpEarned = document.getElementById('pm-xp-earned')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
+const pmCallout = document.getElementById('pm-callout')!;
+const pmLevel = document.getElementById('pm-level')!;
+const pmLevelInto = document.getElementById('pm-level-into')!;
+const pmLevelMax = document.getElementById('pm-level-max')!;
+const pmXpFill = document.getElementById('pm-xp-fill') as HTMLElement;
+
+// Captured when a match begins, so the post-match screen can celebrate deltas
+// (level-ups, a new best streak) earned during *this* match.
+let matchStartLevel = game.account.level;
+let matchStartBestStreak = game.account.stats.bestStreak;
+function captureMatchStart() {
+  matchStartLevel = game.account.level;
+  matchStartBestStreak = game.account.stats.bestStreak;
+}
 
 function showPostMatch(winnerId: string) {
   game.audio.play('match_end');
@@ -725,6 +742,33 @@ function showPostMatch(winnerId: string) {
 
   pmUnlocks.textContent = '';   // future: list newly-unlocked skins this match
 
+  // ── Progression celebration ──────────────────────────────────────────────
+  // Level + XP bar (animated 0 → current), plus a callout for the best thing
+  // that happened this match: a level-up beats a new best streak.
+  const lvl = game.account.level;
+  const into = game.account.xpIntoLevel;
+  const max = game.account.xpPerLevel;
+  pmLevel.textContent = String(lvl);
+  pmLevelInto.textContent = String(into);
+  pmLevelMax.textContent = String(max);
+  const pct = Math.max(0, Math.min(100, (into / max) * 100));
+  // Reset to 0, force a reflow, then set the final width so the CSS transition
+  // plays the fill animation every time the screen shows.
+  pmXpFill.style.width = '0%';
+  void pmXpFill.offsetWidth;
+  pmXpFill.style.width = `${pct}%`;
+
+  const newBestStreak = game.account.stats.bestStreak;
+  if (lvl > matchStartLevel) {
+    pmCallout.textContent = `LEVEL UP!  ·  LVL ${lvl}`;
+    pmCallout.classList.remove('hidden');
+  } else if (newBestStreak > matchStartBestStreak) {
+    pmCallout.textContent = `NEW BEST STREAK  ·  ${newBestStreak}`;
+    pmCallout.classList.remove('hidden');
+  } else {
+    pmCallout.classList.add('hidden');
+  }
+
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');
   // Request a fresh ad for the post-match slot (a natural breakpoint).
@@ -752,6 +796,7 @@ pmPlayAgain.addEventListener('click', () => {
     // player) and resume immediately.
     hidePostMatch();
     game.restartSoloMatch();
+    captureMatchStart();
     announcer.reset();
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {

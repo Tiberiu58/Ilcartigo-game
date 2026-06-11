@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. One Shot (OHKO) mode: every hit is lethal, a modifier on Combat that reuses the solo match flow. Built on Phase 14 (solo match flow: solo Combat ends at a kill goal → VICTORY/DEFEAT post-match overlay + ad breakpoint, score ticker in solo, Play Again restart) and Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 16 — v0.16.0. Post-match progression celebration: animated level + XP bar and a LEVEL UP / NEW BEST STREAK callout on the (ad-bearing) post-match screen. Built on Phase 15 (One Shot / OHKO mode: every hit is lethal, a modifier on Combat reusing the solo match flow) and Phase 14 (solo match flow: solo Combat ends at a kill goal → VICTORY/DEFEAT post-match overlay + ad breakpoint, score ticker in solo, Play Again restart) and Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -406,14 +406,24 @@ Play Again all reuse the combat path. Solo-only, client-only, no protocol change
   "💥 One Shot (vs Bots)" menu button + a hot-red ONE SHOT badge.
 - Reuses Phase 14's solo match flow (first to 20 → VICTORY/DEFEAT + ad breakpoint).
 
+## Phase 16 — Post-match progression celebration (v0.16.0)
+
+The post-match overlay is the prime ad breakpoint; Phase 16 makes finishing a
+match *feel* rewarding (retention → revenue). Pure client-side, no protocol change.
+
+- **Animated level + XP bar** on the post-match card (fills 0 → current each time).
+- **LEVEL UP / NEW BEST STREAK callout** — the best thing that happened this match,
+  from a `captureMatchStart()` snapshot taken at every match start vs the
+  post-award account state.
+
 ## Project status
 
-15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode, solo match flow + win/lose stakes, One Shot (OHKO) mode** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode, solo match flow + win/lose stakes, One Shot (OHKO) mode, post-match progression celebration** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player (now a real match → VICTORY/DEFEAT), Practice Range, Gun Game, One Shot (OHKO), online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player (now a real match → VICTORY/DEFEAT), Practice Range, Gun Game, One Shot (OHKO), online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, post-match progression. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

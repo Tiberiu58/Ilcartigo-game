@@ -217,3 +217,27 @@ match-end, post-match overlay, and Play Again all reuse the combat path for free
 
 ### Phase 15 COMPLETE — One Shot shipped as a combat modifier, MP + other modes intact, no protocol change.
 
+---
+
+## Phase 16 — Post-match progression celebration (v0.16.0)
+
+The post-match overlay is the game's prime ad breakpoint, but it only showed a
+flat XP total. Phase 16 makes finishing a match *feel* rewarding — an animated
+level + XP bar and a LEVEL UP / NEW BEST STREAK callout — which keeps players on
+the (ad-bearing) screen a beat longer and reinforces the progression loop that
+brings them back. Pure client-side, no protocol change.
+
+- **Animated level + XP bar** on the post-match card: shows your level, XP into
+  the level, and a gold bar that fills 0 → current every time the screen appears
+  (reset-reflow-set trick on the CSS width transition).
+- **Celebration callout** — a popped, glowing line for the best thing that
+  happened this match: a **LEVEL UP** (beats everything) else a **NEW BEST
+  STREAK**. Computed from a `captureMatchStart()` snapshot (level + best streak)
+  taken at every match start (solo, One Shot, Gun Game, MP connect, Play Again,
+  MP MatchReset), compared against the post-award account state.
+- New DOM (`pm-progress`/`pm-callout`/`pm-xp-bar`) + CSS (bar, fill transition,
+  callout pop keyframes). Typecheck (client + server) + build green; app chunk
+  ~62.0 KB gzip; no new deps.
+
+### Phase 16 COMPLETE — post-match progression celebration shipped, all modes intact, no protocol change.
+
