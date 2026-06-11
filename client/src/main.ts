@@ -58,10 +58,12 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuOneshot = document.getElementById('menu-oneshot') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
 const practiceBadge = document.getElementById('practice-badge')!;
+const oneshotBadge = document.getElementById('oneshot-badge')!;
 const onlineBadge = document.getElementById('online-badge')!;
 const onlineCount = document.getElementById('online-count')!;
 const backToMenu = document.getElementById('back-to-menu') as HTMLButtonElement;
@@ -266,6 +268,11 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   }
   game.setMode(mode);
   announcer.reset();
+  // Clear the One Shot variant by default. setMode early-returns on a
+  // combat→combat transition, so we can't rely on it to reset the flag —
+  // do it here. startOneShot() re-enables it after calling startGame.
+  game.setOneShot(false);
+  oneshotBadge.classList.add('hidden');
 
   // Gun Game: start a fresh ladder for the player + all active bots, and show
   // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
@@ -286,6 +293,19 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
 }
 
 /**
+ * One Shot (OHKO) — a Combat variant where every hit is lethal. Reuses the
+ * whole combat path (bots, ticker, match-end, post-match) and just flips the
+ * global damage multiplier + arms the player with a sniper for the classic
+ * instagib feel. The chosen-loadout weapon is restored on quit.
+ */
+function startOneShot() {
+  startGame('combat');          // resets oneShot off, hides ticker/badges
+  game.setOneShot(true);
+  game.setPlayerPrimaryWeapon('sniper');
+  oneshotBadge.classList.remove('hidden');
+}
+
+/**
  * Connect to the MP server and drop into the FFA room. Sandstone-only for v1.
  * Bots are skipped while game.mp is non-null (Game.tick gates on it).
  */
@@ -297,6 +317,9 @@ function startOnline() {
   // on Industrial.
   game.setMode('combat');
   announcer.reset();
+  // One Shot is solo-only — never carry the lethal multiplier into MP.
+  game.setOneShot(false);
+  oneshotBadge.classList.add('hidden');
   // Build the MP session bound to the existing Game.
   const session = new MultiplayerSession(game);
   session.onWelcome = (m) => {
@@ -345,9 +368,12 @@ function quitToMenu() {
   mainMenu.classList.remove('hidden');
   hud.classList.add('hidden');
   practiceBadge.classList.add('hidden');
+  oneshotBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
-  // Restore the player's chosen loadout weapon (Gun Game overwrote it).
+  // Clear the One Shot variant so the next mode starts at normal lethality.
+  game.setOneShot(false);
+  // Restore the player's chosen loadout weapon (Gun Game / One Shot overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
 
@@ -418,6 +444,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuOneshot.addEventListener('click', () => startOneShot());
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 

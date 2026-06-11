@@ -322,6 +322,21 @@ body.ghost-active #app::before {
 }
 #practice-badge.hidden { display: none; }
 
+/* One Shot (OHKO) badge — reuses the practice-badge layout in a hot red. */
+#oneshot-badge {
+  position: absolute;
+  left: 50%; top: 18px;
+  transform: translateX(-50%);
+  background: rgba(60, 18, 18, 0.86);
+  color: #ffc2b8;
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #ff5a3a;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+}
+#oneshot-badge.hidden { display: none; }
+
 #online-badge {
   position: absolute;
   left: 50%; top: 18px;
@@ -922,6 +937,10 @@ body.kill-flash #app::after {
   border-left: 3px solid #ff8a3a;
 }
 .menu-btn.gungame:hover { border-left-color: #ff8a3a; color: #ff8a3a; }
+.menu-btn.oneshot {
+  border-left: 3px solid #ff5a3a;
+}
+.menu-btn.oneshot:hover { border-left-color: #ff5a3a; color: #ff7a5a; }
 
 /* ── Gun Game ticker (top-center HUD) ───────────────────────────────────── */
 #gungame-ticker {

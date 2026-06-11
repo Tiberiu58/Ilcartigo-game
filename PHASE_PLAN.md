@@ -186,3 +186,34 @@ no protocol change, MP untouched.
 
 ### Phase 14 COMPLETE — solo match flow shipped, MP + Gun Game + Practice intact, no protocol change.
 
+---
+
+## Phase 15 — One Shot (OHKO) mode (v0.15.0)
+
+A second new mode — the classic instagib/"one hit knockout". Fast, brutal, and
+instantly readable, it's one of the most popular Krunker modes. Implemented as a
+**modifier on Combat** (not a separate `GameMode`), so the score ticker,
+match-end, post-match overlay, and Play Again all reuse the combat path for free
+— minimal surface area, lowest risk. Solo-only, client-only, no protocol change.
+
+- **Every hit is lethal.** New `Weapon.damageMultiplier` static (default 1, no
+  effect anywhere) is multiplied into `computeDamage`. The variant sets it to
+  100 so any clean hit kills — applied to **all** weapons (player + bots) so
+  everyone dies in one shot. Harmless in MP: the client never lands authoritative
+  damage on remotes (server runs hitscan), and the multiplier is force-reset to 1
+  whenever the variant is off / on entering MP / on quit.
+- **`Game.oneShot` flag + `Game.setOneShot(on)`** flip the multiplier. The player
+  is armed with a **sniper** on entry for the instagib feel; their chosen loadout
+  weapon is restored on quit (same path Gun Game uses). The sniper persists across
+  respawns (respawnPlayer doesn't touch the inventory).
+- **New "💥 One Shot (vs Bots)" menu button** → `startOneShot()` (calls
+  `startGame('combat')` to reset state, then enables the variant). A hot-red
+  **ONE SHOT badge** sits where the Practice badge does. `setMode` early-returns
+  on combat→combat, so the flag is reset explicitly in `startGame` rather than via
+  `setMode`.
+- Reuses the Phase 14 solo match flow: first to 20 kills wins → VICTORY/DEFEAT +
+  ad breakpoint. Typecheck (client + server) + client build green; app chunk
+  ~61.8 KB gzip; no new deps.
+
+### Phase 15 COMPLETE — One Shot shipped as a combat modifier, MP + other modes intact, no protocol change.
+

@@ -208,6 +208,15 @@ export interface FireResult {
 }
 
 export class Weapon {
+  /**
+   * Global outgoing-damage multiplier. Default 1 (no change). The "One Shot"
+   * (OHKO) combat variant sets this high so every hit is lethal — applied to
+   * ALL weapons (player + bots) so everyone dies in one shot. Solo-only; reset
+   * to 1 whenever the variant is off. Harmless in MP because the client never
+   * lands authoritative damage on remotes (the server runs hitscan).
+   */
+  static damageMultiplier = 1;
+
   readonly config: WeaponConfig;
   private world: World;
   private bus: GameEventBus;
@@ -399,7 +408,7 @@ export class Weapon {
       mul = 1 - t * (1 - c.falloffMinMultiplier);
     }
     if (isHeadshot) mul *= c.headshotMultiplier;
-    return c.baseDamage * mul;
+    return c.baseDamage * mul * Weapon.damageMultiplier;
   }
 }
 

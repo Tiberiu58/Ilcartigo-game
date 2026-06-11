@@ -23,7 +23,7 @@ import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot } from '../entities/Bot';
 import { WeaponInventory } from '../weapons/WeaponInventory';
-import type { WeaponId } from '../weapons/Weapon';
+import { Weapon, type WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
@@ -157,6 +157,18 @@ export class Game {
   /** The active kill goal for the current context (MP vs solo). */
   currentKillGoal(): number {
     return this.mp ? Game.MATCH_KILL_GOAL : this.soloKillGoal;
+  }
+
+  /** True when the "One Shot" (OHKO) combat variant is active — every hit is
+   *  lethal. A modifier on Combat mode (not a separate GameMode) so the score
+   *  ticker, match-end, and post-match flow all reuse the combat path. */
+  oneShot = false;
+
+  /** Toggle the One Shot (OHKO) variant. Flips the global weapon damage
+   *  multiplier so every hit kills. Solo-only — callers turn it off before MP. */
+  setOneShot(on: boolean) {
+    this.oneShot = on;
+    Weapon.damageMultiplier = on ? 100 : 1;
   }
 
   private lastTime = 0;
