@@ -268,9 +268,13 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   }
   game.setMode(mode);
   announcer.reset();
-  // Clear the One Shot variant by default. setMode early-returns on a
-  // combat→combat transition, so we can't rely on it to reset the flag —
-  // do it here. startOneShot() re-enables it after calling startGame.
+  // Always clear the match score on a fresh start. setMode early-returns on a
+  // same-mode transition (e.g. combat→quit→combat), so its own resetMatchScore
+  // wouldn't run — without this, a second solo match would inherit the previous
+  // match's stale kills + matchEnded flag and never end / show wrong scores.
+  game.resetMatchScore();
+  game.localStreak = 0;
+  // Clear the One Shot variant by default. startOneShot() re-enables it after.
   game.setOneShot(false);
   oneshotBadge.classList.add('hidden');
 
@@ -318,6 +322,9 @@ function startOnline() {
   // on Industrial.
   game.setMode('combat');
   announcer.reset();
+  // Clear any leftover solo match state (setMode early-returns combat→combat).
+  game.resetMatchScore();
+  game.localStreak = 0;
   // One Shot is solo-only — never carry the lethal multiplier into MP.
   game.setOneShot(false);
   oneshotBadge.classList.add('hidden');
