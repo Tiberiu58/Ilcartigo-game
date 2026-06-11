@@ -10,6 +10,12 @@ export class Health {
   max: number;
   current: number;
   dead = false;
+  /**
+   * Overshield (armour) absorbed BEFORE health. Drains first in takeDamage.
+   * Default 0 — only the player ever picks up armour, so bots are unaffected.
+   * Cleared on reset(). Granted by the Armour pickup (Phase 14).
+   */
+  shield = 0;
   /** performance.now() timestamp until which incoming damage is ignored. */
   private invulnUntil = 0;
 
@@ -43,6 +49,13 @@ export class Health {
   takeDamage(amount: number): boolean {
     if (this.dead) return false;
     if (this.isInvulnerable) return false;
+    // Overshield soaks damage first; any overflow carries into HP.
+    if (this.shield > 0) {
+      const absorbed = Math.min(this.shield, amount);
+      this.shield -= absorbed;
+      amount -= absorbed;
+      if (amount <= 0) return false;
+    }
     this.current = Math.max(0, this.current - amount);
     if (this.current === 0) {
       this.dead = true;
@@ -60,5 +73,6 @@ export class Health {
   reset() {
     this.current = this.max;
     this.dead = false;
+    this.shield = 0;
   }
 }

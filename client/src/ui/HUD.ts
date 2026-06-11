@@ -16,6 +16,9 @@ const KILLFEED_TTL = 5000; // ms
 /** Health fraction at/below which the low-HP danger vignette + heartbeat kick in. */
 const LOW_HP_RATIO = 0.3;
 
+/** Timed power-up duration (s) — matches PICKUP_DEFS; used for chip progress. */
+const BUFF_DURATION = 9;
+
 export class HUD {
   private playerHealth: Health;
   private inventory: WeaponInventory;
@@ -24,6 +27,10 @@ export class HUD {
 
   private hpFill: HTMLElement;
   private hpNum: HTMLElement;
+  private shieldBar: HTMLElement;
+  private shieldFill: HTMLElement;
+  /** Power-up chips, created once + reused (Damage / Haste). */
+  private puChips: Record<'damage' | 'haste', { el: HTMLElement; time: HTMLElement; prog: HTMLElement }>;
   private ammoCur: HTMLElement;
   private ammoMax: HTMLElement;
   private ammoWeapon: HTMLElement;
@@ -54,6 +61,7 @@ export class HUD {
   private apDots: HTMLElement[];
 
   private lastHp = -1;
+  private lastShield = -1;
   private lastAmmo = -1;
   private lastAmmoMax = -1;
   private lastWeaponId = '';
@@ -82,6 +90,30 @@ export class HUD {
 
     this.hpFill = document.getElementById('hp-fill')!;
     this.hpNum = document.getElementById('hp-num')!;
+    this.shieldBar = document.getElementById('shield-bar')!;
+    this.shieldFill = document.getElementById('shield-fill')!;
+
+    // Build the two power-up chips once. They live in #powerup-chips and are
+    // shown/hidden as buffs come and go.
+    const chipHost = document.getElementById('powerup-chips')!;
+    const makeChip = (kind: 'damage' | 'haste', icon: string, label: string) => {
+      const el = document.createElement('div');
+      el.className = `pu-chip ${kind} hidden`;
+      el.innerHTML =
+        `<div class="pu-icon">${icon}</div>` +
+        `<div class="pu-meta"><div class="pu-label">${label}</div><div class="pu-time">0</div></div>` +
+        `<div class="pu-prog"></div>`;
+      chipHost.appendChild(el);
+      return { el, time: el.querySelector('.pu-time') as HTMLElement, prog: el.querySelector('.pu-prog') as HTMLElement };
+    };
+    this.puChips = {
+      damage: makeChip('damage', '⚔', 'DAMAGE'),
+      haste:  makeChip('haste', '»', 'HASTE'),
+    };
+
+    // Power-up buffs → chip row. Fired by PickupManager on collect / tick /
+    // expire. Solo combat only (manager is empty in MP/Practice).
+    game.pickups.onBuffsChanged = (b) => this.renderBuffs(b.damage, b.haste);
     this.ammoCur = document.getElementById('ammo-cur')!;
     this.ammoMax = document.getElementById('ammo-max')!;
     this.ammoWeapon = document.getElementById('ammo-weapon')!;
@@ -143,6 +175,14 @@ export class HUD {
       this.lastHp = hp;
       this.hpFill.style.width = `${(hp / this.playerHealth.max) * 100}%`;
       this.hpNum.textContent = String(Math.ceil(hp));
+    }
+
+    // Overshield bar — shown above HP only while armour is up. Cap is 100.
+    const shield = this.playerHealth.shield;
+    if (shield !== this.lastShield) {
+      this.lastShield = shield;
+      this.shieldBar.classList.toggle('hidden', shield <= 0);
+      this.shieldFill.style.width = `${Math.min(100, shield)}%`;
     }
 
     const w = this.inventory.current;
@@ -330,6 +370,24 @@ export class HUD {
     const remaining = Math.max(0, 1.8 - elapsed);
     this.respawnCountdown.classList.remove('hidden');
     this.rcTimer.textContent = remaining.toFixed(1);
+  }
+
+  /**
+   * Update the power-up chip row. `damage` / `haste` are seconds remaining
+   * (0 = inactive). The progress bar fills relative to the 9s buff duration.
+   */
+  private renderBuffs(damage: number, haste: number) {
+    const apply = (chip: { el: HTMLElement; time: HTMLElement; prog: HTMLElement }, secs: number) => {
+      if (secs > 0) {
+        chip.el.classList.remove('hidden');
+        chip.time.textContent = `${Math.ceil(secs)}s`;
+        chip.prog.style.width = `${Math.min(100, (secs / BUFF_DURATION) * 100)}%`;
+      } else {
+        chip.el.classList.add('hidden');
+      }
+    };
+    apply(this.puChips.damage, damage);
+    apply(this.puChips.haste, haste);
   }
 
   private flashHitmarker(isHeadshot: boolean) {

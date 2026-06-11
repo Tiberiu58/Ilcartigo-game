@@ -126,9 +126,16 @@
 
         <div id="health-panel">
           <div class="hp-label">HP</div>
-          <div class="hp-bar"><div id="hp-fill"></div></div>
+          <div class="hp-stack">
+            <!-- Overshield (armour) — shown above the HP bar only when active. -->
+            <div class="shield-bar hidden" id="shield-bar"><div id="shield-fill"></div></div>
+            <div class="hp-bar"><div id="hp-fill"></div></div>
+          </div>
           <div id="hp-num">100</div>
         </div>
+
+        <!-- Active power-up chips (Damage / Haste) — populated by HUD. -->
+        <div id="powerup-chips"></div>
 
         <div id="ammo-panel">
           <div id="ammo-cur">30</div>
@@ -193,7 +200,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.13</p>
+          <p class="subtitle">Browser arena shooter · v0.14</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -244,7 +251,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.13.0 — Gun Game mode</div>
+          <div>v0.14.0 — Arena Pickups &amp; Power-ups</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

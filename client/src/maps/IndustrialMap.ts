@@ -414,6 +414,18 @@ export const INDUSTRIAL_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xa05028,
+    // Pickups (Phase 14). Floor top y=0; catwalk decks top at y=4.2 (L1) and
+    // y=8.2 (L2). Health/armour on the ground in the warehouse + yard; the
+    // Damage buff sits on the L2 catwalk apex (a vertical-control reward) and
+    // Haste on the L1 catwalk.
+    pickupSpawns: [
+      { type: 'health', x: -35, y: 0,   z:  25 },
+      { type: 'health', x:  38, y: 0,   z: -22 },
+      { type: 'armor',  x: -35, y: 0,   z: -25 },
+      { type: 'armor',  x:  38, y: 0,   z:  22 },
+      { type: 'damage', x:  15, y: 8.2, z:   0 },
+      { type: 'haste',  x:  10, y: 4.2, z: -20 },
+    ],
   },
   build: buildIndustrial,
 };

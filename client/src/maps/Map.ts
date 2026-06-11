@@ -12,8 +12,18 @@
 
 import type * as THREE from 'three';
 import type { World } from '../core/World';
+import type { PickupType } from '../entities/Pickup';
 
 export type MapId = 'practice' | 'sandstone' | 'industrial';
+
+/** A pickup pad placement on a map (Phase 14). `y` is the floor height the pad
+ *  sits on — the icon floats ~1m above it. */
+export interface PickupSpawn {
+  type: PickupType;
+  x: number;
+  y: number;
+  z: number;
+}
 
 export interface MapMeta {
   id: MapId;
@@ -25,6 +35,8 @@ export interface MapMeta {
   teamSpawns?: [THREE.Vector3, THREE.Vector3];
   /** Color of the post-respawn screen-flash; defaults to bright cyan. */
   spawnFlashColor?: number;
+  /** Arena pickup pads (Phase 14). Solo combat / Gun Game only. */
+  pickupSpawns?: PickupSpawn[];
 }
 
 export interface GameMap {

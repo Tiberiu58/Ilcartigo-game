@@ -274,6 +274,17 @@ export const SANDSTONE_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xffd9a0,
+    // Pickups (Phase 14). Floor top is y=0. Health/armour on the mid-quadrant
+    // lanes; the marquee Damage + Haste buffs flank the central plaza tower so
+    // they're contested territory.
+    pickupSpawns: [
+      { type: 'health', x:  16, y: 0, z:  16 },
+      { type: 'health', x: -16, y: 0, z: -16 },
+      { type: 'armor',  x: -16, y: 0, z:  16 },
+      { type: 'armor',  x:  16, y: 0, z: -16 },
+      { type: 'damage', x:   0, y: 0, z:  10 },
+      { type: 'haste',  x:   0, y: 0, z: -10 },
+    ],
   },
   build: buildSandstone,
 };

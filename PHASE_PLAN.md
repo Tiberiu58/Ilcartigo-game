@@ -152,3 +152,74 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — Arena Pickups & Power-ups (v0.14.0)
+
+Krunker/Quake arenas live or die on **moment-to-moment map control** — health
+packs, armour shards, and timed power-ups that turn a flat duel into a fight
+over *territory*. Phase 14 adds that layer: floating, glowing pickups that
+respawn on a timer, with two instant pickups (health / armour-overshield) and
+two timed buffs (Quad-style damage / Haste speed). It deepens combat without
+touching the protocol — **solo combat + Gun Game only**, disabled in Practice
+and MP (server-authoritative, no desync risk), no new deps.
+
+Why this drives the goal: pickups extend average session length (territory
+fights = more engagement = more natural ad breakpoints at match end), and the
+"power-up online" rush is one of the catchiest feelings in arena shooters.
+
+Guiding constraint: **no protocol changes, no new deps, typecheck + build green
+each step, solo + MP both keep working.**
+
+- **14A — Pickup primitives.** `Health` gains an `shield` field (overshield):
+  `takeDamage` drains shield before HP; `reset()` clears it; migration-safe
+  (default 0, bots never set it). `Weapon` gains a `damageMultiplier` (default
+  1.0) applied in `computeDamage`; `WeaponInventory.setDamageMultiplier` mirrors
+  the existing `reloadMultiplier` plumbing (re-applied on `setPrimary`). Both
+  controllers gain `powerupSpeedMultiplier` (default 1.0) multiplied into the
+  ground accelerate call — kept in sync client/server, stays 1.0 in MP.
+- **14B — Pickup entity + manager.** New `entities/Pickup.ts` (floating, spinning,
+  glowing icon mesh + pad ring; collected→hidden→respawn timer). New
+  `core/Pickups.ts` manager: spawns from per-map definitions, proximity-collects
+  vs the player, runs respawn + active-buff timers, applies effects, fires
+  bus + SFX. Player-only for v1.
+- **14C — Map spawn data.** `MapMeta.pickupSpawns?: PickupSpawn[]` + per-map
+  tables for Sandstone and Industrial (health/armour low, buffs at contested
+  spots). Practice = none.
+- **14D — HUD.** Overshield segment on the HP bar + a power-up chip row
+  (icon + countdown ring) for active Damage/Haste. New CSS.
+- **14E — Audio + docs.** New sound ids (`pickup_health`, `pickup_armor`,
+  `pickup_power`, `pickup_haste`, `powerup_expire`); README catalog + version
+  bump to v0.14.0.
+
+### Status log
+- ✅ Phase 14A — Pickup primitives. DONE (typecheck client+server green).
+  `Health.shield` (drained before HP in takeDamage, cleared in reset()).
+  `Weapon.damageMultiplier` applied in computeDamage; `WeaponInventory`
+  stores + re-applies it across weapon swaps via `setDamageMultiplier`.
+  `powerupSpeedMultiplier` added to BOTH controllers (client multiplied into
+  the ground accelerate call; server mirror stays 1.0 — kept in sync).
+- ✅ Phase 14B — Pickup entity + manager. DONE. `entities/Pickup.ts` (spinning,
+  bobbing icon + ground ring + additive glow sprite; collect→dim+hide→respawn).
+  `core/Pickups.ts` `PickupManager` — builds from a spawn table, proximity
+  collection (1.5m radius + 1.9m vertical window so lower-floor pads aren't
+  grabbed from above), instant pickups only taken when useful, timed-buff
+  countdown/expiry, `PickupHost`-decoupled. Wired into Game: host impl,
+  `syncPickups()` (live only in solo combat — empty in MP/Practice), update in
+  tick (gated), `cancelBuffs()` on respawn, rebuild on setMode/setMap/onMpChanged.
+- ✅ Phase 14C — Map spawn data. DONE. `MapMeta.pickupSpawns` + `PickupSpawn`
+  type; Sandstone (6 pads: health/armour mid-quadrant, Damage/Haste flanking the
+  plaza tower) + Industrial (6 pads: ground health/armour, Damage on L2 catwalk
+  apex y=8.2, Haste on L1 y=4.2). Practice = none.
+- ✅ Phase 14D — HUD. DONE. Overshield bar (`#shield-bar`/`#shield-fill`) above
+  the HP bar, shown only while shield>0; power-up chip row (`#powerup-chips`)
+  with two reused chips (Damage/Haste — icon + countdown + progress bar), driven
+  by `PickupManager.onBuffsChanged`. CSS added. Client build green, app ~63.5 KB.
+- ✅ Phase 14E — Audio + docs. DONE. 5 new sound ids added to AudioManager
+  catalog (silent until .wav drop-in); README header/status/deliverables + audio
+  catalog + Phase 13/14 sections; client+server bumped to v0.14.0 (+ menu
+  subtitle/footer). Typecheck (client+server) + client build all green.
+
+### Phase 14 COMPLETE — Arena pickups & power-ups shipped, solo + MP intact, no protocol change.
+
+

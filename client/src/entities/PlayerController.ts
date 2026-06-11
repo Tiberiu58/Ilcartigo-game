@@ -120,6 +120,10 @@ export class PlayerController {
 
   /** Movement-speed multiplier (Rush "Surge" ability). Multiplies the active speed cap. */
   speedMultiplier = 1.0;
+  /** Movement-speed multiplier from the Haste power-up (Phase 14, solo-only).
+   *  Independent of `speedMultiplier` so Surge ending doesn't clear Haste and
+   *  vice-versa. Stays 1.0 in MP (power-ups are disabled there). */
+  powerupSpeedMultiplier = 1.0;
   /** FOV nudge from abilities (e.g. Surge +8). Game adds this to baseFov when computing target FOV. */
   abilityFovOffset = 0;
 
@@ -301,7 +305,7 @@ export class PlayerController {
       // Pick wishSpeed by stance + input direction.
       const wishSpeed = this.computeGroundWishSpeed();
       if (hasInput && wishSpeed > 0) {
-        this.accelerate(this._wishDirWorld, wishSpeed * this.speedMultiplier, GROUND_ACCEL, dt);
+        this.accelerate(this._wishDirWorld, wishSpeed * this.speedMultiplier * this.powerupSpeedMultiplier, GROUND_ACCEL, dt);
       }
 
       // Jump.

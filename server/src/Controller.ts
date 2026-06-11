@@ -56,6 +56,10 @@ export class ServerController {
   pitch = 0;
   /** Surge ability multiplier — applied to wishSpeed on ground. 1.0 default. */
   speedMultiplier = 1.0;
+  /** Haste power-up multiplier — mirror of the client field so the two movement
+   *  controllers stay identical. Power-ups are solo-only / client-side, so this
+   *  stays 1.0 server-side; present purely to keep the math in sync. */
+  powerupSpeedMultiplier = 1.0;
 
   grounded = false;
   isCrouching = false;
@@ -157,7 +161,7 @@ export class ServerController {
         const ustr = strafe / len;
         wishSpeed = Math.sqrt((ustr * STRAFE_SPEED) ** 2 + (ufwd * fwdCap) ** 2);
       }
-      if (hasInput && wishSpeed > 0) this.accelerate(wx, wz, wishSpeed * this.speedMultiplier, GROUND_ACCEL, dt);
+      if (hasInput && wishSpeed > 0) this.accelerate(wx, wz, wishSpeed * this.speedMultiplier * this.powerupSpeedMultiplier, GROUND_ACCEL, dt);
 
       if (wantsJump && this.timeSinceJumpPressed <= BHOP_WINDOW) {
         this.velocity[1] = JUMP_VELOCITY;

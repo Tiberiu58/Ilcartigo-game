@@ -62,6 +62,13 @@ export const SOUND_FILES = {
   match_end:     'match_end.wav',
   ui_click:      'ui_click.wav',
 
+  // Arena pickups (Phase 14) — collect cues + buff-expire.
+  pickup_health: 'pickup_health.wav',
+  pickup_armor:  'pickup_armor.wav',
+  pickup_power:  'pickup_power.wav',
+  pickup_haste:  'pickup_haste.wav',
+  powerup_expire: 'powerup_expire.wav',
+
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
 

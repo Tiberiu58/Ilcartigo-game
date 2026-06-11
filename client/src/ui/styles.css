@@ -644,6 +644,67 @@ body.kill-flash #app::after {
   text-align: right;
 }
 
+/* Overshield (armour) bar — sits above the HP bar, only while shield > 0. */
+.hp-stack { display: flex; flex-direction: column; gap: 3px; }
+.shield-bar {
+  width: 160px; height: 6px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.shield-bar.hidden { display: none; }
+#shield-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #3aa0ff, #8fd0ff);
+  box-shadow: 0 0 6px rgba(58,160,255,0.6);
+  transition: width 0.15s ease-out;
+}
+
+/* Power-up chips (Damage / Haste) — bottom-left, above the health panel. */
+#powerup-chips {
+  position: absolute;
+  left: 24px; bottom: 74px;
+  display: flex;
+  gap: 8px;
+}
+.pu-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  padding: 6px 12px 8px;
+  border-radius: 6px;
+  border-left: 3px solid #888;
+  overflow: hidden;
+}
+.pu-chip.hidden { display: none; }
+.pu-chip.damage { border-left-color: #ff5a2a; }
+.pu-chip.haste  { border-left-color: #ffd23a; }
+.pu-chip .pu-icon { font-size: 18px; line-height: 1; }
+.pu-chip.damage .pu-icon { color: #ff7a4a; }
+.pu-chip.haste  .pu-icon { color: #ffd23a; }
+.pu-meta { display: flex; flex-direction: column; gap: 2px; }
+.pu-chip .pu-label {
+  font: 700 9px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+.pu-chip .pu-time {
+  font: 700 14px/1 'Segoe UI', sans-serif;
+  color: var(--text);
+}
+.pu-chip .pu-prog {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 3px;
+  width: 100%;
+  transition: width 0.2s linear;
+}
+.pu-chip.damage .pu-prog { background: #ff5a2a; }
+.pu-chip.haste  .pu-prog { background: #ffd23a; }
+
 #ammo-panel {
   position: absolute;
   right: 28px; bottom: 24px;

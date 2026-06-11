@@ -28,6 +28,7 @@ import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
+import { PickupManager } from './Pickups';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
 import { Account } from '../account/Account';
 import { findKillEffect } from '../account/Cosmetics';
@@ -81,6 +82,9 @@ export class Game {
   readonly tracers: TracerPool;
   readonly castFX: CastFX;
   readonly dmgNumbers: DamageNumbers;
+  /** Arena pickups (Phase 14). Solo combat / Gun Game only — kept empty in
+   *  Practice + MP via syncPickups(). */
+  readonly pickups: PickupManager;
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -214,6 +218,27 @@ export class Game {
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
 
+    // Arena pickups — host exposes just the surfaces the manager needs.
+    this.pickups = new PickupManager(this.scene, {
+      playerPos: () => this.player.pos,
+      playerAlive: () => !this.playerActor.health.dead,
+      healPlayer: (amount) => {
+        const h = this.playerActor.health;
+        if (h.current >= h.max) return false;
+        h.heal(amount);
+        return true;
+      },
+      addShield: (amount, cap) => {
+        const h = this.playerActor.health;
+        if (h.shield >= cap) return false;
+        h.shield = Math.min(cap, h.shield + amount);
+        return true;
+      },
+      setDamageMultiplier: (m) => this.inventory.setDamageMultiplier(m),
+      setSpeedMultiplier: (m) => { this.player.powerupSpeedMultiplier = m; },
+      playSound: (id) => this.audio.play(id as SoundId),
+    });
+
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
     // returns in Phase 10 — its 180ms aim-lead makes it dangerous, but with
@@ -323,6 +348,9 @@ export class Game {
     // Initial spawn: 2s of grace so the player can orient on first load.
     this.playerActor.health.grantInvulnerability(SPAWN_PROTECTION_SECONDS);
 
+    // Initial pickups: default mode is solo combat on Sandstone.
+    this.syncPickups();
+
     window.addEventListener('resize', this.onResize);
   }
 
@@ -363,6 +391,7 @@ export class Game {
     });
 
     this.syncBotState();
+    this.syncPickups();
 
     // Clear the killfeed — old entries from combat shouldn't carry over.
     document.getElementById('killfeed')?.replaceChildren();
@@ -417,12 +446,23 @@ export class Game {
   }
 
   /**
+   * (Re)build arena pickups for the current state. Pickups exist only in solo
+   * combat / Gun Game (server-authoritative MP + peaceful Practice get none).
+   * Idempotent — clears then rebuilds from the active map's spawn table.
+   */
+  private syncPickups() {
+    const live = isCombatMode(this.mode) && !this.mp;
+    this.pickups.start(live ? this.currentMap.meta.pickupSpawns : undefined);
+  }
+
+  /**
    * Notify the game that the MP session has connected or disconnected.
    * main.ts is responsible for setting/clearing game.mp first. Calling this
    * re-evaluates bot visibility so single-player bots don't leak into MP.
    */
   onMpChanged() {
     this.syncBotState();
+    this.syncPickups();
   }
 
   /**
@@ -443,6 +483,8 @@ export class Game {
     });
     this.applyClassPassives();
     this.playerActor.health.reset();
+    // Death drops any active power-up buffs (shield cleared by health.reset()).
+    this.pickups.cancelBuffs();
     // Practice mode skips invuln — no threats to be invulnerable from.
     if (isCombatMode(this.mode)) {
       this.playerActor.health.grantInvulnerability(SPAWN_PROTECTION_SECONDS);
@@ -531,6 +573,9 @@ export class Game {
 
     // Re-place bots at fresh patrol positions and clean any death state.
     for (const b of this.bots) b.respawn();
+    // Rebuild pickups for the new map (world.clear() didn't touch them — the
+    // manager owns its own scene objects).
+    this.syncPickups();
     // Reset player too.
     this.respawnPlayer();
   }
@@ -812,6 +857,9 @@ export class Game {
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
     this.world.update();        // expires Engineer barrier solids when their TTL is up
+    // Arena pickups — animate, collect, run buff timers (solo combat only;
+    // empty + skipped in Practice/MP).
+    if (isCombatMode(this.mode) && !this.mp) this.pickups.update(dt);
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

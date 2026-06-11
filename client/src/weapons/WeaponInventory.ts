@@ -42,6 +42,10 @@ export class WeaponInventory {
 
   autoSwapOnEmpty = true;
 
+  /** Active damage multiplier (Damage power-up). Re-applied to any newly-built
+   *  weapon so a mid-buff loadout/Gun-Game swap keeps the boost. */
+  private damageMultiplier = 1.0;
+
   constructor(primaryId: WeaponId, world: World, bus: GameEventBus, ownerId: string) {
     if (primaryId === 'pistol') {
       throw new Error('Pistol cannot be the primary slot — it is always secondary.');
@@ -60,6 +64,7 @@ export class WeaponInventory {
     const prevMul = this.weapons[0]?.reloadMultiplier ?? 1.0;
     this.weapons[0] = new Weapon(WEAPON_LIBRARY[id], this.world, this.bus, this.ownerId);
     this.weapons[0].reloadMultiplier = prevMul;
+    this.weapons[0].damageMultiplier = this.damageMultiplier;
     this.active = 0;
     this.scoped = false;
     return id;
@@ -68,6 +73,13 @@ export class WeaponInventory {
   /** Apply a global reload multiplier (Rush passive). */
   setReloadMultiplier(m: number) {
     for (const w of this.weapons) w.reloadMultiplier = m;
+  }
+
+  /** Apply a global damage multiplier (Damage power-up). Stored so it survives
+   *  weapon swaps. */
+  setDamageMultiplier(m: number) {
+    this.damageMultiplier = m;
+    for (const w of this.weapons) w.damageMultiplier = m;
   }
 
   get current(): Weapon { return this.weapons[this.active]; }
