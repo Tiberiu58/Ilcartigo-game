@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 20 — v0.20.0. Smarter bots: solo bots now hold a preferred fighting range (advance/back-off) and hunt your last-known position on losing line of sight, so fights move around the arena. Built on Phase 19 (skill-based XP + floating "+XP" popups) and Phase 18 (in-match level-up / rank-up toast) and Phase 17 (rank identity: level maps to a named rank tier Rookie → Legend, surfaced on menu/scoreboard/post-match) and Phase 16 (post-match progression celebration: animated level + XP bar and a LEVEL UP / NEW BEST STREAK callout) and Phase 15 (One Shot / OHKO mode: every hit is lethal, a modifier on Combat reusing the solo match flow) and Phase 14 (solo match flow: solo Combat ends at a kill goal → VICTORY/DEFEAT post-match overlay + ad breakpoint, score ticker in solo, Play Again restart) and Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 21 — v0.21.0. Daily challenges at the post-match breakpoint: live progress bars + inline Claim buttons on the post-match overlay, driving return visits. Built on Phase 20 (smarter pursuing bots) and Phase 19 (skill-based XP + floating "+XP" popups) and Phase 18 (in-match level-up / rank-up toast) and Phase 17 (rank identity: level maps to a named rank tier Rookie → Legend, surfaced on menu/scoreboard/post-match) and Phase 16 (post-match progression celebration: animated level + XP bar and a LEVEL UP / NEW BEST STREAK callout) and Phase 15 (One Shot / OHKO mode: every hit is lethal, a modifier on Combat reusing the solo match flow) and Phase 14 (solo match flow: solo Combat ends at a kill goal → VICTORY/DEFEAT post-match overlay + ad breakpoint, score ticker in solo, Play Again restart) and Phase 13 (Gun Game weapon-ladder mode) and Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -432,14 +432,18 @@ XP is now skill-weighted and visible: headshots pay a bonus (`KILL_XP` 10 + `HEA
 
 Solo bots gained spatial intent: they hold a preferred fighting distance (advance when far, back off when crowded) and hunt your last-known position after losing line of sight, instead of standing and sidestepping. Reaction/jitter/fire-rate tiers unchanged — fights are more dynamic, not harder. Client-only (MP has no bots), no protocol change.
 
+## Phase 21 — Daily challenges at the post-match breakpoint (v0.21.0)
+
+Daily challenges (previously buried in Settings) now appear on the post-match overlay — live progress bars + inline Claim buttons — so the ad-bearing breakpoint everyone passes through also nudges "one more match / come back tomorrow". Reuses `account.dailyChallenges` / `claimChallenge`; pure client-side, no protocol change.
+
 ## Project status
 
-20 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode, solo match flow + win/lose stakes, One Shot (OHKO) mode, post-match progression celebration, rank identity, live level-up toast, skill-based XP, smarter pursuing bots** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+21 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode, solo match flow + win/lose stakes, One Shot (OHKO) mode, post-match progression celebration, rank identity, live level-up toast, skill-based XP, smarter pursuing bots, post-match daily challenges** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player (now a real match → VICTORY/DEFEAT), Practice Range, Gun Game, One Shot (OHKO), online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, post-match progression, rank identity, live level-up toast, skill-based XP, smarter bots. v0.20.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.20.0.
+- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player (now a real match → VICTORY/DEFEAT), Practice Range, Gun Game, One Shot (OHKO), online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, post-match progression, rank identity, live level-up toast, skill-based XP, smarter bots, post-match daily challenges. v0.21.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.21.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

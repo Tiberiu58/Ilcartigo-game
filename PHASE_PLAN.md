@@ -341,3 +341,26 @@ only (MP has no bots), no protocol change.
 
 ### Phase 20 COMPLETE — pursuing bot AI shipped, solo only, MP + protocol untouched.
 
+---
+
+## Phase 21 — Daily challenges at the post-match breakpoint (v0.21.0)
+
+Daily challenges existed but were buried in a Settings tab — players rarely saw
+them, so they didn't drive return visits. Phase 21 surfaces them on the post-match
+overlay (the ad-bearing breakpoint everyone passes through): live progress bars +
+inline **Claim** buttons. A claimable challenge sitting right there is a strong
+"one more match / come back tomorrow" hook. Pure client-side, reuses existing
+account APIs, no protocol change.
+
+- **`#pm-challenges` strip** on the post-match card — renders `account.dailyChallenges`
+  with the Profile tab's `.chal-row` markup (label, progress bar, `n/goal`, and a
+  +reward / Claim / Claimed state). Since lifetime stats are recorded during/at
+  match end, a just-completed challenge (e.g. "Win a match") shows ready-to-claim
+  on the very screen you earned it.
+- **Inline claim** — delegated click → `account.claimChallenge(id)` awards the
+  bonus XP and re-renders the strip in place (button flips to "Claimed ✓"); the XP
+  flows through `account.onChange` to the menu chip / Profile tab too.
+- Typecheck (client + server) + build green; app chunk ~63.2 KB gzip; no new deps.
+
+### Phase 21 COMPLETE — post-match daily challenges shipped, all modes intact, no protocol change.
+

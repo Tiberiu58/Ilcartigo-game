@@ -1256,6 +1256,18 @@ body.kill-flash #app::after {
   letter-spacing: 1px;
   margin-right: 4px;
 }
+/* Post-match daily-challenges strip (reuses .chal-row from the Profile tab). */
+.pm-challenges {
+  max-width: 380px;
+  margin: 0 auto 22px;
+}
+.pm-chal-head {
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 8px;
+}
 .pm-xp-bar {
   height: 10px;
   background: rgba(255, 255, 255, 0.08);

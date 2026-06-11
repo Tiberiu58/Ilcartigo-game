@@ -739,7 +739,38 @@ const pmUnlocks = document.getElementById('pm-unlocks')!;
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
 const pmCallout = document.getElementById('pm-callout')!;
+const pmChallenges = document.getElementById('pm-challenges')!;
 const pmRank = document.getElementById('pm-rank') as HTMLElement;
+
+// Render today's daily challenges into the post-match strip (compact reuse of
+// the Profile tab's .chal-row markup). Re-rendered on claim.
+function renderPmChallenges() {
+  const list = game.account.dailyChallenges;
+  pmChallenges.innerHTML = '<div class="pm-chal-head">DAILY CHALLENGES</div>' + list.map((c) => {
+    const pct = Math.round((c.progress / c.goal) * 100);
+    const state = c.claimed ? 'claimed' : c.complete ? 'ready' : 'active';
+    const action = c.claimed
+      ? `<span class="chal-done">Claimed ✓</span>`
+      : c.complete
+        ? `<button class="chal-claim" data-claim="${c.id}">Claim +${c.reward}</button>`
+        : `<span class="chal-reward">+${c.reward} XP</span>`;
+    return `<div class="chal-row chal-${state}">
+        <div class="chal-info">
+          <span class="chal-label">${c.label}</span>
+          <div class="chal-bar"><div class="chal-bar-fill" style="width:${pct}%"></div></div>
+          <span class="chal-progress">${c.progress} / ${c.goal}</span>
+        </div>
+        ${action}
+      </div>`;
+  }).join('');
+}
+// Claim delegation — claiming awards XP (account.onChange refreshes everything);
+// re-render the strip so the button flips to "Claimed ✓".
+pmChallenges.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-claim]');
+  if (!btn) return;
+  if (game.account.claimChallenge(btn.dataset.claim!)) renderPmChallenges();
+});
 const pmLevel = document.getElementById('pm-level')!;
 const pmLevelInto = document.getElementById('pm-level-into')!;
 const pmLevelMax = document.getElementById('pm-level-max')!;
@@ -840,6 +871,8 @@ function showPostMatch(winnerId: string) {
   } else {
     pmCallout.classList.add('hidden');
   }
+
+  renderPmChallenges();
 
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');
