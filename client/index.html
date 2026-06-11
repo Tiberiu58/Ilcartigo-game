@@ -73,6 +73,15 @@
           <span class="ms-leader" id="ms-leader">leader: —</span>
         </div>
 
+        <!-- Level-up / rank-up toast — slides in below the score ticker when a
+             kill pushes the local player up a level. Driven by main.ts via
+             Game.onLevelUp; auto-hides. Separate from the kill announcer so the
+             two never collide on the same kill. -->
+        <div id="levelup-toast" class="hidden">
+          <div class="lt-main" id="lt-main">LEVEL UP</div>
+          <div class="lt-sub" id="lt-sub">Lv 1</div>
+        </div>
+
         <!-- Killstreak / multi-kill announcer banner — center-upper screen.
              Populated + animated by Announcer.ts on local-player kills. -->
         <div id="announcer" class="hidden">
@@ -195,7 +204,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.17</p>
+          <p class="subtitle">Browser arena shooter · v0.18</p>
           <!-- Profile chip — name + rank tier + level. Updated from the account
                on boot and on any progression change. -->
           <div class="menu-profile" id="menu-profile">
@@ -254,7 +263,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.17.0 — Rank identity</div>
+          <div>v0.18.0 — Level-up toast</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

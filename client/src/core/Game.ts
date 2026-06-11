@@ -29,7 +29,7 @@ import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
-import { Account } from '../account/Account';
+import { Account, type RankTier } from '../account/Account';
 import { findKillEffect } from '../account/Cosmetics';
 import { AudioManager, type SoundId } from '../audio/AudioManager';
 import { TEST_MAP } from '../maps/TestMap';
@@ -200,6 +200,9 @@ export class Game {
   /** Fired in MP when the first player hits MATCH_KILL_GOAL kills. Main.ts
    *  uses this to show the post-match overlay. */
   onMatchEnded?: (winnerId: string) => void;
+  /** Fired when a kill pushes the local player up a level mid-match. `newRank`
+   *  is non-null only when the level-up also crossed into a new rank tier. */
+  onLevelUp?: (level: number, newRank: RankTier | null) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -315,7 +318,15 @@ export class Game {
 
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
+        // Capture level/rank before the award so we can fire an in-match
+        // level-up / rank-up toast the moment a kill pushes us over the line.
+        const lvlBefore = this.account.level;
+        const rankBefore = this.account.rank.name;
         this.account.awardXP(10);
+        if (this.account.level > lvlBefore) {
+          const rankNow = this.account.rank;
+          this.onLevelUp?.(this.account.level, rankNow.name !== rankBefore ? rankNow : null);
+        }
         this.account.recordKill(e.isHeadshot);
         // Track best-streak high-water mark from the per-match streak.
         this.localStreak++;

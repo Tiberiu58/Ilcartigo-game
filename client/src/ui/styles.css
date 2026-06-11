@@ -1720,6 +1720,41 @@ body.kill-flash #app::after {
 .sb-footer b { color: var(--text); }
 
 /* ── Killstreak / multi-kill announcer ──────────────────────────────────── */
+/* Level-up / rank-up toast — sits just under the top-center score ticker. */
+#levelup-toast {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 16;
+  pointer-events: none;
+  user-select: none;
+  padding: 8px 22px;
+  border-radius: 6px;
+  background: rgba(12, 16, 22, 0.82);
+  border: 1px solid var(--lt-color, var(--accent));
+  box-shadow: 0 0 22px -4px var(--lt-color, var(--accent));
+  animation: lt-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#levelup-toast.hidden { display: none; }
+#levelup-toast .lt-main {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 3px;
+  color: var(--lt-color, var(--accent));
+  text-shadow: 0 0 12px var(--lt-color, var(--accent));
+}
+#levelup-toast .lt-sub {
+  margin-top: 3px;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: #d6dee8;
+}
+@keyframes lt-pop {
+  0%   { transform: translateX(-50%) translateY(-12px) scale(0.9); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+}
+
 #announcer {
   position: fixed;
   top: 19vh;

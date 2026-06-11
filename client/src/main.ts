@@ -688,6 +688,31 @@ function updateMenuProfile() {
 updateMenuProfile();
 game.account.onChange(updateMenuProfile);
 
+// ─── In-match level-up / rank-up toast ─────────────────────────────────────
+const levelupToast = document.getElementById('levelup-toast') as HTMLElement;
+const ltMain = document.getElementById('lt-main')!;
+const ltSub = document.getElementById('lt-sub')!;
+let levelupHideTimer: number | null = null;
+game.onLevelUp = (level, newRank) => {
+  // A rank-up is the bigger moment — it takes the headline + the rank colour.
+  if (newRank) {
+    ltMain.textContent = `RANK UP · ${newRank.name.toUpperCase()}`;
+    levelupToast.style.setProperty('--lt-color', newRank.color);
+  } else {
+    ltMain.textContent = 'LEVEL UP';
+    levelupToast.style.setProperty('--lt-color', getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#f5d442');
+  }
+  ltSub.textContent = `Lv ${level}`;
+  levelupToast.classList.remove('hidden');
+  // Restart the pop animation on a re-fire.
+  levelupToast.style.animation = 'none';
+  void levelupToast.offsetWidth;
+  levelupToast.style.animation = '';
+  game.audio.play('kill_feedback');
+  if (levelupHideTimer !== null) clearTimeout(levelupHideTimer);
+  levelupHideTimer = window.setTimeout(() => levelupToast.classList.add('hidden'), 2600);
+};
+
 // ─── Post-match overlay ────────────────────────────────────────────────────
 const postmatchOverlay = document.getElementById('postmatch-overlay')!;
 const pmTitle = document.getElementById('pm-title')!;

@@ -266,3 +266,30 @@ client-side, no protocol change.
 
 ### Phase 17 COMPLETE — rank identity shipped across menu/scoreboard/post-match, all modes intact, no protocol change.
 
+---
+
+## Phase 18 — In-match level-up / rank-up toast (v0.18.0)
+
+Phases 16–17 added levels + ranks, but the *moment* of leveling up was only ever
+seen on the post-match screen. Phase 18 surfaces it live: when a kill pushes you
+over a level boundary, a toast pops under the score ticker — and a **rank-up**
+(crossing into Bronze/Silver/… ) takes the headline in the new rank's colour. A
+mid-fight dopamine hit that rewards staying in the match. Pure client-side, no
+protocol change.
+
+- **`Game.onLevelUp(level, newRank|null)`** — the per-kill XP award now snapshots
+  level + rank name before `awardXP(10)` and fires the callback when the level
+  increases; `newRank` is set only when the tier also changed.
+- **Dedicated `#levelup-toast`** (separate from the kill announcer so they never
+  collide on the same kill): "LEVEL UP · Lv N", or "RANK UP · {RANK}" in the rank
+  colour. Pops via a keyframe, plays the kill-feedback sting, auto-hides after
+  2.6 s; lives inside `#hud` so it's gone on the menu / post-match.
+- Also caught + fixed a latent bug Phase 14 exposed: `setMode` early-returns on a
+  same-mode transition (combat→quit→combat), so `resetMatchScore` wasn't running
+  on a fresh start — a second solo match would inherit stale kills + the
+  `matchEnded` flag and never end. `startGame`/`startOnline` now reset the score +
+  streak explicitly. (Shipped as its own commit before this phase.)
+- Typecheck (client + server) + build green; app chunk ~62.6 KB gzip; no new deps.
+
+### Phase 18 COMPLETE — live level-up/rank-up toast shipped, all modes intact, no protocol change.
+
