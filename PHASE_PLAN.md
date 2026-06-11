@@ -316,3 +316,28 @@ reasons to keep playing. Pure client-side, no protocol change.
 
 ### Phase 19 COMPLETE — skill XP + floating popups shipped, all modes intact, no protocol change.
 
+---
+
+## Phase 20 — Smarter pursuing bots (v0.20.0)
+
+Solo combat is now the headline (real matches → post-match ad). It needs to *feel*
+alive, but bots only stood and sidestepped — they never closed distance or hunted
+you. Phase 20 gives them spatial intent so fights move around the arena. Client-
+only (MP has no bots), no protocol change.
+
+- **Range-keeping in ENGAGE** — bots hold a `PREFERRED_RANGE` (16 u, ±5 deadzone):
+  they advance when too far and back off when crowded, on top of the existing
+  sidestep. Fights now flow instead of being a stand-still trade.
+- **Last-known-position hunting** — on losing line of sight, a bot remembers where
+  it last saw you and moves there at a brisk pace (REPOSITION), giving up to IDLE
+  patrol only once it arrives without re-acquiring. (The old REPOSITION just
+  drifted to a fixed waypoint — the "hunt last known pos" the comment promised was
+  never implemented.)
+- Refactor: shared `moveToward(x, z, speed, dt)` powers patrol + hunt; reaction
+  time, aim jitter, fire rate, and difficulty tiers are all unchanged, so the
+  challenge curve only gets *more dynamic*, not harder/unfair. Hunt state clears on
+  respawn.
+- Typecheck (client + server) + build green; app chunk ~63.0 KB gzip; no new deps.
+
+### Phase 20 COMPLETE — pursuing bot AI shipped, solo only, MP + protocol untouched.
+

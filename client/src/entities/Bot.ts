@@ -30,6 +30,13 @@ import type { GameEventBus } from '../core/events';
 const WALK_SPEED = 4.0;
 const RESPAWN_DELAY = 3.0;
 
+// Engagement spacing — bots hold a preferred fighting distance: they close in
+// when too far and back off when crowded, so fights move around the arena
+// instead of being a stand-still trade. (DEADZONE avoids jitter at the edge.)
+const PREFERRED_RANGE = 16;
+const RANGE_DEADZONE = 5;
+const APPROACH_SPEED = WALK_SPEED * 0.55;
+
 /**
  * Difficulty tier — three preset bundles of reaction time, aim jitter, and
  * predictive lead. Predict=0 means aim at the player's current eye position;
@@ -85,6 +92,10 @@ export class Bot implements Damageable {
   private deathFallOffset = 0;
   private timeSinceLastShot = 0;
   private sidestepPhase = 0;
+  /** Player's last seen ground position — bots hunt toward it after losing LoS
+   *  instead of wandering back to a fixed waypoint. */
+  private lastKnown = new THREE.Vector3();
+  private hasLastKnown = false;
   private tier: typeof DIFFICULTY[BotDifficulty];
   readonly difficulty: BotDifficulty;
 
@@ -204,17 +215,35 @@ export class Bot implements Damageable {
     if (hasLoS) {
       if (this.state !== 'engage') this.engageTime = 0;
       this.state = 'engage';
+      // Remember where the player is so we can hunt them if they break LoS.
+      this.lastKnown.set(playerEye.x, 0, playerEye.z);
+      this.hasLastKnown = true;
     } else if (this.state === 'engage') {
       this.state = 'reposition';
     } else if (this.state === 'reposition') {
-      // Continue toward current waypoint; once reached, return to idle.
-      const target = WAYPOINTS[this.currentWaypoint];
-      if (this.position.distanceTo(target) < 1.0) this.state = 'idle';
+      // Reached the player's last-known spot without re-acquiring → give up.
+      if (!this.hasLastKnown || this.position.distanceTo(this.lastKnown) < 1.5) {
+        this.state = 'idle';
+        this.hasLastKnown = false;
+      }
     }
 
     if (this.state === 'engage') {
       this.engageTime += dt;
       this.faceTarget(playerEye, dt);
+
+      // Hold a preferred fighting distance: advance when too far, back off when
+      // crowded. Direction is the horizontal vector to the player.
+      const toX = playerEye.x - this.position.x;
+      const toZ = playerEye.z - this.position.z;
+      const flatDist = Math.hypot(toX, toZ) || 1;
+      let advance = 0;
+      if (distToPlayer > PREFERRED_RANGE + RANGE_DEADZONE) advance = 1;
+      else if (distToPlayer < PREFERRED_RANGE - RANGE_DEADZONE) advance = -1;
+      if (advance !== 0) {
+        this.tryStep(_STEP.set((toX / flatDist) * advance * APPROACH_SPEED * dt, 0,
+                               (toZ / flatDist) * advance * APPROACH_SPEED * dt));
+      }
 
       // Sidestep so we don't stand still — sinusoidal lateral motion at ~1Hz.
       this.sidestepPhase += dt * 1.4;
@@ -230,8 +259,11 @@ export class Bot implements Damageable {
         }
         this.fireAt(botEye, aimPoint);
       }
+    } else if (this.state === 'reposition' && this.hasLastKnown) {
+      // Hunt toward where we last saw the player (brisk pace).
+      this.moveToward(this.lastKnown.x, this.lastKnown.z, WALK_SPEED * 0.9, dt);
     } else {
-      // Patrol movement: walk toward currentWaypoint.
+      // Idle patrol: stroll between waypoints.
       this.patrol(dt);
     }
 
@@ -264,16 +296,22 @@ export class Bot implements Damageable {
 
   private patrol(dt: number) {
     const wp = WAYPOINTS[this.currentWaypoint];
-    const toX = wp.x - this.position.x;
-    const toZ = wp.z - this.position.z;
-    const dist = Math.hypot(toX, toZ);
+    const dist = Math.hypot(wp.x - this.position.x, wp.z - this.position.z);
     if (dist < 0.8) {
       this.currentWaypoint = (this.currentWaypoint + 1) % WAYPOINTS.length;
       return;
     }
-    const speed = (this.state === 'reposition' ? WALK_SPEED * 1.2 : WALK_SPEED * 0.55) * dt;
-    const stepX = (toX / dist) * speed;
-    const stepZ = (toZ / dist) * speed;
+    this.moveToward(wp.x, wp.z, WALK_SPEED * 0.55, dt);
+  }
+
+  /** Step toward a horizontal target at `speed` (u/s) and face the travel
+   *  direction. Shared by patrol + reposition-hunt. */
+  private moveToward(tx: number, tz: number, speed: number, dt: number) {
+    const toX = tx - this.position.x;
+    const toZ = tz - this.position.z;
+    const dist = Math.hypot(toX, toZ) || 1;
+    const stepX = (toX / dist) * speed * dt;
+    const stepZ = (toZ / dist) * speed * dt;
     this.tryStep(_STEP.set(stepX, 0, stepZ));
 
     // Face direction of travel.
@@ -319,6 +357,7 @@ export class Bot implements Damageable {
     this.deathFallOffset = 0;
     this.state = 'idle';
     this.engageTime = 0;
+    this.hasLastKnown = false;
     this.currentWaypoint = Math.floor(Math.random() * WAYPOINTS.length);
     const wp = WAYPOINTS[this.currentWaypoint];
     this.position.set(wp.x, 0.5, wp.z);
