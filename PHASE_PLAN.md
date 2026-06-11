@@ -222,4 +222,38 @@ each step, solo + MP both keep working.**
 
 ### Phase 14 COMPLETE — Arena pickups & power-ups shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 15 — Killstreak Reward Perks (v0.15.0)
+
+The Announcer shouts your streak; Phase 15 makes streaks *pay off* with concrete
+gameplay perks — the "I'm on fire, keep pushing" loop that lengthens sessions
+(more engagement → more ad breakpoints). Solo combat + Gun Game only (MP is
+server-authoritative; client-side buffs would desync), no protocol change, no
+new deps. Reuses the Phase 14 buff infrastructure so there's a single owner of
+the damage/speed multipliers.
+
+- **15A — Reward ladder + effect plumbing.** `core/StreakRewards.ts`
+  (`STREAK_REWARDS` 3/5/7 + `StreakRewards` manager, bus-driven, `StreakRewardHost`
+  interface). Resupply (full heal + reload), Overcharge (+50 shield + 1.4× dmg
+  8s), Frenzy (heal + 1.5× dmg + 1.3× speed 10s). `PickupManager.grantDamage/
+  grantHaste` (shared buff timers), `Weapon.refill()` + `WeaponInventory.refillAll()`.
+- **15B — Wiring + gating.** Game owns `streakRewards`, host applies heal/shield/
+  buffs, `syncPickups()` flips `setEnabled(live)` (solo combat only). Streak resets
+  on death (bus) + solo Play Again.
+- **15C — Reward toast UI.** `ui/RewardToast.ts` + `#streak-reward` DOM/CSS —
+  separate node from the Announcer banner so reward + streak callout coexist.
+  3 new sound ids reserved. Version → v0.15.0, README + docs.
+
+### Status log
+- ✅ Phase 15A/B/C — DONE (typecheck client+server + client build green; app
+  ~64.3 KB gzip). Reward ladder applies perks through the shared pickup buff
+  timers (no multiplier fights). Solo-only gating via `setEnabled` from
+  `syncPickups`; resets on death + Play Again. Separate reward toast avoids
+  Announcer-banner contention. Headless gameplay (watching the toast fire at a
+  real 3-kill streak) not run in this environment — logic is deterministic +
+  fully typechecked, mirrors the verified GunGame/Pickups patterns.
+
+### Phase 15 COMPLETE — Killstreak reward perks shipped, solo + MP intact, no protocol change.
+
 

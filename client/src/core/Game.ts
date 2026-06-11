@@ -29,6 +29,7 @@ import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
 import { PickupManager } from './Pickups';
+import { StreakRewards } from './StreakRewards';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
 import { Account } from '../account/Account';
 import { findKillEffect } from '../account/Cosmetics';
@@ -85,6 +86,8 @@ export class Game {
   /** Arena pickups (Phase 14). Solo combat / Gun Game only — kept empty in
    *  Practice + MP via syncPickups(). */
   readonly pickups: PickupManager;
+  /** Killstreak reward perks (Phase 15). Solo combat only — disabled in MP. */
+  readonly streakRewards: StreakRewards;
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -238,6 +241,23 @@ export class Game {
       setSpeedMultiplier: (m) => { this.player.powerupSpeedMultiplier = m; },
       playSound: (id) => this.audio.play(id as SoundId),
     });
+
+    // Killstreak reward perks — reuse the pickup buff timers so a single owner
+    // controls the damage/speed multipliers.
+    this.streakRewards = new StreakRewards(this.bus, {
+      healFull: () => {
+        const h = this.playerActor.health;
+        h.heal(h.max);
+        this.inventory.refillAll();
+      },
+      grantShield: (n) => {
+        const h = this.playerActor.health;
+        h.shield = Math.min(100, h.shield + n);
+      },
+      grantDamage: (mul, secs) => this.pickups.grantDamage(secs, mul),
+      grantHaste: (mul, secs) => this.pickups.grantHaste(secs, mul),
+      playSound: (id) => this.audio.play(id as SoundId),
+    }, (id) => this.isLocalPlayer(id));
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
@@ -453,6 +473,8 @@ export class Game {
   private syncPickups() {
     const live = isCombatMode(this.mode) && !this.mp;
     this.pickups.start(live ? this.currentMap.meta.pickupSpawns : undefined);
+    // Killstreak rewards are solo-combat only (MP is server-authoritative).
+    this.streakRewards.setEnabled(live);
   }
 
   /**

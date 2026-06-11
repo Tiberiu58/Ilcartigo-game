@@ -122,6 +122,24 @@ export class PickupManager {
 
   get hasPickups(): boolean { return this.pickups.length > 0; }
 
+  /**
+   * Grant a timed Damage buff directly (e.g. from a killstreak reward) so the
+   * SAME timer that pickups use owns it — no two systems fighting over the
+   * weapon damage multiplier. Refreshes the duration if one's already active.
+   */
+  grantDamage(seconds: number, mul: number) {
+    this.damageLeft = Math.max(this.damageLeft, seconds);
+    this.host.setDamageMultiplier(mul);
+    this.emitBuffs();
+  }
+
+  /** Grant a timed Haste buff directly (killstreak reward). */
+  grantHaste(seconds: number, mul: number) {
+    this.hasteLeft = Math.max(this.hasteLeft, seconds);
+    this.host.setSpeedMultiplier(mul);
+    this.emitBuffs();
+  }
+
   update(dt: number) {
     // Animate + respawn-tick every pickup; collect available ones in range.
     const alive = this.host.playerAlive();

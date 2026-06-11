@@ -17,6 +17,7 @@
 import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
+import { RewardToast } from './ui/RewardToast';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { MultiplayerSession } from './networking/MultiplayerSession';
@@ -89,6 +90,11 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+
+// Killstreak reward toast (Phase 15) — solo combat only. StreakRewards (in
+// Game) applies the gameplay perk + fires this for the visual notice.
+const rewardToast = new RewardToast();
+game.streakRewards.onReward = (r) => rewardToast.show(r);
 
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter
@@ -725,6 +731,7 @@ pmPlayAgain.addEventListener('click', () => {
     hidePostMatch();
     game.resetMatchScore();
     announcer.reset();
+    game.streakRewards.reset();
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
       gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);

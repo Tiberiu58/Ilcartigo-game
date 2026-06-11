@@ -69,6 +69,11 @@ export const SOUND_FILES = {
   pickup_haste:  'pickup_haste.wav',
   powerup_expire: 'powerup_expire.wav',
 
+  // Killstreak rewards (Phase 15) — earned-perk stings.
+  reward_resupply:   'reward_resupply.wav',
+  reward_overcharge: 'reward_overcharge.wav',
+  reward_frenzy:     'reward_frenzy.wav',
+
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
 

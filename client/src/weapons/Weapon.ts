@@ -264,6 +264,13 @@ export class Weapon {
     this.reloadRemaining = this.config.reloadTime * this.reloadMultiplier;
   }
 
+  /** Instantly top off the magazine + cancel any in-flight reload (resupply
+   *  reward). Skips the reload animation entirely. */
+  refill() {
+    this.reloadRemaining = 0;
+    this.ammoInMag = this.config.magSize;
+  }
+
   update(dt: number) {
     if (this.cooldown > 0) this.cooldown = Math.max(0, this.cooldown - dt);
     if (this.reloadRemaining > 0) {

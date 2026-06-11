@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. Arena pickups & power-ups: health packs, armour/overshield, and timed Damage + Haste buffs that respawn on a timer and turn the map into contested territory (solo combat + Gun Game; off in MP/Practice — no protocol change). Built on Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 15 — v0.15.0. Killstreak reward perks: hit a streak without dying and earn a concrete perk — Resupply (3), Overcharge (5: shield + damage), Frenzy (7: heal + damage + speed) — reusing the Phase 14 buff timers, shown as a reward toast (solo combat + Gun Game; off in MP). Built on Phase 14 (arena pickups & power-ups), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -304,6 +304,14 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `pickup_haste.wav` | Haste power-up collect — quick rising whoosh | "speed up", "haste whoosh" |
 | `powerup_expire.wav` | Timed buff wears off — descending fade | "power down", "buff expire" |
 
+**Phase 15 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `reward_resupply.wav` | 3-streak Resupply — bright restock chime | "ammo resupply", "reload complete" |
+| `reward_overcharge.wav` | 5-streak Overcharge — rising energy charge | "overcharge", "energy charge up" |
+| `reward_frenzy.wav` | 7-streak Frenzy — aggressive power surge | "berserk", "rage power up" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -418,14 +426,38 @@ protocol/MP risk), no new deps.
 - Typecheck (client + server) + client build all green; app chunk **~63.5 KB
   gzip** (~+2 KB), no new dependencies.
 
+## Phase 15 — Killstreak Reward Perks (this round, v0.15.0)
+
+The Announcer already *shouts* your streak ("RAMPAGE!"). Phase 15 turns streaks
+into **gameplay**: a streak without dying earns a concrete perk — the catchy
+"I'm on fire, don't stop" loop that lengthens sessions (→ more ad breakpoints).
+Solo combat + Gun Game only (MP is server-authoritative; client buffs would
+desync), no protocol change, no new deps.
+
+- **Reward ladder** (fires at exact streak counts, resets on death):
+  Resupply (3 — full heal + instant reload), Overcharge (5 — +50 shield + 1.4×
+  damage for 8s), Frenzy (7 — full heal + 1.5× damage + 1.3× speed for 10s).
+- **Reuses the Phase 14 buff timers** via new `PickupManager.grantDamage/
+  grantHaste` so a single owner controls the damage/speed multipliers (no two
+  systems fighting). New `Weapon.refill()` + `WeaponInventory.refillAll()` for
+  the instant resupply.
+- **New `core/StreakRewards.ts`** — bus-driven, decoupled via a
+  `StreakRewardHost` interface (mirrors GunGame/PickupManager). Tracks the local
+  streak, applies the perk, fires `onReward`. Game flips `setEnabled` from
+  `syncPickups()` so it's live only in solo combat.
+- **New `ui/RewardToast.ts`** + `#streak-reward` toast — a separate DOM node from
+  the Announcer banner so a reward and a streak callout can show at once without
+  fighting. 3 new sound ids reserved.
+- Typecheck (client + server) + client build green; app chunk **~64.3 KB gzip**.
+
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, **Gun Game mode**, and **arena pickups + power-ups** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, Gun Game mode, arena pickups + power-ups, and **killstreak reward perks** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, arena pickups/power-ups, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, arena pickups/power-ups, killstreak rewards, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
