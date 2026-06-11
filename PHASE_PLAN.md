@@ -241,3 +241,28 @@ brings them back. Pure client-side, no protocol change.
 
 ### Phase 16 COMPLETE — post-match progression celebration shipped, all modes intact, no protocol change.
 
+---
+
+## Phase 17 — Rank identity (v0.17.0)
+
+Levels existed but were invisible outside the settings page — players had no
+climbable *identity*. Phase 17 maps level → a named rank tier (Rookie → Bronze →
+Silver → Gold → Platinum → Diamond → Master → Legend) and surfaces it where it
+motivates: the menu, the scoreboard, and the post-match screen. A clear ladder to
+climb is a proven retention hook (more sessions → more ad impressions). Pure
+client-side, no protocol change.
+
+- **`Account.rank` getter + `RANK_TIERS` / `rankForLevel`** — 8 tiers, each with a
+  name + signature colour + minLevel. Early tiers come every couple of levels
+  (rewarding); the top tiers are a long chase.
+- **Main-menu profile chip** — name · rank · level, in a rounded pill under the
+  title. Updates on boot and on any `account.onChange` (XP, name, unlocks). Rank
+  colour drives a CSS custom property + glow.
+- **Scoreboard badge** — the local player's row is prefixed with their coloured
+  rank name (bots/remotes have no local rank, so they're unbadged).
+- **Post-match** — the progression block's level row now leads with the coloured
+  rank badge.
+- Typecheck (client + server) + build green; app chunk ~62.4 KB gzip; no new deps.
+
+### Phase 17 COMPLETE — rank identity shipped across menu/scoreboard/post-match, all modes intact, no protocol change.
+

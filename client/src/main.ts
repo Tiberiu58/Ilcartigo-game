@@ -565,9 +565,13 @@ function renderScoreboard() {
     const me = game.isLocalPlayer(r.id);
     const kd = r.deaths === 0 ? r.kills.toFixed(1) : (r.kills / r.deaths).toFixed(2);
     const lead = i === 0 && r.kills > 0 ? ' sb-lead' : '';
+    // Only the local player carries a rank (bots/remotes have none locally).
+    const rankTag = me
+      ? `<span class="sb-rank-badge" style="color:${game.account.rank.color}">${game.account.rank.name}</span> `
+      : '';
     return `<div class="sb-row${me ? ' sb-me' : ''}${lead}">
       <span class="sb-rank">${i + 1}</span>
-      <span class="sb-name">${participantName(r.id)}</span>
+      <span class="sb-name">${rankTag}${participantName(r.id)}</span>
       <span class="sb-k">${r.kills}</span>
       <span class="sb-d">${r.deaths}</span>
       <span class="sb-kd">${kd}</span>
@@ -662,6 +666,21 @@ if (resetBtn) {
 // skin id for snapshot.skinId, otherwise other players see the old color.
 game.account.onChange(() => game.mp?.sendHello());
 
+// ─── Main-menu profile chip (name · rank · level) ──────────────────────────
+const mpName = document.getElementById('mp-name')!;
+const mpRank = document.getElementById('mp-rank')!;
+const mpLevel = document.getElementById('mp-level')!;
+const menuProfile = document.getElementById('menu-profile') as HTMLElement;
+function updateMenuProfile() {
+  mpName.textContent = game.account.name;
+  const rank = game.account.rank;
+  mpRank.textContent = rank.name;
+  mpLevel.textContent = `Lv ${game.account.level}`;
+  menuProfile.style.setProperty('--mp-rank-color', rank.color);
+}
+updateMenuProfile();
+game.account.onChange(updateMenuProfile);
+
 // ─── Post-match overlay ────────────────────────────────────────────────────
 const postmatchOverlay = document.getElementById('postmatch-overlay')!;
 const pmTitle = document.getElementById('pm-title')!;
@@ -672,6 +691,7 @@ const pmUnlocks = document.getElementById('pm-unlocks')!;
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
 const pmCallout = document.getElementById('pm-callout')!;
+const pmRank = document.getElementById('pm-rank') as HTMLElement;
 const pmLevel = document.getElementById('pm-level')!;
 const pmLevelInto = document.getElementById('pm-level-into')!;
 const pmLevelMax = document.getElementById('pm-level-max')!;
@@ -751,6 +771,10 @@ function showPostMatch(winnerId: string) {
   pmLevel.textContent = String(lvl);
   pmLevelInto.textContent = String(into);
   pmLevelMax.textContent = String(max);
+  const rank = game.account.rank;
+  pmRank.textContent = rank.name;
+  pmRank.style.color = rank.color;
+  pmRank.style.textShadow = `0 0 8px ${rank.color}`;
   const pct = Math.max(0, Math.min(100, (into / max) * 100));
   // Reset to 0, force a reflow, then set the final width so the CSS transition
   // plays the fill animation every time the screen shows.

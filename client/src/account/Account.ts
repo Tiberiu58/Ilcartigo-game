@@ -18,6 +18,35 @@ import type { ClassId } from '../classes/types';
 const STORAGE_KEY = 'ilc.account';
 const XP_PER_LEVEL = 1000;
 
+/** A named rank tier — a climbable identity derived from the player's level. */
+export interface RankTier {
+  name: string;
+  color: string;
+  /** Minimum level (inclusive) to hold this rank. */
+  minLevel: number;
+}
+
+/** Rank ladder, ascending. rankForLevel picks the highest tier whose minLevel
+ *  the player has reached. Tuned so early levels feel rewarding (a new rank
+ *  every couple of levels) and the top tiers are a long-term chase. */
+export const RANK_TIERS: RankTier[] = [
+  { name: 'Rookie',   color: '#9aa6b2', minLevel: 0 },
+  { name: 'Bronze',   color: '#cd7f32', minLevel: 3 },
+  { name: 'Silver',   color: '#c4ccd6', minLevel: 6 },
+  { name: 'Gold',     color: '#ffd24a', minLevel: 10 },
+  { name: 'Platinum', color: '#4ad6ff', minLevel: 15 },
+  { name: 'Diamond',  color: '#7af0ff', minLevel: 25 },
+  { name: 'Master',   color: '#c84aff', minLevel: 40 },
+  { name: 'Legend',   color: '#ff4a6e', minLevel: 60 },
+];
+
+/** Pick the rank tier for a given level. */
+export function rankForLevel(level: number): RankTier {
+  let pick = RANK_TIERS[0];
+  for (const t of RANK_TIERS) if (level >= t.minLevel) pick = t;
+  return pick;
+}
+
 /** Lifetime career stats — purely cosmetic/bragging, persisted across sessions. */
 export interface LifetimeStats {
   kills: number;
@@ -222,6 +251,9 @@ export class Account {
   /** XP into the current level. 0..XP_PER_LEVEL-1. */
   get xpIntoLevel(): number { return this.data.xp % XP_PER_LEVEL; }
   get xpPerLevel(): number { return XP_PER_LEVEL; }
+  /** Named rank tier derived from level — a climbable identity (Rookie →
+   *  Legend). Surfaced on the menu, scoreboard, and post-match screen. */
+  get rank(): RankTier { return rankForLevel(this.level); }
 
   isSkinUnlocked(id: SkinId): boolean {
     return this.data.unlockedSkins.includes(id);

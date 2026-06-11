@@ -812,8 +812,30 @@ body.kill-flash #app::after {
   letter-spacing: 4px;
   text-transform: uppercase;
   font-size: 12px;
-  margin-bottom: 36px;
+  margin-bottom: 18px;
 }
+/* Profile chip — name · rank · level. */
+.menu-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  margin-bottom: 30px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+}
+.menu-profile .mp-name { color: #e8eef4; }
+.menu-profile .mp-rank {
+  color: var(--mp-rank-color, #9aa6b2);
+  text-shadow: 0 0 8px var(--mp-rank-color, #9aa6b2);
+  padding: 0 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+.menu-profile .mp-level { color: var(--accent); }
 .loadout {
   margin-bottom: 28px;
   text-align: center;
@@ -1229,6 +1251,11 @@ body.kill-flash #app::after {
   margin-bottom: 6px;
 }
 .pm-level-xp { opacity: 0.75; }
+.pm-rank-badge {
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-right: 4px;
+}
 .pm-xp-bar {
   height: 10px;
   background: rgba(255, 255, 255, 0.08);
@@ -1670,6 +1697,13 @@ body.kill-flash #app::after {
   box-shadow: inset 2px 0 0 var(--accent);
 }
 #sb-body .sb-row.sb-me .sb-name { color: var(--accent); font-weight: 700; }
+.sb-rank-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.95;
+}
 #sb-body .sb-row.sb-lead .sb-rank { text-shadow: 0 0 8px var(--accent); }
 .sb-name {
   overflow: hidden;

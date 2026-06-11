@@ -195,7 +195,14 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.16</p>
+          <p class="subtitle">Browser arena shooter · v0.17</p>
+          <!-- Profile chip — name + rank tier + level. Updated from the account
+               on boot and on any progression change. -->
+          <div class="menu-profile" id="menu-profile">
+            <span class="mp-name" id="mp-name">You</span>
+            <span class="mp-rank" id="mp-rank">Rookie</span>
+            <span class="mp-level" id="mp-level">Lv 0</span>
+          </div>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -247,7 +254,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.16.0 — Progression rewards</div>
+          <div>v0.17.0 — Rank identity</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -298,7 +305,7 @@
           <div class="pm-progress">
             <div class="pm-callout hidden" id="pm-callout"></div>
             <div class="pm-level-row">
-              <span class="pm-level-label">LEVEL <span id="pm-level">1</span></span>
+              <span class="pm-level-label"><span class="pm-rank-badge" id="pm-rank">Rookie</span> LEVEL <span id="pm-level">1</span></span>
               <span class="pm-level-xp"><span id="pm-level-into">0</span> / <span id="pm-level-max">1000</span></span>
             </div>
             <div class="pm-xp-bar"><div class="pm-xp-fill" id="pm-xp-fill"></div></div>
