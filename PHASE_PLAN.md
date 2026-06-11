@@ -256,4 +256,28 @@ the damage/speed multipliers.
 
 ### Phase 15 COMPLETE — Killstreak reward perks shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 16 — Blitz (Time Attack) mode (v0.16.0)
+
+A second NEW MODE — mode variety is the #1 replay driver. Blitz is a 2-minute
+score-attack FFA vs bots: most kills when the clock hits zero wins. Self-
+contained, solo for v1, no protocol/MP changes. Reuses the authoritative-feeling
+post-match overlay (standings from matchKills/matchDeaths), bots, pickups, and
+killstreak rewards (all live since Blitz is an `isCombatMode`).
+
+- **Match clock** (`Game.blitzTimeLeft`, default 120s, `ilc.blitzSeconds`
+  override). Ticks only while pointer-locked (pause-aware) + not over. On 0,
+  `endBlitz()` picks the top-kills winner (ties → local) and fires `onMatchEnded`.
+- **`GameMode` extended** to `'combat' | 'practice' | 'gungame' | 'blitz'`;
+  `isCombatMode` includes blitz. `setMode` arms the clock; `restartBlitz()` for
+  Play Again.
+- **HUD ticker** (`#blitz-ticker`) — clock (red-blinks ≤15s) + your kills + live
+  leader, rendered in main.ts `onFrame`. New "⏱ Blitz" menu button + CSS.
+- Verified: typecheck (client+server) + client build green; app ~64.7 KB gzip.
+  Headless gameplay (watching the full 2-min clock + match-end) not run here —
+  logic is deterministic + typechecked; reuses the verified post-match path.
+
+### Phase 16 COMPLETE — Blitz Time-Attack mode shipped, solo + MP intact, no protocol change.
+
 

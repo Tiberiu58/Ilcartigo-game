@@ -1024,6 +1024,49 @@ body.kill-flash #app::after {
   box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
 }
 
+/* ── Blitz (Time Attack) ─────────────────────────────────────────────────── */
+.menu-btn.blitz { border-left: 3px solid #4ad6ff; }
+.menu-btn.blitz:hover { border-left-color: #4ad6ff; color: #4ad6ff; }
+#blitz-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(20, 25, 35, 0.82);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #4ad6ff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#blitz-ticker.hidden { display: none; }
+.bz-clock {
+  font: 800 20px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: #4ad6ff;
+  min-width: 56px;
+  text-align: center;
+}
+.bz-clock.urgent {
+  color: #ff4a5e;
+  animation: bz-blink 1s steps(2, start) infinite;
+}
+@keyframes bz-blink { 50% { opacity: 0.45; } }
+.bz-kills {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.bz-kills b { color: var(--text); font-size: 14px; }
+.bz-leader {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
 .menu-footer {
   grid-area: footer;
   display: flex;

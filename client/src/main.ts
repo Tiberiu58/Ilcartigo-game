@@ -59,6 +59,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuBlitz = document.getElementById('menu-blitz') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -109,6 +110,12 @@ const ggTierEl = document.getElementById('gg-tier')!;
 const ggTotalEl = document.getElementById('gg-total')!;
 const ggWeaponEl = document.getElementById('gg-weapon')!;
 const ggPipsEl = document.getElementById('gg-pips')!;
+
+// Blitz (Time Attack) ticker elements.
+const blitzTicker = document.getElementById('blitz-ticker')!;
+const bzClock = document.getElementById('bz-clock')!;
+const bzKills = document.getElementById('bz-kills')!;
+const bzLeader = document.getElementById('bz-leader')!;
 
 gunGame.onLocalTierChange = (tier, total, label) => {
   ggTierEl.textContent = String(tier + 1);   // display 1-based
@@ -263,7 +270,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'blitz' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -272,6 +279,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   }
   game.setMode(mode);
   announcer.reset();
+  game.streakRewards.reset();
 
   // Gun Game: start a fresh ladder for the player + all active bots, and show
   // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
@@ -283,6 +291,9 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   } else {
     ggTicker.classList.add('hidden');
   }
+
+  // Blitz: show the match-clock ticker (setMode armed the clock). Hidden else.
+  blitzTicker.classList.toggle('hidden', mode !== 'blitz');
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
@@ -353,6 +364,7 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
+  blitzTicker.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -424,6 +436,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuBlitz.addEventListener('click', () => startGame('blitz'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -614,6 +627,26 @@ game.onFrame = ({ fps, speed, state, pos }) => {
   }
   // Keep the scoreboard live while it's held open (10Hz is plenty).
   if (scoreboardOpen) renderScoreboard();
+
+  // Blitz match-clock ticker.
+  if (game.mode === 'blitz') {
+    const t = Math.max(0, Math.ceil(game.blitzTimeLeft));
+    const m = Math.floor(t / 60);
+    const s = t % 60;
+    bzClock.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    bzClock.classList.toggle('urgent', t <= 15);
+    const myKills = game.matchKills.get(game.localPlayerId()) ?? 0;
+    bzKills.textContent = String(myKills);
+    // Leader = whoever has the most kills (bots get humanized names).
+    let leadId = ''; let leadKills = -1;
+    game.matchKills.forEach((k, id) => { if (k > leadKills) { leadKills = k; leadId = id; } });
+    if (leadKills <= 0) {
+      bzLeader.textContent = 'leader: —';
+    } else {
+      const name = game.isLocalPlayer(leadId) ? 'YOU' : participantName(leadId);
+      bzLeader.textContent = `leader: ${name} (${leadKills})`;
+    }
+  }
 };
 
 // ─── Cosmetics + Profile tabs + account-linked behavior ────────────────────
@@ -735,6 +768,10 @@ pmPlayAgain.addEventListener('click', () => {
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
       gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    }
+    // Blitz: reset the match clock for a fresh 2-minute run.
+    if (game.mode === 'blitz') {
+      game.restartBlitz();
     }
     game.input.requestPointerLock();
   }

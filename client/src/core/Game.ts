@@ -51,14 +51,18 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'blitz';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
- *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
- *  ladder layered on top. */
+ *  the peaceful Practice sandbox). Gun Game + Blitz play like Combat with an
+ *  extra rule layered on top (a weapon ladder / a match clock). */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame';
+  return m === 'combat' || m === 'gungame' || m === 'blitz';
 }
+
+/** Blitz (Time Attack) match length, seconds. Most kills when the clock hits
+ *  zero wins. Override for quick testing via the BLITZ_SECONDS localStorage key. */
+const BLITZ_DURATION = 120;
 
 export interface FrameInfo {
   fps: number;
@@ -93,6 +97,8 @@ export class Game {
   readonly bots: Bot[] = [];
   /** Current game mode. Practice = no bots, lab spawn, peaceful. */
   mode: GameMode = 'combat';
+  /** Blitz mode: seconds left on the match clock (0 when inactive/over). */
+  blitzTimeLeft = 0;
   /** Currently loaded map. Set via setMap(). */
   private currentMap: GameMap = TEST_MAP;
   /** Optional multiplayer session — null when single-player. */
@@ -413,6 +419,9 @@ export class Game {
     this.syncBotState();
     this.syncPickups();
 
+    // Blitz: arm the match clock. Other modes clear it.
+    this.blitzTimeLeft = mode === 'blitz' ? this.blitzDuration() : 0;
+
     // Clear the killfeed — old entries from combat shouldn't carry over.
     document.getElementById('killfeed')?.replaceChildren();
 
@@ -710,6 +719,33 @@ export class Game {
     this.matchEnded = false;
   }
 
+  /** Blitz match length — honours a BLITZ_SECONDS localStorage override for
+   *  quick testing, else the default. */
+  private blitzDuration(): number {
+    const override = Number(localStorage.getItem('ilc.blitzSeconds'));
+    return Number.isFinite(override) && override > 0 ? override : BLITZ_DURATION;
+  }
+
+  /** Restart a Blitz match (Play Again): fresh score + fresh clock. */
+  restartBlitz() {
+    this.resetMatchScore();
+    this.blitzTimeLeft = this.blitzDuration();
+  }
+
+  /** End a Blitz match: the player or bot with the most kills wins. Ties break
+   *  toward the local player (you keep the lead you tied for). */
+  private endBlitz() {
+    if (this.matchEnded) return;
+    this.matchEnded = true;
+    const localId = this.localPlayerId();
+    let winnerId = localId;
+    let best = this.matchKills.get(localId) ?? 0;
+    this.matchKills.forEach((kills, id) => {
+      if (kills > best) { best = kills; winnerId = id; }
+    });
+    this.onMatchEnded?.(winnerId);
+  }
+
   private onResize = () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -882,6 +918,16 @@ export class Game {
     // Arena pickups — animate, collect, run buff timers (solo combat only;
     // empty + skipped in Practice/MP).
     if (isCombatMode(this.mode) && !this.mp) this.pickups.update(dt);
+
+    // Blitz match clock — counts down only while actively playing (pointer
+    // locked, not paused/over). Most kills when it hits 0 wins.
+    if (this.mode === 'blitz' && !this.mp && !this.matchEnded && this.input.pointerLocked) {
+      this.blitzTimeLeft -= dt;
+      if (this.blitzTimeLeft <= 0) {
+        this.blitzTimeLeft = 0;
+        this.endBlitz();
+      }
+    }
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. Killstreak reward perks: hit a streak without dying and earn a concrete perk — Resupply (3), Overcharge (5: shield + damage), Frenzy (7: heal + damage + speed) — reusing the Phase 14 buff timers, shown as a reward toast (solo combat + Gun Game; off in MP). Built on Phase 14 (arena pickups & power-ups), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 16 — v0.16.0. New **Blitz** mode — a 2-minute Time Attack FFA vs bots: rack up the most kills before the clock hits zero (urgent-flashing match clock, live leader, post-match standings). Built on Phase 15 (killstreak reward perks), Phase 14 (arena pickups & power-ups), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -450,14 +450,34 @@ desync), no protocol change, no new deps.
   fighting. 3 new sound ids reserved.
 - Typecheck (client + server) + client build green; app chunk **~64.3 KB gzip**.
 
+## Phase 16 — Blitz (Time Attack) mode (this round, v0.16.0)
+
+Mode variety keeps players coming back; Blitz adds the classic **score-attack**
+shape Krunker/CoD live on. A 2-minute timer, a frantic finish, then the
+post-match standings + an ad breakpoint — a natural, repeatable session loop.
+Solo vs bots for v1, no protocol change, no new deps.
+
+- **2-minute match clock** (override via `localStorage ilc.blitzSeconds` for
+  testing). Counts down only while actively playing (pointer locked) so pausing
+  pauses the clock; ticks during the death window (you lose time while dead).
+- **Most kills wins** when the clock hits 0 → reuses the authoritative-feeling
+  post-match overlay (standings from `matchKills`/`matchDeaths`, win XP, Play
+  Again restarts the clock). Ties break toward the local player.
+- **HUD ticker** — top-center clock + your kills + live leader; the clock turns
+  red and blinks in the final 15s.
+- `GameMode` extended to include `'blitz'` (treated as combat by `isCombatMode`,
+  so bots, pickups, killstreak rewards, spawns all apply). New "⏱ Blitz" menu
+  button. Pickups + killstreak rewards are fully live in Blitz.
+- Typecheck (client + server) + client build green; app chunk **~64.7 KB gzip**.
+
 ## Project status
 
-15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, Gun Game mode, arena pickups + power-ups, and **killstreak reward perks** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, Gun Game mode, arena pickups + power-ups, killstreak reward perks, and **Blitz Time-Attack mode** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, arena pickups/power-ups, killstreak rewards, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Blitz Time Attack, arena pickups/power-ups, killstreak rewards, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
