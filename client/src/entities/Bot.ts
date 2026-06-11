@@ -36,6 +36,10 @@ const RESPAWN_DELAY = 3.0;
 const PREFERRED_RANGE = 16;
 const RANGE_DEADZONE = 5;
 const APPROACH_SPEED = WALK_SPEED * 0.55;
+// Hard cap on how long a bot hunts a last-known position before giving up to
+// idle patrol. Guarantees REPOSITION terminates even if the target spot is
+// unreachable behind geometry (the old fixed-waypoint hunt always terminated).
+const REPOSITION_TIMEOUT = 5;
 
 /**
  * Difficulty tier — three preset bundles of reaction time, aim jitter, and
@@ -96,6 +100,8 @@ export class Bot implements Damageable {
    *  instead of wandering back to a fixed waypoint. */
   private lastKnown = new THREE.Vector3();
   private hasLastKnown = false;
+  /** Time spent in the current REPOSITION hunt; bounded by REPOSITION_TIMEOUT. */
+  private repositionTime = 0;
   private tier: typeof DIFFICULTY[BotDifficulty];
   readonly difficulty: BotDifficulty;
 
@@ -220,9 +226,14 @@ export class Bot implements Damageable {
       this.hasLastKnown = true;
     } else if (this.state === 'engage') {
       this.state = 'reposition';
+      this.repositionTime = 0;
     } else if (this.state === 'reposition') {
-      // Reached the player's last-known spot without re-acquiring → give up.
-      if (!this.hasLastKnown || this.position.distanceTo(this.lastKnown) < 1.5) {
+      this.repositionTime += dt;
+      // Give up to idle patrol if we reached the last-known spot, lost the
+      // memory, or have been hunting too long (the spot may be unreachable).
+      if (!this.hasLastKnown
+          || this.position.distanceTo(this.lastKnown) < 1.5
+          || this.repositionTime > REPOSITION_TIMEOUT) {
         this.state = 'idle';
         this.hasLastKnown = false;
       }
@@ -358,6 +369,7 @@ export class Bot implements Damageable {
     this.state = 'idle';
     this.engageTime = 0;
     this.hasLastKnown = false;
+    this.repositionTime = 0;
     this.currentWaypoint = Math.floor(Math.random() * WAYPOINTS.length);
     const wp = WAYPOINTS[this.currentWaypoint];
     this.position.set(wp.x, 0.5, wp.z);
