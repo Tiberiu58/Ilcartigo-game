@@ -25,7 +25,37 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'pistol', 'marksman']);
+
+/**
+ * Authoritative per-weapon damage model — MUST mirror each WeaponConfig in
+ * client/src/weapons/Weapon.ts (baseDamage / headshotMultiplier / maxRange /
+ * falloff* / pellets / baseSpread). Before Phase 14 the server hardcoded AR
+ * damage (24 / ×1.8, single ray) for EVERY weapon, so online a sniper didn't
+ * one-shot, a shotgun fired one pellet, and an SMG hit like a rifle. With this
+ * table the server runs the same TTK the client's loadout implies — weapon
+ * choice finally matters in multiplayer. Keep in sync with the client lib.
+ */
+interface WeaponStats {
+  baseDamage: number;
+  headMul: number;
+  maxRange: number;
+  falloffStart: number;
+  falloffEnd: number;
+  falloffMin: number;
+  /** Rays per trigger pull (shotgun = 9). Each pellet is its own spread sample. */
+  pellets: number;
+  /** Idle cone radius in radians, used for the server-side pellet/spread sample. */
+  baseSpread: number;
+}
+const WEAPON_STATS: Record<string, WeaponStats> = {
+  ar:       { baseDamage: 24, headMul: 1.8,  maxRange: 200, falloffStart: 25,  falloffEnd: 70,  falloffMin: 0.6,  pellets: 1, baseSpread: 0.004 },
+  smg:      { baseDamage: 14, headMul: 1.6,  maxRange: 120, falloffStart: 14,  falloffEnd: 45,  falloffMin: 0.4,  pellets: 1, baseSpread: 0.010 },
+  sniper:   { baseDamage: 60, headMul: 1.85, maxRange: 240, falloffStart: 200, falloffEnd: 240, falloffMin: 0.85, pellets: 1, baseSpread: 0.0 },
+  shotgun:  { baseDamage: 12, headMul: 1.4,  maxRange: 60,  falloffStart: 6,   falloffEnd: 22,  falloffMin: 0.3,  pellets: 9, baseSpread: 0.055 },
+  pistol:   { baseDamage: 22, headMul: 1.7,  maxRange: 90,  falloffStart: 18,  falloffEnd: 55,  falloffMin: 0.55, pellets: 1, baseSpread: 0.003 },
+  marksman: { baseDamage: 48, headMul: 2.0,  maxRange: 220, falloffStart: 55,  falloffEnd: 130, falloffMin: 0.7,  pellets: 1, baseSpread: 0.0015 },
+};
 
 const TICK_HZ = 32;
 const TICK_MS = 1000 / TICK_HZ;
@@ -344,135 +374,137 @@ export class Room {
     const shooter = this.players.get(shooterId);
     if (!shooter || !shooter.alive) return;
 
+    // Resolve the weapon the shooter is ALLOWED to fire: their chosen primary,
+    // or the pistol (always-available secondary). Anything else (a client
+    // claiming a stronger gun than it's holding) falls back to the primary so
+    // damage can't be inflated. Then look up the authoritative stat block.
+    const reqId = typeof req.weaponId === 'string' ? req.weaponId : shooter.weaponId;
+    const allowed = (reqId === 'pistol' || reqId === shooter.weaponId) && !!WEAPON_STATS[reqId];
+    const weaponId = allowed ? reqId : shooter.weaponId;
+    const stats = WEAPON_STATS[weaponId] ?? WEAPON_STATS['ar'];
+
     const REWIND_MS = 100;
     const rewindT = Date.now() - REWIND_MS;
-    const origin = shooter.controller.position;       // authoritative shooter origin
-    const aim = req.aim;
-    const dir = normalize(aim);
-    if (dir === null) return;
+    const eyeOrigin: Vec3 = [
+      shooter.controller.position[0],
+      shooter.controller.position[1] + 1.5,
+      shooter.controller.position[2],
+    ];
+    const aimDir = normalize(req.aim);
+    if (aimDir === null) return;
 
-    // Find nearest hit: solid world first, then any other player (rewound).
-    const MAX_RANGE = 200;
-    let bestT = MAX_RANGE;
-    let bestTarget: ServerPlayer | null = null;
-    let bestPoint: Vec3 = origin;
-    let bestHead = false;
+    const MAX_RANGE = stats.maxRange;
+    const pellets = Math.max(1, stats.pellets);
 
-    // World solids.
-    for (const b of this.solids) {
-      const t = rayBox([origin[0], origin[1] + 1.5, origin[2]] as Vec3, dir, b, MAX_RANGE);
-      if (t < bestT) {
-        bestT = t;
-        bestTarget = null;
-        bestPoint = [
-          origin[0] + dir[0] * t,
-          origin[1] + 1.5 + dir[1] * t,
-          origin[2] + dir[2] * t,
-        ];
-        bestHead = false;
-      }
+    // Pre-compute each candidate target's rewound AABBs once — shared across
+    // every pellet of this trigger pull (cheaper for the shotgun's 9 rays).
+    const targets: Array<{ p: ServerPlayer; body: SolidAABB; head: SolidAABB }> = [];
+    for (const p of this.players.values()) {
+      if (p.id === shooterId || !p.alive) continue;
+      const rp = rewindPos(p, rewindT);
+      if (!rp) continue;
+      targets.push({
+        p,
+        // Body AABB: HALF_X 0.35, height 1.55 to head base; head 0.28 cube above.
+        body: [rp[0] - 0.35, rp[1],        rp[2] - 0.35, rp[0] + 0.35, rp[1] + 1.55, rp[2] + 0.35],
+        head: [rp[0] - 0.14, rp[1] + 1.55, rp[2] - 0.14, rp[0] + 0.14, rp[1] + 1.83, rp[2] + 0.14],
+      });
     }
 
-    // Other players (rewound).
-    for (const p of this.players.values()) {
-      if (p.id === shooterId) continue;
-      if (!p.alive) continue;
-      const rewoundPos = rewindPos(p, rewindT);
-      if (!rewoundPos) continue;
-      // Body AABB at rewound pos: HALF_X 0.35, height 1.55 to head base; head 0.28 cube above.
-      const body: SolidAABB = [
-        rewoundPos[0] - 0.35, rewoundPos[1],        rewoundPos[2] - 0.35,
-        rewoundPos[0] + 0.35, rewoundPos[1] + 1.55, rewoundPos[2] + 0.35,
-      ];
-      const head: SolidAABB = [
-        rewoundPos[0] - 0.14, rewoundPos[1] + 1.55, rewoundPos[2] - 0.14,
-        rewoundPos[0] + 0.14, rewoundPos[1] + 1.83, rewoundPos[2] + 0.14,
-      ];
-      const eyeOrigin: Vec3 = [origin[0], origin[1] + 1.5, origin[2]];
+    // Seeded PRNG for this trigger pull's spread samples — reproducible per
+    // shooter+tick (so smoke tests are deterministic) but varied across shots.
+    let seed = (Math.imul(this.tick, 2654435761) + hashStr(shooterId)) >>> 0;
+    const rng = () => {
+      seed = (seed + 0x6D2B79F5) >>> 0;
+      let t = seed;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
 
-      const tHead = rayBox(eyeOrigin, dir, head, MAX_RANGE);
-      if (tHead < bestT) {
-        bestT = tHead;
-        bestTarget = p;
-        bestHead = true;
-        bestPoint = [
-          eyeOrigin[0] + dir[0] * tHead,
-          eyeOrigin[1] + dir[1] * tHead,
-          eyeOrigin[2] + dir[2] * tHead,
-        ];
+    const hits: Array<{ point: Vec3; targetId: string | null; isHeadshot: boolean }> = [];
+    // Aggregate damage per target across pellets (shotgun stacks naturally).
+    const dmgByTarget = new Map<string, { dmg: number; head: boolean; point: Vec3 }>();
+
+    for (let pel = 0; pel < pellets; pel++) {
+      const dir = (pellets > 1 || stats.baseSpread > 0)
+        ? perturb(aimDir, stats.baseSpread, rng)
+        : aimDir;
+
+      let bestT = MAX_RANGE;
+      let bestTarget: ServerPlayer | null = null;
+      let bestHead = false;
+      let bestPoint: Vec3 = eyeOrigin;
+
+      for (const b of this.solids) {
+        const t = rayBox(eyeOrigin, dir, b, MAX_RANGE);
+        if (t < bestT) {
+          bestT = t; bestTarget = null; bestHead = false;
+          bestPoint = [eyeOrigin[0] + dir[0] * t, eyeOrigin[1] + dir[1] * t, eyeOrigin[2] + dir[2] * t];
+        }
       }
-      const tBody = rayBox(eyeOrigin, dir, body, MAX_RANGE);
-      if (tBody < bestT) {
-        bestT = tBody;
-        bestTarget = p;
-        bestHead = false;
-        bestPoint = [
-          eyeOrigin[0] + dir[0] * tBody,
-          eyeOrigin[1] + dir[1] * tBody,
-          eyeOrigin[2] + dir[2] * tBody,
-        ];
+      for (const tg of targets) {
+        const tHead = rayBox(eyeOrigin, dir, tg.head, MAX_RANGE);
+        if (tHead < bestT) {
+          bestT = tHead; bestTarget = tg.p; bestHead = true;
+          bestPoint = [eyeOrigin[0] + dir[0] * tHead, eyeOrigin[1] + dir[1] * tHead, eyeOrigin[2] + dir[2] * tHead];
+        }
+        const tBody = rayBox(eyeOrigin, dir, tg.body, MAX_RANGE);
+        if (tBody < bestT) {
+          bestT = tBody; bestTarget = tg.p; bestHead = false;
+          bestPoint = [eyeOrigin[0] + dir[0] * tBody, eyeOrigin[1] + dir[1] * tBody, eyeOrigin[2] + dir[2] * tBody];
+        }
+      }
+
+      if (bestTarget) {
+        hits.push({ point: bestPoint, targetId: bestTarget.id, isHeadshot: bestHead });
+        const dmg = computeWeaponDamage(stats, bestT, bestHead);
+        const cur = dmgByTarget.get(bestTarget.id);
+        if (cur) { cur.dmg += dmg; cur.head = cur.head || bestHead; cur.point = bestPoint; }
+        else dmgByTarget.set(bestTarget.id, { dmg, head: bestHead, point: bestPoint });
+      } else if (bestT < MAX_RANGE) {
+        hits.push({ point: bestPoint, targetId: null, isHeadshot: false });
       }
     }
 
     // Broadcast the shot for VFX (every client gets it).
     const shotEvent: ServerShotEvent = {
-      shooterId,
-      weaponId: req.weaponId,
-      origin: [origin[0], origin[1] + 1.5, origin[2]],
-      dir,
-      hits: bestTarget !== null
-        ? [{ point: bestPoint, targetId: bestTarget.id, isHeadshot: bestHead }]
-        : (bestT < MAX_RANGE ? [{ point: bestPoint, targetId: null, isHeadshot: false }] : []),
+      shooterId, weaponId, origin: eyeOrigin, dir: aimDir, hits,
     };
     this.io.emit(EV.Shot, shotEvent);
 
-    // Apply damage if we hit a player.
-    if (bestTarget) {
-      // For MVP we hardcode the AR damage. Real impl would look up per-weapon.
-      const baseDamage = 24;
-      const headMul = 1.8;
-      const damage = baseDamage * (bestHead ? headMul : 1);
-      const now = Date.now();
-      if (now < bestTarget.invulnUntil) {
-        // Target is invulnerable — emit no damage.
-      } else {
-        bestTarget.hp = Math.max(0, bestTarget.hp - damage);
-        const dmgEvent: ServerDamageEvent = {
-          attackerId: shooterId,
-          targetId: bestTarget.id,
-          amount: damage,
-          isHeadshot: bestHead,
-          hitPoint: bestPoint,
-          weaponId: req.weaponId,
+    // Apply the aggregated damage to each hit player.
+    const now = Date.now();
+    for (const [targetId, agg] of dmgByTarget) {
+      const target = this.players.get(targetId);
+      if (!target || !target.alive) continue;
+      if (now < target.invulnUntil) continue;     // spawn protection
+
+      target.hp = Math.max(0, target.hp - agg.dmg);
+      const dmgEvent: ServerDamageEvent = {
+        attackerId: shooterId, targetId, amount: agg.dmg,
+        isHeadshot: agg.head, hitPoint: agg.point, weaponId,
+      };
+      this.io.emit(EV.Damage, dmgEvent);
+
+      if (target.hp <= 0) {
+        target.alive = false;
+        shooter.kills++;
+        target.deaths++;
+        const killEvent: ServerKillEvent = {
+          attackerId: shooterId, targetId, weaponId, isHeadshot: agg.head,
         };
-        this.io.emit(EV.Damage, dmgEvent);
+        this.io.emit(EV.Kill, killEvent);
 
-        if (bestTarget.hp <= 0) {
-          bestTarget.alive = false;
-          shooter.kills++;
-          bestTarget.deaths++;
-          const killEvent: ServerKillEvent = {
-            attackerId: shooterId,
-            targetId: bestTarget.id,
-            weaponId: req.weaponId,
-            isHeadshot: bestHead,
-          };
-          this.io.emit(EV.Kill, killEvent);
-
-          // Authoritative match end — the moment a player's server-side kill
-          // count hits the goal. Guarded so it fires exactly once per match.
-          // Clients no longer decide this themselves (they could disagree from
-          // locally-counted kills); the server is the single source of truth.
-          if (!this.matchOver && shooter.kills >= MATCH_KILL_GOAL) {
-            this.endMatch(shooter.id);
-          }
-
-          // Respawn after 1.8s — but not if the match just ended (players
-          // stay where they fell until the rematch resets them).
-          if (!this.matchOver) {
-            const dyingTarget = bestTarget;
-            setTimeout(() => this.respawn(dyingTarget.id), 1800);
-          }
+        // Authoritative match end — fires exactly once when a server-side kill
+        // count hits the goal. Clients never decide this themselves.
+        if (!this.matchOver && shooter.kills >= MATCH_KILL_GOAL) {
+          this.endMatch(shooter.id);
+        }
+        // Respawn after 1.8s unless the match just ended.
+        if (!this.matchOver) {
+          const dyingTarget = target;
+          setTimeout(() => this.respawn(dyingTarget.id), 1800);
         }
       }
     }
@@ -878,6 +910,56 @@ function normalize(v: Vec3): Vec3 | null {
   const m = Math.hypot(v[0], v[1], v[2]);
   if (m < 1e-9) return null;
   return [v[0] / m, v[1] / m, v[2] / m];
+}
+
+/** FNV-1a string hash → uint32. Seeds the per-shot spread PRNG. */
+function hashStr(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+/**
+ * Perturb a unit direction within a cone of radius `spread` (radians) — the
+ * server-side mirror of the client's per-pellet spread sampler (Weapon.firePellet).
+ * Random point in a disk perpendicular to `dir`, re-projected to a unit vector.
+ */
+function perturb(dir: Vec3, spread: number, rng: () => number): Vec3 {
+  if (spread <= 0) return dir;
+  const a = rng() * Math.PI * 2;
+  const m = Math.sqrt(rng()) * spread;
+  // Orthonormal basis around dir.
+  const up: Vec3 = Math.abs(dir[1]) < 0.95 ? [0, 1, 0] : [1, 0, 0];
+  let rx = dir[1] * up[2] - dir[2] * up[1];
+  let ry = dir[2] * up[0] - dir[0] * up[2];
+  let rz = dir[0] * up[1] - dir[1] * up[0];
+  const rmag = Math.hypot(rx, ry, rz) || 1;
+  rx /= rmag; ry /= rmag; rz /= rmag;
+  // upPerp = right × dir
+  const ux = ry * dir[2] - rz * dir[1];
+  const uy = rz * dir[0] - rx * dir[2];
+  const uz = rx * dir[1] - ry * dir[0];
+  const c = Math.cos(a) * m, s = Math.sin(a) * m;
+  const nx = dir[0] + rx * c + ux * s;
+  const ny = dir[1] + ry * c + uy * s;
+  const nz = dir[2] + rz * c + uz * s;
+  const nm = Math.hypot(nx, ny, nz) || 1;
+  return [nx / nm, ny / nm, nz / nm];
+}
+
+/**
+ * Authoritative damage for a single ray — mirrors the client's
+ * Weapon.computeDamage (linear falloff between falloffStart/End to falloffMin,
+ * then the headshot multiplier).
+ */
+function computeWeaponDamage(s: WeaponStats, distance: number, head: boolean): number {
+  let mul = 1;
+  if (distance > s.falloffStart) {
+    const t = Math.min(1, (distance - s.falloffStart) / (s.falloffEnd - s.falloffStart));
+    mul = 1 - t * (1 - s.falloffMin);
+  }
+  if (head) mul *= s.headMul;
+  return s.baseDamage * mul;
 }
 
 /** Slab ray-AABB test. Returns t along dir to first hit, or +Infinity if miss. */
