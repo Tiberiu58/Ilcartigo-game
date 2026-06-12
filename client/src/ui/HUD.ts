@@ -10,6 +10,7 @@ import type { WeaponInventory } from '../weapons/WeaponInventory';
 import type { AbilityRunner } from '../classes/AbilityRunner';
 import type { PlayerController } from '../entities/PlayerController';
 import { Game } from '../core/Game';
+import type { PickupKind } from '../entities/Pickup';
 
 const KILLFEED_MAX = 5;
 const KILLFEED_TTL = 5000; // ms
@@ -24,6 +25,14 @@ export class HUD {
 
   private hpFill: HTMLElement;
   private hpNum: HTMLElement;
+  private osFill: HTMLElement;
+  private osNum: HTMLElement;
+  private powerups: HTMLElement;
+  private pickupToast: HTMLElement;
+  /** Live power-up chip elements keyed by kind. */
+  private powerupChips = new Map<string, { el: HTMLElement; bar: HTMLElement }>();
+  private pickupToastTimer: number | null = null;
+  private lastOvershield = -1;
   private ammoCur: HTMLElement;
   private ammoMax: HTMLElement;
   private ammoWeapon: HTMLElement;
@@ -82,6 +91,10 @@ export class HUD {
 
     this.hpFill = document.getElementById('hp-fill')!;
     this.hpNum = document.getElementById('hp-num')!;
+    this.osFill = document.getElementById('os-fill')!;
+    this.osNum = document.getElementById('os-num')!;
+    this.powerups = document.getElementById('powerups')!;
+    this.pickupToast = document.getElementById('pickup-toast')!;
     this.ammoCur = document.getElementById('ammo-cur')!;
     this.ammoMax = document.getElementById('ammo-max')!;
     this.ammoWeapon = document.getElementById('ammo-weapon')!;
@@ -134,6 +147,9 @@ export class HUD {
         this.showRecap(e.attackerId, e.weaponId, e.isHeadshot);
       }
     });
+
+    // Pickup collected → brief confirmation toast.
+    bus.on('pickup', (e) => this.showPickupToast(e.label, e.color));
   }
 
   /** Called once per frame from Game.onFrame. */
@@ -143,6 +159,17 @@ export class HUD {
       this.lastHp = hp;
       this.hpFill.style.width = `${(hp / this.playerHealth.max) * 100}%`;
       this.hpNum.textContent = String(Math.ceil(hp));
+    }
+
+    // Overshield (Armor pickup) — a thin blue overlay + a "+N" tag.
+    const os = Math.ceil(this.playerHealth.overshield);
+    if (os !== this.lastOvershield) {
+      this.lastOvershield = os;
+      const frac = Math.max(0, Math.min(1, os / (this.playerHealth.overshieldMax || 1)));
+      this.osFill.style.width = `${frac * 100}%`;
+      this.osFill.classList.toggle('hidden', os <= 0);
+      this.osNum.textContent = `+${os}`;
+      this.osNum.classList.toggle('hidden', os <= 0);
     }
 
     const w = this.inventory.current;
@@ -189,6 +216,62 @@ export class HUD {
     this.tickLowHp();
     this.tickMatchScore();
     this.tickRespawnCountdown();
+    this.tickPowerups();
+  }
+
+  /**
+   * Render active power-up chips (Damage Boost / Haste) with shrinking
+   * countdown bars. Chips are created/removed as power-ups start/expire.
+   */
+  private tickPowerups() {
+    const active = this.game.activePowerups;
+    const now = performance.now();
+
+    // Remove chips whose power-up is gone.
+    for (const [kind, chip] of this.powerupChips) {
+      if (!active.has(kind as PickupKind)) {
+        chip.el.remove();
+        this.powerupChips.delete(kind);
+      }
+    }
+
+    // Add / update chips for active power-ups.
+    for (const [kind, st] of active) {
+      let chip = this.powerupChips.get(kind);
+      if (!chip) {
+        const el = document.createElement('div');
+        el.className = `powerup-chip pu-${kind}`;
+        const label = document.createElement('span');
+        label.className = 'pu-label';
+        label.textContent = kind === 'damage' ? '2× DMG' : 'HASTE';
+        const track = document.createElement('div');
+        track.className = 'pu-track';
+        const bar = document.createElement('div');
+        bar.className = 'pu-bar';
+        track.appendChild(bar);
+        el.appendChild(label);
+        el.appendChild(track);
+        this.powerups.appendChild(el);
+        chip = { el, bar };
+        this.powerupChips.set(kind, chip);
+      }
+      const remaining = Math.max(0, st.expiresAt - now);
+      chip.bar.style.width = `${(remaining / st.durationMs) * 100}%`;
+    }
+  }
+
+  /** Brief, color-tinted "+LABEL" toast just below center on pickup. */
+  private showPickupToast(label: string, color: number) {
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    this.pickupToast.textContent = label;
+    this.pickupToast.style.color = hex;
+    this.pickupToast.classList.remove('hidden', 'pt-pop');
+    void this.pickupToast.offsetWidth;
+    this.pickupToast.classList.add('pt-pop');
+    if (this.pickupToastTimer !== null) window.clearTimeout(this.pickupToastTimer);
+    this.pickupToastTimer = window.setTimeout(() => {
+      this.pickupToast.classList.add('hidden');
+    }, 1100);
   }
 
   /**

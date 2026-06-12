@@ -90,6 +90,14 @@ const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer
 const damageDir = new DamageDirection(game);
 void damageDir;
 
+// Power-up pickups (Damage Boost / Haste) flash a center-screen callout, like
+// a kill milestone — instant-grade juice. Health/armor just toast (in HUD).
+game.bus.on('pickup', (e) => {
+  if (!e.isPowerup) return;
+  const hex = '#' + e.color.toString(16).padStart(6, '0');
+  announcer.callout(e.label, 'POWER-UP', hex, 1.15);
+});
+
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter
 // exposes just the three engine surfaces GunGame needs.

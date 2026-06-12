@@ -126,9 +126,20 @@
 
         <div id="health-panel">
           <div class="hp-label">HP</div>
-          <div class="hp-bar"><div id="hp-fill"></div></div>
+          <div class="hp-bar">
+            <div id="hp-fill"></div>
+            <div id="os-fill"></div>
+          </div>
           <div id="hp-num">100</div>
+          <div id="os-num" class="hidden">+0</div>
         </div>
+
+        <!-- Active power-up chips (Damage Boost / Haste) with shrinking
+             countdown bars. Populated by HUD from game.activePowerups. -->
+        <div id="powerups"></div>
+
+        <!-- Brief pickup confirmation toast ("+35 HEALTH"). -->
+        <div id="pickup-toast" class="hidden"></div>
 
         <div id="ammo-panel">
           <div id="ammo-cur">30</div>

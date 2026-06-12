@@ -12,6 +12,7 @@
 
 import type * as THREE from 'three';
 import type { World } from '../core/World';
+import type { PickupNode } from '../entities/Pickup';
 
 export type MapId = 'practice' | 'sandstone' | 'industrial';
 
@@ -25,6 +26,9 @@ export interface MapMeta {
   teamSpawns?: [THREE.Vector3, THREE.Vector3];
   /** Color of the post-respawn screen-flash; defaults to bright cyan. */
   spawnFlashColor?: number;
+  /** Arena pickup/power-up nodes (health, armor, damage, haste). Solo-only —
+   *  spawned by the PickupManager in combat/gungame modes. Omit for Practice. */
+  pickupNodes?: PickupNode[];
 }
 
 export interface GameMap {

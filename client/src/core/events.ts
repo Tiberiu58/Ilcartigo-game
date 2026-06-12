@@ -36,6 +36,17 @@ export interface ShotEvent {
   hit: { point: THREE.Vector3; targetId: string | null; isHeadshot: boolean } | null;
 }
 
+export interface PickupEvent {
+  /** 'health' | 'armor' | 'damage' | 'haste' */
+  kind: string;
+  /** Display label, e.g. "DAMAGE BOOST". */
+  label: string;
+  /** Accent colour (hex int). */
+  color: number;
+  /** True for timed power-ups (damage/haste) — drives the announcer banner. */
+  isPowerup: boolean;
+}
+
 export type GameEvents = {
   damage: DamageEvent;
   kill: KillEvent;
@@ -43,6 +54,8 @@ export type GameEvents = {
   // Local-only feedback events (not networked):
   hitConfirm: { isHeadshot: boolean };
   screenShake: { intensity: number; duration: number };
+  /** Local player collected an arena pickup. Drives HUD toast + announcer. */
+  pickup: PickupEvent;
 };
 
 type Handler<T> = (payload: T) => void;

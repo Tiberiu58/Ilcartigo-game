@@ -120,6 +120,9 @@ export class PlayerController {
 
   /** Movement-speed multiplier (Rush "Surge" ability). Multiplies the active speed cap. */
   speedMultiplier = 1.0;
+  /** Independent speed multiplier from the Haste pickup. Kept separate from the
+   *  ability multiplier so the two compose (stack) instead of overwriting. */
+  pickupSpeedMultiplier = 1.0;
   /** FOV nudge from abilities (e.g. Surge +8). Game adds this to baseFov when computing target FOV. */
   abilityFovOffset = 0;
 
@@ -301,7 +304,7 @@ export class PlayerController {
       // Pick wishSpeed by stance + input direction.
       const wishSpeed = this.computeGroundWishSpeed();
       if (hasInput && wishSpeed > 0) {
-        this.accelerate(this._wishDirWorld, wishSpeed * this.speedMultiplier, GROUND_ACCEL, dt);
+        this.accelerate(this._wishDirWorld, wishSpeed * this.speedMultiplier * this.pickupSpeedMultiplier, GROUND_ACCEL, dt);
       }
 
       // Jump.

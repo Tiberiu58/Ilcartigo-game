@@ -27,6 +27,8 @@ import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
+import { PickupManager, type PickupHost } from './PickupManager';
+import { type PickupKind, PICKUP_DEFS } from '../entities/Pickup';
 import { DamageNumbers } from '../ui/DamageNumbers';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
 import { Account } from '../account/Account';
@@ -65,7 +67,7 @@ export interface FrameInfo {
   pos: THREE.Vector3;
 }
 
-export class Game {
+export class Game implements PickupHost {
   readonly canvas: HTMLCanvasElement;
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
@@ -81,6 +83,11 @@ export class Game {
   readonly tracers: TracerPool;
   readonly castFX: CastFX;
   readonly dmgNumbers: DamageNumbers;
+  /** Arena pickups (health/armor/damage/haste). Solo-only — rebuilt per map. */
+  readonly pickups: PickupManager;
+  /** Active timed power-ups keyed by kind → expiry timestamp (performance.now
+   *  ms) + total duration. Read by the HUD to render countdown chips. */
+  readonly activePowerups = new Map<PickupKind, { expiresAt: number; durationMs: number }>();
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -212,6 +219,7 @@ export class Game {
     this.viewmodel = new Viewmodel(this.camera);
     this.tracers = new TracerPool(this.scene, 32);
     this.castFX = new CastFX(this.scene);
+    this.pickups = new PickupManager(this.scene, this);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
@@ -323,6 +331,9 @@ export class Game {
     // Initial spawn: 2s of grace so the player can orient on first load.
     this.playerActor.health.grantInvulnerability(SPAWN_PROTECTION_SECONDS);
 
+    // Build the starting map's pickup nodes (solo combat only).
+    this.rebuildPickups();
+
     window.addEventListener('resize', this.onResize);
   }
 
@@ -375,6 +386,8 @@ export class Game {
     } else {
       this.respawnPlayer();
     }
+    // Rebuild pickups for the new mode (enabled in solo combat/gungame only).
+    this.rebuildPickups();
   }
 
   /**
@@ -423,6 +436,94 @@ export class Game {
    */
   onMpChanged() {
     this.syncBotState();
+    this.rebuildPickups();
+  }
+
+  // ── Arena pickups + power-ups ──────────────────────────────────────────────
+
+  /** Rebuild the pickup node set for the current map. Pickups exist only in
+   *  solo combat/gungame (not Practice, not MP). Also clears any active
+   *  power-ups so buffs don't leak across mode/map/MP transitions. */
+  private rebuildPickups() {
+    this.clearPowerups();
+    const enabled = isCombatMode(this.mode) && !this.mp;
+    this.pickups.build(enabled ? this.currentMap.meta.pickupNodes : undefined);
+  }
+
+  /** Drop all active power-ups + reset their effects. */
+  private clearPowerups() {
+    this.activePowerups.clear();
+    this.inventory.setDamageMultiplier(1.0);
+    this.player.pickupSpeedMultiplier = 1.0;
+  }
+
+  /** Start (or refresh) a timed power-up + apply its effect immediately. */
+  private applyPowerup(kind: PickupKind, durationMs: number) {
+    this.activePowerups.set(kind, { expiresAt: performance.now() + durationMs, durationMs });
+    if (kind === 'damage') this.inventory.setDamageMultiplier(2.0);
+    if (kind === 'haste')  this.player.pickupSpeedMultiplier = 1.4;
+  }
+
+  /** Tick power-up expiry each frame. */
+  private updatePowerups() {
+    if (this.activePowerups.size === 0) return;
+    const now = performance.now();
+    for (const [kind, st] of this.activePowerups) {
+      if (now < st.expiresAt) continue;
+      this.activePowerups.delete(kind);
+      if (kind === 'damage') this.inventory.setDamageMultiplier(1.0);
+      if (kind === 'haste')  this.player.pickupSpeedMultiplier = 1.0;
+      this.audio.play('powerup_end');
+    }
+  }
+
+  // PickupHost implementation -------------------------------------------------
+
+  tryApplyToPlayer(kind: PickupKind): boolean {
+    const h = this.playerActor.health;
+    const def = PICKUP_DEFS[kind];
+    switch (kind) {
+      case 'health':
+        if (h.current >= h.max) return false;     // leave it for when you need it
+        h.heal(35);
+        this.audio.play('pickup_health');
+        break;
+      case 'armor':
+        if (h.overshield >= h.overshieldMax) return false;
+        h.addOvershield(50);
+        this.audio.play('pickup_armor');
+        break;
+      case 'damage':
+        this.applyPowerup('damage', 12000);
+        this.audio.play('pickup_power');
+        break;
+      case 'haste':
+        this.applyPowerup('haste', 10000);
+        this.audio.play('pickup_power');
+        break;
+    }
+    this.bus.emit('pickup', {
+      kind,
+      label: def.label,
+      color: def.color,
+      isPowerup: kind === 'damage' || kind === 'haste',
+    });
+    return true;
+  }
+
+  tryApplyToBot(bot: Bot, kind: PickupKind): boolean {
+    if (kind !== 'health') return false;
+    if (bot.health.current >= bot.health.max) return false;
+    bot.health.heal(35);
+    return true;
+  }
+
+  flashFX(pos: THREE.Vector3, color: number) {
+    this.castFX.flash(pos, color, 0.4, 1.4, 0.4);
+  }
+
+  playSound(id: string) {
+    this.audio.play(id as SoundId);
   }
 
   /**
@@ -450,6 +551,8 @@ export class Game {
     const spawn = this.pickSafeSpawn();
     this.player.setPosition(spawn.x, spawn.y, spawn.z);
     this.player.speedMultiplier = 1.0;
+    // Death clears active power-ups + overshield (the latter via health.reset above).
+    this.clearPowerups();
     this.playerActor.isCloaked = false;
     // Local respawn SFX. In MP the server respawns us; the tick-level edge
     // detector picks that path up via the dead→alive transition.
@@ -533,6 +636,8 @@ export class Game {
     for (const b of this.bots) b.respawn();
     // Reset player too.
     this.respawnPlayer();
+    // New map → new pickup layout.
+    this.rebuildPickups();
   }
 
   /**
@@ -812,6 +917,10 @@ export class Game {
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
     this.world.update();        // expires Engineer barrier solids when their TTL is up
+    this.updatePowerups();      // expire timed power-ups (damage/haste)
+    // Arena pickups: animate + run collection (no-op when the node set is empty,
+    // i.e. Practice / MP). Uses the player's feet position + active bots.
+    this.pickups.update(dt, this.player.pos, this.playerActor.health.dead, this.bots);
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

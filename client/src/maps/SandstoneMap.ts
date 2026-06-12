@@ -29,6 +29,7 @@
 import * as THREE from 'three';
 import { World } from '../core/World';
 import type { GameMap } from './Map';
+import type { PickupNode } from '../entities/Pickup';
 
 const PALETTE = {
   sand:        0xd9b87a,    // ground / open spaces
@@ -267,6 +268,17 @@ function addJumpPad(
 // Unused but exported so callers can preview the rooftop height when designing.
 void ROOF_HEIGHT;
 
+// Pickup nodes — spread across the three sightlines. Damage boost sits in the
+// contested plaza just north of the central tower; armor on the exposed north
+// sniper lane; haste in the close-range south alley; health on the side plazas.
+const PICKUP_NODES: PickupNode[] = [
+  { pos: new THREE.Vector3(  0, SPAWN_Y,   7), kind: 'damage' },
+  { pos: new THREE.Vector3(  0, SPAWN_Y,  24), kind: 'armor'  },
+  { pos: new THREE.Vector3(  0, SPAWN_Y, -24), kind: 'haste'  },
+  { pos: new THREE.Vector3( 18, SPAWN_Y,   0), kind: 'health' },
+  { pos: new THREE.Vector3(-18, SPAWN_Y,   0), kind: 'health' },
+];
+
 export const SANDSTONE_MAP: GameMap = {
   meta: {
     id: 'sandstone',
@@ -274,6 +286,7 @@ export const SANDSTONE_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xffd9a0,
+    pickupNodes: PICKUP_NODES,
   },
   build: buildSandstone,
 };

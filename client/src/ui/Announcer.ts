@@ -114,6 +114,12 @@ export class Announcer {
     });
   }
 
+  /** Generic center-screen callout — used by non-kill events (e.g. picking up
+   *  a power-up). Reuses the kill-banner pop styling so it reads consistently. */
+  callout(text: string, sub: string, color: string, scale = 1.0) {
+    this.show({ text, color, scale, sound: 'ui_click' }, sub);
+  }
+
   /** Reset all state — call on match reset / mode switch so stale streaks
    *  don't carry across matches. */
   reset() {

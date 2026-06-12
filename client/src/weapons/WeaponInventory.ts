@@ -57,9 +57,13 @@ export class WeaponInventory {
   /** Replace the primary-slot weapon — used by the loadout selector. */
   setPrimary(id: WeaponId): WeaponId {
     if (id === 'pistol') return this.weapons[0].config.id as WeaponId;
-    const prevMul = this.weapons[0]?.reloadMultiplier ?? 1.0;
+    const prevReload = this.weapons[0]?.reloadMultiplier ?? 1.0;
+    const prevDamage = this.weapons[0]?.damageMultiplier ?? 1.0;
     this.weapons[0] = new Weapon(WEAPON_LIBRARY[id], this.world, this.bus, this.ownerId);
-    this.weapons[0].reloadMultiplier = prevMul;
+    // Preserve transient multipliers (Rush passive reload, active Damage Boost)
+    // so swapping the primary mid-buff doesn't drop them.
+    this.weapons[0].reloadMultiplier = prevReload;
+    this.weapons[0].damageMultiplier = prevDamage;
     this.active = 0;
     this.scoped = false;
     return id;
@@ -68,6 +72,11 @@ export class WeaponInventory {
   /** Apply a global reload multiplier (Rush passive). */
   setReloadMultiplier(m: number) {
     for (const w of this.weapons) w.reloadMultiplier = m;
+  }
+
+  /** Apply a global outgoing-damage multiplier (Damage-Boost pickup). */
+  setDamageMultiplier(m: number) {
+    for (const w of this.weapons) w.damageMultiplier = m;
   }
 
   get current(): Weapon { return this.weapons[this.active]; }

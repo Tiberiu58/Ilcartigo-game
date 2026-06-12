@@ -41,6 +41,7 @@
 import * as THREE from 'three';
 import { World } from '../core/World';
 import type { GameMap } from './Map';
+import type { PickupNode } from '../entities/Pickup';
 
 const PALETTE = {
   concrete:     0x5a5550,    // floor — weathered, slightly warm gray
@@ -407,6 +408,17 @@ function addBox(
   }
 }
 
+// Pickup nodes — damage boost on the central ground lane (under the crossing
+// catwalks, the most contested spot); armor/haste on the open N/S ends; health
+// tucked into the warehouse interior and the east yard.
+const PICKUP_NODES: PickupNode[] = [
+  { pos: new THREE.Vector3(  0, SPAWN_Y,   0), kind: 'damage' },
+  { pos: new THREE.Vector3(  0, SPAWN_Y,  28), kind: 'armor'  },
+  { pos: new THREE.Vector3(  0, SPAWN_Y, -28), kind: 'haste'  },
+  { pos: new THREE.Vector3(-28, SPAWN_Y,  18), kind: 'health' },
+  { pos: new THREE.Vector3( 40, SPAWN_Y,   8), kind: 'health' },
+];
+
 export const INDUSTRIAL_MAP: GameMap = {
   meta: {
     id: 'industrial',
@@ -414,6 +426,7 @@ export const INDUSTRIAL_MAP: GameMap = {
     ffaSpawns: FFA_SPAWNS,
     teamSpawns: TDM_TEAM_SPAWNS,
     spawnFlashColor: 0xa05028,
+    pickupNodes: PICKUP_NODES,
   },
   build: buildIndustrial,
 };
