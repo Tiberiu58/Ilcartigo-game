@@ -269,3 +269,37 @@ so the change is low-risk. Solo-only (bots don't run in MP). No protocol change.
 
 ### Phase 16 COMPLETE — Pickup-aware bots shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 17 — MP weapon damage parity (v0.17.0)
+
+A real MP correctness fix, not just juice. The server **hardcoded AR damage
+(24) for every weapon** (Room.ts: "For MVP we hardcode the AR damage"), so
+online a sniper, SMG and shotgun all hit for the same number — weapon choice was
+cosmetic in MP, and the client (which predicted *real* damage locally) disagreed
+with the server on kills. Fixed server-side; solo untouched; **protocol
+unchanged** (`weaponId` was already on the Fire message).
+
+- **`server/src/Weapons.ts`** — `weaponDamage(weaponId, distance, isHeadshot)`,
+  a mirror of the client `Weapon.computeDamage` (base damage + range falloff +
+  headshot multiplier) with a per-weapon table copied from the client's
+  WEAPON_LIBRARY. Marked **KEEP IN SYNC** alongside the controller mirror.
+- **Shotgun approximation** — the server models a single authoritative ray, so a
+  shotgun hit scales by an *effective pellet count* (≈7.6 point-blank → 1 by the
+  falloff end), reproducing the 9-pellet close-range lethality without modeling
+  each pellet.
+- **Room.ts** — replaced the hardcoded `24 × headMul` with `weaponDamage(...,
+  bestT, bestHead)` (bestT is the true distance — dir is normalized). Out-of-
+  effective-range hits now deal 0 (treated as a miss).
+- **Side benefit:** the client's local damage prediction now *matches* the
+  server, so MP hit/kill reconciliation is tighter than before.
+
+### Status log
+- ✅ Phase 17 — MP weapon damage parity. DONE. server tsc + client build green.
+  53-assertion headless test: server damage byte-matches the client formula for
+  ar/smg/sniper/pistol across distances + headshots; shotgun lethal-close /
+  weak-mid / zero-far / headshot-scaling; out-of-range → 0; unknown id → AR. All
+  pass. v0.17.0 bump.
+
+### Phase 17 COMPLETE — MP weapon damage parity shipped, solo intact, no protocol change.
+

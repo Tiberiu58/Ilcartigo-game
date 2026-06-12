@@ -15,6 +15,7 @@
 import type { Server, Socket } from 'socket.io';
 import { ServerController, type PlayerInput } from './Controller.js';
 import { COLLISION_BY_MAP, type SolidAABB } from './MapCollision.js';
+import { weaponDamage } from './Weapons.js';
 import {
   EV, PROTOCOL_VERSION, type ClientInput, type PlayerSnapshot,
   type Snapshot, type ServerWelcome, type ServerPlayerJoined, type ServerPlayerLeft,
@@ -426,15 +427,14 @@ export class Room {
     };
     this.io.emit(EV.Shot, shotEvent);
 
-    // Apply damage if we hit a player.
+    // Apply damage if we hit a player. Per-weapon authoritative damage (range
+    // falloff + headshot), mirroring the client — bestT is the true hit
+    // distance because dir is normalized.
     if (bestTarget) {
-      // For MVP we hardcode the AR damage. Real impl would look up per-weapon.
-      const baseDamage = 24;
-      const headMul = 1.8;
-      const damage = baseDamage * (bestHead ? headMul : 1);
+      const damage = weaponDamage(req.weaponId, bestT, bestHead);
       const now = Date.now();
-      if (now < bestTarget.invulnUntil) {
-        // Target is invulnerable — emit no damage.
+      if (now < bestTarget.invulnUntil || damage <= 0) {
+        // Target invulnerable, or hit was past the weapon's effective range.
       } else {
         bestTarget.hp = Math.max(0, bestTarget.hp - damage);
         const dmgEvent: ServerDamageEvent = {

@@ -455,14 +455,31 @@ solo-only, no protocol change.
   headless test driving a real Bot through a real World (selection, retreat,
   heal-on-arrival).
 
+## Phase 17 — MP weapon damage parity (this round, v0.17.0)
+
+An MP correctness fix. The server previously hardcoded AR damage (24) for **every**
+weapon, so online a sniper / SMG / shotgun all hit for the same number — and the
+client (which predicted real damage) disagreed with the server on kills. Fixed
+server-side; solo untouched; protocol unchanged (`weaponId` was already sent).
+
+- **`server/src/Weapons.ts`** — `weaponDamage(weaponId, distance, isHeadshot)`
+  mirrors the client `Weapon.computeDamage` (base damage + range falloff +
+  headshot multiplier) from a per-weapon table copied out of the client's
+  WEAPON_LIBRARY (marked **KEEP IN SYNC**). Shotgun is approximated with an
+  *effective pellet count* (≈7.6 point-blank → 1 by falloff end) since the server
+  casts a single ray.
+- Room.ts now calls it with the true hit distance; out-of-range hits deal 0.
+  Verified with a 53-assertion headless test (exact match to the client formula
+  for the four hitscan weapons; sane shotgun falloff).
+
 ## Project status
 
-16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, scorestreak rewards, **pickup-aware bots** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, scorestreak rewards, pickup-aware bots, **MP weapon damage parity** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards, pickup-aware bots. v0.16.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards, pickup-aware bots. v0.17.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Per-weapon authoritative damage + falloff. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
