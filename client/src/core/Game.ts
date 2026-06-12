@@ -905,7 +905,11 @@ export class Game implements PickupHost {
     if (!this.mp) {
       for (const b of this.bots) {
         if (!b.active) continue;
-        b.update(dt, this._eyePos, this.player.vel, this.playerActor.isCloaked);
+        // Hurt bots get pointed at the nearest available health node so they
+        // contest the pickups (cheap: only queried when actually low).
+        const lowHp = !b.health.dead && b.health.current / b.health.max <= 0.35;
+        const healthNode = lowHp ? this.pickups.nearestAvailableHealth(b.group.position) : null;
+        b.update(dt, this._eyePos, this.player.vel, this.playerActor.isCloaked, healthNode);
       }
     }
 

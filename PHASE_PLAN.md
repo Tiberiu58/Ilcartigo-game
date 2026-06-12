@@ -240,3 +240,32 @@ only**, no protocol change.
 
 ### Phase 15 COMPLETE — Scorestreak rewards shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 16 — Pickup-aware bots (v0.16.0)
+
+Makes the solo experience (what most players actually play) more dynamic and
+makes the Phase-14 pickup nodes a *live contested resource* rather than scenery.
+Additive to the bot state machine — core combat targeting/firing is untouched,
+so the change is low-risk. Solo-only (bots don't run in MP). No protocol change.
+
+- **New `seek` bot state.** When a bot drops to ≤35% HP and a Health node is
+  available, it breaks off combat and paths straight to the nearest one (a touch
+  faster than reposition), holding fire until it heals. Collection is the
+  existing PickupManager overlap path (`tryApplyToBot`), so the bot just needs to
+  arrive. Recovering above the threshold drops it back into normal combat.
+- **`PickupManager.nearestAvailableHealth(from)`** — nearest *available* Health
+  node by horizontal distance (skips non-health + respawning nodes).
+- **Game.tick** queries the nearest node only for actually-low bots (cheap) and
+  passes it to `Bot.update` via a new optional `healthNode` arg (defaulted, so
+  the signature stays backward-compatible).
+
+### Status log
+- ✅ Phase 16 — Pickup-aware bots. DONE. tsc (client+server) + client build green
+  (app chunk ~64.5 KB gzip). Headless smoke test drives a real Bot through a real
+  World: nearest-health selection (skips a closer *damage* node), low-HP retreat
+  (moves toward the node), heals on arrival, and returns above threshold — 5/5
+  assertions pass. v0.16.0 bump.
+
+### Phase 16 COMPLETE — Pickup-aware bots shipped, solo + MP intact, no protocol change.
+

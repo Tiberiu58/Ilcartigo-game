@@ -89,6 +89,21 @@ export class PickupManager {
     }
   }
 
+  /** Nearest *available* Health node to `from` (horizontal distance), or null
+   *  if none are up. Used by low-HP bots to retreat-and-heal. */
+  nearestAvailableHealth(from: THREE.Vector3): THREE.Vector3 | null {
+    let best: THREE.Vector3 | null = null;
+    let bestD = Infinity;
+    for (const p of this.pickups) {
+      if (!p.available || p.kind !== 'health') continue;
+      const dx = from.x - p.base.x;
+      const dz = from.z - p.base.z;
+      const d = dx * dx + dz * dz;
+      if (d < bestD) { bestD = d; best = p.base; }
+    }
+    return best;
+  }
+
   private collected(p: Pickup) {
     this.host.flashFX(p.center, p.def.color);
     p.collect();

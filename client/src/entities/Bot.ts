@@ -47,8 +47,12 @@ const BODY_HALF = new THREE.Vector3(0.4, 0.9, 0.4);    // standing
 const HEAD_OFFSET = 1.55;         // from feet
 const HEAD_SIZE = 0.28;
 const ENGAGE_RANGE = 60;
+/** Below this HP fraction, a bot breaks off to grab the nearest health pickup
+ *  (if one is available) instead of fighting — makes the pickup nodes a live
+ *  contested resource rather than scenery. */
+const SEEK_HEAL_RATIO = 0.35;
 
-type BotState = 'idle' | 'engage' | 'reposition' | 'dead';
+type BotState = 'idle' | 'engage' | 'reposition' | 'seek' | 'dead';
 
 // Generic patrol points — chosen to avoid Sandstone's buildings and the
 // TestMap's central pillar. Per-map waypoint sets come in Phase 5b polish.
@@ -173,7 +177,7 @@ export class Bot implements Damageable {
    * state. Predictor-tier bots lead their shots using velocity; cloaked
    * players are never engaged (Ghost passive).
    */
-  update(dt: number, playerEye: THREE.Vector3, playerVel: THREE.Vector3, playerCloaked: boolean) {
+  update(dt: number, playerEye: THREE.Vector3, playerVel: THREE.Vector3, playerCloaked: boolean, healthNode: THREE.Vector3 | null = null) {
     this.weapon.update(dt);
     this.timeSinceLastShot += dt;
 
@@ -200,11 +204,16 @@ export class Bot implements Damageable {
     // Cloaked players are invisible to bot LoS — Ghost passive.
     const hasLoS = !playerCloaked && distToPlayer < ENGAGE_RANGE && this.world.hasLineOfSight(botEye, playerEye);
 
-    // Transition logic.
-    if (hasLoS) {
+    // Heal-seeking: hurt + a health node is up → break off to grab it.
+    const wantsHeal = (this.health.current / this.health.max) <= SEEK_HEAL_RATIO && healthNode !== null;
+
+    // Transition logic. Heal-seeking overrides combat when hurt + a node is up.
+    if (wantsHeal) {
+      this.state = 'seek';
+    } else if (hasLoS) {
       if (this.state !== 'engage') this.engageTime = 0;
       this.state = 'engage';
-    } else if (this.state === 'engage') {
+    } else if (this.state === 'engage' || this.state === 'seek') {
       this.state = 'reposition';
     } else if (this.state === 'reposition') {
       // Continue toward current waypoint; once reached, return to idle.
@@ -212,7 +221,9 @@ export class Bot implements Damageable {
       if (this.position.distanceTo(target) < 1.0) this.state = 'idle';
     }
 
-    if (this.state === 'engage') {
+    if (this.state === 'seek' && healthNode) {
+      this.seekHeal(dt, healthNode);
+    } else if (this.state === 'engage') {
       this.engageTime += dt;
       this.faceTarget(playerEye, dt);
 
@@ -260,6 +271,24 @@ export class Bot implements Damageable {
 
     const res = this.weapon.tryFire(origin, this._aim);
     if (res) this.timeSinceLastShot = 0;
+  }
+
+  /** Move directly toward a health node (a touch faster than reposition).
+   *  Collection itself is handled by the PickupManager when we overlap it. */
+  private seekHeal(dt: number, node: THREE.Vector3) {
+    const toX = node.x - this.position.x;
+    const toZ = node.z - this.position.z;
+    const dist = Math.hypot(toX, toZ);
+    if (dist < 0.3) return;      // basically on it — wait for the heal
+    const speed = WALK_SPEED * 1.3 * dt;
+    const stepX = (toX / dist) * speed;
+    const stepZ = (toZ / dist) * speed;
+    this.tryStep(_STEP.set(stepX, 0, stepZ));
+    const targetYaw = Math.atan2(-stepX, -stepZ);
+    let delta = targetYaw - this.yaw;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    this.yaw += delta * Math.min(1, dt * 7);
   }
 
   private patrol(dt: number) {

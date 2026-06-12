@@ -441,14 +441,28 @@ change.
 | --- | --- | --- |
 | `streak_reward.wav` | Scorestreak reward earned — triumphant power swell | "reward unlock", "power surge sting" |
 
+## Phase 16 — Pickup-aware bots (this round, v0.16.0)
+
+Makes solo-vs-bots more dynamic and turns the Phase-14 pickup nodes into a live
+contested resource. Additive to the bot state machine (core combat untouched),
+solo-only, no protocol change.
+
+- **New `seek` bot state** — at ≤35% HP with a Health node available, a bot
+  breaks off and paths to the nearest one, holding fire until it heals, then
+  resumes combat. Collection reuses the existing PickupManager overlap path.
+- **`PickupManager.nearestAvailableHealth(from)`** + a new optional `healthNode`
+  arg on `Bot.update` (Game queries it only for low bots). Verified with a
+  headless test driving a real Bot through a real World (selection, retreat,
+  heal-on-arrival).
+
 ## Project status
 
-15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, **scorestreak rewards** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, scorestreak rewards, **pickup-aware bots** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards, pickup-aware bots. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
