@@ -284,3 +284,10 @@ Industrial's CQB warehouse. Works in **solo + MP** (no protocol change).
 
 ### Phase 17 COMPLETE — Foundry shipped (solo + MP), collision mirrored + verified, no protocol change.
 
+**Phase 17b polish (v0.17.1):** integrated the Marksman (Phase 14) into the Gun
+Game ladder — now a 6-rung climb `smg → ar → marksman → shotgun → sniper →
+pistol`. The HUD ticker total + pips are already data-driven off
+`GUNGAME_LADDER.length`, and the win-check is generic, so it "just works."
+Verified with a 6-check headless GunGame test (climbs the full ladder, wins on
+the final-rung kill). Build green.
+

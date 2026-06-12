@@ -22,8 +22,9 @@ import type { GameEventBus } from '../core/events';
 import type { WeaponId } from '../weapons/Weapon';
 
 /** The weapon ladder, bottom (first) → top (last). Reaching past the last
- *  weapon wins. Pistol is intentionally the final rung. */
-export const GUNGAME_LADDER: WeaponId[] = ['smg', 'ar', 'shotgun', 'sniper', 'pistol'];
+ *  weapon wins. Pistol is intentionally the final rung. The Marksman (Phase 14)
+ *  sits between the AR and Shotgun, giving a 6-rung climb. */
+export const GUNGAME_LADDER: WeaponId[] = ['smg', 'ar', 'marksman', 'shotgun', 'sniper', 'pistol'];
 
 /** Display labels for each rung (HUD ticker). */
 const WEAPON_LABEL: Record<WeaponId, string> = {
