@@ -218,9 +218,16 @@ export class Game {
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
     // returns in Phase 10 — its 180ms aim-lead makes it dangerous, but with
     // spawn protection + safe-spawn picker it's a fair challenge.
-    this.bots.push(new Bot('wanderer', new THREE.Vector3( 18, 0.5,   3), this.world, this.bus, 'wanderer'));
-    this.bots.push(new Bot('engager',  new THREE.Vector3(-18, 0.5,   3), this.world, this.bus, 'engager'));
-    this.bots.push(new Bot('predictor', new THREE.Vector3(  0, 0.5, -22), this.world, this.bus, 'predictor'));
+    // Each bot carries a distinct weapon (Phase 16) so solo combat has texture
+    // instead of three identical rifles. Tuned for FAIR fun, not raw lethality:
+    //  - wanderer → shotgun: brutal up close, near-harmless past ~20m (its
+    //    slow reaction + heavy falloff reward you for keeping your distance).
+    //  - engager  → ar: the balanced all-rounder (unchanged feel).
+    //  - predictor→ smg: accurate sustained spray that tracks you — pressure
+    //    without one-shot burst.
+    this.bots.push(new Bot('wanderer', new THREE.Vector3( 18, 0.5,   3), this.world, this.bus, 'wanderer', 'shotgun'));
+    this.bots.push(new Bot('engager',  new THREE.Vector3(-18, 0.5,   3), this.world, this.bus, 'engager', 'ar'));
+    this.bots.push(new Bot('predictor', new THREE.Vector3(  0, 0.5, -22), this.world, this.bus, 'predictor', 'smg'));
 
     // Ability runner — class chosen from menu; passives applied via setClass.
     const initialClass = (localStorage.getItem('ilc.class') as ClassId) ?? 'vanguard';

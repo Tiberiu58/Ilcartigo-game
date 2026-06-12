@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. **Weapon Mastery** — every gun has a per-weapon kill ladder (Bronze→Master) with tier-up XP rewards, a slide-in toast, and a Profile mastery grid. Built on Phase 14 (per-weapon authoritative damage in MP + the Marksman DMR), Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 16 — v0.16.0. **Bot loadout variety** (each bot carries a distinct weapon — shotgun rusher / AR / SMG — so solo fights have texture). Built on Phase 15 (**Weapon Mastery**) — every gun has a per-weapon kill ladder (Bronze→Master) with tier-up XP rewards, a slide-in toast, and a Profile mastery grid. Built on Phase 14 (per-weapon authoritative damage in MP + the Marksman DMR), Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -425,14 +425,26 @@ carry the weapon). No protocol change.
   a progress bar to the next tier, and the kill goal. Verified with a 15-check
   headless logic test.
 
+## Phase 16 — Bot loadout variety (this round, v0.16.0)
+
+Solo combat was three identical AR bots. Now each bot carries a **distinct
+weapon** so fights have texture and you can grind every weapon's mastery against
+a different playstyle. `Bot` takes a `weaponId` and builds from the weapon
+library (reusing the per-weapon damage / pellet / falloff / tracer / SFX paths);
+difficulty modulates damage + reaction + jitter, while the weapon's own fire
+rate is kept but capped at the tier cadence so fast guns stay balanced and slow
+guns stay slow. The fair-fun trio: **wanderer → shotgun** (deadly up close,
+harmless at range), **engager → ar** (unchanged), **predictor → smg** (accurate
+sustained spray). No protocol change.
+
 ## Project status
 
-15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, per-weapon authoritative damage in MP + the Marksman precision rifle, **weapon mastery progression** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, per-weapon authoritative damage in MP + the Marksman precision rifle, **weapon mastery progression** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, 6 weapons incl. the Marksman, **weapon mastery**. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan with **per-weapon damage + pellet/falloff model**. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, 6 weapons incl. the Marksman, **weapon mastery**, **varied bot loadouts**. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan with **per-weapon damage + pellet/falloff model**. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

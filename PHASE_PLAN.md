@@ -224,3 +224,30 @@ No protocol change.
 
 ### Phase 15 COMPLETE — per-weapon mastery progression + tier-up rewards, solo + MP, no protocol change.
 
+---
+
+## Phase 16 — Bot loadout variety (v0.16.0)
+
+Solo combat was three identical AR bots — flat, and you could only grind weapon
+mastery (Phase 15) against one playstyle. Now each bot carries a **distinct
+weapon** from the library, so its tracers, fire SFX, pellet spread (shotgun) and
+falloff all read differently, and fights have texture. Self-contained,
+client-side, no protocol change.
+
+- **`Bot` takes a `weaponId`** (default `ar`, back-compat). It builds its weapon
+  from `WEAPON_LIBRARY[weaponId]` instead of a hardcoded AR clone, reusing the
+  per-weapon damage / pellet / falloff / tracer / sound paths. Difficulty still
+  modulates **damage + reaction + jitter**; the weapon's own fire rate is kept
+  but **capped at the tier cadence** (`min(weapon, tier)`) so fast guns (AR/SMG)
+  stay at the balanced bot pace while slow guns (shotgun/sniper) remain slow.
+  Recoil is zeroed (bots don't climb a spray).
+- **Fair, fun trio** (tuned for texture, not lethality): wanderer → **shotgun**
+  (brutal up close, near-harmless past ~20m — its slow reaction + heavy falloff
+  reward spacing); engager → **ar** (unchanged all-rounder); predictor → **smg**
+  (accurate sustained spray that tracks you, pressure without one-shot burst).
+  The engager/AR path is numerically identical to before, so no regression.
+- Verified: typecheck + build green (app chunk ~62.9 KB gzip). The engager AR
+  damage/fire-rate matches the pre-Phase-16 values exactly (math check).
+
+### Phase 16 COMPLETE — varied bot loadouts, balanced for fair fun, no protocol change, solo + MP intact.
+

@@ -24,7 +24,7 @@ import * as THREE from 'three';
 import { Health } from './Health';
 import type { Damageable, HitAABB } from './Damageable';
 import type { World } from '../core/World';
-import { Weapon, AR_CONFIG } from '../weapons/Weapon';
+import { Weapon, WEAPON_LIBRARY, type WeaponId } from '../weapons/Weapon';
 import type { GameEventBus } from '../core/events';
 
 const WALK_SPEED = 4.0;
@@ -66,6 +66,7 @@ export class Bot implements Damageable {
   readonly health: Health;
   readonly team = 1;
   readonly weapon: Weapon;
+  readonly weaponId: WeaponId;
 
   private world: World;
   private bus: GameEventBus;
@@ -96,23 +97,29 @@ export class Bot implements Damageable {
   private _toTarget = new THREE.Vector3();
   private _aim = new THREE.Vector3();
 
-  constructor(id: string, spawn: THREE.Vector3, world: World, bus: GameEventBus, difficulty: BotDifficulty = 'engager') {
+  constructor(id: string, spawn: THREE.Vector3, world: World, bus: GameEventBus, difficulty: BotDifficulty = 'engager', weaponId: WeaponId = 'ar') {
     this.id = id;
     this.health = new Health(100);
     this.world = world;
     this.bus = bus;
     this.difficulty = difficulty;
     this.tier = DIFFICULTY[difficulty];
+    this.weaponId = weaponId;
 
-    // Bots share the AR config but each tier modulates fire rate + damage.
-    // damageMul is applied to baseDamage — easier bots hit softer.
+    // Each bot carries a real weapon from the library (Phase 16 variety), so
+    // its tracers, fire SFX, pellet spread (shotgun) and falloff all match the
+    // player's guns. Difficulty modulates only damage + reaction + jitter; the
+    // weapon's own fire rate is kept but CAPPED at the tier cadence so fast guns
+    // (AR/SMG) stay at the balanced bot pace while slow guns (sniper/shotgun)
+    // remain slow. Recoil is zeroed — bots don't climb a spray pattern.
+    const cfg = WEAPON_LIBRARY[weaponId];
     this.weapon = new Weapon(
       {
-        ...AR_CONFIG,
-        fireRate: this.tier.fireRate,
+        ...cfg,
+        fireRate: Math.min(cfg.fireRate, this.tier.fireRate),
         recoilPitch: 0,
         recoilYaw: 0,
-        baseDamage: AR_CONFIG.baseDamage * this.tier.damageMul,
+        baseDamage: cfg.baseDamage * this.tier.damageMul,
       },
       world, bus, id,
     );
