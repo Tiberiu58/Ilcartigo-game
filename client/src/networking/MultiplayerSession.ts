@@ -28,6 +28,7 @@ import * as THREE from 'three';
 import type { Game } from '../core/Game';
 import { NetClient } from './NetClient';
 import { RemotePlayer } from './RemotePlayer';
+import { isCombatMapId } from '../maps/Map';
 import type {
   Snapshot, ServerWelcome, ServerShotEvent, ServerKillEvent, ServerDamageEvent,
   ServerPlayerJoined, ServerPlayerLeft,
@@ -259,7 +260,7 @@ export class MultiplayerSession {
     // Server's map is authoritative. If our current map doesn't match, swap.
     // This handles both fresh connects (we're on Sandstone, server is running
     // Industrial) and stale state.
-    if (m.mapId === 'sandstone' || m.mapId === 'industrial') {
+    if (isCombatMapId(m.mapId)) {
       this.game.setCombatMap(m.mapId);
     }
 

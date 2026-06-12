@@ -83,6 +83,13 @@ const SPAWNS_BY_MAP: Record<string, ReadonlyArray<Vec3>> = {
     [ 28, 4.5,    0],    // mid L1 catwalk
     [ 42, 0.5, -28],     // SE yard corner
   ],
+  // Foundry — four corner spawns (mirror FoundryMap.ts ffaSpawns).
+  foundry: [
+    [ 30, 0.5,  30],
+    [-30, 0.5,  30],
+    [ 30, 0.5, -30],
+    [-30, 0.5, -30],
+  ],
 };
 
 interface AbilityState {

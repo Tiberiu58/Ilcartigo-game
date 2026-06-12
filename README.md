@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 16 — v0.16.0. **Bot loadout variety** (each bot carries a distinct weapon — shotgun rusher / AR / SMG — so solo fights have texture). Built on Phase 15 (**Weapon Mastery**) — every gun has a per-weapon kill ladder (Bronze→Master) with tier-up XP rewards, a slide-in toast, and a Profile mastery grid. Built on Phase 14 (per-weapon authoritative damage in MP + the Marksman DMR), Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 17 — v0.17.0. **New map: Foundry** — a compact, symmetric industrial arena built around a central high-ground bunker (jump-pad onto the roof). Three maps now. Built on Phase 16 (bot loadout variety), Phase 15 (**Weapon Mastery**) — every gun has a per-weapon kill ladder (Bronze→Master) with tier-up XP rewards, a slide-in toast, and a Profile mastery grid. Built on Phase 14 (per-weapon authoritative damage in MP + the Marksman DMR), Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -437,14 +437,29 @@ guns stay slow. The fair-fun trio: **wanderer → shotgun** (deadly up close,
 harmless at range), **engager → ar** (unchanged), **predictor → smg** (accurate
 sustained spray). No protocol change.
 
+## Phase 17 — New map: Foundry (this round, v0.17.0)
+
+Map variety is the #1 replay driver. **Foundry** is the third arena — a compact,
+4-fold-symmetric industrial map built around a single raised central **bunker**
+whose rooftop is the prime high ground, reachable only by four jump pads at its
+faces ("who holds the roof?"). Works in solo + MP, no protocol change.
+
+- `maps/FoundryMap.ts` (geometry, lighting, meta) with collision mirrored 1:1
+  as `FOUNDRY_COLLISION` (18 solids) in both client + server `MapCollision.ts`,
+  `COLLISION_BY_MAP.foundry`, and the server `SPAWNS_BY_MAP.foundry`.
+- New `COMBAT_MAP_IDS` / `isCombatMapId()` single source of truth replaces the
+  hardcoded map guards; a Foundry loadout button; server runs `MAP=foundry`.
+- Verified headlessly: spawn-safety (all FFA + bot spawns collision-free,
+  grounded, inside perimeter) and a live `MAP=foundry` MP smoke.
+
 ## Project status
 
-16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, per-weapon authoritative damage in MP + the Marksman precision rifle, **weapon mastery progression** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, per-weapon authoritative damage in MP + the Marksman precision rifle, **weapon mastery progression** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
 - `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, 6 weapons incl. the Marksman, **weapon mastery**, **varied bot loadouts**. v0.16.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan with **per-weapon damage + pellet/falloff model**. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan with **per-weapon damage + pellet/falloff model**. Networked abilities + barriers. Authoritative match-end + class passives. 3-map collision (incl. Foundry). Protocol v2. v0.17.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

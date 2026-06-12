@@ -13,7 +13,17 @@
 import type * as THREE from 'three';
 import type { World } from '../core/World';
 
-export type MapId = 'practice' | 'sandstone' | 'industrial';
+export type MapId = 'practice' | 'sandstone' | 'industrial' | 'foundry';
+
+/** Combat maps the player can pick / the server can run (everything but the
+ *  bot-less Practice Range). Single source of truth for the menu + MP guards. */
+export const COMBAT_MAP_IDS = ['sandstone', 'industrial', 'foundry'] as const;
+export type CombatMapId = typeof COMBAT_MAP_IDS[number];
+
+/** Narrowing guard — is this string a real combat map id? */
+export function isCombatMapId(id: string): id is CombatMapId {
+  return (COMBAT_MAP_IDS as readonly string[]).includes(id);
+}
 
 export interface MapMeta {
   id: MapId;

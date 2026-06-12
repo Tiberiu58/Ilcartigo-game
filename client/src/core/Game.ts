@@ -35,6 +35,7 @@ import { AudioManager, type SoundId } from '../audio/AudioManager';
 import { TEST_MAP } from '../maps/TestMap';
 import { SANDSTONE_MAP } from '../maps/SandstoneMap';
 import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
+import { FOUNDRY_MAP } from '../maps/FoundryMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
@@ -42,11 +43,12 @@ import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
 
-/** Map id → GameMap. All three maps live here. */
+/** Map id → GameMap. All maps live here. */
 const MAPS: Record<MapId, GameMap> = {
   practice: TEST_MAP,
   sandstone: SANDSTONE_MAP,
   industrial: INDUSTRIAL_MAP,
+  foundry: FOUNDRY_MAP,
 };
 
 export type GameMode = 'combat' | 'practice' | 'gungame';

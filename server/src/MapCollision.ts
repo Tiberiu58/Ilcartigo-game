@@ -224,8 +224,44 @@ export const INDUSTRIAL_COLLISION: readonly SolidAABB[] = [
   ...stairs(8, -35, 8, -33, 3),
 ];
 
+/**
+ * Foundry collision boxes. Mirrors FoundryMap.ts's `addBox(..., true)` calls
+ * 1:1 (18 solids: ground + 4 perimeter walls + central bunker + 4 buttresses +
+ * 8 crates). Jump pads + all collide=false decoration are excluded by design.
+ */
+export const FOUNDRY_COLLISION: readonly SolidAABB[] = [
+  // Steel deck (top at y=0)
+  box(0, -0.5, 0, 80, 1, 80),
+
+  // Perimeter walls (P=36, H=4 → 8m tall, 1m thick)
+  box(0,  4, -36, 72, 8, 1),
+  box(0,  4,  36, 72, 8, 1),
+  box(-36, 4,  0, 1, 8, 72),
+  box( 36, 4,  0, 1, 8, 72),
+
+  // Central bunker (roof at y=6) — the high ground
+  box(0, 3, 0, 20, 6, 20),
+
+  // Mid-edge buttress cover walls (2.5m tall) — at ±24, clear of bot spawn (0,-22)
+  box(0,  1.25,  24, 10, 2.5, 1.5),
+  box(0,  1.25, -24, 10, 2.5, 1.5),
+  box( 24, 1.25,  0, 1.5, 2.5, 10),
+  box(-24, 1.25,  0, 1.5, 2.5, 10),
+
+  // Crates — four near the corner spawns + four on the inner diagonals
+  box( 26, 0.7,  26, 1.4, 1.4, 1.4),
+  box(-26, 0.7,  26, 1.4, 1.4, 1.4),
+  box( 26, 0.7, -26, 1.4, 1.4, 1.4),
+  box(-26, 0.7, -26, 1.4, 1.4, 1.4),
+  box( 14, 0.7,  14, 1.4, 1.4, 1.4),
+  box(-14, 0.7,  14, 1.4, 1.4, 1.4),
+  box( 14, 0.7, -14, 1.4, 1.4, 1.4),
+  box(-14, 0.7, -14, 1.4, 1.4, 1.4),
+];
+
 /** Lookup by map id — server's MAP env var picks one of these. */
 export const COLLISION_BY_MAP: Record<string, readonly SolidAABB[]> = {
   sandstone: SANDSTONE_COLLISION,
   industrial: INDUSTRIAL_COLLISION,
+  foundry: FOUNDRY_COLLISION,
 };

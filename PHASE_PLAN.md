@@ -251,3 +251,36 @@ client-side, no protocol change.
 
 ### Phase 16 COMPLETE — varied bot loadouts, balanced for fair fun, no protocol change, solo + MP intact.
 
+---
+
+## Phase 17 — New map: Foundry (v0.17.0)
+
+Map variety is the #1 replay driver and ILCARTIGO had only two arenas. **Foundry**
+is the third — a compact, 4-fold-symmetric industrial arena built around a single
+raised central **bunker** whose rooftop (y=6) is the dominant high ground,
+reachable only by four jump pads at its faces. Its identity is vertical "who
+holds the roof?" — a different rhythm from Sandstone's open plaza and
+Industrial's CQB warehouse. Works in **solo + MP** (no protocol change).
+
+- **`maps/FoundryMap.ts`** — geometry + lighting (cold steel + molten-orange) +
+  meta (4 corner FFA spawns, TDM pair, spawn-flash colour). Cover layers: the
+  central bunker blocks the diagonals, four buttress walls break the cardinal
+  sightlines, eight crates give peek cover.
+- **Collision mirrored 1:1** as `FOUNDRY_COLLISION` (18 solids) in **both**
+  `client/src/maps/MapCollision.ts` and `server/src/MapCollision.ts` (kept
+  byte-identical), plus `COLLISION_BY_MAP.foundry` and the server's
+  `SPAWNS_BY_MAP.foundry`.
+- **Wiring:** `MapId` union + new `COMBAT_MAP_IDS` / `isCombatMapId()` single
+  source of truth (replaced the two hardcoded `'sandstone' || 'industrial'`
+  guards in `main.ts` + `MultiplayerSession.ts`), `MAPS` registry, and a Foundry
+  loadout button. Server runs it via `MAP=foundry`.
+- **Balance fix caught in verification:** the shared predictor-bot spawn at
+  (0,-22) sat inside the south buttress at ±22 → moved all four buttresses to
+  ±24 (clear of the spawn, symmetry kept).
+- **Verified headlessly:** a spawn-safety check (all 4 FFA spawns + 3 bot spawns
+  collision-free + grounded + inside perimeter; bunker present; 18 solids) and a
+  live `MAP=foundry` MP smoke (welcome map = foundry, player spawns at a corner,
+  sim ticks). Client + server typecheck + build green (app chunk ~63.6 KB gzip).
+
+### Phase 17 COMPLETE — Foundry shipped (solo + MP), collision mirrored + verified, no protocol change.
+
