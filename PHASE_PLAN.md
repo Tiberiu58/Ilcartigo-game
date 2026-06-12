@@ -152,3 +152,58 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — Arena Pickups & Power-ups (v0.14.0)
+
+The Krunker/arena staple that turns a flat deathmatch into a map you *fight
+over*: glowing world pickups on respawn timers. Self-contained, **solo + bots
+only for v1**, client-side, **no protocol / MP changes** (mirrors Gun Game's
+proven low-risk pattern — pickups simply don't run when connected to MP).
+
+**Four pickup kinds:**
+- **Health** (+35 HP) — left on the floor if you're already at full, grabbed
+  when you need it; bots grab these too (health only, so their buffs never
+  frustrate you).
+- **Armor** (+50 overshield) — a temporary absorb pool that drains *before*
+  real HP. New `Health.overshield` / `addOvershield`, capped at 50, cleared on
+  death/reset.
+- **Damage Boost** (2× outgoing damage, 12 s) — `Weapon.damageMultiplier`,
+  applied across the inventory and preserved through primary swaps (so it
+  survives a Gun Game weapon advance).
+- **Haste** (1.4× move speed, 10 s) — new `PlayerController.pickupSpeedMultiplier`,
+  kept *separate* from the Surge ability's multiplier so the two **compose**
+  (stack) instead of overwriting each other.
+
+**Systems:**
+- **`entities/Pickup.ts`** — a floating, spinning, bobbing octahedron core with
+  a ground glow ring + point light, per-kind tint, and a respawn countdown that
+  pops the node back with a flash.
+- **`core/PickupManager.ts`** — bobs/spins nodes, runs proximity collection
+  (horizontal radius + vertical tolerance so you can't grab a node a floor away),
+  and leaves the *consume-or-not* decision to a `PickupHost` (so a full-HP
+  player walking over a Health node leaves it). Built only in solo combat/gungame.
+- **Game** implements `PickupHost`: a timed power-up state machine (start/refresh,
+  per-frame expiry, full clear on death / mode swap / map change / MP connect),
+  rebuilt per map from `MapMeta.pickupNodes`. Sandstone + Industrial each get 5
+  nodes spread across their sightlines (Damage Boost in the most contested spot).
+- **HUD** — overshield strip + "+N" tag on the HP bar, power-up countdown chips
+  (2× DMG / HASTE with shrinking bars), and a brief pickup toast.
+- **Announcer.callout()** — power-ups (Damage/Haste) flash a center banner like
+  a kill milestone; health/armor just toast. New `pickup` bus event.
+- 5 new sound ids (`pickup_health/armor/power/spawn`, `powerup_end`) — silent
+  until `.wav`s land.
+
+### Status log
+- ✅ Phase 14A/B — Pickups + power-ups. DONE. tsc (client+server) + client build
+  green (app chunk ~63.7 KB gzip, +2.1 KB). 16-assertion headless smoke test
+  (overshield absorb order, collection radius, no-double-collect, dead/vertical
+  rejection, respawn cycle) all pass. Solo-only by design — divergence from the
+  server controller is deliberate (pickups never run in MP), matching the
+  bots/GunGame pattern; `Protocol.ts` untouched.
+- ✅ Phase 14C/D — Polish + docs. How-to card gains a pickups line + power-up pro
+  tip. Bumped client+server to v0.14.0 (+ menu subtitle/footer). README Phase 14
+  section + audio-catalog additions.
+
+### Phase 14 COMPLETE — Arena pickups + power-ups shipped, solo + MP intact, no protocol change.
+
