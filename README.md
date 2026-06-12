@@ -492,14 +492,29 @@ Works in solo AND MP.
 | --- | --- | --- |
 | `fire_marksman.wav` | Marksman DMR shot — sharp, heavier than the AR | "dmr shot", "battle rifle single" |
 
+## Phase 19 — Weapon Mastery (this round, v0.19.0)
+
+A proven retention grind on top of the existing progression: kills with each
+weapon climb its mastery tiers (Bronze → Silver → Gold → Diamond), each tier-up
+paying a one-off XP bonus + a banner. Pure client/progression — no combat/MP
+risk, migration-safe.
+
+- **`account/Mastery.ts`** — tier table (25/75/200/500 kills; 100/200/400/800 XP
+  bonuses) + helpers. **Account** gains migration-safe `weaponKills`;
+  `recordKill(isHeadshot, weaponId)` bumps the count + grants the bonus on a
+  crossing + fires `onMasteryTierUp`.
+- **ProfileUI** — new "Weapon Mastery" section (per-weapon tier badge + progress
+  to next). **main.ts** flashes a tier-up banner. Verified with a 19-assertion
+  headless test (tier boundaries, bonus XP, per-weapon independence, persistence).
+
 ## Project status
 
-18 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, scorestreak rewards, pickup-aware bots, MP weapon damage parity, **Marksman rifle** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+19 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, scorestreak rewards, pickup-aware bots, MP weapon damage parity, Marksman rifle, **weapon mastery** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards, pickup-aware bots, 6-weapon roster (AR/SMG/Marksman/Sniper/Shotgun/Pistol). v0.18.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Per-weapon authoritative damage + falloff. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.18.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards, pickup-aware bots, 6-weapon roster (AR/SMG/Marksman/Sniper/Shotgun/Pistol), weapon mastery. v0.19.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Per-weapon authoritative damage + falloff. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.19.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

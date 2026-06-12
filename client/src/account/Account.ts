@@ -14,6 +14,7 @@
 
 import { findSkin, findTracer, defaultSkinForClass, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId } from './Cosmetics';
 import type { ClassId } from '../classes/types';
+import { masteryTierIndex, MASTERY_TIERS } from './Mastery';
 
 const STORAGE_KEY = 'ilc.account';
 const XP_PER_LEVEL = 1000;
@@ -64,6 +65,8 @@ interface AccountData {
   equippedTracer: TracerId;
   /** Lifetime career stats. */
   stats: LifetimeStats;
+  /** Per-weapon lifetime kill counts (for weapon mastery). Keyed by weapon id. */
+  weaponKills: Record<string, number>;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
@@ -144,6 +147,7 @@ function freshData(): AccountData {
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
     stats: freshStats(),
+    weaponKills: {},
     name: '',
     daily: freshDaily(freshStats()),
   };
@@ -153,6 +157,9 @@ export class Account {
   private data: AccountData = freshData();
   /** Listeners notified on any mutation (XP gain, unlock, equip). */
   private listeners = new Set<() => void>();
+  /** Fired when a weapon crosses into a new mastery tier (for a banner/SFX).
+   *  Set by main.ts. tierIndex is into MASTERY_TIERS (>=1). */
+  onMasteryTierUp?: (weaponId: string, tierIndex: number) => void;
 
   constructor() {
     this.load();
@@ -187,6 +194,9 @@ export class Account {
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
+        weaponKills: (parsed.weaponKills && typeof parsed.weaponKills === 'object')
+          ? parsed.weaponKills as Record<string, number>
+          : fresh.weaponKills,
         name: typeof parsed.name === 'string' ? parsed.name.slice(0, 16) : fresh.name,
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
@@ -258,6 +268,9 @@ export class Account {
 
   /** Lifetime career stats (read-only snapshot). */
   get stats(): Readonly<LifetimeStats> { return this.data.stats; }
+
+  /** Lifetime kills with a given weapon. */
+  weaponKillsOf(weaponId: string): number { return this.data.weaponKills[weaponId] ?? 0; }
   /** Lifetime kill/death ratio as a display string. */
   get lifetimeKD(): string {
     const { kills, deaths } = this.data.stats;
@@ -338,9 +351,23 @@ export class Account {
   // ── Lifetime stat recording ───────────────────────────────────────────────
 
   /** Record a local-player kill (optionally a headshot). */
-  recordKill(isHeadshot: boolean) {
+  recordKill(isHeadshot: boolean, weaponId?: string) {
     this.data.stats.kills++;
     if (isHeadshot) this.data.stats.headshots++;
+    // Weapon mastery: bump the per-weapon count + pay a one-off XP bonus on a
+    // tier-up. We compute the tier before/after to detect a crossing.
+    if (weaponId) {
+      const before = this.data.weaponKills[weaponId] ?? 0;
+      const after = before + 1;
+      this.data.weaponKills[weaponId] = after;
+      const tierBefore = masteryTierIndex(before);
+      const tierAfter = masteryTierIndex(after);
+      if (tierAfter > tierBefore) {
+        this.data.xp += MASTERY_TIERS[tierAfter].bonus;
+        // Notify after state is consistent (listeners read fresh data).
+        this.onMasteryTierUp?.(weaponId, tierAfter);
+      }
+    }
     this.save();
   }
 

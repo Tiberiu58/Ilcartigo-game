@@ -332,3 +332,34 @@ change; `weaponId` already flows).
 
 ### Phase 18 COMPLETE — Marksman rifle shipped (solo + MP), no protocol change.
 
+---
+
+## Phase 19 — Weapon Mastery (v0.19.0)
+
+A proven shooter retention grind layered on top of the existing progression:
+rack up kills with each weapon to climb its mastery tiers (Bronze → Silver →
+Gold → Diamond), each tier-up paying a one-off XP bonus + a celebratory banner.
+More reasons to keep playing → longer sessions → ad revenue. Pure
+client/progression — zero combat/MP risk, migration-safe persistence.
+
+- **`account/Mastery.ts`** — tier table (25 / 75 / 200 / 500 kills, bonuses
+  100/200/400/800 XP) + helpers (`masteryTier`, `nextMasteryTier`,
+  `masteryProgress`).
+- **Account** — new migration-safe `weaponKills: Record<string, number>`;
+  `recordKill(isHeadshot, weaponId)` now bumps the per-weapon count and, on a
+  tier crossing, awards the bonus XP + fires `onMasteryTierUp`. Old saves merge
+  cleanly (missing field → `{}`).
+- **Game** — passes `e.weaponId` into `recordKill` (local kills only).
+- **ProfileUI** — a new "Weapon Mastery" section: per-weapon tier badge + a
+  progress bar to the next tier. Re-renders on `account.onChange`.
+- **main.ts** — `onMasteryTierUp` flashes an announcer banner ("MARKSMAN ·
+  GOLD · MASTERY +400 XP") in the tier colour + a sting.
+
+### Status log
+- ✅ Phase 19 — Weapon Mastery. DONE. tsc + client build green (app chunk
+  ~65.2 KB gzip). 19-assertion headless test: tier boundaries (24/25/74/75/200/
+  500/maxed), next-tier + progress math, Account tier-up firing + bonus XP,
+  per-weapon independence, and persistence across a reload. All pass. v0.19.0.
+
+### Phase 19 COMPLETE — Weapon Mastery shipped, solo + MP intact, no protocol change.
+

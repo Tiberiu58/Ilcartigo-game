@@ -1875,6 +1875,36 @@ body.kill-flash #app::after {
   border-radius: 3px;
   transition: width 0.3s;
 }
+/* ── Weapon mastery grid ────────────────────────────────────────────────── */
+.mastery-grid { display: flex; flex-direction: column; gap: 7px; }
+.mastery-row {
+  display: grid;
+  grid-template-columns: 90px 74px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+.mastery-wpn { font: 700 12px/1 'Segoe UI', sans-serif; color: var(--text); }
+.mastery-badge {
+  font: 700 10px/1 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 4px 6px;
+  border: 1px solid;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.mastery-bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.mastery-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.mastery-sub { font: 600 10px/1 'JetBrains Mono', monospace; color: var(--muted); white-space: nowrap; }
+
 .chal-progress { font: 600 10px/1 'JetBrains Mono', monospace; color: var(--muted); }
 .chal-reward { font: 700 12px/1 'JetBrains Mono', monospace; color: var(--muted); white-space: nowrap; }
 .chal-done { font: 700 12px/1 'JetBrains Mono', monospace; color: #6ad08a; white-space: nowrap; }

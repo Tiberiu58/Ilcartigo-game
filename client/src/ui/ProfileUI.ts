@@ -7,6 +7,8 @@
  */
 
 import type { Account } from '../account/Account';
+import { WEAPON_LIBRARY, type WeaponId } from '../weapons/Weapon';
+import { masteryTier, nextMasteryTier, masteryProgress } from '../account/Mastery';
 
 export class ProfileUI {
   private account: Account;
@@ -17,6 +19,7 @@ export class ProfileUI {
   private xpText: HTMLElement;
   private statsGrid: HTMLElement;
   private challengesList: HTMLElement;
+  private masteryGrid: HTMLElement;
 
   constructor(account: Account) {
     this.account = account;
@@ -27,6 +30,7 @@ export class ProfileUI {
     this.xpText = document.getElementById('prof-xp-text')!;
     this.statsGrid = document.getElementById('stats-grid')!;
     this.challengesList = document.getElementById('challenges-list')!;
+    this.masteryGrid = document.getElementById('mastery-grid')!;
 
     // Name save.
     this.nameInput.value = account.hasName ? account.name : '';
@@ -59,6 +63,27 @@ export class ProfileUI {
     this.renderSummary();
     this.renderStats();
     this.renderChallenges();
+    this.renderMastery();
+  }
+
+  /** Per-weapon mastery: tier badge + progress to the next tier. */
+  private renderMastery() {
+    if (!this.masteryGrid) return;
+    const ids = Object.keys(WEAPON_LIBRARY) as WeaponId[];
+    this.masteryGrid.innerHTML = ids.map((id) => {
+      const kills = this.account.weaponKillsOf(id);
+      const tier = masteryTier(kills);
+      const next = nextMasteryTier(kills);
+      const pct = Math.round(masteryProgress(kills) * 100);
+      const sub = next ? `${kills} / ${next.at} → ${next.name}` : `${kills} · MAXED`;
+      return `
+        <div class="mastery-row">
+          <span class="mastery-wpn">${WEAPON_LIBRARY[id].displayName}</span>
+          <span class="mastery-badge" style="color:${tier.color};border-color:${tier.color}">${tier.name}</span>
+          <div class="mastery-bar"><div class="mastery-bar-fill" style="width:${pct}%;background:${tier.color}"></div></div>
+          <span class="mastery-sub">${sub}</span>
+        </div>`;
+    }).join('');
   }
 
   private renderSummary() {

@@ -24,7 +24,8 @@ import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
-import type { WeaponId } from './weapons/Weapon';
+import { WEAPON_LIBRARY, type WeaponId } from './weapons/Weapon';
+import { MASTERY_TIERS } from './account/Mastery';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
 // FPS games are unplayable without a mouse. Show a friendly notice instead of
@@ -115,6 +116,14 @@ const scorestreaks = new Scorestreaks(game.bus, {
     game.audio.play('streak_reward');
   },
 }, (id) => game.isLocalPlayer(id));
+
+// Weapon mastery tier-up → celebratory banner (bonus XP already awarded).
+game.account.onMasteryTierUp = (weaponId, tierIndex) => {
+  const tier = MASTERY_TIERS[tierIndex];
+  const wpn = WEAPON_LIBRARY[weaponId as WeaponId]?.displayName ?? weaponId.toUpperCase();
+  announcer.callout(`${wpn} · ${tier.name}`, `MASTERY · +${tier.bonus} XP`, tier.color, 1.2);
+  game.audio.play('streak_reward');
+};
 
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter

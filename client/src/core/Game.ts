@@ -302,7 +302,7 @@ export class Game implements PickupHost {
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
         this.account.awardXP(10);
-        this.account.recordKill(e.isHeadshot);
+        this.account.recordKill(e.isHeadshot, e.weaponId);
         // Track best-streak high-water mark from the per-match streak.
         this.localStreak++;
         this.account.recordStreak(this.localStreak);
