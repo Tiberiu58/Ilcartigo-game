@@ -71,6 +71,8 @@ export const SOUND_FILES = {
   pickup_power:  'pickup_power.wav',
   pickup_spawn:  'pickup_spawn.wav',
   powerup_end:   'powerup_end.wav',
+  // Scorestreak reward earned (Phase 15).
+  streak_reward: 'streak_reward.wav',
 
   // Announcer specials (Phase 12E) — one-off callouts, escalating stings.
   first_blood:   'first_blood.wav',

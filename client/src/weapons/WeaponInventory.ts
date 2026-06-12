@@ -79,6 +79,11 @@ export class WeaponInventory {
     for (const w of this.weapons) w.damageMultiplier = m;
   }
 
+  /** Instantly top up every weapon's magazine (Resupply scorestreak reward). */
+  refillAll() {
+    for (const w of this.weapons) w.refill();
+  }
+
   get current(): Weapon { return this.weapons[this.active]; }
   get activeSlot(): Slot { return this.active; }
   get isScoped(): boolean { return this.scoped; }

@@ -418,14 +418,37 @@ MP changes** (pickups simply don't run when connected to MP).
 | `pickup_spawn.wav` | A node respawning into the world | "item spawn", "spawn pop" |
 | `powerup_end.wav` | A timed power-up wearing off | "power down", "buff expire" |
 
+## Phase 15 — Scorestreak Rewards (this round, v0.15.0)
+
+The CoD/Krunker "earn-your-power" loop, built directly on the Phase-14 power-up
+machinery. Consecutive kills (no death) pay out escalating buffs — a tight
+risk/reward retention hook. Self-contained, **solo combat only**, no protocol
+change.
+
+- **Reward ladder.** 3 → **Overdrive** (2× damage, 8 s), 5 → **Resupply** (full
+  heal + 50 overshield + instant reload), 7 → **Adrenaline** (haste 10 s + full
+  heal), 10 → **Onslaught** (2× damage + haste, 12 s), re-granted every +5 after.
+- **`modes/Scorestreaks.ts`** — bus-driven, decoupled via a `ScorestreakHost`
+  (mirrors GunGame / Announcer). Reuses `Game.grantPowerup`, `Health` heal/
+  overshield, and new `WeaponInventory.refillAll()`. Dying resets the streak.
+- **Solo-only by design** — `host.canReward()` gates payouts to `isCombatMode &&
+  !mp`; the streak still tracks online but doesn't pay out (server-authoritative
+  damage makes a client buff a no-op). Same pattern as bots / pickups.
+- Rewards flash an announcer banner + a new `streak_reward` sound (silent until
+  the `.wav` lands). Verified with a 15-assertion headless smoke test.
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `streak_reward.wav` | Scorestreak reward earned — triumphant power swell | "reward unlock", "power surge sting" |
+
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, **arena pickups + power-ups** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, **scorestreak rewards** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste). v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards. v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

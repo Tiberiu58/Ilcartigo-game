@@ -14,11 +14,12 @@
  *   ilc.ch.color ilc.ch.size ilc.ch.thickness ilc.ch.gap ilc.ch.outline ilc.ch.dot
  */
 
-import { Game } from './core/Game';
+import { Game, isCombatMode } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { Scorestreaks } from './modes/Scorestreaks';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -97,6 +98,23 @@ game.bus.on('pickup', (e) => {
   const hex = '#' + e.color.toString(16).padStart(6, '0');
   announcer.callout(e.label, 'POWER-UP', hex, 1.15);
 });
+
+// ─── Scorestreak rewards ───────────────────────────────────────────────────
+// Consecutive kills (no death) earn escalating buffs. Solo combat only — the
+// host's canReward() gates payouts off in MP/Practice (see Scorestreaks.ts).
+const scorestreaks = new Scorestreaks(game.bus, {
+  canReward: () => isCombatMode(game.mode) && !game.mp,
+  grantDamageBoost: (ms) => game.grantPowerup('damage', ms),
+  grantHaste: (ms) => game.grantPowerup('haste', ms),
+  healFull: () => game.playerActor.health.heal(9999),
+  grantOvershield: (n) => game.playerActor.health.addOvershield(n),
+  refillAmmo: () => game.inventory.refillAll(),
+  announce: (label, color) => {
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    announcer.callout(label, 'STREAK REWARD', hex, 1.25);
+    game.audio.play('streak_reward');
+  },
+}, (id) => game.isLocalPlayer(id));
 
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter
@@ -274,6 +292,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   }
   game.setMode(mode);
   announcer.reset();
+  scorestreaks.reset();
 
   // Gun Game: start a fresh ladder for the player + all active bots, and show
   // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
@@ -305,6 +324,7 @@ function startOnline() {
   // on Industrial.
   game.setMode('combat');
   announcer.reset();
+  scorestreaks.reset();
   // Build the MP session bound to the existing Game.
   const session = new MultiplayerSession(game);
   session.onWelcome = (m) => {
@@ -323,6 +343,7 @@ function startOnline() {
     // not THIS client clicked Play Again) and drop back into play.
     hidePostMatch();
     announcer.reset();
+  scorestreaks.reset();
     pmPlayAgain.disabled = false;
     pmPlayAgain.textContent = 'Play Again';
     game.input.requestPointerLock();
@@ -733,6 +754,7 @@ pmPlayAgain.addEventListener('click', () => {
     hidePostMatch();
     game.resetMatchScore();
     announcer.reset();
+  scorestreaks.reset();
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
       gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);

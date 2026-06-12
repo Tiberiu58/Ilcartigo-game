@@ -457,6 +457,12 @@ export class Game implements PickupHost {
     this.player.pickupSpeedMultiplier = 1.0;
   }
 
+  /** Public entry for granting a timed power-up — used by the Scorestreak
+   *  reward system (Overdrive/Adrenaline/Onslaught). */
+  grantPowerup(kind: PickupKind, durationMs: number) {
+    this.applyPowerup(kind, durationMs);
+  }
+
   /** Start (or refresh) a timed power-up + apply its effect immediately. */
   private applyPowerup(kind: PickupKind, durationMs: number) {
     this.activePowerups.set(kind, { expiresAt: performance.now() + durationMs, durationMs });

@@ -264,6 +264,13 @@ export class Weapon {
     this.reloadRemaining = this.config.reloadTime * this.reloadMultiplier;
   }
 
+  /** Instantly top up the magazine (cancels any in-flight reload). Used by the
+   *  Resupply scorestreak reward. */
+  refill() {
+    this.reloadRemaining = 0;
+    this.ammoInMag = this.config.magSize;
+  }
+
   update(dt: number) {
     if (this.cooldown > 0) this.cooldown = Math.max(0, this.cooldown - dt);
     if (this.reloadRemaining > 0) {

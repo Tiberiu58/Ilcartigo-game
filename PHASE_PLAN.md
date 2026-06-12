@@ -207,3 +207,36 @@ proven low-risk pattern — pickups simply don't run when connected to MP).
 
 ### Phase 14 COMPLETE — Arena pickups + power-ups shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 15 — Scorestreak Rewards (v0.15.0)
+
+The CoD/Krunker "earn-your-power" loop, built straight on top of the Phase-14
+power-up machinery. Land kills without dying and the game hands you escalating
+rewards — a tight risk/reward retention hook. Self-contained, **solo combat
+only**, no protocol change.
+
+- **Reward ladder:** 3 → **OVERDRIVE** (2× damage, 8 s), 5 → **RESUPPLY** (full
+  heal + 50 overshield + instant reload), 7 → **ADRENALINE** (haste 10 s + full
+  heal), 10 → **ONSLAUGHT** (2× damage + haste, 12 s), re-granted every +5 kills
+  after that.
+- **`modes/Scorestreaks.ts`** — bus-driven (kill events), decoupled via a
+  `ScorestreakHost` interface (mirrors GunGame / Announcer). Reuses
+  `Game.grantPowerup` + `Health.heal/addOvershield` + new
+  `WeaponInventory.refillAll()` / `Weapon.refill()`. Dying resets the streak.
+- **Solo-only by design:** `host.canReward()` gates payouts to
+  `isCombatMode && !mp` — in MP, damage is server-authoritative (a client damage
+  buff is a no-op) and haste would fight reconciliation, so rewards don't fire
+  online (the streak still tracks). Same solo-only pattern as bots/pickups.
+- Rewards flash an `Announcer.callout` banner ("OVERDRIVE · STREAK REWARD") + a
+  new `streak_reward` sound id (silent until `.wav`). `scorestreaks.reset()`
+  wired alongside every `announcer.reset()` (mode swap / match reset / MP join).
+
+### Status log
+- ✅ Phase 15 — Scorestreak rewards. DONE. tsc (client+server) + client build
+  green (app chunk ~64.3 KB gzip, +0.5 KB). 15-assertion headless smoke test
+  (each milestone, multi-effect rewards, death reset, endless Onslaught at 10/15,
+  MP gating tracks-but-no-payout, self-kill no-advance) all pass. v0.15.0 bump.
+
+### Phase 15 COMPLETE — Scorestreak rewards shipped, solo + MP intact, no protocol change.
+
