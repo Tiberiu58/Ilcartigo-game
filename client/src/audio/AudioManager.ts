@@ -28,6 +28,7 @@ export const SOUND_FILES = {
   fire_smg:      'fire_smg.wav',
   fire_sniper:   'fire_sniper.wav',
   fire_shotgun:  'fire_shotgun.wav',
+  fire_marksman: 'fire_marksman.wav',
   fire_pistol:   'fire_pistol.wav',
   reload:        'reload.wav',
   empty_click:   'empty_click.wav',

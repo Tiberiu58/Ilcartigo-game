@@ -181,6 +181,7 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   smg: buildSMG,
   sniper: buildSniper,
   shotgun: buildShotgun,
+  marksman: buildMarksman,
   pistol: buildPistol,
 };
 
@@ -225,6 +226,18 @@ function buildShotgun(p: THREE.Group): number {
   p.add(box(0.08, 0.13, 0.10, 0x2a1810, 0, -0.12, 0.18));     // grip
   p.add(box(0.18, 0.04, 0.10, 0x232931, 0, -0.08, 0.05));     // pump
   return -0.65;
+}
+
+function buildMarksman(p: THREE.Group): number {
+  p.add(box(0.15, 0.11, 0.50, 0x26303a, 0, 0, 0));            // long receiver
+  p.add(box(0.10, 0.10, 0.26, 0x36404a, 0, -0.02, 0.34));     // stock
+  p.add(box(0.05, 0.05, 0.60, 0x12161b, 0, 0.02, -0.46));     // slim barrel
+  p.add(box(0.10, 0.08, 0.16, 0x14171c, 0, 0.10, -0.02));     // low-profile optic
+  p.add(box(0.07, 0.07, 0.05, 0x55b0d0, 0, 0.10, -0.10));     // optic lens (cyan)
+  p.add(box(0.09, 0.16, 0.09, 0x232931, 0, -0.13, 0.02));     // mag
+  p.add(box(0.07, 0.14, 0.09, 0x232931, 0, -0.12, 0.18));     // grip
+  p.add(box(0.05, 0.04, 0.18, 0x1a1f25, 0, -0.05, -0.30));    // handguard
+  return -0.78;
 }
 
 function buildPistol(p: THREE.Group): number {
