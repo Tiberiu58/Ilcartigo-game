@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. Arsenal round: **per-weapon authoritative damage in MP** (weapons finally matter online — sniper one-shots, shotgun fires 9 pellets, falloff applies) + a new **Marksman (DMR)** precision rifle. Built on Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 15 — v0.15.0. **Weapon Mastery** — every gun has a per-weapon kill ladder (Bronze→Master) with tier-up XP rewards, a slide-in toast, and a Profile mastery grid. Built on Phase 14 (per-weapon authoritative damage in MP + the Marksman DMR), Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -262,6 +262,7 @@ Drop CC0 `.wav` files into `client/public/assets/sounds/` matching these names. 
 | `fire_sniper.wav` | Bolt-action boom | "sniper rifle shot", "kar98" |
 | `fire_shotgun.wav` | Shotgun blast | "shotgun blast", "12 gauge" |
 | `fire_marksman.wav` | DMR / marksman rifle crack, sharp single shot | "dmr shot", "marksman rifle" |
+| `mastery_up.wav` | Short rewarding chime — weapon mastery tier-up | "level up chime", "reward ding" |
 | `fire_pistol.wav` | Pistol crack | "9mm pistol", "glock shot" |
 | `reload.wav` | Magazine click / slide | "magazine reload", "weapon reload" |
 | `empty_click.wav` | Dry trigger click | "empty gun click" |
@@ -403,14 +404,35 @@ solo + MP both intact.
   Marksman loadout button + Gun Game ladder label, and a `fire_marksman` sound
   id (silent until a wav lands).
 
+## Phase 15 — Weapon Mastery progression (this round, v0.15.0)
+
+Now that weapons matter (Phase 14), each gun gets its own **progression to
+chase** — a per-weapon mastery badge that climbs with lifetime kills, plus a
+one-time XP bonus at every tier-up. A retention hook (more reasons to keep
+playing each weapon → longer sessions → more ad impressions), self-contained
+and client-side, **migration-safe**, working in solo + MP (kill events already
+carry the weapon). No protocol change.
+
+- **Mastery ladder** — Bronze 25 / Silver 100 / Gold 300 / Diamond 750 / Master
+  1500 lifetime kills per weapon, each with an escalating one-time XP reward
+  (100→2000). `Account` extended migration-safe (`weaponKills` + sanitizer);
+  `recordKill` now takes the weapon id, awards the bonus on a tier crossing, and
+  returns a `MasteryUp` descriptor.
+- **Tier-up toast** — new `ui/MasteryToast.ts` slides a light badge in from the
+  right ("BRONZE Mastery · Marksman · +100 XP"), queued so rapid tier-ups chain;
+  new `masteryUp` bus event + `mastery_up` sound id (silent until a wav lands).
+- **Profile "Weapon Mastery" grid** — every weapon with its badge, current tier,
+  a progress bar to the next tier, and the kill goal. Verified with a 15-check
+  headless logic test.
+
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **per-weapon authoritative damage in MP + the Marksman precision rifle** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, per-weapon authoritative damage in MP + the Marksman precision rifle, **weapon mastery progression** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, **6 weapons incl. the Marksman**. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan with **per-weapon damage + pellet/falloff model**. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, 6 weapons incl. the Marksman, **weapon mastery**. v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan with **per-weapon damage + pellet/falloff model**. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

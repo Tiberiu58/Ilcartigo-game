@@ -18,6 +18,7 @@ import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
+import { MasteryToast } from './ui/MasteryToast';
 import { GunGame } from './modes/GunGame';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
@@ -89,6 +90,8 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+const masteryToast = new MasteryToast(game.bus);
+void masteryToast;
 
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter

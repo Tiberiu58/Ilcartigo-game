@@ -7,6 +7,10 @@
  */
 
 import type { Account } from '../account/Account';
+import { WEAPON_LIBRARY } from '../weapons/Weapon';
+
+/** Weapons shown in the mastery grid, in loadout order (pistol last). */
+const MASTERY_WEAPONS = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'pistol'] as const;
 
 export class ProfileUI {
   private account: Account;
@@ -16,6 +20,7 @@ export class ProfileUI {
   private xpFill: HTMLElement;
   private xpText: HTMLElement;
   private statsGrid: HTMLElement;
+  private masteryGrid: HTMLElement;
   private challengesList: HTMLElement;
 
   constructor(account: Account) {
@@ -26,6 +31,7 @@ export class ProfileUI {
     this.xpFill = document.getElementById('prof-xp-fill')!;
     this.xpText = document.getElementById('prof-xp-text')!;
     this.statsGrid = document.getElementById('stats-grid')!;
+    this.masteryGrid = document.getElementById('mastery-grid')!;
     this.challengesList = document.getElementById('challenges-list')!;
 
     // Name save.
@@ -58,7 +64,34 @@ export class ProfileUI {
     if (!this.statsGrid) return;
     this.renderSummary();
     this.renderStats();
+    this.renderMastery();
     this.renderChallenges();
+  }
+
+  private renderMastery() {
+    if (!this.masteryGrid) return;
+    this.masteryGrid.innerHTML = MASTERY_WEAPONS.map((wid) => {
+      const m = this.account.weaponMastery(wid);
+      const name = (WEAPON_LIBRARY as Record<string, { displayName: string }>)[wid]?.displayName ?? wid.toUpperCase();
+      const tierName = m.tier ? m.tier.name : 'Unranked';
+      const color = m.tier ? m.tier.color : '#5a6472';
+      const pct = Math.round(m.progress * 100);
+      const goal = m.next
+        ? `${m.kills} / ${m.next.at} → ${m.next.name}`
+        : `${m.kills} kills · MAXED`;
+      return `
+        <div class="mastery-row">
+          <span class="mastery-badge" style="background:${color}" title="${tierName}"></span>
+          <div class="mastery-info">
+            <div class="mastery-head">
+              <span class="mastery-weapon">${name}</span>
+              <span class="mastery-tier" style="color:${color}">${tierName}</span>
+            </div>
+            <div class="mastery-bar"><div class="mastery-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+            <span class="mastery-goal">${goal}</span>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   private renderSummary() {

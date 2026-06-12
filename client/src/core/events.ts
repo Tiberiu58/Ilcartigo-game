@@ -43,6 +43,8 @@ export type GameEvents = {
   // Local-only feedback events (not networked):
   hitConfirm: { isHeadshot: boolean };
   screenShake: { intensity: number; duration: number };
+  /** A weapon crossed into a new mastery tier (local player). */
+  masteryUp: { weaponId: string; tierIndex: number; tierName: string; color: string; reward: number };
 };
 
 type Handler<T> = (payload: T) => void;

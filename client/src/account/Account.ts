@@ -37,6 +37,59 @@ function freshStats(): LifetimeStats {
   return { kills: 0, deaths: 0, headshots: 0, matches: 0, wins: 0, bestStreak: 0, playSeconds: 0 };
 }
 
+/**
+ * Weapon mastery — per-weapon lifetime kill milestones. Now that weapons matter
+ * (Phase 14 per-weapon damage), mastery gives a per-gun progression to chase: a
+ * badge that climbs as you rack up kills with each weapon, plus a one-time XP
+ * bonus each tier-up (a retention hook → more sessions → more ad impressions).
+ * Thresholds are cumulative kill counts; tier index = thresholds passed.
+ */
+export interface MasteryTier {
+  name: string;
+  /** Accent colour (hex string) for the badge. */
+  color: string;
+  /** Cumulative weapon kills required to reach this tier. */
+  at: number;
+  /** One-time XP bonus awarded on reaching this tier. */
+  reward: number;
+}
+export const MASTERY_TIERS: MasteryTier[] = [
+  { name: 'Bronze',  color: '#cd7f32', at: 25,   reward: 100  },
+  { name: 'Silver',  color: '#c0c8d0', at: 100,  reward: 250  },
+  { name: 'Gold',    color: '#f5d442', at: 300,  reward: 500  },
+  { name: 'Diamond', color: '#5ad6ff', at: 750,  reward: 1000 },
+  { name: 'Master',  color: '#ff4ad6', at: 1500, reward: 2000 },
+];
+
+/** How many tiers a given lifetime weapon-kill count has reached (0 = unranked). */
+export function masteryTierIndex(kills: number): number {
+  let n = 0;
+  for (const t of MASTERY_TIERS) if (kills >= t.at) n++;
+  return n;
+}
+
+/** A computed mastery snapshot for one weapon, for the Profile UI. */
+export interface MasteryInfo {
+  kills: number;
+  /** 0 = unranked, else 1..MASTERY_TIERS.length. */
+  tierIndex: number;
+  /** The current tier (null while unranked). */
+  tier: MasteryTier | null;
+  /** The next tier to reach (null if maxed). */
+  next: MasteryTier | null;
+  /** Progress toward `next` in [0,1] (1 if maxed). */
+  progress: number;
+}
+
+/** Fired (returned by recordKill) when a weapon crosses into a new tier. */
+export interface MasteryUp {
+  weaponId: string;
+  tierIndex: number;
+  tierName: string;
+  color: string;
+  reward: number;
+}
+
 /** Merge a (possibly partial / possibly undefined) saved stats object onto fresh defaults. */
 function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeStats): LifetimeStats {
   if (!saved || typeof saved !== 'object') return fresh;
@@ -64,6 +117,8 @@ interface AccountData {
   equippedTracer: TracerId;
   /** Lifetime career stats. */
   stats: LifetimeStats;
+  /** Per-weapon lifetime kill counts (for weapon mastery). */
+  weaponKills: Record<string, number>;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
@@ -131,6 +186,15 @@ function freshDaily(stats: LifetimeStats): DailyState {
   };
 }
 
+/** Coerce a loaded weaponKills blob to a clean Record<string, number>. */
+function sanitizeWeaponKills(raw: Record<string, unknown>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) out[k] = Math.floor(v);
+  }
+  return out;
+}
+
 function freshData(): AccountData {
   return {
     xp: 0,
@@ -144,6 +208,7 @@ function freshData(): AccountData {
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
     stats: freshStats(),
+    weaponKills: {},
     name: '',
     daily: freshDaily(freshStats()),
   };
@@ -187,6 +252,9 @@ export class Account {
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
+        weaponKills: (parsed.weaponKills && typeof parsed.weaponKills === 'object')
+          ? sanitizeWeaponKills(parsed.weaponKills as Record<string, unknown>)
+          : fresh.weaponKills,
         name: typeof parsed.name === 'string' ? parsed.name.slice(0, 16) : fresh.name,
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
@@ -337,11 +405,50 @@ export class Account {
 
   // ── Lifetime stat recording ───────────────────────────────────────────────
 
-  /** Record a local-player kill (optionally a headshot). */
-  recordKill(isHeadshot: boolean) {
+  /**
+   * Record a local-player kill (optionally a headshot, optionally with the
+   * weapon used). Increments lifetime + per-weapon kill counts. If the weapon
+   * crossed into a new mastery tier, awards the one-time bonus XP and returns a
+   * MasteryUp descriptor (so the caller can play a toast); otherwise null.
+   */
+  recordKill(isHeadshot: boolean, weaponId?: string): MasteryUp | null {
     this.data.stats.kills++;
     if (isHeadshot) this.data.stats.headshots++;
+
+    let up: MasteryUp | null = null;
+    if (weaponId) {
+      const before = this.data.weaponKills[weaponId] ?? 0;
+      const after = before + 1;
+      this.data.weaponKills[weaponId] = after;
+      const tBefore = masteryTierIndex(before);
+      const tAfter = masteryTierIndex(after);
+      if (tAfter > tBefore) {
+        const tier = MASTERY_TIERS[tAfter - 1];
+        this.data.xp += tier.reward;
+        up = { weaponId, tierIndex: tAfter, tierName: tier.name, color: tier.color, reward: tier.reward };
+      }
+    }
     this.save();
+    return up;
+  }
+
+  /** Lifetime kills with a given weapon id. */
+  weaponKillsFor(weaponId: string): number {
+    return this.data.weaponKills[weaponId] ?? 0;
+  }
+
+  /** Computed mastery snapshot for a weapon (for the Profile UI). */
+  weaponMastery(weaponId: string): MasteryInfo {
+    const kills = this.weaponKillsFor(weaponId);
+    const tierIndex = masteryTierIndex(kills);
+    const tier = tierIndex > 0 ? MASTERY_TIERS[tierIndex - 1] : null;
+    const next = tierIndex < MASTERY_TIERS.length ? MASTERY_TIERS[tierIndex] : null;
+    let progress = 1;
+    if (next) {
+      const floor = tier ? tier.at : 0;
+      progress = Math.max(0, Math.min(1, (kills - floor) / (next.at - floor)));
+    }
+    return { kills, tierIndex, tier, next, progress };
   }
 
   /** Record a local-player death. */

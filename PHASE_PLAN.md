@@ -191,3 +191,36 @@ already on the wire); solo + MP both intact.
 
 ### Phase 14 COMPLETE — weapons finally matter in MP + a new precision rifle, no protocol change, solo + MP intact.
 
+---
+
+## Phase 15 — Weapon Mastery progression (v0.15.0)
+
+Now that weapons matter (Phase 14), give each gun its own **progression to
+chase** — a per-weapon mastery badge that climbs with lifetime kills, plus a
+one-time XP bonus at every tier-up. More reasons to keep playing each weapon =
+longer sessions = more ad impressions. Self-contained, client-side,
+**migration-safe**, works in solo + MP (kill events already carry `weaponId`).
+No protocol change.
+
+- **Account.** New `weaponKills: Record<string, number>` (migration-safe load +
+  sanitizer). New `MASTERY_TIERS` ladder — **Bronze 25 / Silver 100 / Gold 300 /
+  Diamond 750 / Master 1500** kills, each with an escalating one-time XP reward
+  (100→2000). `recordKill(isHeadshot, weaponId?)` now increments the per-weapon
+  count, awards the bonus on a tier crossing, and returns a `MasteryUp`
+  descriptor. New `weaponMastery(id)` snapshot (tier / next / progress) for the
+  UI. Verified with a 15-check headless logic test (boundaries, no-up-before-25,
+  up-at-25, +100 XP, snapshot fields, lifetime kills still counted).
+- **Tier-up feedback.** New `masteryUp` bus event + `mastery_up` sound id
+  (silent until a wav lands). New `ui/MasteryToast.ts` — a light toast that
+  slides in from the right ("BRONZE Mastery · Marksman · +100 XP"), queued so
+  rapid tier-ups don't clobber. Distinct from the center-screen Announcer so it
+  never steals the moment-to-moment focus.
+- **Profile tab.** New "Weapon Mastery" grid under Lifetime Stats — every weapon
+  with its badge, current tier, a progress bar toward the next tier, and the
+  kill goal ("142 / 300 → Gold" or "MAXED").
+- **Polish.** Bumped client + server to **v0.15.0** (+ menu subtitle/footer),
+  README Phase 15 section + audio-catalog entry. Client typecheck + build green
+  (app chunk ~62.9 KB gzip); server typecheck green.
+
+### Phase 15 COMPLETE — per-weapon mastery progression + tier-up rewards, solo + MP, no protocol change.
+

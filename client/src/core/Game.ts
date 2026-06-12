@@ -294,7 +294,11 @@ export class Game {
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
         this.account.awardXP(10);
-        this.account.recordKill(e.isHeadshot);
+        const masteryUp = this.account.recordKill(e.isHeadshot, e.weaponId);
+        if (masteryUp) {
+          this.audio.play('mastery_up');
+          this.bus.emit('masteryUp', masteryUp);
+        }
         // Track best-streak high-water mark from the per-match streak.
         this.localStreak++;
         this.account.recordStreak(this.localStreak);

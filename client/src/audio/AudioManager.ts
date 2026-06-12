@@ -62,6 +62,8 @@ export const SOUND_FILES = {
   kill_feedback: 'kill_feedback.wav',
   match_end:     'match_end.wav',
   ui_click:      'ui_click.wav',
+  // Weapon mastery tier-up chime (Phase 15).
+  mastery_up:    'mastery_up.wav',
 
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
