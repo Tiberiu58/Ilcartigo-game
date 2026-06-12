@@ -291,3 +291,40 @@ pistol`. The HUD ticker total + pips are already data-driven off
 Verified with a 6-check headless GunGame test (climbs the full ladder, wins on
 the final-rung kill). Build green.
 
+---
+
+## Phase 18 — Crosshair presets (v0.18.0)
+
+The Crosshair tab already had full manual controls (colour / size / thickness /
+gap / outline / dot); Phase 18 adds **one-click presets** — the iconic Krunker
+personalization touch — so players get a good crosshair instantly instead of
+fiddling sliders. Five presets (Default, Dot, Classic, Precise, Thick); each
+writes all six fields (inputs + value labels + CSS vars + the existing
+localStorage keys), so it integrates with the manual controls and the live
+preview with zero new persistence. Pure client-side DOM, no gameplay impact.
+Typecheck + build green (app chunk ~63.9 KB gzip).
+
+### Phase 18 COMPLETE — crosshair presets, no gameplay impact, solo + MP intact.
+
+---
+
+## Session summary (Phases 14–18)
+
+This autonomous run shipped five increments, each typecheck+build-green and
+verified (headless socket/logic tests where the logic is server- or rule-side):
+
+- **14 — Per-weapon authoritative MP damage + Marksman (DMR).** Weapons finally
+  matter online (sniper one-shots, shotgun fires 9 pellets, falloff applies);
+  anti-spoof weapon resolution; a 5th primary.
+- **15 — Weapon Mastery.** Per-weapon kill ladder (Bronze→Master) with tier-up
+  XP rewards, a slide-in toast, and a Profile mastery grid.
+- **16 — Bot loadout variety.** Distinct bot weapons (shotgun rusher / AR / SMG),
+  balanced via tier-capped fire rate.
+- **17 — Foundry map (+17b 6-rung Gun Game).** A third arena (central high-ground
+  bunker), collision mirrored 1:1 client/server + spawn-safety verified.
+- **18 — Crosshair presets.** One-click crosshair styles.
+
+No protocol changes across the run (Protocol.ts still v2, both copies in sync);
+the two movement controllers were untouched; solo + MP + the prior audit fixes
+remain intact.
+

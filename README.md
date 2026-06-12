@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 17 — v0.17.0. **New map: Foundry** — a compact, symmetric industrial arena built around a central high-ground bunker (jump-pad onto the roof). Three maps now. Built on Phase 16 (bot loadout variety), Phase 15 (**Weapon Mastery**) — every gun has a per-weapon kill ladder (Bronze→Master) with tier-up XP rewards, a slide-in toast, and a Profile mastery grid. Built on Phase 14 (per-weapon authoritative damage in MP + the Marksman DMR), Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 18 — v0.18.0. **Crosshair presets** (one-click styles) atop Phase 17 **Foundry** (new map) — a compact, symmetric industrial arena built around a central high-ground bunker (jump-pad onto the roof). Three maps now. Built on Phase 16 (bot loadout variety), Phase 15 (**Weapon Mastery**) — every gun has a per-weapon kill ladder (Bronze→Master) with tier-up XP rewards, a slide-in toast, and a Profile mastery grid. Built on Phase 14 (per-weapon authoritative damage in MP + the Marksman DMR), Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -454,7 +454,7 @@ faces ("who holds the roof?"). Works in solo + MP, no protocol change.
 
 ## Project status
 
-17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, per-weapon authoritative damage in MP + the Marksman precision rifle, **weapon mastery progression** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+18 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, per-weapon authoritative damage in MP + the Marksman precision rifle, **weapon mastery progression** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 

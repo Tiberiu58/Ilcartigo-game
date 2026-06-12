@@ -219,6 +219,47 @@ chDot.addEventListener('change', () => {
   localStorage.setItem('ilc.ch.dot', String(chDot.checked));
 });
 
+// Crosshair presets — one-click styles (Krunker-style). Each preset writes all
+// six fields: the inputs, their value labels, the CSS vars, and localStorage,
+// reusing the same persistence keys as the manual controls.
+interface ChPreset { color: string; size: number; thickness: number; gap: number; outline: boolean; dot: boolean; }
+const CH_PRESETS: Record<string, ChPreset> = {
+  default: { color: '#f5d442', size: 8,  thickness: 2, gap: 0, outline: true,  dot: true  },
+  dot:     { color: '#00e5ff', size: 2,  thickness: 2, gap: 0, outline: true,  dot: true  },
+  classic: { color: '#ffffff', size: 9,  thickness: 2, gap: 4, outline: true,  dot: false },
+  precise: { color: '#7CFC00', size: 5,  thickness: 1, gap: 2, outline: false, dot: true  },
+  thick:   { color: '#ff3b3b', size: 11, thickness: 4, gap: 4, outline: true,  dot: false },
+};
+function applyCrosshairPreset(p: ChPreset) {
+  chColor.value = p.color;          chColorVal.textContent = p.color;
+  chSize.value = String(p.size);    chSizeVal.textContent = String(p.size);
+  chThickness.value = String(p.thickness); chThicknessVal.textContent = String(p.thickness);
+  chGapBase.value = String(p.gap);  chGapBaseVal.textContent = String(p.gap);
+  chOutline.checked = p.outline;
+  chDot.checked = p.dot;
+  applyChVar('--ch-color', p.color);
+  applyChVar('--ch-size', `${p.size}px`);
+  applyChVar('--ch-thickness', `${p.thickness}px`);
+  applyChVar('--ch-gap-base', `${p.gap}px`);
+  applyChVar('--ch-outline', p.outline ? '1' : '0');
+  applyChVar('--ch-dot', p.dot ? 'block' : 'none');
+  localStorage.setItem('ilc.ch.color', p.color);
+  localStorage.setItem('ilc.ch.size', String(p.size));
+  localStorage.setItem('ilc.ch.thickness', String(p.thickness));
+  localStorage.setItem('ilc.ch.gap', String(p.gap));
+  localStorage.setItem('ilc.ch.outline', String(p.outline));
+  localStorage.setItem('ilc.ch.dot', String(p.dot));
+}
+document.getElementById('ch-presets')?.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-preset]');
+  if (!btn) return;
+  const preset = CH_PRESETS[btn.dataset.preset ?? ''];
+  if (preset) {
+    applyCrosshairPreset(preset);
+    game.audio.play('ui_click');
+  }
+});
+
 // ─── Audio settings ─────────────────────────────────────────────────────────
 const audioMaster = document.getElementById('audio-master') as HTMLInputElement;
 const audioMasterVal = document.getElementById('audio-master-val')!;
