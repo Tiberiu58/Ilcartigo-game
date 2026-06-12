@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Arsenal round: **per-weapon authoritative damage in MP** (weapons finally matter online — sniper one-shots, shotgun fires 9 pellets, falloff applies) + a new **Marksman (DMR)** precision rifle. Built on Phase 13 (Gun Game mode) and Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker), Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -261,6 +261,7 @@ Drop CC0 `.wav` files into `client/public/assets/sounds/` matching these names. 
 | `fire_smg.wav` | SMG burst, rapid lighter pop | "mp5 single shot", "9mm shot" |
 | `fire_sniper.wav` | Bolt-action boom | "sniper rifle shot", "kar98" |
 | `fire_shotgun.wav` | Shotgun blast | "shotgun blast", "12 gauge" |
+| `fire_marksman.wav` | DMR / marksman rifle crack, sharp single shot | "dmr shot", "marksman rifle" |
 | `fire_pistol.wav` | Pistol crack | "9mm pistol", "glock shot" |
 | `reload.wav` | Magazine click / slide | "magazine reload", "weapon reload" |
 | `empty_click.wav` | Dry trigger click | "empty gun click" |
@@ -361,14 +362,55 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Gun Game mode (this round, v0.13.0)
+
+The first **new game mode** — mode variety is the #1 driver of replay value in
+arena shooters. Self-contained, solo-vs-bots for v1, **no protocol or MP
+changes**, fully browser-verified.
+
+- **Weapon ladder** `smg → ar → shotgun → sniper → pistol` (`GUNGAME_LADDER`).
+  Each kill advances the killer one rung; the gun visibly swaps in hand. First
+  to land a kill on the final rung (pistol) wins → post-match overlay.
+- New `modes/GunGame.ts` — bus-driven, decoupled via a small `GunGameHost`
+  interface. Bots race too (their tier advances; weapon fixed for v1).
+- `GameMode` extended to `'combat' | 'practice' | 'gungame'` + `isCombatMode()`
+  so bots/spawn-protection/map logic treat Gun Game like Combat.
+- New `Game.setPlayerPrimaryWeapon(id)` (pistol special-cased → slot 1). HUD
+  Gun Game ticker ("LVL n/5 · WEAPON" + pips). New "🔫 Gun Game" menu button.
+
+## Phase 14 — Arsenal: MP weapon authority + Marksman (this round, v0.14.0)
+
+Weapon choice is central to the Krunker feel, but **online it didn't matter** —
+the server hardcoded AR damage (24, ×1.8, a single ray) for *every* weapon, so
+a sniper didn't one-shot, a shotgun fired one pellet, and an SMG melted like a
+rifle. Phase 14 makes the server run the TTK each loadout implies, and adds a
+new precision rifle. **No protocol change** (weaponId was already on the wire);
+solo + MP both intact.
+
+- **A. Per-weapon authoritative damage.** New `WEAPON_STATS` table on the server
+  mirroring every client `WeaponConfig` (damage / headshot / range / falloff /
+  pellets / spread). `onFire` reworked to resolve the weapon the shooter is
+  *allowed* to fire (primary, or always-available pistol) with an **anti-spoof
+  fallback** to the primary, cast **N pellets** per trigger pull (shotgun = 9)
+  with a server-side spread sampler, apply **linear distance falloff** per ray,
+  and aggregate damage per target. Verified with a headless two-client smoke
+  test against the real server: sniper **60** (was a flat 24), SMG **5.6**, AR
+  falloff **28.3**, Marksman **46.3**, plus the spoof case.
+- **B. Marksman (DMR).** A 5th primary between the AR's spray and the Sniper's
+  one-shot: semi-auto (4.5 RPS), 2-shot body, near-lethal headshot (×2.0), very
+  low spread, gentle long-range falloff, no scope. `MARKSMAN_CONFIG` (client)
+  mirrored by `WEAPON_STATS.marksman` (server), a distinct DMR viewmodel, the
+  Marksman loadout button + Gun Game ladder label, and a `fire_marksman` sound
+  id (silent until a wav lands).
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game mode**, **per-weapon authoritative damage in MP + the Marksman precision rifle** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, **6 weapons incl. the Marksman**. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan with **per-weapon damage + pellet/falloff model**. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

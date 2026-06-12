@@ -152,3 +152,42 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — Arsenal: MP weapon authority + Marksman (v0.14.0)
+
+Weapon choice is core to the Krunker feel, but online it didn't matter: the
+server hardcoded **AR damage (24, ×1.8, a single ray) for every weapon**, so a
+sniper didn't one-shot, a shotgun fired one pellet, and an SMG melted like a
+rifle. Phase 14 makes the server run the TTK each loadout implies, and adds a
+new precision rifle to deepen the arsenal. **No protocol change** (weaponId was
+already on the wire); solo + MP both intact.
+
+- **14A — Per-weapon authoritative damage.** New `WEAPON_STATS` table on the
+  server mirroring every client `WeaponConfig` (damage / headshot / range /
+  falloff / pellets / spread). `onFire` reworked to:
+  - resolve the weapon the shooter is *allowed* to fire (their primary, or the
+    always-available pistol) and **fall back to the primary** if a client claims
+    a stronger gun than it holds (anti-spoof);
+  - cast **N pellets** per trigger pull (shotgun = 9) with a server-side spread
+    sampler (`perturb`, mirroring `Weapon.firePellet`), nearest-hit per pellet;
+  - apply **linear distance falloff** per ray (`computeWeaponDamage`) and
+    aggregate damage per target across pellets.
+  Verified with a headless two-client smoke test booting the real server:
+  sniper **60** (was a flat 24), SMG **5.6**, AR falloff **28.3**, Marksman
+  **46.3**, and the spoof case (hold SMG, claim sniper) correctly applies SMG.
+- **14B — Marksman (DMR).** A 5th primary between the AR's spray and the Sniper's
+  slow one-shot: semi-auto (4.5 RPS), 2-shot body, near-lethal headshot (×2.0,
+  96 dmg), very low spread, gentle long-range falloff, no scope. Adds
+  `MARKSMAN_CONFIG` (client) mirrored by `WEAPON_STATS.marksman` (server), a
+  distinct DMR viewmodel (long receiver + low-profile optic), the Marksman
+  loadout button, the Gun Game ladder label, and a `fire_marksman` sound id
+  (silent until a wav lands). The `Record<WeaponId>` types compiler-forced
+  completeness across viewmodel + ladder.
+- **14C — Polish + docs.** Bumped client + server to **v0.14.0** (+ menu
+  subtitle/footer), README Phase 14 section + audio-catalog entry, this log.
+  Client typecheck + build green (app chunk ~61.8 KB gzip); server typecheck
+  green.
+
+### Phase 14 COMPLETE — weapons finally matter in MP + a new precision rifle, no protocol change, solo + MP intact.
+
