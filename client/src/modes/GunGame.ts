@@ -29,6 +29,7 @@ export const GUNGAME_LADDER: WeaponId[] = ['smg', 'ar', 'shotgun', 'sniper', 'pi
 const WEAPON_LABEL: Record<WeaponId, string> = {
   smg: 'SMG',
   ar: 'ASSAULT RIFLE',
+  marksman: 'MARKSMAN',
   shotgun: 'SHOTGUN',
   sniper: 'SNIPER',
   pistol: 'PISTOL',

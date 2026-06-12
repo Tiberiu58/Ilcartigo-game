@@ -26,7 +26,7 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'pistol']);
 
 const TICK_HZ = 32;
 const TICK_MS = 1000 / TICK_HZ;

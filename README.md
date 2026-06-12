@@ -472,14 +472,34 @@ server-side; solo untouched; protocol unchanged (`weaponId` was already sent).
   Verified with a 53-assertion headless test (exact match to the client formula
   for the four hitscan weapons; sane shotgun falloff).
 
+## Phase 18 — Marksman rifle (this round, v0.18.0)
+
+The first new weapon since the original roster — filling the loadout gap between
+the AR and the scoped Sniper. The **Marksman** is a semi-auto precision DMR:
+punchy per-shot (3-shot body / 2-shot with a head), accurate at range, no scope.
+Works in solo AND MP.
+
+- **Client** — `MARKSMAN_CONFIG` + library entry, procedural `buildMarksman`
+  viewmodel, `fire_marksman` sound, GunGame label, loadout button. The
+  `Record<WeaponId>` maps made tsc enforce that every weapon-keyed table got the
+  new entry.
+- **Server** — added to `VALID_WEAPONS` + the `Weapons.ts` damage table (38 dmg,
+  1.9× head, 55→140 m falloff) so it deals correct authoritative damage online.
+  No protocol change (`weaponId` already flows). Verified with a 15-assertion
+  client↔server parity test.
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `fire_marksman.wav` | Marksman DMR shot — sharp, heavier than the AR | "dmr shot", "battle rifle single" |
+
 ## Project status
 
-17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, scorestreak rewards, pickup-aware bots, **MP weapon damage parity** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+18 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, Gun Game mode, arena pickups + power-ups, scorestreak rewards, pickup-aware bots, MP weapon damage parity, **Marksman rifle** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards, pickup-aware bots. v0.17.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Per-weapon authoritative damage + falloff. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, combat-feel juice, Gun Game mode, arena pickups + power-ups (health/armor/damage/haste), scorestreak rewards, pickup-aware bots, 6-weapon roster (AR/SMG/Marksman/Sniper/Shotgun/Pistol). v0.18.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Per-weapon authoritative damage + falloff. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.18.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

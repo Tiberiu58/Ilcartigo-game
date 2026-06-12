@@ -26,6 +26,7 @@ export const SOUND_FILES = {
   // Weapons — one fire SFX per weapon, one universal reload click.
   fire_ar:       'fire_ar.wav',
   fire_smg:      'fire_smg.wav',
+  fire_marksman: 'fire_marksman.wav',
   fire_sniper:   'fire_sniper.wav',
   fire_shotgun:  'fire_shotgun.wav',
   fire_pistol:   'fire_pistol.wav',

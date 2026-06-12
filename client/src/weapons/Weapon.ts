@@ -192,9 +192,37 @@ export const PISTOL_CONFIG: WeaponConfig = {
   slot: 'secondary',
 };
 
+// Marksman — semi-auto precision DMR. Fills the gap between AR and Sniper:
+// punchy per-shot (3-shot body, 2-shot with a head), accurate at range, no
+// scope so it stays a hipfire-precision rifle distinct from the scoped sniper.
+export const MARKSMAN_CONFIG: WeaponConfig = {
+  id: 'marksman',
+  displayName: 'Marksman',
+  fireRate: 3.5,
+  automatic: false,
+  magSize: 12,
+  reloadTime: 2.0,
+  reserveAmmo: -1,
+  baseDamage: 38,              // 3-shot body (114), 2-shot with one head (110)
+  headshotMultiplier: 1.9,
+  maxRange: 220,
+  falloffStart: 55,
+  falloffEnd: 140,
+  falloffMinMultiplier: 0.7,
+  baseSpread: 0.002,
+  maxSpread: 0.03,
+  spreadPerShot: 0.012,
+  spreadDecay: 0.5,
+  recoilPitch: 0.03,
+  recoilYaw: 0.004,
+  recoilDecay: 0.5,
+  slot: 'primary',
+};
+
 export const WEAPON_LIBRARY = {
   ar: AR_CONFIG,
   smg: SMG_CONFIG,
+  marksman: MARKSMAN_CONFIG,
   sniper: SNIPER_CONFIG,
   shotgun: SHOTGUN_CONFIG,
   pistol: PISTOL_CONFIG,

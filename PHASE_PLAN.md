@@ -303,3 +303,32 @@ unchanged** (`weaponId` was already on the Fire message).
 
 ### Phase 17 COMPLETE — MP weapon damage parity shipped, solo intact, no protocol change.
 
+---
+
+## Phase 18 — Marksman rifle (v0.18.0)
+
+The first **new weapon** since the original roster — variety is core Krunker-feel
+and the loadout had a clear gap between the AR (versatile) and the Sniper
+(scoped one-shot). The Marksman is a semi-auto precision DMR: punchy per-shot,
+accurate at range, **no scope** so it stays a hipfire-precision rifle distinct
+from the sniper. Works in solo AND MP (server damage table updated — no protocol
+change; `weaponId` already flows).
+
+- **Stats:** semi-auto, 3.5 RPS, 38 dmg (3-shot body / 2-shot with a head),
+  1.9× headshot, mag 12, light range falloff (55→140 m), very tight spread.
+- **Client:** `MARKSMAN_CONFIG` + `WEAPON_LIBRARY` entry; new procedural
+  `buildMarksman` viewmodel (long body + barrel + amber red-dot); `fire_marksman`
+  sound id; GunGame `WEAPON_LABEL` entry; loadout selector button. The
+  `Record<WeaponId>` maps (viewmodel builders, gungame labels) made tsc enforce
+  completeness — no spot missed.
+- **Server:** added to `VALID_WEAPONS` + the `Weapons.ts` damage table, so the
+  Marksman deals correct authoritative damage online.
+
+### Status log
+- ✅ Phase 18 — Marksman rifle. DONE. tsc (client+server) + client build green
+  (app chunk ~64.7 KB gzip). 15-assertion headless test: server↔client damage
+  parity across ranges/headshots, 3-shot body, 2-shot head+body, zero past range.
+  Selectable in the loadout (solo + MP), gun appears in hand. v0.18.0 bump.
+
+### Phase 18 COMPLETE — Marksman rifle shipped (solo + MP), no protocol change.
+

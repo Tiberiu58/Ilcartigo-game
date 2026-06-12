@@ -179,6 +179,7 @@ export class Viewmodel {
 const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   ar: buildAR,
   smg: buildSMG,
+  marksman: buildMarksman,
   sniper: buildSniper,
   shotgun: buildShotgun,
   pistol: buildPistol,
@@ -203,6 +204,17 @@ function buildSMG(p: THREE.Group): number {
   p.add(box(0.06, 0.04, 0.10, 0x18181d, 0, 0.085, 0.05));     // rail
   p.add(box(0.02, 0.05, 0.02, 0xf5d442, 0, 0.13, -0.18));     // front sight
   return -0.42;
+}
+
+function buildMarksman(p: THREE.Group): number {
+  p.add(box(0.15, 0.12, 0.50, 0x26303a, 0, 0, 0));            // long body
+  p.add(box(0.10, 0.10, 0.26, 0x36404c, 0, -0.02, 0.32));     // stock
+  p.add(box(0.05, 0.05, 0.58, 0x12161b, 0, 0.02, -0.44));     // long barrel
+  p.add(box(0.10, 0.05, 0.16, 0x14171c, 0, 0.09, -0.02));     // optic rail
+  p.add(box(0.05, 0.05, 0.05, 0xff8a3a, 0, 0.12, -0.10));     // red-dot (amber)
+  p.add(box(0.10, 0.17, 0.10, 0x232931, 0, -0.13, 0.04));     // mag
+  p.add(box(0.07, 0.13, 0.09, 0x232931, 0, -0.12, 0.18));     // grip
+  return -0.70;
 }
 
 function buildSniper(p: THREE.Group): number {

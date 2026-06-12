@@ -30,8 +30,9 @@ interface ServerWeaponDamage {
 
 /** Mirror of the client weapon damage stats. */
 const TABLE: Record<string, ServerWeaponDamage> = {
-  ar:      { baseDamage: 24, headshotMultiplier: 1.8,  maxRange: 200, falloffStart: 25,  falloffEnd: 70,  falloffMinMultiplier: 0.6 },
-  smg:     { baseDamage: 14, headshotMultiplier: 1.6,  maxRange: 120, falloffStart: 14,  falloffEnd: 45,  falloffMinMultiplier: 0.4 },
+  ar:       { baseDamage: 24, headshotMultiplier: 1.8,  maxRange: 200, falloffStart: 25,  falloffEnd: 70,  falloffMinMultiplier: 0.6 },
+  smg:      { baseDamage: 14, headshotMultiplier: 1.6,  maxRange: 120, falloffStart: 14,  falloffEnd: 45,  falloffMinMultiplier: 0.4 },
+  marksman: { baseDamage: 38, headshotMultiplier: 1.9,  maxRange: 220, falloffStart: 55,  falloffEnd: 140, falloffMinMultiplier: 0.7 },
   sniper:  { baseDamage: 60, headshotMultiplier: 1.85, maxRange: 240, falloffStart: 200, falloffEnd: 240, falloffMinMultiplier: 0.85 },
   shotgun: { baseDamage: 12, headshotMultiplier: 1.4,  maxRange: 60,  falloffStart: 6,   falloffEnd: 22,  falloffMinMultiplier: 0.3, pellets: 9 },
   pistol:  { baseDamage: 22, headshotMultiplier: 1.7,  maxRange: 90,  falloffStart: 18,  falloffEnd: 55,  falloffMinMultiplier: 0.55 },
