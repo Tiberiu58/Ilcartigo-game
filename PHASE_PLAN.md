@@ -330,3 +330,28 @@ modes a distinct, satisfying entrance. Pure additive UI.
 
 ### Phase 19 COMPLETE — Mode intro shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 20 — Enemy nameplates + health bars (v0.20.0)
+
+A Krunker staple for combat readability: a floating **name + health bar** above
+each enemy so you can see who you're fighting and how close they are to dying.
+You stop guessing whether one more shot finishes them.
+
+- **New `ui/Nameplates.ts`** — world-space billboarded sprites (the proven
+  DamageNumbers pattern), so they face the camera and are **occluded by walls**
+  (`depthTest: true`) — you only read the health of enemies you can actually see,
+  no wallhack. Pooled (8) with canvas textures redrawn only when a bot's HP
+  changes, so per-frame cost is just repositioning.
+- **Zero coupling into Bot.ts** — the manager pulls live state straight off
+  `Game.bots` (position via `bot.group`, HP via `bot.health`) each frame. Hidden
+  for dead/inactive bots and **entirely off in MP** (bots are inactive there), so
+  it's a solo-only v1; remote plates can layer on later from snapshot data.
+- HP bar colour ramps green → amber → red by remaining fraction; plates fade out
+  past ~58 units and hide past 75. Wired into `Game` next to `dmgNumbers`
+  (construct + `update()` in the render loop).
+- **Verified**: typecheck (client + server) + client build green; app chunk
+  ~64.6 KB gzip. No new deps, no protocol/MP/gameplay changes.
+
+### Phase 20 COMPLETE — Enemy nameplates shipped, solo + MP intact, no protocol change.
+

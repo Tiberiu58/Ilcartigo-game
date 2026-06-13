@@ -28,6 +28,7 @@ import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
+import { Nameplates } from '../ui/Nameplates';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
 import { Account } from '../account/Account';
 import { findKillEffect } from '../account/Cosmetics';
@@ -81,6 +82,7 @@ export class Game {
   readonly tracers: TracerPool;
   readonly castFX: CastFX;
   readonly dmgNumbers: DamageNumbers;
+  readonly nameplates: Nameplates;
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -213,6 +215,7 @@ export class Game {
     this.tracers = new TracerPool(this.scene, 32);
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
+    this.nameplates = new Nameplates(this.scene, this);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
@@ -811,6 +814,7 @@ export class Game {
     this.tracers.update(dt);
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
+    this.nameplates.update();   // position enemy name + health-bar plates
     this.world.update();        // expires Engineer barrier solids when their TTL is up
 
     // Screen shake — random offset, decays exponentially.
