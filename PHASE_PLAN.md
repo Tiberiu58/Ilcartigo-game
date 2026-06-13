@@ -355,3 +355,24 @@ You stop guessing whether one more shot finishes them.
 
 ### Phase 20 COMPLETE — Enemy nameplates shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 21 — Nameplates in multiplayer (v0.21.0)
+
+Completes Phase 20: enemy name + health-bar plates now also render over **remote
+players online**, so MP combat gets the same readability as solo.
+
+- **New zero-alloc `MultiplayerSession.forEachRemote(cb)`** — visits each remote
+  with `(id, x, y, z, hp, cloaked)` straight off the interpolated `RemotePlayer`
+  state (which already carries `hp`/`cloaked` from snapshots). Read-only,
+  additive — no protocol change, no change to MP sync behaviour.
+- **`Nameplates` refactored** to a shared `placePlate()` + a `_used` slot
+  counter, driven by the bot loop in solo and the remote visitor in MP. Dead
+  (`hp ≤ 0`) and cloaked remotes show no plate (you only read visible enemies);
+  remote labels use the short socket id (matches scoreboard/post-match). Max HP
+  assumed 100 for the bar (Vanguard's 115 clamps to full — cosmetic only).
+- **Verified**: typecheck (client + server) + client build green; app chunk
+  ~64.7 KB gzip. Protocol.ts untouched + still in sync; controllers untouched.
+
+### Phase 21 COMPLETE — MP nameplates shipped, solo + MP intact, no protocol change.
+

@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 20 — v0.20.0. Enemy nameplates + health bars float above bots. Every round opens with a mode-intro flash. Progression you can **feel**: "+N XP" popups and a full-screen "LEVEL UP" celebration. **Personal bests** per mode (chase your record) show on the Game Modes hub cards, the Profile tab, and a post-match "NEW PERSONAL BEST" celebration. The Krunker-style **Game Modes hub** fronts three solo modes: **Gun Game** (weapon-ladder race), **Time Attack** (90-second score blitz), and **Headhunter** (headshots-only precision race), alongside Classic FFA, Online FFA, and Practice. Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 21 — v0.21.0. Enemy nameplates + health bars float above enemies (solo bots **and** online players). Every round opens with a mode-intro flash. Progression you can **feel**: "+N XP" popups and a full-screen "LEVEL UP" celebration. **Personal bests** per mode (chase your record) show on the Game Modes hub cards, the Profile tab, and a post-match "NEW PERSONAL BEST" celebration. The Krunker-style **Game Modes hub** fronts three solo modes: **Gun Game** (weapon-ladder race), **Time Attack** (90-second score blitz), and **Headhunter** (headshots-only precision race), alongside Classic FFA, Online FFA, and Practice. Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -477,7 +477,14 @@ and giving each of the six modes a distinct entrance. Pure additive UI.
 - Fires from every round-start path: `startGame`, `startOnline`, solo Play Again,
   and MP `onMatchReset`.
 
-## Phase 20 — Enemy nameplates + health bars (this round, v0.20.0)
+## Phase 21 — Nameplates in multiplayer (this round, v0.21.0)
+
+Completes Phase 20: enemy name + health-bar plates now also render over **remote
+players online**, via a new zero-alloc `MultiplayerSession.forEachRemote` visitor
+(reads `hp`/`cloaked` off interpolated remote state — no protocol change). Dead
+and cloaked remotes show no plate. MP combat now reads as clearly as solo.
+
+## Phase 20 — Enemy nameplates + health bars (v0.20.0)
 
 Combat readability — a floating name + health bar above each enemy so you can
 see who you're fighting and how close they are to dying.
@@ -492,12 +499,12 @@ see who you're fighting and how close they are to dying.
 
 ## Project status
 
-20 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+21 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. Game Modes hub, personal bests, XP feedback, mode intros, enemy nameplates. v0.20.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.20.0.
+- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. Game Modes hub, personal bests, XP feedback, mode intros, enemy nameplates (solo + MP). v0.21.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.21.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

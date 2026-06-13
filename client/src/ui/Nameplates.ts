@@ -7,13 +7,12 @@
  * walls (depthTest on) — no wallhack, you only read the health of enemies you
  * can actually see.
  *
- * Scope v1: SOLO bots only. It pulls live state straight off `Game.bots` each
- * frame, so it needs no hooks into Bot.ts and adds nothing in MP (where
- * `game.bots` are inactive). Remote-player plates can layer on later by feeding
- * this the same draw/position calls from snapshot data.
+ * Covers both SOLO (bots, off `Game.bots`) and MP (remote players, via
+ * `MultiplayerSession.forEachRemote`) — dead and cloaked enemies show no plate.
+ * It needs no hooks into Bot.ts and only a zero-alloc visitor on the MP session.
  *
  * Self-contained + pooled: a fixed sprite pool, canvas textures redrawn only
- * when a bot's HP actually changes, so per-frame cost is just positioning.
+ * when an enemy's HP/name actually changes, so per-frame cost is just positioning.
  */
 
 import * as THREE from 'three';
@@ -43,6 +42,8 @@ export class Nameplates {
   private game: Game;
   private pool: Plate[] = [];
   private _v = new THREE.Vector3();
+  /** Plates placed this frame — shared between the bot loop and the remote visitor. */
+  private _used = 0;
 
   constructor(scene: THREE.Scene, game: Game) {
     this.scene = scene;
@@ -72,43 +73,58 @@ export class Nameplates {
     return { sprite, canvas, ctx, texture, material, lastName: '', lastHp: -1 };
   }
 
-  /** Per-frame: position + draw a plate over each living, active bot. */
+  /** Per-frame: position + draw a plate over each living, visible enemy. */
   update() {
-    // No plates in MP (bots inactive there) — hide everything and bail.
-    if (this.game.mp) {
-      for (const p of this.pool) p.sprite.visible = false;
-      return;
-    }
-
     const camPos = this.game.camera.position;
-    let used = 0;
-    for (const b of this.game.bots) {
-      if (used >= this.pool.length) break;
-      if (!b.active || b.health.dead) continue;
+    this._used = 0;
 
-      const bp = b.group.position;
-      const dist = this._v.set(bp.x, bp.y + PLATE_Y, bp.z).distanceTo(camPos);
-      if (dist > MAX_DIST) continue;
-
-      const plate = this.pool[used++];
-      const name = plateName(b);
-      const hp = b.health.current;
-      if (plate.lastName !== name || plate.lastHp !== hp) {
-        drawPlate(plate.ctx, name, hp, b.health.max);
-        plate.texture.needsUpdate = true;
-        plate.lastName = name;
-        plate.lastHp = hp;
+    if (this.game.mp) {
+      // MP: plate every visible (alive, uncloaked) remote player.
+      this.game.mp.forEachRemote((id, x, y, z, hp, cloaked) => {
+        if (this._used >= this.pool.length) return;
+        if (hp <= 0 || cloaked) return;
+        if (this.placePlate(this._used, x, y, z, shortId(id), hp, 100, camPos)) this._used++;
+      });
+    } else {
+      // Solo: plate every active, living bot.
+      for (const b of this.game.bots) {
+        if (this._used >= this.pool.length) break;
+        if (!b.active || b.health.dead) continue;
+        const bp = b.group.position;
+        if (this.placePlate(this._used, bp.x, bp.y, bp.z, plateName(b), b.health.current, b.health.max, camPos)) {
+          this._used++;
+        }
       }
-      plate.sprite.position.set(bp.x, bp.y + PLATE_Y, bp.z);
-      plate.material.opacity = dist > FADE_START
-        ? Math.max(0, 1 - (dist - FADE_START) / (MAX_DIST - FADE_START))
-        : 1;
-      plate.sprite.visible = true;
     }
 
     // Hide any plates not used this frame.
-    for (let i = used; i < this.pool.length; i++) this.pool[i].sprite.visible = false;
+    for (let i = this._used; i < this.pool.length; i++) this.pool[i].sprite.visible = false;
   }
+
+  /** Draw + position one plate. Returns false (no slot consumed) if culled by
+   *  distance, so callers only advance the slot index when a plate is shown. */
+  private placePlate(slot: number, x: number, y: number, z: number, name: string, hp: number, max: number, camPos: THREE.Vector3): boolean {
+    const dist = this._v.set(x, y + PLATE_Y, z).distanceTo(camPos);
+    if (dist > MAX_DIST) return false;
+    const plate = this.pool[slot];
+    if (plate.lastName !== name || plate.lastHp !== hp) {
+      drawPlate(plate.ctx, name, hp, max);
+      plate.texture.needsUpdate = true;
+      plate.lastName = name;
+      plate.lastHp = hp;
+    }
+    plate.sprite.position.set(x, y + PLATE_Y, z);
+    plate.material.opacity = dist > FADE_START
+      ? Math.max(0, 1 - (dist - FADE_START) / (MAX_DIST - FADE_START))
+      : 1;
+    plate.sprite.visible = true;
+    return true;
+  }
+}
+
+/** Short, readable label for a remote player id (socket ids are long). */
+function shortId(id: string): string {
+  return id.slice(0, 6);
 }
 
 /** Short label for a bot — capitalised difficulty (e.g. "Predictor"). */

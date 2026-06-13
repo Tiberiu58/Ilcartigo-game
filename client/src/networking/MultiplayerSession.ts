@@ -107,6 +107,18 @@ export class MultiplayerSession {
     return true;
   }
 
+  /**
+   * Visit each remote player with its live render state. Zero-allocation
+   * (no array/object built) — used by nameplates to draw name + health bars
+   * over visible opponents in MP.
+   */
+  forEachRemote(cb: (id: string, x: number, y: number, z: number, hp: number, cloaked: boolean) => void) {
+    for (const [id, rp] of this.remotes) {
+      const p = rp.group.position;
+      cb(id, p.x, p.y, p.z, rp.hp, rp.cloaked);
+    }
+  }
+
   /** Subscribers. Mirror the local bus shape so existing HUD listeners keep working. */
   onWelcome?: (msg: ServerWelcome) => void;
   onDisconnect?: (reason: string) => void;
