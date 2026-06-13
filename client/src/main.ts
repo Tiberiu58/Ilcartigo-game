@@ -20,6 +20,7 @@ import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { TimeAttack } from './modes/TimeAttack';
+import { Headhunter } from './modes/Headhunter';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -60,6 +61,7 @@ const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
 const menuTimeattack = document.getElementById('menu-timeattack') as HTMLButtonElement;
+const menuHeadhunter = document.getElementById('menu-headhunter') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -145,6 +147,30 @@ timeAttack.onTick = (remainingSec, localKills, warn) => {
 };
 timeAttack.onTimeUp = (winnerId) => {
   // Reuse the post-match overlay; it reads matchKills for the scoreboard.
+  game.matchEnded = true;
+  game.onMatchEnded?.(winnerId);
+};
+
+// ─── Headhunter mode ───────────────────────────────────────────────────────
+// Headshots-only scoring (solo vs bots for v1). Purely bus-driven, like Gun
+// Game — no per-frame tick needed.
+const headhunter = new Headhunter(game.bus, {
+  isLocalPlayer: (id) => game.isLocalPlayer(id),
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+});
+const hhTicker = document.getElementById('headhunter-ticker')!;
+const hhScoreEl = document.getElementById('hh-score')!;
+const hhGoalEl = document.getElementById('hh-goal')!;
+
+headhunter.onLocalScore = (score, goal) => {
+  hhScoreEl.textContent = String(score);
+  hhGoalEl.textContent = String(goal);
+  // Brief pop on each increment.
+  hhTicker.classList.remove('bump');
+  void hhTicker.offsetWidth; // reflow so the animation re-triggers
+  hhTicker.classList.add('bump');
+};
+headhunter.onWin = (winnerId) => {
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
 };
@@ -288,7 +314,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'timeattack' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'timeattack' | 'headhunter' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -318,6 +344,14 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'timeattack' = 'com
   } else {
     timeAttack.stop();
     taTicker.classList.add('hidden');
+  }
+
+  // Headhunter: fresh headshots-only round + show the ticker.
+  if (mode === 'headhunter') {
+    headhunter.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    hhTicker.classList.remove('hidden');
+  } else {
+    hhTicker.classList.add('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -373,6 +407,7 @@ function startOnline() {
   ggTicker.classList.add('hidden');
   timeAttack.stop();
   taTicker.classList.add('hidden');
+  hhTicker.classList.add('hidden');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
   game.input.requestPointerLock();
@@ -395,6 +430,7 @@ function quitToMenu() {
   timeAttack.stop();
   taTicker.classList.remove('warn');
   taTicker.classList.add('hidden');
+  hhTicker.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -467,6 +503,7 @@ menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
 menuTimeattack.addEventListener('click', () => startGame('timeattack'));
+menuHeadhunter.addEventListener('click', () => startGame('headhunter'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -564,8 +601,11 @@ function renderScoreboard() {
     : game.mode === 'practice' ? 'Practice'
     : game.mode === 'gungame' ? 'Gun Game · Bots'
     : game.mode === 'timeattack' ? 'Time Attack · Bots'
+    : game.mode === 'headhunter' ? 'Headhunter · Bots'
     : 'Free-for-All · Bots';
-  sbGoal.textContent = game.mode === 'timeattack' ? '90s' : String(Game.MATCH_KILL_GOAL);
+  sbGoal.textContent = game.mode === 'timeattack' ? '90s'
+    : game.mode === 'headhunter' ? '10 HS'
+    : String(Game.MATCH_KILL_GOAL);
 
   const ids = new Set<string>();
   // Always include the local player.
@@ -790,6 +830,10 @@ pmPlayAgain.addEventListener('click', () => {
     // Time Attack: restart a fresh 90s round.
     if (game.mode === 'timeattack') {
       timeAttack.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    }
+    // Headhunter: restart a fresh headshots-only round.
+    if (game.mode === 'headhunter') {
+      headhunter.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
     }
     game.input.requestPointerLock();
   }

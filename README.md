@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. Two solo game modes now: **Gun Game** (weapon-ladder race, Phase 13) and **Time Attack** (90-second score blitz, Phase 14). Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 15 — v0.15.0. Three solo game modes now: **Gun Game** (weapon-ladder race, Phase 13), **Time Attack** (90-second score blitz, Phase 14), and **Headhunter** (headshots-only precision race, Phase 15). Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -407,14 +407,32 @@ protocol or MP changes**.
   Esc / tab-out / overlays. New menu button (gold accent), Play Again restarts a
   fresh round, mode-aware scoreboard labels.
 
+## Phase 15 — Headhunter mode (this round, v0.15.0)
+
+The third new game mode — a **headshots-only precision race**. The three modes
+now cover three distinct skill axes: the weapon ladder (Gun Game), the clock
+(Time Attack), and aim (Headhunter). Self-contained, solo-vs-bots for v1, **no
+protocol or MP changes**.
+
+- **Only headshot kills score.** Body kills still drop the target (and still
+  count toward Tab/lifetime stats) but don't advance your Headhunter score.
+  First to **10** headshot eliminations wins → post-match overlay.
+- **New `client/src/modes/Headhunter.ts`** — bus-driven, decoupled via a small
+  `HeadhunterHost` interface. Reads `KillEvent.isHeadshot` off the existing bus
+  (no new fields). Bots race; suicides don't farm. Purely reactive, no per-frame
+  tick (like Gun Game).
+- **`GameMode`** extended with `'headhunter'`; `isCombatMode()` includes it.
+- HUD Headhunter ticker ("💀 HEADSHOTS n/10", scale-bump on increment), new menu
+  button (pink accent), Play Again restarts, mode-aware scoreboard labels.
+
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **two solo game modes (Gun Game + Time Attack)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

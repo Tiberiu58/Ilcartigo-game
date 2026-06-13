@@ -49,13 +49,13 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'timeattack';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'timeattack' | 'headhunter';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
- *  the peaceful Practice sandbox). Gun Game and Time Attack both play like
- *  Combat with their own win condition layered on top. */
+ *  the peaceful Practice sandbox). Gun Game, Time Attack and Headhunter all play
+ *  like Combat with their own win condition layered on top. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'timeattack';
+  return m === 'combat' || m === 'gungame' || m === 'timeattack' || m === 'headhunter';
 }
 
 export interface FrameInfo {

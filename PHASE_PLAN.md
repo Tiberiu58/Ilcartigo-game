@@ -191,3 +191,33 @@ MP changes, mirrors the Gun Game module pattern.
 
 ### Phase 14 COMPLETE — Time Attack shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 15 — Headhunter mode (v0.15.0)
+
+The third NEW GAME MODE — a **precision / headshots-only** mode. Three modes now
+cover three distinct skill axes: the **weapon ladder** (Gun Game), the **clock**
+(Time Attack), and **aim** (Headhunter). Self-contained, solo-vs-bots for v1, no
+protocol or MP changes, mirrors the Gun Game module pattern.
+
+- **Only headshot kills score.** Body kills still drop the target (and still
+  count toward Tab/lifetime stats) but don't advance your Headhunter score.
+  First to `HEADHUNTER_GOAL = 10` headshot eliminations wins → post-match.
+- **New `modes/Headhunter.ts`** — bus-driven, decoupled via a small
+  `HeadhunterHost` interface (isLocalPlayer / playSound). Reads `KillEvent.
+  isHeadshot` straight off the existing bus (no new event fields). Tracks
+  per-participant headshot kills (bots race), suicides don't farm. Purely
+  reactive — no per-frame tick needed, like Gun Game.
+- **`GameMode`** extended with `'headhunter'`; `isCombatMode()` includes it.
+- **HUD**: new top-center Headhunter ticker — "💀 HEADSHOTS n/10", with a brief
+  scale `.bump` animation on each increment and a `hit_headshot` cue on score.
+- **Menu**: new "💀 Headhunter (vs Bots)" button (pink `#ff5a8a` accent). Play
+  Again restarts a fresh round; Quit hides the ticker. Mode-aware scoreboard
+  label ("Headhunter · Bots" / "10 HS").
+- **Verified**: headless logic test (body-kill no-score, headshot scores +
+  local tick + cue, suicide-ignore, bots score, win-at-goal + stop-after-win,
+  bot-can-win) all pass. Typecheck (client + server) + client build green; app
+  chunk ~62.5 KB gzip. No new sound ids (reuses `hit_headshot` + `match_end`).
+
+### Phase 15 COMPLETE — Headhunter shipped, solo + MP intact, no protocol change.
+
