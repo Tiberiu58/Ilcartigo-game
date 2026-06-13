@@ -313,6 +313,36 @@ gfxButtons.forEach((btn) => {
   });
 });
 
+// ─── Match-start mode intro ──────────────────────────────────────────────────
+// A brief, non-blocking center flash naming the mode + its objective on every
+// round start. Reinforces mode identity (Krunker shows a banner each round).
+const modeIntroEl = document.getElementById('mode-intro')!;
+const modeIntroTitle = document.getElementById('mode-intro-title')!;
+const modeIntroSub = document.getElementById('mode-intro-sub')!;
+let modeIntroTimer = 0;
+const MODE_INTRO: Record<string, { title: string; sub: string; color: string; glow: string }> = {
+  combat:     { title: 'Free For All',          sub: 'First to 30 kills',           color: '#4a9eff', glow: 'rgba(74,158,255,0.5)' },
+  online:     { title: 'Free For All · Online', sub: 'First to 30 kills',           color: '#4ac8a8', glow: 'rgba(74,200,168,0.5)' },
+  gungame:    { title: 'Gun Game',              sub: 'Kill to upgrade · pistol wins', color: '#ff8a3a', glow: 'rgba(255,138,58,0.5)' },
+  timeattack: { title: 'Time Attack',           sub: '90 seconds · most kills wins', color: '#ffd24a', glow: 'rgba(255,210,74,0.5)' },
+  headhunter: { title: 'Headhunter',            sub: 'Headshots only · first to 10', color: '#ff5a8a', glow: 'rgba(255,90,138,0.5)' },
+  practice:   { title: 'Practice Range',        sub: 'No threats · warm up',         color: '#6cc6ff', glow: 'rgba(108,198,255,0.5)' },
+};
+
+function showModeIntro(key: string) {
+  const cfg = MODE_INTRO[key];
+  if (!cfg) return;
+  modeIntroTitle.textContent = cfg.title;
+  modeIntroSub.textContent = cfg.sub;
+  modeIntroEl.style.setProperty('--mi-c', cfg.color);
+  modeIntroEl.style.setProperty('--mi-glow', cfg.glow);
+  modeIntroEl.classList.remove('hidden', 'show');
+  void modeIntroEl.offsetWidth; // reflow so the animation restarts
+  modeIntroEl.classList.add('show');
+  window.clearTimeout(modeIntroTimer);
+  modeIntroTimer = window.setTimeout(() => modeIntroEl.classList.add('hidden'), 2000);
+}
+
 function startGame(mode: 'combat' | 'practice' | 'gungame' | 'timeattack' | 'headhunter' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
@@ -356,6 +386,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'timeattack' | 'hea
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
+  showModeIntro(mode);
   // Pointer-lock request must come from a user gesture — the click counts.
   game.input.requestPointerLock();
 }
@@ -392,6 +423,7 @@ function startOnline() {
     announcer.reset();
     pmPlayAgain.disabled = false;
     pmPlayAgain.textContent = 'Play Again';
+    showModeIntro('online');
     game.input.requestPointerLock();
   };
   game.mp = session;
@@ -409,6 +441,7 @@ function startOnline() {
   hhTicker.classList.add('hidden');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
+  showModeIntro('online');
   game.input.requestPointerLock();
 }
 
@@ -897,6 +930,7 @@ pmPlayAgain.addEventListener('click', () => {
     if (game.mode === 'headhunter') {
       headhunter.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
     }
+    showModeIntro(game.mode);
     game.input.requestPointerLock();
   }
 });

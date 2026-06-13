@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 18 — v0.18.0. Progression you can **feel**: "+N XP" popups and a full-screen "LEVEL UP" celebration. **Personal bests** per mode (chase your record) show on the Game Modes hub cards, the Profile tab, and a post-match "NEW PERSONAL BEST" celebration. The Krunker-style **Game Modes hub** fronts three solo modes: **Gun Game** (weapon-ladder race), **Time Attack** (90-second score blitz), and **Headhunter** (headshots-only precision race), alongside Classic FFA, Online FFA, and Practice. Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 19 — v0.19.0. Every round opens with a mode-intro flash. Progression you can **feel**: "+N XP" popups and a full-screen "LEVEL UP" celebration. **Personal bests** per mode (chase your record) show on the Game Modes hub cards, the Profile tab, and a post-match "NEW PERSONAL BEST" celebration. The Krunker-style **Game Modes hub** fronts three solo modes: **Gun Game** (weapon-ladder race), **Time Attack** (90-second score blitz), and **Headhunter** (headshots-only precision race), alongside Classic FFA, Online FFA, and Practice. Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -466,14 +466,25 @@ Krunker dopamine loop — with no gameplay risk.
   challenge claims for free since they all flow through `Account.xp`.
 - New HUD DOM + rise/pop animations + a `level_up` sound id.
 
+## Phase 19 — Match-start mode intro (this round, v0.19.0)
+
+Every round now opens with a brief, non-blocking center flash naming the mode +
+its objective (the way Krunker announces each round) — reinforcing mode identity
+and giving each of the six modes a distinct entrance. Pure additive UI.
+
+- **New `#mode-intro` HUD banner** + `showModeIntro(key)` in `main.ts` with
+  per-mode title/objective/accent colour. 2s flash, `pointer-events: none`.
+- Fires from every round-start path: `startGame`, `startOnline`, solo Play Again,
+  and MP `onMatchReset`.
+
 ## Project status
 
-18 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+19 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. Game Modes hub, personal bests, XP feedback. v0.18.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.18.0.
+- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. Game Modes hub, personal bests, XP feedback, mode intros. v0.19.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.19.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

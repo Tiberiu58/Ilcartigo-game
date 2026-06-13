@@ -307,3 +307,26 @@ gameplay/protocol/MP risk.
 
 ### Phase 18 COMPLETE — XP feedback shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 19 — Match-start mode intro (v0.19.0)
+
+Rounds dropped you straight in with no sense of occasion or which mode you were
+playing. Phase 19 adds a brief, **non-blocking center flash** on every round
+start — the mode's name + its objective — the way Krunker announces each round.
+Reinforces mode identity (you always know the rules), and gives each of the six
+modes a distinct, satisfying entrance. Pure additive UI.
+
+- **New `#mode-intro` HUD banner** + a `showModeIntro(key)` helper in `main.ts`
+  with per-mode title/objective/accent-colour (matching the menu + ticker
+  colours). 2s flash animation, `pointer-events: none` so it never blocks aim.
+- Fires from every round-start path: `startGame` (all solo modes), `startOnline`,
+  solo Play Again (reads `game.mode`), and MP `onMatchReset`.
+- Copy: Free For All "First to 30 kills", Gun Game "Kill to upgrade · pistol
+  wins", Time Attack "90 seconds · most kills wins", Headhunter "Headshots only ·
+  first to 10", Practice "No threats · warm up", plus an Online variant.
+- **Verified**: typecheck (client + server) + client build green; app chunk
+  ~63.9 KB gzip. No new deps, no protocol/MP/gameplay changes.
+
+### Phase 19 COMPLETE — Mode intro shipped, solo + MP intact, no protocol change.
+
