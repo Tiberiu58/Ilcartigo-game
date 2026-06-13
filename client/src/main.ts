@@ -507,7 +507,32 @@ backToMenu.addEventListener('click', quitToMenu);
 const modesOverlay = document.getElementById('modes-overlay')!;
 const modesCloseBtn = document.getElementById('modes-close-btn') as HTMLButtonElement;
 
+/** A short personal-record line for a mode card (empty if nothing worth showing). */
+function modeStatsLabel(mode: string): string {
+  if (mode === 'practice') return '';
+  const s = game.account.modeStat(mode);
+  if (s.plays === 0) return 'Not played yet';
+  if (mode === 'timeattack') {
+    return `🏆 Best ${s.bestKills} kills · ${s.wins}W`;
+  }
+  return `${s.wins}W · ${s.plays} played`;
+}
+
+function refreshModeCardStats() {
+  document.querySelectorAll<HTMLButtonElement>('.mode-card').forEach((card) => {
+    const mode = card.dataset.mode ?? '';
+    let el = card.querySelector<HTMLElement>('.mc-stats');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'mc-stats';
+      card.appendChild(el);
+    }
+    el.textContent = modeStatsLabel(mode);
+  });
+}
+
 function openModes() {
+  refreshModeCardStats();
   modesOverlay.classList.remove('hidden');
   game.audio.play('ui_click');
   Ads.refreshSlot('modes');
@@ -821,7 +846,12 @@ function showPostMatch(winnerId: string) {
     </div>`;
   }).join('');
 
-  pmUnlocks.textContent = '';   // future: list newly-unlocked skins this match
+  // Per-mode personal record: record this result + celebrate a new best.
+  // Online classic is keyed separately from solo classic so PBs don't conflate.
+  const modeKey = game.mp ? 'online' : game.mode;
+  const rec = game.account.recordModeResult(modeKey, myKills, youWon);
+  pmUnlocks.textContent = rec.newBest ? `🏆 NEW PERSONAL BEST · ${myKills} kills` : '';
+  pmUnlocks.classList.toggle('pm-record', rec.newBest);
 
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');

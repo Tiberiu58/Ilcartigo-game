@@ -16,6 +16,7 @@ export class ProfileUI {
   private xpFill: HTMLElement;
   private xpText: HTMLElement;
   private statsGrid: HTMLElement;
+  private recordsList: HTMLElement;
   private challengesList: HTMLElement;
 
   constructor(account: Account) {
@@ -26,6 +27,7 @@ export class ProfileUI {
     this.xpFill = document.getElementById('prof-xp-fill')!;
     this.xpText = document.getElementById('prof-xp-text')!;
     this.statsGrid = document.getElementById('stats-grid')!;
+    this.recordsList = document.getElementById('records-list')!;
     this.challengesList = document.getElementById('challenges-list')!;
 
     // Name save.
@@ -58,7 +60,34 @@ export class ProfileUI {
     if (!this.statsGrid) return;
     this.renderSummary();
     this.renderStats();
+    this.renderRecords();
     this.renderChallenges();
+  }
+
+  private renderRecords() {
+    if (!this.recordsList) return;
+    // Solo modes that track personal records, plus online classic.
+    const modes: Array<[string, string]> = [
+      ['combat', 'Classic FFA'],
+      ['online', 'Online FFA'],
+      ['gungame', 'Gun Game'],
+      ['timeattack', 'Time Attack'],
+      ['headhunter', 'Headhunter'],
+    ];
+    const rows = modes.map(([id, label]) => {
+      const s = this.account.modeStat(id);
+      const detail = s.plays === 0
+        ? '<span class="rec-empty">— not played</span>'
+        : id === 'timeattack'
+          ? `<span class="rec-best">🏆 ${s.bestKills} kills</span> · ${s.wins}W / ${s.plays}P`
+          : `${s.wins}W / ${s.plays}P · best ${s.bestKills}`;
+      return `
+        <div class="rec-row">
+          <span class="rec-mode">${label}</span>
+          <span class="rec-detail">${detail}</span>
+        </div>`;
+    });
+    this.recordsList.innerHTML = rows.join('');
   }
 
   private renderSummary() {

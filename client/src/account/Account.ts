@@ -37,6 +37,33 @@ function freshStats(): LifetimeStats {
   return { kills: 0, deaths: 0, headshots: 0, matches: 0, wins: 0, bestStreak: 0, playSeconds: 0 };
 }
 
+/** Per-mode personal records — a retention hook (chase your best). */
+export interface ModeStat {
+  /** Best kills in a single round/match of this mode. */
+  bestKills: number;
+  /** Rounds/matches won in this mode. */
+  wins: number;
+  /** Rounds/matches played to completion in this mode. */
+  plays: number;
+}
+
+function freshModeStat(): ModeStat {
+  return { bestKills: 0, wins: 0, plays: 0 };
+}
+
+/** Merge a (possibly partial) saved per-mode-stats map onto fresh defaults. */
+function mergeModeStats(saved: unknown): Record<string, ModeStat> {
+  const out: Record<string, ModeStat> = {};
+  if (!saved || typeof saved !== 'object') return out;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0);
+  for (const [k, v] of Object.entries(saved as Record<string, unknown>)) {
+    if (!v || typeof v !== 'object') continue;
+    const s = v as Partial<ModeStat>;
+    out[k] = { bestKills: num(s.bestKills), wins: num(s.wins), plays: num(s.plays) };
+  }
+  return out;
+}
+
 /** Merge a (possibly partial / possibly undefined) saved stats object onto fresh defaults. */
 function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeStats): LifetimeStats {
   if (!saved || typeof saved !== 'object') return fresh;
@@ -64,6 +91,8 @@ interface AccountData {
   equippedTracer: TracerId;
   /** Lifetime career stats. */
   stats: LifetimeStats;
+  /** Per-mode personal records (best kills / wins / plays), keyed by mode id. */
+  modeStats: Record<string, ModeStat>;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
@@ -144,6 +173,7 @@ function freshData(): AccountData {
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
     stats: freshStats(),
+    modeStats: {},
     name: '',
     daily: freshDaily(freshStats()),
   };
@@ -187,6 +217,7 @@ export class Account {
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
+        modeStats: mergeModeStats(parsed.modeStats),
         name: typeof parsed.name === 'string' ? parsed.name.slice(0, 16) : fresh.name,
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
@@ -363,6 +394,27 @@ export class Account {
     this.data.stats.matches++;
     if (won) this.data.stats.wins++;
     this.save();
+  }
+
+  /** Per-mode record snapshot (read-only), defaulting to zeros. */
+  modeStat(mode: string): Readonly<ModeStat> {
+    return this.data.modeStats[mode] ?? freshModeStat();
+  }
+
+  /**
+   * Record a finished round/match result for a mode. Updates plays, wins, and
+   * the best-kills high-water mark. Returns whether this round set a new
+   * best-kills personal record (for the post-match celebration).
+   */
+  recordModeResult(mode: string, kills: number, won: boolean): { newBest: boolean } {
+    const cur = this.data.modeStats[mode] ?? freshModeStat();
+    cur.plays++;
+    if (won) cur.wins++;
+    const newBest = kills > cur.bestKills;
+    if (newBest) cur.bestKills = kills;
+    this.data.modeStats[mode] = cur;
+    this.save();
+    return { newBest: newBest && kills > 0 };
   }
 
   /** Accumulate played time. Called periodically with elapsed seconds; we

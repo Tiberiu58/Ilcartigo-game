@@ -250,3 +250,33 @@ natural ad breakpoint (revenue), with no gameplay risk.
 
 ### Phase 16 COMPLETE — Game Modes hub shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 17 — Personal bests + per-mode records (v0.17.0)
+
+The three new modes needed a reason to replay them beyond a single round. Phase
+17 adds a **personal-records** retention loop — chase your best — surfaced where
+players already look (the Modes hub) and celebrated where it lands hardest (the
+post-match screen). Pure Account + UI; zero gameplay/protocol/MP risk.
+
+- **`Account` extended (migration-safe)** with `modeStats: Record<string,
+  {bestKills, wins, plays}>`. New `recordModeResult(mode, kills, won)` updates
+  plays/wins + the best-kills high-water mark and returns `{ newBest }`; new
+  `modeStat(mode)` read accessor. Old saves missing the field load cleanly
+  (verified), and `reset()` wipes it.
+- **Post-match recording + celebration.** `showPostMatch` records the result for
+  the current mode (online classic keyed as `'online'` so it doesn't conflate
+  with solo classic) and, on a new best-kills record, flashes a gold
+  "🏆 NEW PERSONAL BEST · N kills" line with a pop animation.
+- **Modes hub stats.** Each mode card now shows a record line, refreshed every
+  time the hub opens — Time Attack reads "🏆 Best N kills · NW", the others
+  "NW · N played", unplayed modes "Not played yet".
+- **Profile tab "Mode Records" section.** A per-mode breakdown (best/wins/plays)
+  above Daily Challenges, re-rendered on every account change.
+- **Verified**: headless Account test (first-result-is-best, lower-doesn't-beat,
+  higher-sets-record, zero-kills-never-celebrated, persistence, old-save
+  migration, reset-clears) all pass. Typecheck (client + server) + client build
+  green; app chunk ~63.2 KB gzip. No new deps, no new sound ids.
+
+### Phase 17 COMPLETE — Personal bests shipped, solo + MP intact, no protocol change.
+
