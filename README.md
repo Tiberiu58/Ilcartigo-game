@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Two solo game modes now: **Gun Game** (weapon-ladder race, Phase 13) and **Time Attack** (90-second score blitz, Phase 14). Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -294,6 +294,12 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `revenge.wav` | Revenge-kill announcer sting | "revenge sting", "vengeance" |
 | `comeback.wav` | Comeback announcer sting | "comeback", "rise up sting" |
 
+**Phase 14 addition** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `timer_tick.wav` | Time Attack final-10s countdown tick | "clock tick", "countdown beep" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -361,14 +367,54 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Gun Game mode (this round, v0.13.0)
+
+The first **new game mode** — mode variety is the #1 driver of replay value in
+arena shooters. Self-contained, solo-vs-bots for v1, **no protocol or MP
+changes**.
+
+- **Weapon ladder** `smg → ar → shotgun → sniper → pistol`. Each kill advances
+  the killer one rung; the local player's gun visibly swaps in hand. First to
+  land a kill on the final rung (pistol) wins → post-match overlay.
+- **New `client/src/modes/GunGame.ts`** — bus-driven, decoupled via a small
+  `GunGameHost` interface (isLocalPlayer / setPlayerPrimaryWeapon / playSound).
+  Bots race too (tier tracked; weapon fixed for v1).
+- **`GameMode`** extended with `'gungame'` + an `isCombatMode()` helper so bots /
+  spawn-protection / map logic treat Gun Game like Combat.
+- **New `Game.setPlayerPrimaryWeapon(id)`** — swaps primary + viewmodel (pistol
+  special-cased to the secondary slot).
+- HUD Gun Game ticker ("LVL n/5 · WEAPON" + pips), new menu button, Play Again
+  restarts the ladder, Quit restores the chosen loadout weapon.
+
+## Phase 14 — Time Attack mode (this round, v0.14.0)
+
+The second new game mode — a **90-second score blitz**. A *timed* mode is also
+the best revenue lever: short rounds surface a fresh post-match overlay (the
+prime AdSense breakpoint) every ~90s. Self-contained, solo-vs-bots for v1, **no
+protocol or MP changes**.
+
+- **The clock is the enemy.** Keep your chosen loadout; deaths cost only respawn
+  seconds. Most kills before the timer hits zero wins → post-match overlay.
+- **New `client/src/modes/TimeAttack.ts`** — bus-driven, decoupled via a small
+  `TimeAttackHost` interface. Self-managed countdown (dt-accumulated,
+  pause-aware via `setPaused`, driven once per frame from `game.onFrame`).
+  Tracks per-participant kills (bots race), suicides don't farm, ties resolve
+  in the local player's favour. `TIMEATTACK_DURATION = 90`.
+- **`GameMode`** extended with `'timeattack'`; `isCombatMode()` returns true for
+  it (bots / respawn / spawns behave like Combat).
+- HUD Time Attack ticker (`M:SS · N kills`), final-10s red `.warn` pulse + an
+  audible `timer_tick` cue (new sound id). Pause integration freezes the clock on
+  Esc / tab-out / overlays. New menu button (gold accent), Play Again restarts a
+  fresh round, mode-aware scoreboard labels.
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **two solo game modes (Gun Game + Time Attack)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~188 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

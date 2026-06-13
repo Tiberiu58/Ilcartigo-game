@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { TimeAttack } from './modes/TimeAttack';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -58,6 +59,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuTimeattack = document.getElementById('menu-timeattack') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -113,6 +115,35 @@ gunGame.onLocalTierChange = (tier, total, label) => {
     `<span class="gg-pip${i <= tier ? ' on' : ''}"></span>`).join('');
 };
 gunGame.onWin = (winnerId) => {
+  // Reuse the post-match overlay; it reads matchKills for the scoreboard.
+  game.matchEnded = true;
+  game.onMatchEnded?.(winnerId);
+};
+
+// ─── Time Attack mode ──────────────────────────────────────────────────────
+// A 90-second score blitz (solo vs bots for v1). Self-managed countdown; the
+// clock ticks from game.onFrame and freezes while a menu/overlay is up.
+const timeAttack = new TimeAttack(game.bus, {
+  isLocalPlayer: (id) => game.isLocalPlayer(id),
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+});
+const taTicker = document.getElementById('timeattack-ticker')!;
+const taClockEl = document.getElementById('ta-clock')!;
+const taKillsEl = document.getElementById('ta-kills')!;
+
+function formatClock(totalSec: number): string {
+  const s = Math.max(0, totalSec);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, '0')}`;
+}
+
+timeAttack.onTick = (remainingSec, localKills, warn) => {
+  taClockEl.textContent = formatClock(remainingSec);
+  taKillsEl.textContent = String(localKills);
+  taTicker.classList.toggle('warn', warn);
+};
+timeAttack.onTimeUp = (winnerId) => {
   // Reuse the post-match overlay; it reads matchKills for the scoreboard.
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
@@ -257,7 +288,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'timeattack' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -276,6 +307,17 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
     ggTicker.classList.remove('hidden');
   } else {
     ggTicker.classList.add('hidden');
+  }
+
+  // Time Attack: start a fresh 90s round for the player + all active bots, and
+  // show the countdown ticker. Other modes hide it + stop the clock.
+  if (mode === 'timeattack') {
+    const participants = [game.localPlayerId(), ...game.bots.map((b) => b.id)];
+    timeAttack.start(participants);
+    taTicker.classList.remove('hidden');
+  } else {
+    timeAttack.stop();
+    taTicker.classList.add('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -328,6 +370,9 @@ function startOnline() {
   // Poll-update the player count off the remotes map (cheap; runs at the
   // game's frame rate via game.onFrame).
   practiceBadge.classList.add('hidden');
+  ggTicker.classList.add('hidden');
+  timeAttack.stop();
+  taTicker.classList.add('hidden');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
   game.input.requestPointerLock();
@@ -347,6 +392,9 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
+  timeAttack.stop();
+  taTicker.classList.remove('warn');
+  taTicker.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -418,6 +466,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuTimeattack.addEventListener('click', () => startGame('timeattack'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -510,8 +559,13 @@ function playerName(): string {
  * MP are kept authoritative by the server (snapshot kills + MatchOver).
  */
 function renderScoreboard() {
-  sbMode.textContent = game.mp ? 'Free-for-All · Online' : (game.mode === 'practice' ? 'Practice' : 'Free-for-All · Bots');
-  sbGoal.textContent = String(Game.MATCH_KILL_GOAL);
+  sbMode.textContent = game.mp
+    ? 'Free-for-All · Online'
+    : game.mode === 'practice' ? 'Practice'
+    : game.mode === 'gungame' ? 'Gun Game · Bots'
+    : game.mode === 'timeattack' ? 'Time Attack · Bots'
+    : 'Free-for-All · Bots';
+  sbGoal.textContent = game.mode === 'timeattack' ? '90s' : String(Game.MATCH_KILL_GOAL);
 
   const ids = new Set<string>();
   // Always include the local player.
@@ -584,6 +638,8 @@ if (!localStorage.getItem(HOWTO_SEEN_KEY)) {
 // menu and we shouldn't pop the pause on top.
 game.input.onPointerLockChange = (locked) => {
   hud.classList.toggle('hidden', !locked);
+  // Freeze the Time Attack clock while paused/unfocused; resume on re-lock.
+  timeAttack.setPaused(!locked);
   if (!locked && mainMenu.classList.contains('hidden')) {
     pauseOverlay.classList.remove('hidden');
   } else if (locked) {
@@ -595,6 +651,8 @@ game.input.onPointerLockChange = (locked) => {
 let lastHudUpdate = 0;
 game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
+  // Drive the Time Attack countdown (no-op in other modes / when stopped).
+  if (game.mode === 'timeattack') timeAttack.tick();
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;
@@ -728,6 +786,10 @@ pmPlayAgain.addEventListener('click', () => {
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
       gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    }
+    // Time Attack: restart a fresh 90s round.
+    if (game.mode === 'timeattack') {
+      timeAttack.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
     }
     game.input.requestPointerLock();
   }

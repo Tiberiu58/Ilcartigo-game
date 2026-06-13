@@ -152,3 +152,42 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — Time Attack mode (v0.14.0)
+
+The second NEW GAME MODE — a **90-second score blitz**. Mode variety keeps the
+game catchy, and a *timed* mode is the best revenue lever we have: short rounds
+mean a fresh post-match overlay (our prime AdSense breakpoint) every ~90s
+instead of every 30 kills. Self-contained, solo-vs-bots for v1, no protocol or
+MP changes, mirrors the Gun Game module pattern.
+
+- **The clock is the enemy.** Everyone keeps their chosen loadout; deaths cost
+  nothing but respawn seconds. Most kills before the timer hits zero wins → the
+  post-match overlay (reusing `matchKills` for the board, like Gun Game).
+- **New `modes/TimeAttack.ts`** — bus-driven, decoupled via a small
+  `TimeAttackHost` interface (isLocalPlayer / playSound). Tracks per-participant
+  kills (bots race too). The countdown is **self-managed**: dt-accumulated,
+  **pause-aware** (`setPaused`), driven by a once-per-frame `tick()` from
+  `main.ts`'s `game.onFrame`. Suicide kills don't farm score. Winner = top
+  kills, ties resolve in the local player's favour. `TIMEATTACK_DURATION = 90`,
+  `TIMEATTACK_WARN_AT = 10`.
+- **`GameMode` extended** to include `'timeattack'`; `isCombatMode()` now returns
+  true for it so bots / spawn-protection / map logic treat it like Combat.
+- **HUD**: new top-center Time Attack ticker — `M:SS · N kills`, tabular-nums
+  clock. Final 10s adds a `.warn` state (red + pulsing) and an audible per-second
+  `timer_tick` cue (new sound id, silent until the asset lands).
+- **Pause integration**: the `onPointerLockChange` handler calls
+  `timeAttack.setPaused(!locked)`, so the clock freezes on Esc / tab-out / the
+  settings + post-match overlays and resumes cleanly on re-lock — a tabbed-out
+  player can't lose the round to a clock that kept draining.
+- **Menu**: new "⏱ Time Attack (vs Bots)" button (gold `#ffd24a` accent). Play
+  Again restarts a fresh 90s round; Quit stops the clock + hides the ticker.
+  Scoreboard mode label + goal now read mode-aware ("Time Attack · Bots" / "90s").
+- **Verified**: headless logic test (kill counting, suicide-ignore, local-kills
+  tick, pause-freeze no-drain, tie-favours-local + bot-leads winner resolution,
+  match_end cue) all pass. Typecheck (client + server) + client build green; app
+  chunk ~62.2 KB gzip. New `timer_tick.wav` added to the audio catalog.
+
+### Phase 14 COMPLETE — Time Attack shipped, solo + MP intact, no protocol change.
+

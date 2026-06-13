@@ -61,6 +61,8 @@ export const SOUND_FILES = {
   kill_feedback: 'kill_feedback.wav',
   match_end:     'match_end.wav',
   ui_click:      'ui_click.wav',
+  // Time Attack final-countdown tick (last 10 seconds).
+  timer_tick:    'timer_tick.wav',
 
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
