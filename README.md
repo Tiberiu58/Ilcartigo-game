@@ -299,6 +299,7 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | Filename | What it is | Suggested freesound.org search |
 | --- | --- | --- |
 | `timer_tick.wav` | Time Attack final-10s countdown tick | "clock tick", "countdown beep" |
+| `level_up.wav` | Level-up celebration sting | "level up", "achievement up" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -453,14 +454,26 @@ gameplay/protocol/MP risk.
   with best kills; others show wins/plays).
 - **Profile tab** gains a "Mode Records" section (best / wins / plays per mode).
 
+## Phase 18 — Progression feedback (this round, v0.18.0)
+
+The XP economy existed but was silent. Phase 18 makes progression *felt* — the
+Krunker dopamine loop — with no gameplay risk.
+
+- **New `client/src/ui/XpFeed.ts`** — reactive on `account.onChange`. Positive XP
+  deltas pop a "+N XP" floater (only while the HUD is up); a level increase fires
+  a full-screen "LEVEL UP — N" banner + `level_up` SFX (renders above the
+  post-match overlay so a win-bonus level-up still lands). Captures kills/wins/
+  challenge claims for free since they all flow through `Account.xp`.
+- New HUD DOM + rise/pop animations + a `level_up` sound id.
+
 ## Project status
 
-17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+18 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. Game Modes hub, personal bests. v0.17.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
+- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. Game Modes hub, personal bests, XP feedback. v0.18.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.18.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

@@ -24,6 +24,7 @@ import { Headhunter } from './modes/Headhunter';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
+import { XpFeed } from './ui/XpFeed';
 import { Ads } from './ads/Ads';
 import type { WeaponId } from './weapons/Weapon';
 
@@ -765,6 +766,10 @@ const cosmeticsUI = new CosmeticsUI(game.account);
 void cosmeticsUI;
 const profileUI = new ProfileUI(game.account);
 void profileUI;
+// In-the-moment progression feedback: "+N XP" popups (in-match only) + a
+// level-up celebration. Popups gated to when the HUD is up so menus stay clean.
+const xpFeed = new XpFeed(game.account, game.audio, () => !hud.classList.contains('hidden'));
+void xpFeed;
 
 // Reset progression button — wipes XP + unlocks + equipped cosmetics after a
 // confirm prompt. Useful for testing the unlock loop or for players who want

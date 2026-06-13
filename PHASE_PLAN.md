@@ -280,3 +280,30 @@ post-match screen). Pure Account + UI; zero gameplay/protocol/MP risk.
 
 ### Phase 17 COMPLETE — Personal bests shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 18 — Progression feedback: XP popups + level-up (v0.18.0)
+
+The XP economy existed since Phase 9 but was **silent** — players never felt it.
+Phase 18 surfaces it the Krunker way: the constant little dopamine hit of seeing
+your XP tick up, and a celebration when you level. Progression you *feel* is what
+brings players back (retention → ad revenue). Pure additive UI, zero
+gameplay/protocol/MP risk.
+
+- **New `ui/XpFeed.ts`** — purely reactive, decoupled. Listens to
+  `account.onChange`, diffs XP + level against the last seen values. Positive XP
+  deltas pop a "+N XP" floater (gated to when the HUD is up, so menus stay
+  clean); negative deltas (spending on unlocks) are ignored. A level increase
+  fires a full-screen "LEVEL UP — N" banner + `level_up` SFX, which sits above
+  even the post-match overlay so a level earned by the win bonus still lands.
+- Captures every XP source for free (kills +10, win +50, daily-challenge claims)
+  since they all flow through `Account.xp`.
+- New `xp_feed` + `levelup-banner` HUD DOM, rise/pop CSS animations, and a new
+  `level_up` sound id (silent until the asset lands).
+- **Verified**: headless test with DOM stubs (in-game popup fires, out-of-game
+  suppressed, level boundary triggers banner + sound, spending XP pops nothing)
+  all pass. Typecheck (client + server) + client build green; app chunk ~63.6 KB
+  gzip.
+
+### Phase 18 COMPLETE — XP feedback shipped, solo + MP intact, no protocol change.
+

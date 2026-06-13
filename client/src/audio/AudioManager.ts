@@ -63,6 +63,8 @@ export const SOUND_FILES = {
   ui_click:      'ui_click.wav',
   // Time Attack final-countdown tick (last 10 seconds).
   timer_tick:    'timer_tick.wav',
+  // Level-up celebration sting.
+  level_up:      'level_up.wav',
 
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
