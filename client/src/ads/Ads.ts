@@ -33,6 +33,7 @@ export const AD_CONFIG = {
     'menu-top':  { adUnitId: '0000000000', label: 'Top Banner · 728×90' },
     'menu-side': { adUnitId: '0000000000', label: 'Sidebar · 300×600' },
     'postmatch': { adUnitId: '0000000000', label: 'Sponsored' },
+    'modes':     { adUnitId: '0000000000', label: 'Sponsored · 728×90' },
   } as Record<string, AdSlotDef>,
 };
 

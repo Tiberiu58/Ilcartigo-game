@@ -59,9 +59,7 @@ const pauseOverlay = document.getElementById('pause-overlay')!;
 const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
-const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
-const menuTimeattack = document.getElementById('menu-timeattack') as HTMLButtonElement;
-const menuHeadhunter = document.getElementById('menu-headhunter') as HTMLButtonElement;
+const menuModes = document.getElementById('menu-modes') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -501,11 +499,37 @@ if (savedPrimary !== 'ar') {
 
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
-menuGungame.addEventListener('click', () => startGame('gungame'));
-menuTimeattack.addEventListener('click', () => startGame('timeattack'));
-menuHeadhunter.addEventListener('click', () => startGame('headhunter'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
+
+// ─── Game Modes hub ─────────────────────────────────────────────────────────
+// Krunker-style mode picker. Cards route via data-mode → the same start funcs.
+const modesOverlay = document.getElementById('modes-overlay')!;
+const modesCloseBtn = document.getElementById('modes-close-btn') as HTMLButtonElement;
+
+function openModes() {
+  modesOverlay.classList.remove('hidden');
+  game.audio.play('ui_click');
+  Ads.refreshSlot('modes');
+}
+function hideModes() { modesOverlay.classList.add('hidden'); }
+
+menuModes.addEventListener('click', openModes);
+modesCloseBtn.addEventListener('click', () => { hideModes(); game.audio.play('ui_click'); });
+// Click outside the card closes the hub.
+modesOverlay.addEventListener('click', (e) => {
+  if (e.target === modesOverlay) hideModes();
+});
+// Route each mode card to its launcher.
+document.querySelectorAll<HTMLButtonElement>('.mode-card').forEach((card) => {
+  card.addEventListener('click', () => {
+    const mode = card.dataset.mode ?? 'combat';
+    game.audio.play('ui_click');
+    hideModes();
+    if (mode === 'online') startOnline();
+    else startGame(mode as 'combat' | 'practice' | 'gungame' | 'timeattack' | 'headhunter');
+  });
+});
 
 // Resume: re-acquire pointer lock without re-running setMode (that would
 // rebuild the map). The lock-change handler hides the pause overlay.
@@ -549,6 +573,9 @@ window.addEventListener('keydown', (e) => {
   if (!settingsPage.classList.contains('hidden')) {
     e.preventDefault();
     closeSettings();
+  } else if (!modesOverlay.classList.contains('hidden')) {
+    e.preventDefault();
+    hideModes();
   }
 });
 

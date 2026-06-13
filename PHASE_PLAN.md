@@ -221,3 +221,32 @@ protocol or MP changes, mirrors the Gun Game module pattern.
 
 ### Phase 15 COMPLETE — Headhunter shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 16 — Game Modes hub (v0.16.0)
+
+With three custom modes plus Classic/Online/Practice, the main menu had six play
+buttons and was getting crowded. Phase 16 consolidates them into a Krunker-style
+**mode picker** — cleaner UX, better mode discoverability (catch), and a new
+natural ad breakpoint (revenue), with no gameplay risk.
+
+- **New `#modes-overlay`** — a modal hub opened from a single "🎮 Game Modes"
+  main-menu button. The two primary entry points (▸ Play vs Bots, ⌬ Play Online)
+  and Practice stay on the main menu for one-click access; the hub presents all
+  six modes as **cards** with icons, one-line descriptions, and tags.
+- **Data-driven routing.** Each `.mode-card` carries `data-mode`; a single
+  delegated handler routes to `startOnline()` (online) or `startGame(mode)` for
+  the rest. Removing the three per-mode buttons + their individual listeners in
+  favour of this keeps `main.ts` smaller as modes grow.
+- **Closes cleanly**: × button, click-outside-card, and Esc all dismiss the hub
+  (Esc handler extended; the existing menu-state guards already keep Tab/pause
+  from firing while it's open).
+- **Ad slot**: a 728×90 `data-ad-slot="modes"` lives in the hub (new `'modes'`
+  entry in `AD_CONFIG.slots`), `refreshSlot`'d on open — placeholder until a real
+  publisher id is set, exactly like the other slots (policy-safe).
+- **Verified**: typecheck (client + server) + client build green; all six card
+  routes validated; no dangling references to the removed buttons. App chunk
+  ~62.6 KB gzip.
+
+### Phase 16 COMPLETE — Game Modes hub shipped, solo + MP intact, no protocol change.
+

@@ -930,6 +930,105 @@ body.kill-flash #app::after {
   border-left: 3px solid #ff5a8a;
 }
 .menu-btn.headhunter:hover { border-left-color: #ff5a8a; color: #ff5a8a; }
+.menu-btn.modes {
+  border-left: 3px solid #b072ff;
+}
+.menu-btn.modes:hover { border-left-color: #b072ff; color: #b072ff; }
+
+/* ─── Game Modes hub overlay ──────────────────────────────────────────── */
+#modes-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.86);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+#modes-overlay.hidden { display: none; }
+.modes-card {
+  background: var(--panel);
+  border-top: 3px solid #b072ff;
+  border-radius: 10px;
+  width: 820px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 40px);
+  padding: 22px 24px 24px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+.modes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modes-header h2 {
+  font-size: 18px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.modes-sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 18px;
+}
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .modes-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.mode-card {
+  position: relative;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 3px solid var(--mode-c, var(--accent));
+  border-radius: 8px;
+  padding: 14px 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.mode-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.mode-card:active { transform: translateY(0); }
+.mc-icon {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--mode-c, var(--accent));
+  margin-bottom: 8px;
+}
+.mc-name {
+  font: 800 16px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.mc-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+  min-height: 50px;
+}
+.mc-tag {
+  display: inline-block;
+  margin-top: 8px;
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mode-c, var(--accent));
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 7px;
+  border-radius: 3px;
+}
+.modes-card .ad-slot { margin-top: 18px; }
 
 /* ── Gun Game ticker (top-center HUD) ───────────────────────────────────── */
 #gungame-ticker {

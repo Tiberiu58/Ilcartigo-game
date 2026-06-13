@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. Three solo game modes now: **Gun Game** (weapon-ladder race, Phase 13), **Time Attack** (90-second score blitz, Phase 14), and **Headhunter** (headshots-only precision race, Phase 15). Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 16 — v0.16.0. A Krunker-style **Game Modes hub** now fronts three solo modes: **Gun Game** (weapon-ladder race), **Time Attack** (90-second score blitz), and **Headhunter** (headshots-only precision race), alongside Classic FFA, Online FFA, and Practice. Built on Phase 12 combat-feel juice (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -425,14 +425,28 @@ protocol or MP changes**.
 - HUD Headhunter ticker ("💀 HEADSHOTS n/10", scale-bump on increment), new menu
   button (pink accent), Play Again restarts, mode-aware scoreboard labels.
 
+## Phase 16 — Game Modes hub (this round, v0.16.0)
+
+A Krunker-style **mode picker** consolidating the now-six play modes into one
+clean overlay — better UX, better mode discoverability, and a new natural ad
+breakpoint, with no gameplay risk.
+
+- **New `#modes-overlay`** opened from a single "🎮 Game Modes" main-menu button.
+  Classic FFA, Online FFA and Practice stay one click away on the menu; the hub
+  presents all six modes as **cards** (icon, one-line description, tag).
+- **Data-driven routing** — each card's `data-mode` is routed by one delegated
+  handler to `startOnline()` / `startGame(mode)`, replacing the per-mode buttons.
+- Closes via × / click-outside / Esc. New 728×90 ad slot (`'modes'`) inside the
+  hub, refreshed on open (placeholder until a real publisher id is set).
+
 ## Project status
 
-15 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **three solo game modes (Gun Game + Time Attack + Headhunter)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~190 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, Headhunter, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. Game Modes hub. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

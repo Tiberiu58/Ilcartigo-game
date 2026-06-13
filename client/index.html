@@ -209,7 +209,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.15</p>
+          <p class="subtitle">Browser arena shooter · v0.16</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -252,9 +252,7 @@
           <div class="menu-buttons">
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
-            <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
-            <button class="menu-btn timeattack" id="menu-timeattack">⏱ Time Attack (vs Bots)</button>
-            <button class="menu-btn headhunter" id="menu-headhunter">💀 Headhunter (vs Bots)</button>
+            <button class="menu-btn modes" id="menu-modes">🎮 Game Modes</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
@@ -262,7 +260,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.15.0 — Headhunter mode</div>
+          <div>v0.16.0 — Game Modes hub</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -339,6 +337,58 @@
             <b>Pro tip:</b> headshots hurt more, killstreaks earn glory, and daily challenges in your Profile pay bonus XP.
           </div>
           <button class="menu-btn primary" id="howto-dismiss">▸ Got it — let's play</button>
+        </div>
+      </div>
+
+      <!-- Game Modes hub — Krunker-style mode picker. Opened from the main
+           menu's "Game Modes" button. Cards route via data-mode in main.ts. -->
+      <div id="modes-overlay" class="hidden">
+        <div class="modes-card">
+          <header class="modes-header">
+            <h2>Game Modes</h2>
+            <button class="settings-close" id="modes-close-btn" aria-label="Close">×</button>
+          </header>
+          <p class="modes-sub">Pick your fight. Your class, map and weapon loadout carry into every mode.</p>
+          <div class="modes-grid">
+            <button class="mode-card" data-mode="combat" style="--mode-c: #4a9eff;">
+              <div class="mc-icon">▸</div>
+              <div class="mc-name">Classic FFA</div>
+              <div class="mc-desc">Free-for-all deathmatch vs bots. First to 30 kills takes it.</div>
+              <div class="mc-tag">vs Bots</div>
+            </button>
+            <button class="mode-card" data-mode="online" style="--mode-c: #4ac8a8;">
+              <div class="mc-icon">⌬</div>
+              <div class="mc-name">Online FFA</div>
+              <div class="mc-desc">Real players, server-authoritative. Lag-compensated hits.</div>
+              <div class="mc-tag">Multiplayer</div>
+            </button>
+            <button class="mode-card" data-mode="gungame" style="--mode-c: #ff8a3a;">
+              <div class="mc-icon">🔫</div>
+              <div class="mc-name">Gun Game</div>
+              <div class="mc-desc">Every kill upgrades your gun up the ladder. Pistol kill wins.</div>
+              <div class="mc-tag">vs Bots</div>
+            </button>
+            <button class="mode-card" data-mode="timeattack" style="--mode-c: #ffd24a;">
+              <div class="mc-icon">⏱</div>
+              <div class="mc-name">Time Attack</div>
+              <div class="mc-desc">90-second blitz. Rack up the most kills before the clock dies.</div>
+              <div class="mc-tag">vs Bots</div>
+            </button>
+            <button class="mode-card" data-mode="headhunter" style="--mode-c: #ff5a8a;">
+              <div class="mc-icon">💀</div>
+              <div class="mc-name">Headhunter</div>
+              <div class="mc-desc">Headshots only. Body shots don't count. First to 10 wins.</div>
+              <div class="mc-tag">vs Bots</div>
+            </button>
+            <button class="mode-card" data-mode="practice" style="--mode-c: #6cc6ff;">
+              <div class="mc-icon">⚙</div>
+              <div class="mc-name">Practice Range</div>
+              <div class="mc-desc">No threats. Test weapons, movement tech and abilities.</div>
+              <div class="mc-tag">Solo</div>
+            </button>
+          </div>
+          <!-- Ad slot — a natural breakpoint between menu and match. -->
+          <div class="ad-slot ad-728x90" id="ad-modes" data-ad-slot="modes"></div>
         </div>
       </div>
 
