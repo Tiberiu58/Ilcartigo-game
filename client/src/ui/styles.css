@@ -963,6 +963,52 @@ body.kill-flash #app::after {
   box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
 }
 
+/* ── One Shot mode (menu button + ticker) ───────────────────────────────── */
+.menu-btn.oneshot {
+  border-left: 3px solid #ff5d6c;
+}
+.menu-btn.oneshot:hover { border-left-color: #ff5d6c; color: #ff5d6c; }
+
+#oneshot-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(20, 25, 35, 0.82);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #ff5d6c;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#oneshot-ticker.hidden { display: none; }
+.os-kills {
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.os-kills #os-kills { color: #ff5d6c; font-size: 15px; }
+.os-sep { color: rgba(255,255,255,0.25); }
+.os-ammo {
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: #ffd34a;
+}
+.os-bullets-row { display: flex; gap: 4px; margin-left: 4px; }
+.os-bullet {
+  width: 5px; height: 13px;
+  border-radius: 2px;
+  background: rgba(255, 211, 74, 0.85);
+  box-shadow: 0 0 5px rgba(255, 211, 74, 0.6);
+}
+.os-bullet.spent {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
 .menu-footer {
   grid-area: footer;
   display: flex;

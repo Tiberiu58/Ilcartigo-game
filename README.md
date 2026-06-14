@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Two new game modes: **Gun Game** (weapon-ladder, each kill advances your gun) and **One Shot** (instagib pistols, 1-HP everyone, kill-fed bullet economy, first to 12). Built on Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -361,14 +361,47 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Gun Game mode (v0.13.0)
+
+The first NEW GAME MODE — mode variety is the #1 driver of replay value in arena
+shooters. Self-contained, solo-vs-bots for v1, no protocol or MP changes.
+
+- **Weapon ladder** `smg → ar → shotgun → sniper → pistol`. Each kill advances
+  the killer one rung; the gun visibly swaps in hand. First to a kill on the
+  final rung (pistol) wins → post-match overlay.
+- New `modes/GunGame.ts` (bus-driven, decoupled via a small `GunGameHost`
+  interface), `GameMode` extended, `Game.setPlayerPrimaryWeapon`, a top-center
+  Gun Game ticker, and a "🔫 Gun Game (vs Bots)" menu button.
+
+## Phase 14 — One Shot mode ("One in the Chamber") (v0.14.0)
+
+A second new mode — a short, frantic **instagib** format that's one of the most
+addictive arena modes (and whose quick 12-kill matches mean frequent post-match
+ad breakpoints). Solo-vs-bots, fully client-side, no protocol/MP changes.
+
+- **Everyone dies in one hit.** `Game.modeMaxHpOverride` flat-overrides the
+  player + every bot to 1 HP (read in `applyClassPassives` so respawns/passives
+  can't undo it).
+- **Pistol bullet economy.** Locked to the pistol whose magazine is the ammo
+  bank: start with 3, +1 per kill (cap 6), no reloading — make your shots count.
+  An anti-deadlock **scavenge** trickle refills 1 bullet every 4s while empty,
+  and respawns guarantee ≥1 bullet. New `Weapon.ammoLocked` + `setAmmo`/`addAmmo`.
+- **First to 12 kills wins** → the existing post-match flow (scoreboard + XP +
+  ad refresh reused). New `modes/OneShot.ts` (mirrors GunGame's host pattern),
+  a One Shot HUD ticker (kills + magazine pips), and a "🎯 One Shot (vs Bots)"
+  menu button. Weapon-slot keys are locked so you can't bail to your primary.
+- **Bug fix:** GunGame's permanent `kill` subscription had no mode guard — a kill
+  in Combat/MP would advance the ladder + swap your weapon. Added `isActive()` to
+  both mode hosts. Headless rules test for One Shot all green.
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, **Gun Game + One Shot game modes** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, One Shot, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

@@ -49,13 +49,13 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'oneshot';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
- *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
- *  ladder layered on top. */
+ *  the peaceful Practice sandbox). Gun Game and One Shot both play like Combat
+ *  with their own rule layer on top. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame';
+  return m === 'combat' || m === 'gungame' || m === 'oneshot';
 }
 
 export interface FrameInfo {
@@ -148,6 +148,14 @@ export class Game {
   localStreak = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
+
+  /**
+   * When non-null, overrides the max HP of the player AND every bot — set to 1
+   * by the One Shot mode so every hit is lethal (instagib). null in all other
+   * modes, where class passives / the 100-HP base govern as usual. Read in
+   * {@link applyClassPassives} for the player and pushed onto bots by
+   * {@link enterOneShot}/{@link exitOneShot}. */
+  modeMaxHpOverride: number | null = null;
 
   private lastTime = 0;
   private rafHandle = 0;
@@ -395,6 +403,48 @@ export class Game {
     this.viewmodel.swapTo(id);
   }
 
+  // ─── One Shot mode (instagib pistols, bullet economy) ─────────────────────
+
+  /** The pistol weapon that the One Shot bullet economy operates on. */
+  private get oneShotPistol() { return this.inventory.weapons[1]; }
+
+  /**
+   * Enter One Shot: everyone becomes 1-HP (every hit lethal), the player is
+   * locked to the pistol whose magazine is the bullet economy (no reloading —
+   * ammo is earned by kills). Call BEFORE the mode's start() so the weapon swap
+   * lands on the live inventory. `startBullets` seeds the magazine.
+   */
+  enterOneShot(startBullets: number) {
+    this.modeMaxHpOverride = 1;
+    // Player: 1 HP + pistol in hand with a locked, kill-fed magazine.
+    this.applyClassPassives();
+    this.playerActor.health.reset();
+    this.inventory.selectSlot(1);
+    this.viewmodel.swapTo('pistol');
+    this.oneShotPistol.ammoLocked = true;
+    this.oneShotPistol.setAmmo(startBullets);
+    // Bots: 1 HP so the player's pistol one-shots them too.
+    for (const b of this.bots) { b.health.setMax(1); b.health.reset(); }
+  }
+
+  /** Leave One Shot: restore normal HP for player + bots, unlock the pistol,
+   *  and put the primary weapon back in hand (the mode left us on the pistol). */
+  exitOneShot() {
+    this.modeMaxHpOverride = null;
+    this.oneShotPistol.ammoLocked = false;
+    this.oneShotPistol.setAmmo(this.oneShotPistol.config.magSize);
+    for (const b of this.bots) { b.health.setMax(100); b.health.reset(); }
+    this.applyClassPassives();
+    this.playerActor.health.reset();
+    this.inventory.selectSlot(0);
+    this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
+  }
+
+  /** Add (or subtract) bullets to the One Shot magazine, clamped to [0, cap]. */
+  addOneShotBullets(n: number, cap: number) { this.oneShotPistol.addAmmo(n, cap); }
+  /** Current One Shot bullet count (pistol magazine). */
+  oneShotBullets(): number { return this.oneShotPistol.ammo; }
+
   /**
    * Bots should be live only when we're in Combat/Gun Game AND not connected to
    * MP. Called from setMode and from MP connect/disconnect — keeps the "are
@@ -451,6 +501,12 @@ export class Game {
     this.player.setPosition(spawn.x, spawn.y, spawn.z);
     this.player.speedMultiplier = 1.0;
     this.playerActor.isCloaked = false;
+    // One Shot: never respawn bone-dry — guarantee at least one bullet so the
+    // player can act the moment spawn protection lapses (scavenge handles the
+    // rest).
+    if (this.mode === 'oneshot' && this.oneShotPistol.ammo <= 0) {
+      this.oneShotPistol.setAmmo(1);
+    }
     // Local respawn SFX. In MP the server respawns us; the tick-level edge
     // detector picks that path up via the dead→alive transition.
     this.audio.play('respawn');
@@ -542,8 +598,8 @@ export class Game {
    */
   applyClassPassives() {
     const passive = CLASS_LIBRARY[this.abilities.classId].passive;
-    // HP: 100 base + bonus.
-    this.playerActor.health.setMax(100 + (passive.bonusMaxHp ?? 0));
+    // HP: 100 base + bonus — unless a mode forces a flat override (One Shot = 1).
+    this.playerActor.health.setMax(this.modeMaxHpOverride ?? (100 + (passive.bonusMaxHp ?? 0)));
     // Weapons: reload multiplier (Rush).
     this.inventory.setReloadMultiplier(passive.reloadMultiplier ?? 1.0);
   }
@@ -700,15 +756,16 @@ export class Game {
     }
     this.lastDeadState = isDead;
 
-    // Slot keys — edge-triggered.
-    if (this.input.consumeAction('slot1')) {
-      if (this.inventory.selectSlot(0)) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
-    }
-    if (this.input.consumeAction('slot2')) {
-      if (this.inventory.selectSlot(1)) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
-    }
-    if (this.input.consumeAction('slotLast')) {
-      if (this.inventory.swapLast()) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
+    // Slot keys — edge-triggered. Drained every frame; in One Shot we consume
+    // but ignore them so the player can't bail to their full-ammo primary
+    // (the mode is pistol-only by design).
+    const slot1 = this.input.consumeAction('slot1');
+    const slot2 = this.input.consumeAction('slot2');
+    const slotLast = this.input.consumeAction('slotLast');
+    if (this.mode !== 'oneshot') {
+      if (slot1 && this.inventory.selectSlot(0)) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
+      if (slot2 && this.inventory.selectSlot(1)) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
+      if (slotLast && this.inventory.swapLast()) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
     }
 
     // Scope on RMB — only while pressed (CS-style hold-to-scope is the only

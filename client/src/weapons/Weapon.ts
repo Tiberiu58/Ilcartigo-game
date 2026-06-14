@@ -218,6 +218,12 @@ export class Weapon {
   private reloadRemaining = 0;
   /** Scales reload time. Rush passive sets this to 0.7 (30% faster). */
   reloadMultiplier = 1.0;
+  /**
+   * When true the weapon never reloads (manual or auto) and its magazine only
+   * changes through {@link setAmmo}/{@link addAmmo}. Used by the One Shot mode's
+   * bullet economy where ammo is earned by kills, not refilled by reloading.
+   */
+  ammoLocked = false;
   private currentSpread = 0;
   private recoilPitchAccum = 0;
   private recoilYawAccum = 0;
@@ -238,6 +244,12 @@ export class Weapon {
   }
 
   get ammo(): number { return this.ammoInMag; }
+  /** Force the magazine to an exact value (clamped ≥ 0). One Shot bullet economy. */
+  setAmmo(n: number) { this.ammoInMag = Math.max(0, Math.floor(n)); }
+  /** Add (or subtract) rounds, clamped to [0, cap]. cap defaults to Infinity. */
+  addAmmo(n: number, cap = Infinity) {
+    this.ammoInMag = Math.max(0, Math.min(cap, this.ammoInMag + n));
+  }
   /** Current bloomed spread in radians, for HUD crosshair visualization. */
   get spread(): number { return this.currentSpread; }
   get isReloading(): boolean { return this.reloadRemaining > 0; }
@@ -256,6 +268,7 @@ export class Weapon {
   }
 
   startReload() {
+    if (this.ammoLocked) return;
     if (this.reloadRemaining > 0) return;
     if (this.ammoInMag >= this.config.magSize) return;
     this.reloadRemaining = this.config.reloadTime * this.reloadMultiplier;

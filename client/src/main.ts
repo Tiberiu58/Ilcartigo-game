@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { OneShot, ONESHOT_START_BULLETS, ONESHOT_MAX_BULLETS } from './modes/OneShot';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -58,6 +59,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuOneshot = document.getElementById('menu-oneshot') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -97,6 +99,7 @@ const gunGame = new GunGame(game.bus, {
   isLocalPlayer: (id) => game.isLocalPlayer(id),
   setPlayerPrimaryWeapon: (id) => game.setPlayerPrimaryWeapon(id),
   playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+  isActive: () => game.mode === 'gungame',
 });
 const ggTicker = document.getElementById('gungame-ticker')!;
 const ggTierEl = document.getElementById('gg-tier')!;
@@ -117,6 +120,42 @@ gunGame.onWin = (winnerId) => {
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
 };
+
+// ─── One Shot mode ──────────────────────────────────────────────────────────
+// Instagib pistols with a kill-fed bullet economy (solo vs bots for v1). The
+// host adapter exposes only the bullet/kill surfaces; HP/weapon setup lives in
+// game.enterOneShot/exitOneShot.
+const oneShot = new OneShot(game.bus, {
+  isLocalPlayer: (id) => game.isLocalPlayer(id),
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+  addLocalBullets: (n, cap) => game.addOneShotBullets(n, cap),
+  localBulletCount: () => game.oneShotBullets(),
+  isActive: () => game.mode === 'oneshot',
+});
+const osTicker = document.getElementById('oneshot-ticker')!;
+const osKillsEl = document.getElementById('os-kills')!;
+const osGoalEl = document.getElementById('os-goal')!;
+const osBulletsEl = document.getElementById('os-bullets')!;
+const osBulletsRow = document.getElementById('os-bullets-row')!;
+
+oneShot.onLocalState = (kills, goal, bullets) => {
+  osKillsEl.textContent = String(kills);
+  osGoalEl.textContent = String(goal);
+  osBulletsEl.textContent = String(bullets);
+  // Magazine pips: filled for banked bullets, dim slots up to the cap.
+  osBulletsRow.innerHTML = Array.from({ length: ONESHOT_MAX_BULLETS }, (_, i) =>
+    `<span class="os-bullet${i < bullets ? '' : ' spent'}"></span>`).join('');
+};
+oneShot.onWin = (winnerId) => {
+  game.matchEnded = true;
+  game.onMatchEnded?.(winnerId);
+};
+
+/** Tear down One Shot's HP/weapon overrides if it's the active mode. Call
+ *  before any mode transition so the override never leaks into Combat/MP. */
+function leaveOneShotIfActive() {
+  if (game.mode === 'oneshot') game.exitOneShot();
+}
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -257,13 +296,14 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'oneshot' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
     onlineBadge.classList.add('hidden');
   }
+  leaveOneShotIfActive();
   game.setMode(mode);
   announcer.reset();
 
@@ -276,6 +316,17 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
     ggTicker.classList.remove('hidden');
   } else {
     ggTicker.classList.add('hidden');
+  }
+
+  // One Shot: flip everyone to 1-HP + lock the pistol economy, then start the
+  // match. enterOneShot runs AFTER setMode so the HP/weapon overrides land on
+  // the freshly respawned player + bots.
+  if (mode === 'oneshot') {
+    game.enterOneShot(ONESHOT_START_BULLETS);
+    oneShot.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    osTicker.classList.remove('hidden');
+  } else {
+    osTicker.classList.add('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -295,6 +346,8 @@ function startOnline() {
   // map the server is running, and preseting here would force a flicker
   // (build Sandstone → tear down → build Industrial) when the server is
   // on Industrial.
+  leaveOneShotIfActive();
+  osTicker.classList.add('hidden');
   game.setMode('combat');
   announcer.reset();
   // Build the MP session bound to the existing Game.
@@ -340,6 +393,8 @@ function quitToMenu() {
     // Re-enable bots so the next solo Play vs Bots session works.
     game.onMpChanged();
   }
+  // Undo One Shot's 1-HP / pistol-lock overrides before leaving the mode.
+  leaveOneShotIfActive();
   game.input.exitPointerLock();
   pauseOverlay.classList.add('hidden');
   mainMenu.classList.remove('hidden');
@@ -347,7 +402,8 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
-  // Restore the player's chosen loadout weapon (Gun Game overwrote it).
+  osTicker.classList.add('hidden');
+  // Restore the player's chosen loadout weapon (Gun Game / One Shot overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
 
@@ -418,6 +474,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuOneshot.addEventListener('click', () => startGame('oneshot'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -595,6 +652,9 @@ game.input.onPointerLockChange = (locked) => {
 let lastHudUpdate = 0;
 game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
+  // One Shot bullet-economy tick (scavenge trickle + HUD sync). Runs every
+  // frame; cheap and only acts while the mode is live.
+  if (game.mode === 'oneshot') oneShot.update();
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;
@@ -728,6 +788,11 @@ pmPlayAgain.addEventListener('click', () => {
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
       gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    }
+    // One Shot: re-seed the bullet economy + restart the kill race.
+    if (game.mode === 'oneshot') {
+      game.enterOneShot(ONESHOT_START_BULLETS);
+      oneShot.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
     }
     game.input.requestPointerLock();
   }

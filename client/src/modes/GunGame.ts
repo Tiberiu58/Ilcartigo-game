@@ -41,6 +41,10 @@ export interface GunGameHost {
   setPlayerPrimaryWeapon(id: WeaponId): void;
   /** Fire a one-shot SFX by id (best-effort; silent if asset missing). */
   playSound(id: string): void;
+  /** True only while Gun Game is the live mode. The kill subscription is
+   *  permanent, so without this guard a kill in Combat/MP would advance the
+   *  ladder + swap the player's weapon. */
+  isActive(): boolean;
 }
 
 export class GunGame {
@@ -86,6 +90,7 @@ export class GunGame {
   }
 
   private onKill(attackerId: string, targetId: string) {
+    if (!this.host.isActive()) return;   // only score while Gun Game is live
     if (this.won) return;
     // A participant only advances on a kill of SOMEONE ELSE (no suicide farming).
     if (attackerId === targetId) return;

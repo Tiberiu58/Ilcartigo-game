@@ -152,3 +152,46 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — One Shot mode ("One in the Chamber") (v0.14.0)
+
+A SECOND new game mode — mode variety is the strongest replay driver, and a
+short, frantic instagib mode is one of the most addictive arena formats (and its
+quick 12-kill matches mean frequent post-match ad breakpoints → revenue). Like
+Gun Game it's solo-vs-bots for v1, fully client-side, no protocol/MP changes,
+and fully verified (typecheck + build + a headless rules test).
+
+- **Instagib (everyone 1-HP).** New `Game.modeMaxHpOverride` flat-overrides the
+  player AND every bot's max HP (= 1) so *every* hit is lethal. Read in
+  `applyClassPassives` (so class passives / respawns can't override it back) and
+  pushed onto bots by `enterOneShot`/`exitOneShot`. null in every other mode.
+- **Pistol bullet economy.** The player is locked to the pistol, whose magazine
+  IS the ammo bank: start with **3**, **+1 per kill** (cap **6**), and **no
+  reloading** — a miss spends a real bullet. New `Weapon.ammoLocked` +
+  `setAmmo`/`addAmmo` (guards `startReload` + the empty-fire auto-reload). An
+  anti-deadlock **scavenge trickle** refills 1 bullet every 4s while you sit
+  empty, and respawns guarantee ≥1 bullet so you're never spawned defenseless.
+- **First to 12 kills wins** → the existing post-match overlay (reads
+  `matchKills`, so the scoreboard + XP + ad-refresh all "just work"). Play Again
+  re-seeds the economy + restarts the race; Quit restores the chosen loadout.
+- **Self-contained `modes/OneShot.ts`** mirroring GunGame's bus-driven,
+  host-decoupled shape (`OneShotHost`: isLocalPlayer / playSound /
+  addLocalBullets / localBulletCount / **isActive**). Per-frame `update()` drives
+  the scavenge trickle + HUD sync (fires happen outside the mode, so it polls the
+  bullet count and pushes changes).
+- **HUD**: new top-center One Shot ticker — "n/12 KILLS · ⦿ bullets" + a magazine
+  pip row (filled = banked, dim = spent). Shown only in oneshot; hidden elsewhere.
+- **Menu**: new "🎯 One Shot (vs Bots)" button (crimson accent).
+- **Weapon-slot lock**: 1/2/Q are consumed-but-ignored in oneshot so the player
+  can't bail to their full-ammo primary — the mode is pistol-only by design.
+- **Bug fix found along the way (Phase 13 latent leak):** GunGame's permanent
+  `kill` subscription had **no mode guard**, so a kill in Combat/MP would advance
+  the ladder + swap the player's weapon mid-match. Added `isActive()` to both
+  mode hosts (`game.mode === 'gungame'/'oneshot'`) gating their kill handlers.
+- Verified: headless rules test (start bullets, kill→bullet refund, cap clamp,
+  self-kill ignored, inactive-guard, bot race-to-12 win, post-win lockout) all
+  pass; client+server typecheck + client build green; app chunk ~62.5 KB gzip.
+
+### Phase 14 COMPLETE — One Shot shipped, GunGame leak fixed, solo + MP intact, no protocol change.
+
