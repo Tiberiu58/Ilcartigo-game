@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. Crosshair preset packs (7 one-click curated crosshairs). Two new game modes: **Gun Game** (weapon-ladder, each kill advances your gun) and **One Shot** (instagib pistols, 1-HP everyone, kill-fed bullet economy, first to 12). Built on Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 16 — v0.16.0. Three new game modes: **Gun Game** (weapon-ladder), **One Shot** (instagib pistols + kill-fed bullet economy, first to 12), and **Score Attack** (90-second timed frag-rush vs a persistent personal best). Plus crosshair preset packs (7 one-click curated crosshairs). Built on Phase 12 combat-feel juice (directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 

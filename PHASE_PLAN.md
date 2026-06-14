@@ -216,3 +216,36 @@ gameplay/protocol risk.
 
 ### Phase 15 COMPLETE — Crosshair presets shipped, no gameplay/protocol change.
 
+---
+
+## Phase 16 — Score Attack mode (v0.16.0)
+
+A third game mode + a **persistent personal-best** retention hook. Score Attack
+is a 90-second timed frag-rush vs bots: rack up as many kills as you can before
+the clock hits zero, then chase your saved best. High-score chasing is one of the
+stickiest loops there is, and the fixed 90s length means a **predictable, frequent
+post-match ad breakpoint** (revenue). Solo vs bots, client-side, no protocol/MP
+changes.
+
+- **New `modes/ScoreAttack.ts`** — *just the clock* (mirrors GunGame/OneShot's
+  bus-decoupled `ScoreAttackHost`: playSound / isActive). Per-frame `update()`
+  counts down with a tab-stall-clamped dt, fires `onTick(secondsLeft, urgent)`
+  on each whole-second change and `onTimeUp()` once at zero. A sub-10s urgency
+  cue + pulsing red clock. Score resolution lives in main.ts (it owns the
+  post-match scoreboard).
+- **Persistent personal best.** `Account` extended migration-safe with
+  `scoreAttackBest` + `recordScoreAttack(score)` (returns true on a new record).
+  At time-up the post-match overlay shows "★ NEW PERSONAL BEST — N kills in 90s"
+  or "N kills · best M".
+- **`GameMode` extended** to include `'scoreattack'` (an `isCombatMode`, so bots +
+  spawn protection + respawns all behave like Combat). Reuses the existing
+  post-match flow (scoreboard + XP + ad refresh).
+- **HUD**: top-center M:SS countdown clock (cyan, urgent-red pulse under 10s).
+  **Menu**: new "⏱ Score Attack (90s)" button. Play Again restarts the run.
+- Verified: headless timer test (start at 90, count-down with clamped dt,
+  urgent-flag crossing, single onTimeUp at zero, no double-fire, inactive freeze,
+  M:SS formatting) all pass; client+server typecheck + client build green; app
+  chunk ~63.3 KB gzip.
+
+### Phase 16 COMPLETE — Score Attack shipped, personal-best persistence, solo + MP intact, no protocol change.
+

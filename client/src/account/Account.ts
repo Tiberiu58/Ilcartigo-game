@@ -68,6 +68,8 @@ interface AccountData {
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
   daily: DailyState;
+  /** Best kills in a single Score Attack run (personal-best high-score chase). */
+  scoreAttackBest: number;
 }
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
@@ -146,6 +148,7 @@ function freshData(): AccountData {
     stats: freshStats(),
     name: '',
     daily: freshDaily(freshStats()),
+    scoreAttackBest: 0,
   };
 }
 
@@ -191,6 +194,7 @@ export class Account {
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
           : fresh.daily,
+        scoreAttackBest: typeof parsed.scoreAttackBest === 'number' ? parsed.scoreAttackBest : fresh.scoreAttackBest,
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
@@ -375,6 +379,20 @@ export class Account {
       this.playSecondsAccum -= Math.floor(this.playSecondsAccum);
       this.save();
     }
+  }
+
+  /** Best Score Attack run (kills in 90s). */
+  get scoreAttackBest(): number { return this.data.scoreAttackBest; }
+
+  /** Submit a finished Score Attack score; persists + returns true if it's a
+   *  new personal best. */
+  recordScoreAttack(score: number): boolean {
+    if (score > this.data.scoreAttackBest) {
+      this.data.scoreAttackBest = score;
+      this.save();
+      return true;
+    }
+    return false;
   }
 
   /** Set the player's display name (trimmed, max 16 chars). */

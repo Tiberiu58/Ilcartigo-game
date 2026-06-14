@@ -49,13 +49,13 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'oneshot';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'oneshot' | 'scoreattack';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
- *  the peaceful Practice sandbox). Gun Game and One Shot both play like Combat
- *  with their own rule layer on top. */
+ *  the peaceful Practice sandbox). Gun Game, One Shot and Score Attack all play
+ *  like Combat with their own rule layer on top. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'oneshot';
+  return m === 'combat' || m === 'gungame' || m === 'oneshot' || m === 'scoreattack';
 }
 
 export interface FrameInfo {

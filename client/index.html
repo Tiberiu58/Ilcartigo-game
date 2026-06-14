@@ -74,6 +74,13 @@
           <div class="os-bullets-row" id="os-bullets-row"></div>
         </div>
 
+        <!-- Score Attack clock — top-center. Counts down the 90s run; turns
+             urgent under 10s. Populated by main.ts via ScoreAttack.onTick. -->
+        <div id="scoreattack-clock" class="hidden">
+          <span class="sa-time" id="sa-time">1:30</span>
+          <span class="sa-label">SCORE ATTACK</span>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -202,7 +209,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.15</p>
+          <p class="subtitle">Browser arena shooter · v0.16</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -247,6 +254,7 @@
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
             <button class="menu-btn oneshot" id="menu-oneshot">🎯 One Shot (vs Bots)</button>
+            <button class="menu-btn scoreattack" id="menu-scoreattack">⏱ Score Attack (90s)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
@@ -254,7 +262,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.15.0 — Crosshair presets</div>
+          <div>v0.16.0 — Score Attack mode</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

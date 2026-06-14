@@ -20,6 +20,7 @@ import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { OneShot, ONESHOT_START_BULLETS, ONESHOT_MAX_BULLETS } from './modes/OneShot';
+import { ScoreAttack } from './modes/ScoreAttack';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -60,6 +61,7 @@ const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
 const menuOneshot = document.getElementById('menu-oneshot') as HTMLButtonElement;
+const menuScoreattack = document.getElementById('menu-scoreattack') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -156,6 +158,36 @@ oneShot.onWin = (winnerId) => {
 function leaveOneShotIfActive() {
   if (game.mode === 'oneshot') game.exitOneShot();
 }
+
+// ─── Score Attack mode ──────────────────────────────────────────────────────
+// 90-second timed frag-rush vs bots — chase your personal best (persisted).
+const scoreAttack = new ScoreAttack({
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+  isActive: () => game.mode === 'scoreattack',
+});
+const saClock = document.getElementById('scoreattack-clock')!;
+const saTimeEl = document.getElementById('sa-time')!;
+
+scoreAttack.onTick = (secondsLeft, urgent) => {
+  saTimeEl.textContent = ScoreAttack.format(secondsLeft);
+  saTimeEl.classList.toggle('urgent', urgent);
+};
+scoreAttack.onTimeUp = () => {
+  // Your score = your kills this run. Resolve the standings leader for the
+  // post-match "winner" line, record the personal best, then surface it.
+  const myId = game.localPlayerId();
+  const myScore = game.matchKills.get(myId) ?? 0;
+  let leaderId = myId;
+  let leaderKills = -1;
+  game.matchKills.forEach((k, id) => { if (k > leaderKills) { leaderKills = k; leaderId = id; } });
+  const isRecord = game.account.recordScoreAttack(myScore);
+  game.matchEnded = true;
+  showPostMatch(leaderId);
+  // Override the (empty) unlocks line with the score summary.
+  pmUnlocks.textContent = isRecord
+    ? `★ NEW PERSONAL BEST — ${myScore} kills in 90s`
+    : `${myScore} kills · best ${game.account.scoreAttackBest}`;
+};
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -345,7 +377,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'oneshot' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'oneshot' | 'scoreattack' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -378,6 +410,14 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'oneshot' = 'combat
     osTicker.classList.add('hidden');
   }
 
+  // Score Attack: start the 90s clock. Reuses plain Combat rules otherwise.
+  if (mode === 'scoreattack') {
+    scoreAttack.start();
+    saClock.classList.remove('hidden');
+  } else {
+    saClock.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -397,6 +437,7 @@ function startOnline() {
   // on Industrial.
   leaveOneShotIfActive();
   osTicker.classList.add('hidden');
+  saClock.classList.add('hidden');
   game.setMode('combat');
   announcer.reset();
   // Build the MP session bound to the existing Game.
@@ -452,6 +493,7 @@ function quitToMenu() {
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
   osTicker.classList.add('hidden');
+  saClock.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game / One Shot overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -524,6 +566,7 @@ menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
 menuOneshot.addEventListener('click', () => startGame('oneshot'));
+menuScoreattack.addEventListener('click', () => startGame('scoreattack'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -704,6 +747,8 @@ game.onFrame = ({ fps, speed, state, pos }) => {
   // One Shot bullet-economy tick (scavenge trickle + HUD sync). Runs every
   // frame; cheap and only acts while the mode is live.
   if (game.mode === 'oneshot') oneShot.update();
+  // Score Attack clock tick.
+  if (game.mode === 'scoreattack') scoreAttack.update();
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;
@@ -842,6 +887,11 @@ pmPlayAgain.addEventListener('click', () => {
     if (game.mode === 'oneshot') {
       game.enterOneShot(ONESHOT_START_BULLETS);
       oneShot.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    }
+    // Score Attack: restart the 90s clock for another high-score run.
+    if (game.mode === 'scoreattack') {
+      scoreAttack.start();
+      saClock.classList.remove('hidden');
     }
     game.input.requestPointerLock();
   }
