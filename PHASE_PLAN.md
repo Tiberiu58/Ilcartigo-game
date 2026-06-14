@@ -195,3 +195,24 @@ and fully verified (typecheck + build + a headless rules test).
 
 ### Phase 14 COMPLETE — One Shot shipped, GunGame leak fixed, solo + MP intact, no protocol change.
 
+---
+
+## Phase 15 — Crosshair preset packs (v0.15.0)
+
+Krunker-grade crosshair personalization is a signature retention hook — more
+"make it yours" = more reason to come back = more sessions = more ad revenue.
+The existing customizer already exposed color/size/thickness/gap/outline/dot via
+CSS vars; this layers **one-click curated presets** on top. Pure client UI, zero
+gameplay/protocol risk.
+
+- **7 presets** (`Default / Dot / Cross / Precision / Bold / Wide / Pro`), each a
+  bundle of the existing crosshair vars (incl. a themed color). Clicking one
+  writes every control + CSS var + localStorage key, so the sliders/checkboxes
+  stay in sync and the choice persists across reloads. A `ui_click` SFX confirms.
+- New preset button row at the top of the Crosshair settings pane; wrapping
+  pill buttons styled to match the settings panel.
+- Verified: client typecheck + build green; 7 preset buttons present in the DOM;
+  app chunk ~62.8 KB gzip.
+
+### Phase 15 COMPLETE — Crosshair presets shipped, no gameplay/protocol change.
+

@@ -1495,6 +1495,33 @@ body.kill-flash #app::after {
   cursor: pointer;
 }
 .set-row input[type="checkbox"] { accent-color: var(--accent); }
+
+/* Crosshair preset packs — wrapping button row spanning the value columns. */
+.set-row.ch-presets-row {
+  grid-template-columns: 110px 1fr;
+  align-items: start;
+}
+.ch-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ch-preset-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: var(--text);
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 0.5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.ch-preset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.07);
+}
 .set-note {
   margin-top: 14px;
   font-size: 11px;
