@@ -78,6 +78,7 @@ export class ProfileUI {
       ['Matches', s.matches.toLocaleString()],
       ['Wins', s.wins.toLocaleString()],
       ['Best Streak', s.bestStreak.toLocaleString()],
+      ['Score Attack', `${this.account.scoreAttackBest} best`],
       ['Playtime', formatPlaytime(s.playSeconds)],
     ];
     this.statsGrid.innerHTML = cells.map(([label, val]) => `

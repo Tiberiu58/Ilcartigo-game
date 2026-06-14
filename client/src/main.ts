@@ -181,11 +181,14 @@ scoreAttack.onTimeUp = () => {
   let leaderKills = -1;
   game.matchKills.forEach((k, id) => { if (k > leaderKills) { leaderKills = k; leaderId = id; } });
   const isRecord = game.account.recordScoreAttack(myScore);
+  // Reward beating your best with a bonus on top of per-kill XP (awarded as the
+  // kills happened). Done before showPostMatch so the overlay's XP total reflects it.
+  if (isRecord && myScore > 0) game.account.awardXP(100);
   game.matchEnded = true;
   showPostMatch(leaderId);
   // Override the (empty) unlocks line with the score summary.
-  pmUnlocks.textContent = isRecord
-    ? `★ NEW PERSONAL BEST — ${myScore} kills in 90s`
+  pmUnlocks.textContent = isRecord && myScore > 0
+    ? `★ NEW PERSONAL BEST — ${myScore} kills in 90s · +100 XP`
     : `${myScore} kills · best ${game.account.scoreAttackBest}`;
 };
 

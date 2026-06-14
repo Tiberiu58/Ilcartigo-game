@@ -249,3 +249,7 @@ changes.
 
 ### Phase 16 COMPLETE — Score Attack shipped, personal-best persistence, solo + MP intact, no protocol change.
 
+- ✅ Phase 16 polish — Surfaced the Score Attack best in the Profile tab stats
+  grid, and award a +100 XP bonus for beating your personal best (announced on
+  the post-match unlocks line). Typecheck + build green.
+
