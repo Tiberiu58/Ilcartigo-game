@@ -743,6 +743,68 @@ body.kill-flash #app::after {
   to   { opacity: 1; transform: translateX(0); }
 }
 
+/* --- Reward feedback: +XP popups + level-up banner -------------------- */
+#xp-popups {
+  position: absolute;
+  top: 200px; right: 18px;
+  display: flex;
+  flex-direction: column-reverse;   /* newest at the bottom, older drift up */
+  align-items: flex-end;
+  gap: 2px;
+  pointer-events: none;
+}
+.xp-popup {
+  font: 800 14px/1 'Segoe UI', sans-serif;
+  color: var(--accent);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  letter-spacing: 1px;
+  animation: xpPop 1.4s ease-out forwards;
+}
+@keyframes xpPop {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.85); }
+  15%  { opacity: 1; transform: translateY(0) scale(1.05); }
+  30%  { transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-22px) scale(1); }
+}
+
+#levelup-banner {
+  position: fixed;
+  left: 50%; top: 26%;
+  transform: translateX(-50%);
+  z-index: 40;             /* above every overlay — celebratory */
+  pointer-events: none;
+  text-align: center;
+}
+#levelup-banner.hidden { display: none; }
+#levelup-banner .lu-label {
+  font: 800 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 8px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+#levelup-banner .lu-level {
+  font: 900 44px/1 'Segoe UI', sans-serif;
+  letter-spacing: 4px;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(245, 212, 66, 0.7), 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+#levelup-banner .lu-glow {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 360px; height: 160px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(245, 212, 66, 0.28), transparent 70%);
+  z-index: -1;
+}
+#levelup-banner.show {
+  animation: luIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes luIn {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  60%  { opacity: 1; transform: translateX(-50%) scale(1.08); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
 /* --- Main menu shell (Phase 2) ----------------------------------------- */
 
 #main-menu {

@@ -12,7 +12,7 @@
  * Level curve: 1000 XP per level. Simple and predictable.
  */
 
-import { findSkin, findTracer, defaultSkinForClass, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId } from './Cosmetics';
+import { findSkin, findTracer, defaultSkinForClass, SKINS, KILL_EFFECTS, TRACERS, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId } from './Cosmetics';
 import type { ClassId } from '../classes/types';
 
 const STORAGE_KEY = 'ilc.account';
@@ -286,6 +286,19 @@ export class Account {
   }
   /** Best Survival run so far (wave + score). */
   get survivalBest(): Readonly<SurvivalBest> { return this.data.survivalBest; }
+
+  /**
+   * Count cosmetics that are still locked but now affordable at the current XP.
+   * Drives the "N cosmetics ready to unlock" nudge on the post-match /
+   * game-over screens — a gentle pull back into the unlock loop.
+   */
+  affordableLockedCount(): number {
+    let n = 0;
+    for (const s of SKINS) if (s.cost > 0 && !this.isSkinUnlocked(s.id) && this.data.xp >= s.cost) n++;
+    for (const e of KILL_EFFECTS) if (e.cost > 0 && !this.isEffectUnlocked(e.id) && this.data.xp >= e.cost) n++;
+    for (const t of TRACERS) if (t.cost > 0 && !this.isTracerUnlocked(t.id) && this.data.xp >= t.cost) n++;
+    return n;
+  }
 
   /** Player display name, or 'You' if unset. */
   get name(): string { return this.data.name || 'You'; }

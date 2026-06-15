@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. **Last Stand** wave-survival mode (solo horde, high-score chase, ad breakpoint on the game-over screen). Built on Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 15 — v0.15.0. **Progression feedback** — floating +XP popups, level-up celebration banner, and "cosmetics ready to unlock" nudges on the end screens. Built on Phase 14 (**Last Stand** wave-survival mode), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -390,14 +390,28 @@ MP changes**, solo + MP intact.
   `Account.survivalBest` + Profile-tab cells. New menu button, ad slot, and
   three reserved sound ids (`wave_start` / `wave_clear` / `game_over`).
 
+## Phase 15 — Progression feedback (this round, v0.15.0)
+
+Progression existed but was invisible in play. Phase 15 surfaces it
+moment-to-moment — the retention loop that feeds ad revenue. Pure client, no
+protocol changes, all modes.
+
+- **Floating "+N XP" popups** near the killfeed on every XP gain (kill, bonus,
+  daily-claim). Capped so a big claim can't flood the screen.
+- **LEVEL UP banner** + sting on each level crossing, drawn above every overlay.
+- **Unlock nudges** — the post-match overlay and the Survival game-over card show
+  "★ N cosmetics ready to unlock" when XP has reached unbought cosmetics
+  (`Account.affordableLockedCount()`).
+- New `ui/Rewards.ts` (account-driven, decoupled). Reserved sound id `level_up`.
+
 ## Project status
 
-13 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, **progression feedback (XP popups + level-up + unlock nudges)**, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

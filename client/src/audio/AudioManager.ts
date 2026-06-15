@@ -67,6 +67,9 @@ export const SOUND_FILES = {
   wave_clear:    'wave_clear.wav',
   game_over:     'game_over.wav',
 
+  // Progression — level-up celebration sting.
+  level_up:      'level_up.wav',
+
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
 

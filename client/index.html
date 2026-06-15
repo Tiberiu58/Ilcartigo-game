@@ -168,6 +168,10 @@
 
         <div id="killfeed"></div>
 
+        <!-- Floating "+N XP" reward popups — stacked above the killfeed.
+             Populated by Rewards.ts on any XP gain. -->
+        <div id="xp-popups"></div>
+
         <!-- Scoreboard overlay — hold TAB. Populated by main.ts each frame
              while visible. Rows: rank, name, kills, deaths, K/D. -->
         <div id="scoreboard" class="hidden">
@@ -201,7 +205,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.14</p>
+          <p class="subtitle">Browser arena shooter · v0.15</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -253,7 +257,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.14.0 — Last Stand (Survival)</div>
+          <div>v0.15.0 — Progression feedback</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -339,6 +343,7 @@
 
           <div class="pm-rewards">
             <div class="pm-xp">+<span id="svo-xp">0</span> XP</div>
+            <div id="svo-unlocks"></div>
           </div>
 
           <!-- Ad slot — game-over is the prime breakpoint for the mode. -->
@@ -349,6 +354,14 @@
             <button class="menu-btn" id="svo-quit">Quit to Menu</button>
           </div>
         </div>
+      </div>
+
+      <!-- Level-up banner — center-top, above all overlays (end-of-match
+           bonuses often trigger a level-up). Flashed by Rewards.ts. -->
+      <div id="levelup-banner" class="hidden">
+        <div class="lu-glow"></div>
+        <div class="lu-label">LEVEL UP</div>
+        <div class="lu-level" id="levelup-text">LEVEL 1</div>
       </div>
 
       <!-- First-run "How to Play" card. Shown once for new players (gated by a

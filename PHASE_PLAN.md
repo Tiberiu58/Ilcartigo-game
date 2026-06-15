@@ -206,3 +206,34 @@ There is **no respawn** — one death ends the run. You chase a personal best
 
 ### Phase 14 COMPLETE — Last Stand survival shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 15 — Progression feedback (v0.15.0)
+
+Progression already existed (XP, levels, cosmetics, lifetime stats) but was
+nearly *invisible* in play — you only saw it by opening Settings. Phase 15
+surfaces it moment-to-moment. Visible progression is the core retention loop,
+and return visits are exactly what AdSense revenue runs on. Pure client, no
+protocol changes, all modes.
+
+- **Floating "+N XP" popups.** Every XP gain (kill, match/run bonus, daily-claim)
+  floats a chip up near the killfeed. Instant feedback tying each action back to
+  the loop. Capped at 5 concurrent so a big claim can't flood.
+- **LEVEL UP banner.** Crossing a level (1000 XP each) flashes a celebratory
+  center-top banner + sting (`level_up`), drawn above every overlay (end-of-match
+  bonuses are a common level-up moment).
+- **Unlock nudges.** The post-match overlay (was an empty placeholder) and the
+  Survival game-over card now show "★ N cosmetics ready to unlock" when XP has
+  reached cosmetics the player hasn't bought — a gentle pull back into Settings ›
+  Cosmetics. New `Account.affordableLockedCount()` spans skins + kill-effects +
+  tracers.
+- **New `ui/Rewards.ts`** — account-driven (subscribes to `Account.onChange`,
+  diffs XP + level), zero runtime cost, decoupled. Captures the baseline at
+  construction so existing XP never triggers a spurious popup; XP *decreases*
+  (unlocks) never pop.
+- New sound id reserved (silent until `.wav`): `level_up`.
+- Verified: client tsc + build green (app chunk ~63.8 KB gzip), server tsc green,
+  all DOM ids cross-checked. Bumped client + server to v0.15.0.
+
+### Phase 15 COMPLETE — progression feedback shipped, all modes intact, no protocol change.
+

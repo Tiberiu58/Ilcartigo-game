@@ -18,6 +18,7 @@ import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
+import { Rewards } from './ui/Rewards';
 import { GunGame } from './modes/GunGame';
 import { Survival } from './modes/Survival';
 import { MultiplayerSession } from './networking/MultiplayerSession';
@@ -91,6 +92,9 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
 void damageDir;
+// Progression feedback — floating +XP popups + level-up banner.
+const rewards = new Rewards(game.account, game.audio);
+void rewards;
 
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter
@@ -151,6 +155,7 @@ const svoBestWave = document.getElementById('svo-best-wave')!;
 const svoBestScore = document.getElementById('svo-best-score')!;
 const svoNewBest = document.getElementById('svo-newbest')!;
 const svoXp = document.getElementById('svo-xp')!;
+const svoUnlocks = document.getElementById('svo-unlocks')!;
 const svoAgain = document.getElementById('svo-again') as HTMLButtonElement;
 const svoQuit = document.getElementById('svo-quit') as HTMLButtonElement;
 
@@ -219,6 +224,10 @@ survival.onGameOver = (wave, score) => {
   svoBestScore.textContent = best.score.toLocaleString();
   svoNewBest.classList.toggle('hidden', !isBest);
   svoXp.textContent = String(xp);
+  const ready = game.account.affordableLockedCount();
+  svoUnlocks.textContent = ready > 0
+    ? `★ ${ready} cosmetic${ready === 1 ? '' : 's'} ready to unlock`
+    : '';
 
   svoOverlay.classList.remove('hidden');
   hud.classList.add('hidden');
@@ -853,7 +862,11 @@ function showPostMatch(winnerId: string) {
     </div>`;
   }).join('');
 
-  pmUnlocks.textContent = '';   // future: list newly-unlocked skins this match
+  // Nudge back into the unlock loop: how many cosmetics are now affordable.
+  const ready = game.account.affordableLockedCount();
+  pmUnlocks.textContent = ready > 0
+    ? `★ ${ready} cosmetic${ready === 1 ? '' : 's'} ready to unlock — open Settings › Cosmetics`
+    : '';
 
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');
