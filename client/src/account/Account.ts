@@ -52,6 +52,17 @@ function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeSt
   };
 }
 
+/** Keep only finite numeric best-score entries from a (possibly malformed) save. */
+function sanitizeBests(saved: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (saved && typeof saved === 'object') {
+    for (const [k, v] of Object.entries(saved as Record<string, unknown>)) {
+      if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    }
+  }
+  return out;
+}
+
 interface AccountData {
   xp: number;
   /** Set of unlocked cosmetic IDs (we store as array for JSON). */
@@ -64,6 +75,9 @@ interface AccountData {
   equippedTracer: TracerId;
   /** Lifetime career stats. */
   stats: LifetimeStats;
+  /** Per-mode personal-best scores (e.g. Time Attack high score). Keyed by a
+   *  freeform mode id so new score-based modes can reuse it without a migration. */
+  modeBests: Record<string, number>;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
@@ -144,6 +158,7 @@ function freshData(): AccountData {
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
     stats: freshStats(),
+    modeBests: {},
     name: '',
     daily: freshDaily(freshStats()),
   };
@@ -187,6 +202,8 @@ export class Account {
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
+        // Per-mode bests — keep only finite numeric entries from an older save.
+        modeBests: sanitizeBests(parsed.modeBests),
         name: typeof parsed.name === 'string' ? parsed.name.slice(0, 16) : fresh.name,
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
@@ -375,6 +392,23 @@ export class Account {
       this.playSecondsAccum -= Math.floor(this.playSecondsAccum);
       this.save();
     }
+  }
+
+  // ── Per-mode personal bests ───────────────────────────────────────────────
+
+  /** Best score recorded for a mode (0 if never played). */
+  bestScore(mode: string): number {
+    return this.data.modeBests[mode] ?? 0;
+  }
+
+  /** Record a score for a mode. If it beats the stored best, persist it and
+   *  return true (a new personal best); otherwise leave it and return false. */
+  recordBestScore(mode: string, score: number): boolean {
+    const prev = this.data.modeBests[mode] ?? 0;
+    if (score <= prev) return false;
+    this.data.modeBests[mode] = score;
+    this.save();
+    return true;
   }
 
   /** Set the player's display name (trimmed, max 16 chars). */

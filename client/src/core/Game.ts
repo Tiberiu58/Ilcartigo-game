@@ -49,13 +49,13 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'timeattack';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
- *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
- *  ladder layered on top. */
+ *  the peaceful Practice sandbox). Gun Game and Time Attack both play like
+ *  Combat with a scoring layer on top. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame';
+  return m === 'combat' || m === 'gungame' || m === 'timeattack';
 }
 
 export interface FrameInfo {

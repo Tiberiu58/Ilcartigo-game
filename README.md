@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Game-mode variety: **Time Attack** (60s score-sprint vs bots with a combo multiplier + persistent personal bests) on top of **Gun Game** (Phase 13 weapon-ladder mode). Combat-feel juice (Phase 12): directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -361,14 +361,43 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 13 — Gun Game mode (v0.13.0)
+
+The first NEW game mode. Weapon-ladder race vs bots (`smg → ar → shotgun →
+sniper → pistol`): each kill advances the killer one rung and visibly swaps their
+gun; first to land a kill on the final rung (pistol) wins → post-match overlay.
+Self-contained `modes/GunGame.ts` (decoupled host interface), bots race too, new
+top-center ladder ticker + menu button. Solo-only, no protocol/MP changes.
+
+## Phase 14 — Time Attack mode (v0.14.0)
+
+The second new mode — replay-value variety. A 60-second arcade score-sprint vs
+bots: every kill banks points (`100 + 50·headshot`), and chaining kills inside a
+3-second window builds a **combo multiplier** (x1→x5); dying breaks it. When the
+clock hits zero, your score is compared to a **persistent personal best** and the
+post-match overlay (a natural ad breakpoint) shows the result with a glowing
+**NEW BEST!** when you beat your record.
+
+- **New `modes/TimeAttack.ts`** — mirrors Gun Game's decoupled host pattern + the
+  kill bus. Wall-clock timer with explicit pause/resume so pausing doesn't drain
+  the clock. Suicides + bot-vs-bot kills never score.
+- **`Account` extended migration-safe** with `modeBests` + `bestScore` /
+  `recordBestScore` (sanitised on load).
+- **HUD**: top-center ticker — countdown clock (red + pulsing in the final 10s),
+  live score (pops on each gain), combo chip (x2+).
+- **Menu**: "⏱ Time Attack (vs Bots)" button. Play Again restarts the run; Quit
+  restores the chosen loadout.
+- Solo-only, **no protocol or MP changes**. Headless-verified scoring/combo/pause
+  logic; client typecheck + build green (app chunk ~62.5 KB gzip); server green.
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, **and two extra game modes — Gun Game (weapon ladder) + Time Attack (timed combo score-sprint with personal bests)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~189 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

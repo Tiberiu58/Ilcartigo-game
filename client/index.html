@@ -65,6 +65,15 @@
           <div class="gg-pips" id="gg-pips"></div>
         </div>
 
+        <!-- Time Attack ticker — top-center. Countdown clock + score + combo.
+             Populated by main.ts via TimeAttack callbacks + poll. -->
+        <div id="timeattack-ticker" class="hidden">
+          <span class="ta-clock" id="ta-clock">60.0</span>
+          <span class="ta-score-label">SCORE</span>
+          <span class="ta-score" id="ta-score">0</span>
+          <span class="ta-combo hidden" id="ta-combo">x2</span>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -193,7 +202,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.13</p>
+          <p class="subtitle">Browser arena shooter · v0.14</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -237,6 +246,7 @@
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
+            <button class="menu-btn timeattack" id="menu-timeattack">⏱ Time Attack (vs Bots)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
@@ -244,7 +254,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.13.0 — Gun Game mode</div>
+          <div>v0.14.0 — Time Attack mode</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

@@ -922,6 +922,10 @@ body.kill-flash #app::after {
   border-left: 3px solid #ff8a3a;
 }
 .menu-btn.gungame:hover { border-left-color: #ff8a3a; color: #ff8a3a; }
+.menu-btn.timeattack {
+  border-left: 3px solid #ffd34a;
+}
+.menu-btn.timeattack:hover { border-left-color: #ffd34a; color: #ffd34a; }
 
 /* ── Gun Game ticker (top-center HUD) ───────────────────────────────────── */
 #gungame-ticker {
@@ -962,6 +966,65 @@ body.kill-flash #app::after {
   background: #ff8a3a;
   box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
 }
+
+/* ── Time Attack ticker (top-center HUD) ────────────────────────────────── */
+#timeattack-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(20, 25, 35, 0.82);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #ffd34a;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#timeattack-ticker.hidden { display: none; }
+.ta-clock {
+  font: 800 18px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: #ffd34a;
+  min-width: 56px;
+  text-align: center;
+}
+/* Last 10 seconds — pulse red to raise the pressure. */
+.ta-clock.urgent {
+  color: #ff5a4a;
+  animation: ta-pulse 0.6s ease-in-out infinite;
+}
+@keyframes ta-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.ta-score-label {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.ta-score {
+  font: 800 16px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  color: var(--text);
+  min-width: 40px;
+}
+/* Brief pop when the score changes. */
+.ta-score.bump { animation: ta-bump 0.18s ease-out; }
+@keyframes ta-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); color: #ffd34a; }
+  100% { transform: scale(1); }
+}
+.ta-combo {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  color: #ff8a3a;
+  text-shadow: 0 0 8px rgba(255, 138, 58, 0.7);
+}
+.ta-combo.hidden { display: none; }
 
 .menu-footer {
   grid-area: footer;
@@ -1138,6 +1201,10 @@ body.kill-flash #app::after {
   margin-bottom: 24px;
 }
 .pm-winner b { color: var(--text); }
+.pm-winner .pm-newbest {
+  color: #ffd34a;
+  text-shadow: 0 0 10px rgba(255, 211, 74, 0.7);
+}
 .pm-scoreboard {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 6px;

@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { TimeAttack, TIMEATTACK_MODE_ID } from './modes/TimeAttack';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -58,6 +59,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuTimeattack = document.getElementById('menu-timeattack') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -116,6 +118,46 @@ gunGame.onWin = (winnerId) => {
   // Reuse the post-match overlay; it reads matchKills for the scoreboard.
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
+};
+
+// ─── Time Attack mode ──────────────────────────────────────────────────────
+// 60-second score sprint vs bots. Self-contained (kill bus + a tiny host),
+// solo-only, no protocol changes. The clock drains in onFrame via poll().
+const timeAttack = new TimeAttack(game.bus, {
+  isLocalPlayer: (id) => game.isLocalPlayer(id),
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+});
+const taTicker = document.getElementById('timeattack-ticker')!;
+const taClockEl = document.getElementById('ta-clock')!;
+const taScoreEl = document.getElementById('ta-score')!;
+const taComboEl = document.getElementById('ta-combo')!;
+
+timeAttack.onScoreChange = (score, combo, mult) => {
+  taScoreEl.textContent = String(score);
+  // Pop the score number on each gain.
+  taScoreEl.classList.remove('bump');
+  void taScoreEl.offsetWidth;
+  taScoreEl.classList.add('bump');
+  // Combo chip: show only when a multiplier is active (x2+).
+  if (mult > 1) {
+    taComboEl.textContent = `x${mult}`;
+    taComboEl.classList.remove('hidden');
+  } else {
+    taComboEl.classList.add('hidden');
+  }
+  void combo;
+};
+timeAttack.onTimeUp = (score) => {
+  const isNewBest = game.account.recordBestScore(TIMEATTACK_MODE_ID, score);
+  const best = game.account.bestScore(TIMEATTACK_MODE_ID);
+  game.matchEnded = true;
+  taTicker.classList.add('hidden');
+  // Reuse the post-match overlay (a natural ad breakpoint) with a Time
+  // Attack-flavoured header instead of the FFA winner line.
+  const line = isNewBest
+    ? `<b class="pm-newbest">NEW BEST!</b> &nbsp; ${score} pts`
+    : `<b>${score} pts</b> &nbsp;·&nbsp; best ${best}`;
+  showPostMatch(game.localPlayerId(), { title: "TIME'S UP", winnerHtml: line });
 };
 
 // Restore persisted settings.
@@ -257,7 +299,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'timeattack' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -267,15 +309,17 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   game.setMode(mode);
   announcer.reset();
 
-  // Gun Game: start a fresh ladder for the player + all active bots, and show
-  // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
-  // weapon swap lands on the live inventory.)
+  // Mode tickers: hide both first, then show the one for this mode. (Started
+  // AFTER setMode so any weapon swap lands on the live inventory.)
+  ggTicker.classList.add('hidden');
+  taTicker.classList.add('hidden');
   if (mode === 'gungame') {
     const participants = [game.localPlayerId(), ...game.bots.map((b) => b.id)];
     gunGame.start(participants);
     ggTicker.classList.remove('hidden');
-  } else {
-    ggTicker.classList.add('hidden');
+  } else if (mode === 'timeattack') {
+    timeAttack.start();
+    taTicker.classList.remove('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -347,6 +391,7 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
+  taTicker.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -418,6 +463,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuTimeattack.addEventListener('click', () => startGame('timeattack'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -589,15 +635,32 @@ game.input.onPointerLockChange = (locked) => {
   } else if (locked) {
     pauseOverlay.classList.add('hidden');
   }
+  // Time Attack: freeze the clock while paused (pointer unlocked) so the timer
+  // doesn't silently drain in the menu, and resume it on re-lock.
+  if (game.mode === 'timeattack') {
+    if (locked) timeAttack.resume();
+    else timeAttack.pause();
+  }
 };
 
 // Throttle debug HUD updates to ~10Hz to avoid layout thrash.
 let lastHudUpdate = 0;
 game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
+  // Time Attack clock — poll every frame so the round ends crisply, but only
+  // repaint the readout in the throttled block below.
+  if (game.mode === 'timeattack' && !game.matchEnded) timeAttack.poll();
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;
+  // Time Attack countdown readout (10Hz is plenty for tenths).
+  if (game.mode === 'timeattack' && !taTicker.classList.contains('hidden')) {
+    const remaining = timeAttack.remainingMs();
+    taClockEl.textContent = (remaining / 1000).toFixed(1);
+    taClockEl.classList.toggle('urgent', remaining <= 10_000);
+    // Live combo chip: drop it the moment the combo window lapses.
+    if (!timeAttack.comboAlive()) taComboEl.classList.add('hidden');
+  }
   dbgFps.textContent = String(fps);
   dbgSpeed.textContent = speed.toFixed(1);
   dbgState.textContent = state;
@@ -642,7 +705,7 @@ const pmUnlocks = document.getElementById('pm-unlocks')!;
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
 
-function showPostMatch(winnerId: string) {
+function showPostMatch(winnerId: string, opts?: { title?: string; winnerHtml?: string }) {
   game.audio.play('match_end');
   game.input.exitPointerLock();
   // Build scoreboard from game.matchKills + matchDeaths (Game tracks both).
@@ -681,8 +744,9 @@ function showPostMatch(winnerId: string) {
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
 
-  pmTitle.textContent = youWon ? 'VICTORY' : 'MATCH OVER';
-  pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : winnerId.slice(0, 6)}</b>`;
+  pmTitle.textContent = opts?.title ?? (youWon ? 'VICTORY' : 'MATCH OVER');
+  pmWinnerLine.innerHTML = opts?.winnerHtml
+    ?? `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : winnerId.slice(0, 6)}</b>`;
 
   // Build scoreboard rows.
   pmScoreboardBody.innerHTML = rows.map((r, i) => {
@@ -728,6 +792,13 @@ pmPlayAgain.addEventListener('click', () => {
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
       gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+    }
+    // Time Attack: reset the clock + score and show the ticker again.
+    if (game.mode === 'timeattack') {
+      timeAttack.start();
+      taScoreEl.textContent = '0';
+      taComboEl.classList.add('hidden');
+      taTicker.classList.remove('hidden');
     }
     game.input.requestPointerLock();
   }

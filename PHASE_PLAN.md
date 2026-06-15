@@ -152,3 +152,64 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Refreshed roadmap (Phase 14+) — autonomous build
+
+Same guiding principles (readable feedback, visible progression, natural ad
+breakpoints, never regress solo/MP/audit-fixes, no heavy deps, typecheck+build
+green each phase). The strategic theme for the next stretch is **replay value**:
+mode variety + reasons to come back, all of which deepen sessions → ad revenue.
+
+- **Phase 14 — Time Attack mode (DONE, this round).** A timed score-sprint vs
+  bots with a combo multiplier + persistent personal bests. Self-contained,
+  solo-only, no protocol change. (Details below.)
+- **Phase 15 — Killstreak rewards (planned).** In-match milestone perks (solo
+  first): e.g. 3-streak heal, 5-streak ammo/overshield, 7-streak radar ping.
+  Client-side feedback only; MP-safe variant deferred until server authority.
+- **Phase 16 — A third map (planned).** New arena geometry + collision +
+  per-map spawns + MapCollision export. Maps are the biggest Krunker-feel
+  variety lever after modes.
+- **Phase 17 — Medals / achievements + best-scores surfacing (planned).**
+  Surface per-mode bests + a small achievement track in the Profile tab; ties
+  the new score modes into the existing progression loop.
+- **Phase 18 — Audio assets + deploy (planned).** Drop the CC0 SFX pack in and
+  finish the Fly.io + Vercel deploy.
+
+---
+
+## Phase 14 — Time Attack mode (autonomous build, v0.14.0)
+
+The second NEW GAME MODE. A 60-second arcade score-sprint vs bots: every kill
+banks points, headshots bank more, and chaining kills inside a 3s window builds
+a combo MULTIPLIER (x1→x5). Dying breaks the combo. When the clock hits zero the
+run ends, the score is compared to a persisted personal best, and the post-match
+overlay (a natural ad breakpoint) shows the result. The "beat your best" loop is
+the retention hook. Purely client-side, solo-only, **no protocol or MP changes**.
+
+- **New `modes/TimeAttack.ts`** — mirrors GunGame's decoupled `Host` adapter
+  (isLocalPlayer / playSound) + the kill bus. Wall-clock timer with explicit
+  `pause()`/`resume()` so pausing (pointer unlock) doesn't drain the clock.
+  Scoring: `(100 + 50·headshot) × min(combo, 5)`. Suicides + bot-vs-bot kills
+  never score.
+- **`GameMode` extended** to include `'timeattack'`; `isCombatMode()` returns
+  true for it (bots live, death/respawn, spawn protection, combat map) so the
+  whole combat pipeline treats it like FFA with a scoring layer.
+- **`Account` extended migration-safe** with `modeBests: Record<string,number>`
+  + `bestScore(mode)` / `recordBestScore(mode, score)` (returns true on a new
+  best). Sanitised on load (drops malformed entries from older saves).
+- **HUD**: new top-center Time Attack ticker — countdown clock (turns red +
+  pulses in the last 10s), live score (pops on each gain), and a combo chip
+  (x2+, drops the instant the combo window lapses). Driven from `main.ts` via
+  TimeAttack callbacks + an onFrame `poll()`, same as the Gun Game ticker.
+- **Menu**: new "⏱ Time Attack (vs Bots)" button (amber accent). Play Again
+  restarts the clock + score; Quit restores the chosen loadout. Post-match shows
+  "TIME'S UP" + score, with a glowing **NEW BEST!** when you beat your record.
+- **Pause-aware**: pointer-lock changes pause/resume the clock in this mode.
+- Headless logic test (TimeAttack's bus/events imports are type-only, so it runs
+  standalone via tsx): verified scoring, headshot bonus, combo build/cap,
+  death-breaks-combo, suicide/bot-vs-bot ignored, and paused-clock freeze. Client
+  typecheck + build green (app chunk ~62.5 KB gzip); server typecheck green.
+
+### Phase 14 COMPLETE — Time Attack shipped, solo + MP intact, no protocol change.
+
