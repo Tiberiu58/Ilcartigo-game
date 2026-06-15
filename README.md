@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. **Progression feedback** — floating +XP popups, level-up celebration banner, and "cosmetics ready to unlock" nudges on the end screens. Built on Phase 14 (**Last Stand** wave-survival mode), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 16 — v0.16.0. **Survival health pickups** — killed horde bots drop healing orbs (risk/reward chase). Built on Phase 15 (progression feedback — +XP popups, level-up banner, unlock nudges), Phase 14 (**Last Stand** wave-survival mode), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -404,14 +404,27 @@ protocol changes, all modes.
   (`Account.affordableLockedCount()`).
 - New `ui/Rewards.ts` (account-driven, decoupled). Reserved sound id `level_up`.
 
+## Phase 16 — Survival health pickups (this round, v0.16.0)
+
+A no-respawn horde mode lives or dies on healing. Killed Survival bots now have a
+33% chance to drop a glowing green **health orb** (heals 35 HP on pickup) — the
+classic risk/reward chase that makes horde modes tense + fun. Contained to
+Survival + solo, no protocol changes.
+
+- New `entities/Pickup.ts` — a spinning/bobbing collectible orb (no collision;
+  walk through to grab). Generic on `kind` (`'health'` for v1).
+- `Game` gains an additive, gated pickup system (`spawnPickup` / `clearPickups` /
+  `updatePickups`); drops on Survival kills (solo), collected on player overlap.
+- New `pickup_health` sound id (silent until a `.wav` is dropped in).
+
 ## Project status
 
-14 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, **progression feedback (XP popups + level-up + unlock nudges)**, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, **progression feedback (XP popups + level-up + unlock nudges)**, Survival health pickups, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

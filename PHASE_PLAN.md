@@ -237,3 +237,31 @@ protocol changes, all modes.
 
 ### Phase 15 COMPLETE — progression feedback shipped, all modes intact, no protocol change.
 
+---
+
+## Phase 16 — Survival health pickups (v0.16.0)
+
+A no-respawn horde mode lives or dies on healing — Survival only gave a 50% heal
+between waves, so a single bad wave snowballed into death with no counterplay.
+Phase 16 adds **health-orb drops**: killed wave bots have a chance to drop a
+glowing green orb that heals on pickup. This adds the classic risk/reward chase
+(push for the drop vs. play safe) that makes horde modes fun + tense. Contained,
+gated to Survival + solo, no protocol changes.
+
+- **New `entities/Pickup.ts`** — a dumb collectible orb (spinning/bobbing
+  octahedron + ground-glow ring). No collision registration (you walk through
+  it). `update` (spin/bob) + `dispose` (frees GPU resources). Generic on `kind`
+  (just `'health'` for v1).
+- **Game wiring (additive, gated).** `pickups` list + `spawnPickup` /
+  `clearPickups` / `updatePickups`. On a Survival bot kill (solo only), a 33%
+  roll drops a 35-HP orb at the corpse. `updatePickups` (tick step 3a, solo
+  only) spins orbs + collects on player overlap (radius 1.3 m) → heal + chime +
+  dispose. Pickups never carry across a mode switch / run start / quit.
+- **Audio**: new `pickup_health` sound id (silent until `.wav`).
+- Verified: client tsc + build green (app chunk ~64.3 KB gzip), server tsc green.
+  Drop is `!mp && mode==='survival' && !youDied` gated; collection is `!mp`
+  gated — combat / MP / practice are untouched. Bumped client + server to
+  v0.16.0.
+
+### Phase 16 COMPLETE — Survival health pickups shipped, other modes intact, no protocol change.
+

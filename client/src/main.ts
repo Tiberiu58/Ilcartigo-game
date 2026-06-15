@@ -240,6 +240,7 @@ function startSurvivalRun() {
   // Clear any carried-over kill tallies (Play Again / re-entry without a mode
   // switch) so the Tab scoreboard reflects only this run.
   game.resetMatchScore();
+  game.clearPickups();
   announcer.reset();
   // Make sure the player is alive + at a fresh spawn before wave 1.
   game.respawnPlayer();
@@ -495,8 +496,9 @@ function quitToMenu() {
     // Re-enable bots so the next solo Play vs Bots session works.
     game.onMpChanged();
   }
-  // Stop any Survival run + clear its overlays/timer.
+  // Stop any Survival run + clear its overlays/timer + any dropped pickups.
   survival.stop();
+  game.clearPickups();
   clearSviTimer();
   svTicker.classList.add('hidden');
   sviOverlay.classList.add('hidden');

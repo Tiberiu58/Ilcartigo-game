@@ -70,6 +70,9 @@ export const SOUND_FILES = {
   // Progression — level-up celebration sting.
   level_up:      'level_up.wav',
 
+  // Pickups — health orb collect chime.
+  pickup_health: 'pickup_health.wav',
+
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
 

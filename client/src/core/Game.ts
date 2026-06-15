@@ -22,6 +22,7 @@ import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot, type BotDifficulty } from '../entities/Bot';
+import { Pickup, type PickupKind, PICKUP_RADIUS } from '../entities/Pickup';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -89,6 +90,9 @@ export class Game {
    *  on a separate lifecycle: spawned per wave, disposed when the wave ends.
    *  syncBotState skips these — Survival owns their active state. */
   readonly survivalBots: Bot[] = [];
+  /** Active world pickups (Survival health drops). Solo-only; collected on
+   *  player overlap. Disposed on collection / run end / mode switch. */
+  readonly pickups: Pickup[] = [];
   /** Current game mode. Practice = no bots, lab spawn, peaceful. */
   mode: GameMode = 'combat';
   /** Currently loaded map. Set via setMap(). */
@@ -307,6 +311,11 @@ export class Game {
         this.audio.play('kill_feedback');
       }
 
+      // Survival: a killed wave bot may drop a health orb.
+      if (this.mode === 'survival' && !this.mp && !youDied) {
+        this.maybeDropPickup(e.targetId);
+      }
+
       if (youDied) {
         this.applyShake(0.12, 5);
         this.account.recordDeath();
@@ -358,6 +367,8 @@ export class Game {
     // Leaving Survival: tear down any lingering wave bots so they don't bleed
     // into the next mode. (Entering Survival, the controller spawns fresh.)
     if (mode !== 'survival') this.clearSurvivalBots();
+    // Pickups never carry across a mode switch.
+    this.clearPickups();
 
     // If a duration ability is active (Pulse, Cloak, Surge), tear it down —
     // its targets (bot meshes for Pulse) are about to change visibility, and
@@ -427,6 +438,54 @@ export class Game {
     this.bots.push(bot);
     this.survivalBots.push(bot);
     return id;
+  }
+
+  // ── Pickups (Survival health drops) ───────────────────────────────────────
+  /** Chance a killed Survival bot drops a health orb. */
+  private static readonly PICKUP_DROP_CHANCE = 0.33;
+  /** HP restored by a health orb. */
+  private static readonly HEALTH_PICKUP_VALUE = 35;
+
+  /** Spawn a pickup orb at a world position. */
+  spawnPickup(kind: PickupKind, value: number, x: number, y: number, z: number) {
+    this.pickups.push(new Pickup(kind, value, _SCRATCH_PICKUP.set(x, y, z), this.world));
+  }
+
+  /** Roll a health-orb drop at a dead Survival bot's position. */
+  private maybeDropPickup(targetId: string) {
+    const bot = this.survivalBots.find((b) => b.id === targetId);
+    if (!bot) return;
+    if (Math.random() > Game.PICKUP_DROP_CHANCE) return;
+    const p = bot.group.position;
+    this.spawnPickup('health', Game.HEALTH_PICKUP_VALUE, p.x, 0.5, p.z);
+  }
+
+  /** Dispose all pickups and forget them. */
+  clearPickups() {
+    for (const p of this.pickups) p.dispose();
+    this.pickups.length = 0;
+  }
+
+  /** Spin pickups + collect any the player is standing on. Solo-only. */
+  private updatePickups(dt: number) {
+    if (this.pickups.length === 0) return;
+    const px = this.player.pos.x, py = this.player.pos.y, pz = this.player.pos.z;
+    for (let i = this.pickups.length - 1; i >= 0; i--) {
+      const pk = this.pickups[i];
+      pk.update(dt);
+      const dx = pk.pos.x - px;
+      const dz = pk.pos.z - pz;
+      const dy = pk.pos.y - py;
+      if (dx * dx + dz * dz <= PICKUP_RADIUS * PICKUP_RADIUS && Math.abs(dy) < 2.2) {
+        // Collect: apply effect, dispose, drop from the list.
+        if (pk.kind === 'health' && !this.playerActor.health.dead) {
+          this.playerActor.health.heal(pk.value);
+        }
+        this.audio.play('pickup_health');
+        pk.dispose();
+        this.pickups.splice(i, 1);
+      }
+    }
   }
 
   /** Dispose every wave bot and forget them. Called between waves and on exit. */
@@ -871,6 +930,9 @@ export class Game {
       }
     }
 
+    // --- 3a. Pickups (Survival health orbs) — solo only ---
+    if (!this.mp && this.pickups.length > 0) this.updatePickups(dt);
+
     // --- 3b. Multiplayer: send input + interpolate remotes ---
     if (this.mp) {
       this.mp.sendFrameInput(dt);
@@ -928,3 +990,5 @@ const _SCRATCH_SPAWN_A = new THREE.Vector3();
 const _SCRATCH_SPAWN_B = new THREE.Vector3();
 /** Bot body half-extents, for the survival-spawn wall-overlap check. */
 const _SURV_HALF = new THREE.Vector3(0.4, 0.9, 0.4);
+/** Scratch position for spawning pickups. */
+const _SCRATCH_PICKUP = new THREE.Vector3();
