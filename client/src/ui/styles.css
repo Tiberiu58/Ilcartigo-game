@@ -133,6 +133,17 @@ html, body, #app {
   left: 0;
   transform: translateX(var(--ch-gap));
 }
+/* Dynamic hit feedback (Phase 14A): the crosshair briefly recolours + pops on
+   a confirmed hit. White = body, gold = headshot, red = kill. Toggled by HUD
+   via transient classes; clears back to the user's --ch-color afterwards. */
+#crosshair.ch-pop { transform: translate(-50%, -50%) scale(1.3); transition: transform 0.07s ease-out; }
+#crosshair.ch-fb-hit  .ch-line,
+#crosshair.ch-fb-hit  .ch-dot  { background: #ffffff; }
+#crosshair.ch-fb-head .ch-line,
+#crosshair.ch-fb-head .ch-dot  { background: #ffd23f; }
+#crosshair.ch-fb-kill .ch-line,
+#crosshair.ch-fb-kill .ch-dot  { background: #ff4040; }
+
 .ch-dot {
   position: absolute;
   display: var(--ch-dot);
@@ -448,6 +459,45 @@ body.kill-flash #app::after {
   to   { opacity: 0; }
 }
 
+/* Floating score / heal popups — drift up + fade just right of centre. */
+#score-popups {
+  position: absolute;
+  left: 50%; top: 56%;
+  transform: translateX(60px);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  z-index: 5;
+}
+.score-pop {
+  font: 800 18px/1 'JetBrains Mono', Consolas, monospace;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  animation: score-pop-rise 0.9s ease-out forwards;
+}
+.score-pop-xp   { color: #ffd23f; }
+.score-pop-heal { color: #36e08a; }
+@keyframes score-pop-rise {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.8); }
+  18%  { opacity: 1; transform: translateY(0) scale(1.1); }
+  35%  { transform: translateY(-2px) scale(1); }
+  100% { opacity: 0; transform: translateY(-26px) scale(1); }
+}
+
+/* Heal flash — soft green vignette pulse when you grab a health pickup. A
+   dedicated element (not #app::before/::after) so it never collides with the
+   rush/ghost-active or kill-flash pseudo-elements. */
+#heal-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(60, 220, 130, 0.5) 100%);
+  opacity: 0;
+  z-index: 6;
+}
+#heal-flash.show { animation: kill-flash-fade 0.35s ease-out forwards; }
+
 /* Damage-direction flash: red vignette pulse on hit. */
 #damage-flash {
   position: absolute;
@@ -510,6 +560,36 @@ body.kill-flash #app::after {
   0%, 100% { opacity: 0.45; }
   50%      { opacity: 0.95; }
 }
+
+/* Speed lines — radial motion streaks at the screen edges. Opacity is driven
+   per-frame from main.ts (--speed-lines-op). A faint conic streak texture over
+   a darkening edge vignette sells the "going fast" feel without a 3D pass. */
+#speed-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--speed-lines-op, 0);
+  transition: opacity 0.12s linear;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(255, 255, 255, 0.05) 0deg, rgba(255, 255, 255, 0) 2deg 6deg),
+    radial-gradient(ellipse at center,
+      rgba(0, 0, 0, 0) 52%, rgba(180, 210, 255, 0.16) 100%);
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 46%, #000 86%);
+  mask-image: radial-gradient(ellipse at center, transparent 46%, #000 86%);
+}
+/* Hard off-switch from the General settings toggle. */
+body.no-speedlines #speed-lines { display: none; }
+
+/* Minimap / tactical radar — top-right corner. The canvas itself is sized in
+   JS (Minimap.ts) via width/height attrs; this just positions it. */
+#minimap {
+  position: absolute;
+  top: 16px; right: 16px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+#minimap.hidden { display: none; }
 
 #debug-hud {
   position: absolute;
@@ -720,11 +800,14 @@ body.kill-flash #app::after {
 
 #killfeed {
   position: absolute;
-  top: 16px; right: 16px;
+  /* Sits below the minimap (16px top + 168px canvas + gap) so the two
+     top-right HUD elements stack instead of overlapping. */
+  top: 196px; right: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   pointer-events: none;
+  align-items: flex-end;
 }
 .kf-entry {
   background: var(--panel);

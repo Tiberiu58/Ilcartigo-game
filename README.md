@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. Weapon Mastery & Skins: every weapon now levels up as you frag with it (15 / 50 / 150 kills) to unlock first-person weapon skins, with mastery-progress UI, an unlock celebration chip, and per-weapon equip. Built on Phase 13 — v0.13.0 Rank Up & Reward Spectacle: an 8-tier rank ladder (Recruit → Mythic) with HUD + menu badges, a full-screen level-up celebration, floating "+XP" kill popups, one-click crosshair presets + a dynamic-crosshair toggle, **per-weapon server damage** (weapon choice finally matters in MP), and the **Marksman** (semi-auto DMR) weapon. Built on Phase 12 (directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. Combat & personalization juice: **dynamic crosshair hit feedback**, floating **score/heal popups**, and **weapon-finish cosmetics**. Built on Phase 13 (minimap/radar, speed lines, bullet-impact FX, map health pickups — protocol v3), Phase 12 (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -298,8 +298,7 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 
 | Filename | What it is | Suggested freesound.org search |
 | --- | --- | --- |
-| `level_up.wav` | Celebratory sting when XP crosses a level boundary | "level up", "rank up", "achievement" |
-| `fire_marksman.wav` | Marksman / DMR shot — sharp, heavier than the AR | "dmr shot", "marksman rifle", "single rifle crack" |
+| `pickup_health.wav` | Health-pack grab chime | "health pickup", "heal collect", "powerup grab" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -368,88 +367,71 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
-## Phase 13 — Rank Up & Reward Spectacle (this round, v0.13.0)
+## Phase 13 — Spatial Awareness & Movement Juice (this round, v0.13.0)
 
-The retention pillar. XP + a derived level already existed but were buried in a
-settings tab — no rank identity, no level-up moment, no on-kill reward feedback.
-Phase 13 surfaces all of it (the loop that pairs directly with AdSense: more return
-visits + longer sessions = more impressions at the breakpoints we already built),
-**plus** the first real combat-correctness fix and a new weapon. Client features are
-zero-protocol; the server changes are additive (no protocol bump — still v2).
+After Phase 12 closed the combat-*feedback* gap, Phase 13 closes the *spatial
+awareness* gap and rewards the movement that's always been the game's best part —
+plus the first real gameplay-loop addition since class abilities.
 
-- **A. Rank tiers + level-up celebration.** A named rank ladder derived from level
-  (Recruit → Soldier → Veteran → Elite → Master → Champion → Legend → Mythic), each
-  with an accent colour + glyph. A persistent rank badge on the HUD (bottom-left) and
-  the main menu (under the subtitle), with a thin "progress to next rank" bar. When XP
-  crosses a 1000-XP level boundary, a full-screen **LEVEL UP · Lv N · RANK** banner pops
-  with a sound sting. Spending XP on an unlock can lower the level — that re-syncs the
-  badge silently (no false celebration). New `account/Ranks.ts` + `ui/ProgressionFX.ts`.
-- **B. Floating "+XP" reward popups.** Every local kill floats a "+10 XP" chip
-  (headshots tagged "· HS", pink) near the crosshair that rises + fades — instant,
-  dopamine-tight feedback. Skips suicides / falls. The popup helper is public so the
-  post-match / challenge flows can reuse it.
-- **C. Crosshair preset packs + dynamic toggle.** Five one-click crosshair presets
-  (Classic / Dot / Cross / T-Style / Precision) that write through to the existing
-  CSS-var pipeline (colour left untouched — it's personal). New `--ch-top` var lets
-  T-Style hide the top pip; new `--ch-dynamic` var + a "Dynamic crosshair" checkbox lets
-  players freeze the firing-spread gap for a fixed reticle. All persisted.
-- **D. Per-weapon server damage (MP combat-feel fix).** The server used to apply
-  hardcoded **AR** damage (24 / 1.8×) to *every* weapon, so weapon choice was cosmetic
-  online. Added a `SERVER_WEAPONS` table + `weaponDamage()` mirroring the client's
-  `WeaponConfig` base damage, headshot multiplier, and linear falloff ramp — so snipers
-  one-shot heads, SMGs chip, the pistol is a real sidearm. The shotgun is the one
-  intentional divergence (a single aim ray can't replicate 9-pellet spread → a tuned
-  52-dmg center blast with hard falloff). No protocol change; the client doesn't predict
-  its own damage, so MP damage numbers are now per-weapon-accurate with zero desync.
-- **E. New weapon — Marksman (semi-auto DMR).** A 5th primary filling the gap between
-  the AR's spray and the Sniper's scoped one-shot: 40 dmg / 2.0× head (3-shot body,
-  2-shot one-head), pinpoint base spread but punishing per-shot bloom, no scope, fast
-  handling. End-to-end: config, procedural viewmodel, `fire_marksman` sound, loadout
-  button, server validation + damage. Solo + MP.
-
-New sound ids reserved (silent until `.wav`s land): `level_up`, `fire_marksman` — see
-the audio asset guide above.
+- **A. Minimap / tactical radar.** Top-right canvas radar (the single most
+  Krunker-defining missing HUD piece). North-up, whole-arena aspect-fit. Draws
+  the static collision footprint (walls/buildings/cover — tall boxes brighter),
+  jump pads (yellow), health pickups (green crosses, dimmed on cooldown), a teal
+  heading-arrow for you, and red enemy dots — solo bots or MP remotes, hiding
+  cloaked + dead. Pure client; geometry cached per map, draw throttled to 25 Hz.
+  Toggle in Settings → General. New `ui/Minimap.ts`.
+- **B. Speed lines.** Radial motion streaks at the screen edges that ramp in
+  above bhop-tier speed (start 10.5, saturate 18 u/s). CSS-only overlay driven
+  per-frame — deliberately does NOT touch the camera FOV pipeline. Toggle in
+  Settings → General.
+- **C. Bullet-impact FX.** Every landed shot pops a small additive burst at the
+  hit point — warm dust on world geometry, red sparks on flesh. Pooled (impacts
+  fire every shot) with one shared soft radial texture. Works for local, bot,
+  and MP-remote shots. New `weapons/ImpactFX.ts`.
+- **D. Map health pickups.** Floating health pads (4 per combat map) restore
+  +40 HP and respawn after 12 s. **Server-authoritative in MP** (overlap → heal
+  the grabber's authoritative HP, only when hurt → cooldown → respawn, broadcast;
+  restored on rematch). **Client-local logic in solo** via `PickupManager`.
+  Protocol bumped to **v3** (`PickupState`, `ServerWelcome.pickups`,
+  `ServerPickupUpdate`, `EV.Pickup`, mirrored both sides). Shared placement in
+  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts`. Grab feedback: `pickup_health`
+  SFX + a green `#heal-flash` vignette. New `entities/PickupManager.ts`.
 
 ### Bundle size
 
-Production client: **~190 KB gzipped** total (engine 120 + app 62 + CSS 8 + HTML 6).
-~+3 KB this phase (rank ladder + progression FX + Marksman). No new dependencies.
+Production client: **~190 KB gzipped** total (engine 121 + app 64 + CSS 7 + HTML 6).
+~+3 KB this phase. No new dependencies.
 
-## Phase 14 — Weapon Mastery & Skins (this round, v0.14.0)
+## Phase 14 — Combat & Personalization Juice (this round, v0.14.0)
 
-A proven Krunker-style retention loop on top of Phase 13's progression spectacle:
-get kills with a weapon → climb its **mastery** → unlock **weapon skins** for it. More
-to chase per weapon = more reasons to keep playing (retention → ad revenue). Entirely
-client-side + account-driven, zero protocol, solo + MP both unaffected (weapon skins
-are first-person viewmodel tints — they never need to sync; remotes don't render your
-viewmodel).
+A pure-client, zero-protocol round of high-feel touches reinforcing Krunker's
+instant-feedback + visible-progression loops (retention → ad impressions).
 
-- **Mastery tracking.** `Account` records per-weapon lifetime kills (`weaponKills`,
-  migration-safe), bumped on every local kill alongside the existing lifetime stats.
-- **Mastery-gated skins.** `WEAPON_SKINS` registry — each of the 6 weapons (AR / SMG /
-  Marksman / Sniper / Shotgun / Pistol) gets a default + 3 skins, unlocked purely by
-  mastery kills (15 / 50 / 150 — no XP cost; mastery *is* the currency). The equipped
-  skin tints the first-person viewmodel's body.
-- **Unlock celebration.** Crossing a skin's kill threshold emits a local-only
-  `masteryUnlock` bus event → a coloured "{WEAPON} SKIN: {name}" reward chip via
-  ProgressionFX.
-- **Weapon Skins UI.** New Cosmetics-tab section: a weapon picker (with live per-weapon
-  mastery counts) + a skin grid showing each skin's mastery-progress bar / lock state;
-  click an unlocked skin to equip it.
+- **A. Dynamic crosshair hit feedback.** The crosshair briefly recolours +
+  scale-pops on a confirmed hit — white = body, gold = headshot, red = kill —
+  then reverts to your chosen colour. Pure CSS + a small HUD method off the
+  hitConfirm / kill bus events.
+- **B. Floating score / heal popups.** A tasteful "+10 XP" gold toast on each
+  local frag and a green "+40 HP" on a health-pack grab, drifting up + fading.
+  New `ui/ScorePopup.ts` (static API), wired from the kill bus + `PickupManager`.
+- **C. Weapon-finish cosmetics.** A new unlockable axis you see every second you
+  hold a gun — an emissive sheen over the viewmodel (Standard free, then Gilded /
+  Frostforge / Toxic / Crimson / Voidlight at 350–2500 XP). `Account` extended
+  migration-safe (`unlockedFinishes` + `equippedFinish`). `Viewmodel.setFinish`
+  re-applies after each weapon rebuild. New "Weapon Finish" grid in Cosmetics.
 
 ### Bundle size
 
-Production client: **~192 KB gzipped** total (engine 120 + app 63 + CSS 8 + HTML 6).
-~+2 KB this phase (registry + mastery UI). No new dependencies.
+Production client: **~191 KB gzipped** total. ~+1 KB this phase, no new deps.
 
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, rank ladder + level-up celebration + "+XP" popups + crosshair presets + per-weapon MP damage + the Marksman, **weapon mastery + unlockable weapon skins** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, minimap/radar + speed lines + bullet-impact FX + map health pickups, **crosshair hit feedback + score popups + weapon-finish cosmetics** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, rank ladder + level-up celebration, "+XP" popups, crosshair presets, weapon mastery + skins, 5 weapons (AR/SMG/Marksman/Sniper/Shotgun + Pistol). v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Per-weapon damage + falloff. Protocol v2. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, weapon-finish cosmetics. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

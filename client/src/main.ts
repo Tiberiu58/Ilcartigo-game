@@ -20,11 +20,13 @@ import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { ProgressionFX } from './ui/ProgressionFX';
+import { Minimap } from './ui/Minimap';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
+import { ScorePopup } from './ui/ScorePopup';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -97,6 +99,18 @@ void damageDir;
 const progression = new ProgressionFX(game.account, game.audio, game.bus, (id) => game.isLocalPlayer(id));
 void progression;
 
+// Tactical minimap / radar (top-right).
+const minimap = new Minimap(game, document.getElementById('minimap') as HTMLCanvasElement);
+void minimap;
+
+// Floating "+10 XP" toast on each local frag (visible progression). The kill
+// effect / announcer handle the splashier feedback; this is the running tally.
+game.bus.on('kill', (e) => {
+  if (game.isLocalPlayer(e.attackerId) && !game.isLocalPlayer(e.targetId)) {
+    ScorePopup.pop('+10 XP', 'xp');
+  }
+});
+
 // ─── Gun Game mode ─────────────────────────────────────────────────────────
 // Self-contained weapon-ladder mode (solo vs bots for v1). The host adapter
 // exposes just the three engine surfaces GunGame needs.
@@ -147,6 +161,27 @@ sensSlider.addEventListener('input', () => {
   sensVal.textContent = v.toFixed(2);
   game.setSensitivity(v);
   localStorage.setItem('ilc.sens', String(v));
+});
+
+// ─── Minimap + speed-lines toggles (General tab) ────────────────────────────
+const optMinimap = document.getElementById('opt-minimap') as HTMLInputElement;
+const optSpeedlines = document.getElementById('opt-speedlines') as HTMLInputElement;
+
+const savedMinimap = (localStorage.getItem('ilc.minimap') ?? 'true') === 'true';
+optMinimap.checked = savedMinimap;
+minimap.setEnabled(savedMinimap);
+optMinimap.addEventListener('change', () => {
+  minimap.setEnabled(optMinimap.checked);
+  localStorage.setItem('ilc.minimap', String(optMinimap.checked));
+});
+
+let speedLinesEnabled = (localStorage.getItem('ilc.speedlines') ?? 'true') === 'true';
+optSpeedlines.checked = speedLinesEnabled;
+document.body.classList.toggle('no-speedlines', !speedLinesEnabled);
+optSpeedlines.addEventListener('change', () => {
+  speedLinesEnabled = optSpeedlines.checked;
+  document.body.classList.toggle('no-speedlines', !speedLinesEnabled);
+  localStorage.setItem('ilc.speedlines', String(speedLinesEnabled));
 });
 
 // ─── Crosshair customizer ───────────────────────────────────────────────────
@@ -774,10 +809,33 @@ game.input.onPointerLockChange = (locked) => {
   }
 };
 
+// ─── Speed lines ─────────────────────────────────────────────────────────────
+// Radial streaks ramp in above bhop-tier speed. RUN_SPEED is 8.4 and the bhop
+// hard-cap ~9.66, so we start the effect at ~10.5 (you have to actually be
+// chaining jumps / sliding / Surging) and saturate around 18.
+const SPEED_LINES_START = 10.5;
+const SPEED_LINES_FULL = 18;
+const SPEED_LINES_MAX_OP = 0.55;
+const speedLinesEl = document.getElementById('speed-lines')!;
+let lastSpeedOp = -1;
+function updateSpeedLines(speed: number) {
+  let op = 0;
+  if (speedLinesEnabled && game.input.pointerLocked && speed > SPEED_LINES_START) {
+    const t = Math.min(1, (speed - SPEED_LINES_START) / (SPEED_LINES_FULL - SPEED_LINES_START));
+    op = +(t * SPEED_LINES_MAX_OP).toFixed(2);
+  }
+  if (op !== lastSpeedOp) {
+    lastSpeedOp = op;
+    speedLinesEl.style.setProperty('--speed-lines-op', String(op));
+  }
+}
+
 // Throttle debug HUD updates to ~10Hz to avoid layout thrash.
 let lastHudUpdate = 0;
 game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
+  minimap.tick();
+  updateSpeedLines(speed);
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;
@@ -813,7 +871,10 @@ if (resetBtn) {
 
 // Re-send hello whenever the equipped skin changes — server needs the new
 // skin id for snapshot.skinId, otherwise other players see the old color.
-game.account.onChange(() => game.mp?.sendHello());
+game.account.onChange(() => {
+  game.mp?.sendHello();
+  game.applyEquippedFinish();
+});
 
 // ─── Post-match overlay ────────────────────────────────────────────────────
 const postmatchOverlay = document.getElementById('postmatch-overlay')!;

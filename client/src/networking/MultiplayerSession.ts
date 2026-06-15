@@ -107,6 +107,17 @@ export class MultiplayerSession {
     return true;
   }
 
+  /**
+   * Enumerate remote players for the minimap. Yields each remote's interpolated
+   * world x/z plus its cloaked + dead flags so the radar can hide stealthed /
+   * downed players. Cheap; called at most once per minimap redraw.
+   */
+  forEachRemoteBlip(cb: (x: number, z: number, cloaked: boolean, dead: boolean) => void) {
+    for (const rp of this.remotes.values()) {
+      cb(rp.group.position.x, rp.group.position.z, rp.cloaked, rp.hp <= 0);
+    }
+  }
+
   /** Subscribers. Mirror the local bus shape so existing HUD listeners keep working. */
   onWelcome?: (msg: ServerWelcome) => void;
   onDisconnect?: (reason: string) => void;
@@ -136,6 +147,7 @@ export class MultiplayerSession {
       onLeave: (m) => this.handleLeave(m),
       onMatchOver: (m) => this.handleMatchOver(m),
       onMatchReset: (m) => this.handleMatchReset(m),
+      onPickup: (m) => this.game.pickups.applyServerUpdate(m.id, m.available, m.byId),
       onError: (m) => {
         console.warn('[net] server error:', m.code, m.message);
       },
@@ -270,6 +282,10 @@ export class MultiplayerSession {
       rp.ingest(p, Date.now());
       this.remotes.set(p.id, rp);
     }
+    // Adopt the server's authoritative pickup states (after the map swap above
+    // so the pads exist for the right map).
+    if (m.pickups) this.game.pickups.applyWelcomeStates(m.pickups);
+
     // Now that the server has us in its player map, tell it which class +
     // weapon we picked. Without this every ability trigger gets rejected.
     this.sendHello();
@@ -343,6 +359,10 @@ export class MultiplayerSession {
       : origin.clone().add(new THREE.Vector3(...m.dir).multiplyScalar(200));
     // Red tracer for remote shots, same as bot shots in single-player.
     this.game.tracers.spawn(origin, end, 0.14, 0xff5a3a);
+    // Impact burst at the landing point — flesh (a player target) vs world.
+    if (m.hits.length > 0) {
+      this.game.impacts.spawn(end, m.hits[0].targetId !== null);
+    }
   }
 
   private handleDamage(m: ServerDamageEvent) {

@@ -117,6 +117,23 @@ export class World {
     }
   }
 
+  /**
+   * Read-only view of the static collision solids. Used by the minimap to draw
+   * the arena's top-down footprint. Callers must NOT mutate the returned array
+   * or its AABBs.
+   */
+  get staticSolids(): readonly AABB[] {
+    return this.solids;
+  }
+
+  /**
+   * Jump-pad AABBs, freshly collected. Allocates — intended for infrequent use
+   * (the minimap rebuilds its geometry cache only on map change).
+   */
+  collectJumpPadAABBs(): AABB[] {
+    return this.jumpPads.map((p) => p.aabb);
+  }
+
   registerDamageable(d: Damageable) {
     this.damageables.push(d);
   }

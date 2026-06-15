@@ -124,71 +124,85 @@ Guiding constraint: **no protocol changes, no new deps, typecheck + build green 
 
 ---
 
-## Phase 13 — Rank Up & Reward Spectacle (autonomous build, v0.13.0)
+## Phase 13 — Spatial Awareness & Movement Juice (autonomous build, v0.13.0)
 
-The retention pillar. Krunker keeps you coming back by making your *level* visible,
-celebrated, and aspirational. ILCARTIGO already tracks XP + a derived level, but it's
-buried in a settings tab — there's no rank identity, no level-up moment, no juicy
-on-kill reward feedback. Phase 13 surfaces all of it. This is the loop that pairs
-directly with AdSense: more return visits + longer sessions = more ad impressions at
-the natural breakpoints we already built.
+After Phase 12 closed the combat-*feedback* gap, the next biggest Krunker delta is
+*spatial awareness* — you can't see the arena layout or where enemies are at a
+glance — and the *movement* (already the best part of the game) has no visual
+payoff when you're flying on a bhop chain. Phase 13 adds both, plus deepens the
+options players keep coming back to tweak (retention → ad impressions).
 
-Guiding constraint (same as Phase 12): **no protocol changes, no new deps, client-only,
-typecheck + build green each step, solo + MP both keep working.**
+Guiding constraint (unchanged): **no protocol changes, no new deps, typecheck +
+build green each step, solo + MP both keep working.**
 
-- **13A — Rank tiers + level-up celebration.** A named rank ladder derived from level
-  (Recruit → … → Mythic), each with an accent colour + glyph. A persistent rank badge
-  on the HUD and on the main menu. When XP crosses a level boundary, a full-screen
-  "LEVEL UP" banner pops with the new level + rank + a sound sting. New
-  `account/Ranks.ts` (pure data/helpers) + `ui/ProgressionFX.ts` (badges, banner,
-  popups). New `level_up` sound id.
-- **13B — Floating "+XP" reward popups.** Every local kill floats a "+10 XP" chip
-  (headshots tagged) near the crosshair that drifts up and fades — the instant,
-  dopamine-tight feedback Krunker nails. Driven by `ui/ProgressionFX.ts` off the kill bus.
-- **13C — Crosshair preset packs + dynamic-crosshair toggle.** One-click crosshair
-  presets (Classic / Dot / Cross / T-style / Precision) plus a "Dynamic crosshair"
-  toggle so players who want a static reticle can freeze the firing-spread gap. All on
-  the existing CSS-var crosshair pipeline; persisted like the other crosshair settings.
+- **13A — Minimap / tactical radar.** Top-right canvas radar (the single most
+  Krunker-defining missing HUD piece). North-up, whole-arena fit with aspect
+  preserved. Draws the static collision footprint (walls/buildings/cover, tall
+  boxes brighter), jump pads (yellow ticks), a teal heading-arrow for you, and
+  red enemy dots — solo bots or MP remotes, hiding cloaked + dead. Pure client:
+  reads `World.staticSolids` + `World.collectJumpPadAABBs()` (new read
+  accessors), bot positions, and `MultiplayerSession.forEachRemoteBlip` (new).
+  Geometry cache rebuilds only on map change; per-frame draw throttled to 25 Hz.
+  New `ui/Minimap.ts`, `#minimap` canvas, General-tab toggle (`ilc.minimap`).
+- **13B — Speed lines.** Radial motion streaks at the screen edges that ramp in
+  above bhop-tier speed (start 10.5, saturate 18 u/s → max 0.55 opacity). Pure
+  CSS overlay driven by `--speed-lines-op` from the frame loop — deliberately
+  does NOT touch the camera FOV pipeline (managed in Game.tick) to stay safe.
+  New `#speed-lines` element, General-tab toggle (`ilc.speedlines`).
+- **13C — Bullet-impact FX.** Every shot that lands pops a small additive burst
+  at the hit point — a warm dust puff on world geometry, a red spark on flesh
+  (player/bot). Pooled (sparks fire on every shot) with one shared soft radial
+  texture; 2–3 sprites per impact scatter + fade in ~0.18s. Works everywhere
+  shots flow: local + bot shots via the `shot` bus event, MP remote shots via
+  `MultiplayerSession.handleShot`. New `weapons/ImpactFX.ts`.
+- **13D — Map health pickups.** Floating health pads (4 per combat map) restore
+  +40 HP, then respawn after 12 s. The first real gameplay-loop addition since
+  the class abilities — map control + a reason to keep moving, classic arena
+  shooter. **Server-authoritative in MP** (the headline risk): server tracks
+  availability, checks overlap each tick, heals the grabber's authoritative HP
+  (only if hurt — no waste at full HP), broadcasts a `ServerPickupUpdate`, and
+  restores all pads on rematch. **Client-local logic in solo** — identical
+  overlap→heal→cooldown→respawn run by `PickupManager`. Protocol bumped to **v3**
+  (`PickupState`, `ServerWelcome.pickups`, `ServerPickupUpdate`, `EV.Pickup`,
+  mirrored in both Protocol.ts files). Shared placement/tuning in
+  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (MapCollision-style duplication).
+  Local grab feedback: `pickup_health` SFX + a green `#heal-flash` vignette
+  (dedicated element so it never collides with rush/ghost/kill pseudo-elements).
 
 ### Status log
-- ✅ Phase 13A — Rank tiers + level-up celebration. DONE (client tsc + build green; app 62 KB gzip). New `account/Ranks.ts` (8-tier ladder Recruit→Mythic, colour+glyph, `rankForLevel`/`rankProgress`). New `ui/ProgressionFX.ts` drives a shared rank badge on the HUD (bottom-left) + main menu (under subtitle) and a full-screen "LEVEL UP · Lv N · RANK" banner that pops on a net level increase (XP spends that lower the level re-sync the badge silently, no false celebration). New `level_up` sound id (silent until .wav added). Badges re-sync on every account mutation.
-- ✅ Phase 13B — Floating "+XP" reward popups. DONE. ProgressionFX listens to the kill bus; every local kill floats a "+10 XP" (headshots tagged "· HS", pink) chip near the crosshair that rises + fades (1.1s, horizontal jitter so stacked kills don't overlap). Skips suicides/falls. `rewardPopup()` is public for future post-match/challenge reuse.
-- ✅ Phase 13E — New weapon: Marksman (semi-auto precision DMR). DONE (client tsc+build green, app 62 KB gzip; server tsc green). A 5th primary filling the gap between the AR's auto spray and the Sniper's scoped one-shot: semi-auto, 40 dmg / 2.0× head (3-shot body, 2-shot one-head), pinpoint base spread but hard per-shot bloom so spamming is punished — no scope, fast handling. Full end-to-end: `MARKSMAN_CONFIG` + `WEAPON_LIBRARY` (auto-extends `WeaponId`), procedural `buildMarksman` viewmodel (gunmetal body, long barrel, teal low-profile optic), `fire_marksman` sound id, loadout button, and server-side `VALID_WEAPONS` + `SERVER_WEAPONS` entry (kept in sync with 13D's table). Works solo + MP; no protocol change (weaponId is already a free string on the wire, now server-validated against the extended set).
-- ✅ Phase 13D — Per-weapon server damage (MP combat-feel fix). DONE (server tsc green; boots clean at 32Hz, HTTP 200, protocol v2 unchanged). The server previously applied hardcoded AR damage (24 / 1.8×) to EVERY weapon, so weapon choice was cosmetic online — snipers didn't one-shot, SMGs didn't chip. Added `SERVER_WEAPONS` table + `weaponDamage(weaponId, distance, isHeadshot)` mirroring the client's `WeaponConfig` base damage, headshot multiplier, and linear falloff ramp exactly (distance = the hitscan ray's `bestT`). Sniper now one-shots heads (111 > 100, but < Vanguard's 115 — passive still matters), SMG chips, pistol is a real sidearm. SHOTGUN is the one intentional divergence (single aim ray can't replicate 9-pellet spread → tuned 52-dmg center blast w/ hard falloff; documented inline). No protocol change; client doesn't predict its own damage so there's no desync — MP damage numbers are now per-weapon-accurate.
-- ✅ Phase 13C — Crosshair presets + dynamic toggle. DONE. 5 one-click shape presets write through to the existing crosshair inputs + CSS vars + localStorage (colour left untouched — it's personal). New `--ch-top` var lets the T-Style preset hide the top pip; new `--ch-dynamic` var + "Dynamic crosshair" checkbox lets HUD.tickCrosshairSpread freeze the firing-spread gap for a fixed reticle. Both persisted (`ilc.ch.top` / `ilc.ch.dynamic`). Preview crosshair honours both new vars too.
-- ✅ Phase 13 polish — Bumped client+server to v0.13.0 (package.json + lockfiles + menu subtitle/footer), README Phase 13 section + top-status line + audio-catalog additions (`level_up`, `fire_marksman`) + deliverables/status updated. Client tsc + build green (app ~62 KB gzip, ~190 KB total), server tsc green, server boots clean (32Hz, HTTP 200, protocol v2 unchanged).
+- ✅ Phase 13A — Minimap/radar. DONE (client typecheck + build green; server tsc green). New `ui/Minimap.ts` (canvas radar, DPR-aware, north-up, aspect-fit, map-change-cached geometry). World gained `staticSolids` getter + `collectJumpPadAABBs()`; MultiplayerSession gained `forEachRemoteBlip`; Game gained `currentMapId`. Killfeed nudged below the radar so the two top-right HUD elements stack. Floor/ground boxes filtered (top ≤ 0.4m). Toggle in Settings → General, persisted.
+- ✅ Phase 13B — Speed lines. DONE. `#speed-lines` conic-streak + edge-vignette overlay, opacity driven per-frame from horizontal speed; off-switch via `body.no-speedlines`. Toggle in Settings → General, persisted. No camera/FOV changes (kept the existing FOV pipeline untouched).
+- ✅ Phase 13C — Bullet-impact FX. DONE (client tsc + build green). New `weapons/ImpactFX.ts` — pooled additive spark sprites (shared radial texture), warm dust on world hits / red sparks on flesh, scatter + fade ~0.18s. Hooked into the `shot` bus handler (local + bots) and `MultiplayerSession.handleShot` (MP remotes). App chunk ~62.7 KB gzip.
+- ✅ Phase 13D — Map health pickups. DONE (client+server tsc + client build green; MP handshake validated by ad-hoc socket.io smoke test — Welcome carries 4 available pickups @ protocol v3, snapshots flow, two clients see each other, `tickPickups` survives ticks; temp test not committed). New `entities/PickupManager.ts` (solo-authoritative + MP-reflecting, map-change rebuild, bobbing green crystal+cross pads), shared `maps/Pickups.ts` ⇆ `server/src/Pickups.ts`, server `Room.tickPickups`/`broadcastPickup` + Welcome states + rematch restore, protocol v3 additions mirrored both sides + NetClient `onPickup`. `pickup_health` SFX id + `#heal-flash` green vignette. Full-HP players don't waste packs (guard mirrored client+server).
+- ✅ Phase 13E — Polish + docs. DONE. Health pads now render on the minimap (green crosses, dimmed on cooldown) via `PickupManager.forEachPad`. Bumped client+server to v0.13.0 (+ menu subtitle/footer). README Phase 13 section + `pickup_health` audio-catalog entry + deliverables/status updated. Client+server tsc + client build green; app chunk ~64 KB gzip.
 
-### Phase 13 COMPLETE — A–E + polish shipped. Client features zero-protocol; server changes additive (no protocol bump). Solo + MP intact.
+### Phase 13 COMPLETE — A–E shipped. Minimap + speed lines + impact FX (pure client) + map health pickups (protocol v3, server-authoritative MP + solo). Solo + MP both intact (smoke-tested).
 
 ---
 
-## Phase 14 — Weapon Mastery & Skins (autonomous build, v0.14.0)
+## Phase 14 — Combat & Personalization Juice (autonomous build)
 
-A proven Krunker-style retention loop layered on the progression we just surfaced:
-get kills with a weapon → climb its *mastery* → unlock weapon skins for it. More to
-chase per weapon = more reasons to keep playing (retention → ad revenue). Entirely
-client-side + account-driven, zero protocol, solo + MP both unaffected (weapon skins
-are first-person viewmodel tints — they don't need to sync; remotes never render your
-viewmodel anyway).
+A deliberately **pure-client, zero-protocol** round to balance risk after the
+v3 pickup change — small, high-feel touches that reinforce Krunker's instant
+feedback + visible-progression loops (retention → ad impressions).
 
-Guiding constraint: **no protocol changes, no new deps, typecheck + build green each step.**
-
-- **14A — Weapon mastery tracking.** `Account` records per-weapon lifetime kills
-  (`weaponKills`, migration-safe). Recorded on every local kill alongside the existing
-  lifetime stats.
-- **14B — Weapon skins (mastery-gated).** A `WEAPON_SKINS` registry: each of the 6
-  weapons (AR / SMG / Marksman / Sniper / Shotgun / Pistol) gets a default + 3 skins,
-  unlocked purely by mastery kills (15 / 50 / 150 — no XP cost; mastery *is* the
-  currency). Equipped skin tints the first-person viewmodel body.
-- **14C — Mastery-unlock celebration.** Crossing a skin's kill threshold emits a
-  `masteryUnlock` bus event → a "+{WEAPON} SKIN" reward chip via ProgressionFX.
-- **14D — Weapon Skins UI.** New section in the Cosmetics tab: a weapon picker + a
-  skin grid showing each skin's mastery progress / lock state, click to equip.
+- **14A — Dynamic crosshair hit feedback.** The crosshair briefly recolours +
+  scale-pops on a confirmed hit: white = body, gold = headshot, red = kill.
+  Reinforces the existing hitmarker without overpowering it; reverts to the
+  user's chosen colour. Pure CSS + a small HUD method off the hitConfirm / kill
+  bus events.
+- **14B — Floating score / heal popups.** A tasteful "+10 XP" gold toast on each
+  local frag and a green "+40 HP" on a health-pack grab, drifting up + fading
+  just right of centre — the running progression tally Krunker pops on every
+  kill. New `ui/ScorePopup.ts` (static API), wired from the kill bus handler
+  (main.ts) + `PickupManager.feedback`.
 
 ### Status log
-- ✅ Phase 14 polish — Bumped client+server to v0.14.0 (package.json + lockfiles + menu subtitle/footer), README Phase 14 section + top-status + deliverables/status updated. Client tsc + build green (app ~63 KB gzip), server tsc green.
+- ✅ Phase 14A — Crosshair hit feedback. DONE (client tsc + build green). Transient `ch-fb-hit/head/kill` + `ch-pop` classes on `#crosshair`, cleared after 90/170 ms; HUD `crosshairFeedback()` off hitConfirm + local-kill events.
+- ✅ Phase 14B — Score/heal popups. DONE. New `ui/ScorePopup.ts` static toaster (#score-popups, capped at 6, CSS rise+fade). "+10 XP" on local frags, "+40 HP" on grabs. App chunk ~64 KB gzip.
+- ✅ Phase 14C — Weapon-finish cosmetics. DONE (client tsc + build green). New `FINISHES` registry (6, 0–2500 XP) emissive sheen over the viewmodel + `findFinish`/`DEFAULT_FINISH`. Account extended migration-safe (`unlockedFinishes`/`equippedFinish`, default kept unlocked on old saves) + `equippedFinishEmissive`. `Viewmodel.setFinish` applies emissive to every Lambert part, re-applied after each weapon rebuild; `Game.applyEquippedFinish` wired on boot + account change. New "Weapon Finish" grid in the Cosmetics tab. Deepens the unlock loop (retention → ad revenue).
+- ✅ Phase 14 polish — Bumped client+server to v0.14.0 (+ menu subtitle/footer). README Phase 14 section + deliverables/status. Client+server tsc + client build green; app chunk ~64.5 KB gzip.
 
-### Phase 14 COMPLETE — A–D + polish shipped. Client-only, zero protocol, solo + MP intact.
-- ✅ Phase 14A–D — Weapon mastery & skins. DONE (client tsc + build green, app ~63 KB gzip; server untouched). `WEAPON_SKINS` registry (6 weapons × 4 skins, default + 3 mastery-gated at 15/50/150 kills) + helpers in Cosmetics.ts. `Account` extended migration-safe (`weaponKills` + `equippedWeaponSkin`) with `recordWeaponKill` (returns the freshly-crossed skin), `isWeaponSkinUnlocked` (derived from mastery — no XP path), `equipWeaponSkin`, `equippedWeaponSkinColor`. Viewmodel tints the body mesh (first child = largest box in every builder) per equipped skin, re-applied after every (re)build so it survives swaps + cloak. Game records weapon kills on local kills, emits a new local-only `masteryUnlock` bus event on a fresh unlock, and pushes equipped tints to the viewmodel on boot + every account change. ProgressionFX pops a coloured "{WEAPON} SKIN: {name}" reward chip on unlock. New Cosmetics subsection: weapon picker tabs (with live mastery counts) + skin grid with per-skin mastery progress bars. Skins are first-person-only (viewmodel tints) → zero protocol, MP unaffected.
+### Phase 14 COMPLETE — A–C + polish shipped, pure client, no protocol change, solo + MP intact.
 
 

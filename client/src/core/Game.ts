@@ -22,10 +22,12 @@ import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot } from '../entities/Bot';
+import { PickupManager } from '../entities/PickupManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
 import { TracerPool } from '../weapons/Tracer';
+import { ImpactFX } from '../weapons/ImpactFX';
 import { CastFX } from './CastFX';
 import { DamageNumbers } from '../ui/DamageNumbers';
 import type { MultiplayerSession } from '../networking/MultiplayerSession';
@@ -80,8 +82,11 @@ export class Game {
   abilities!: AbilityRunner;       // assigned in constructor after bots exist
   private baseFov = 90;
   readonly tracers: TracerPool;
+  readonly impacts: ImpactFX;
   readonly castFX: CastFX;
   readonly dmgNumbers: DamageNumbers;
+  /** Map health pickups — authoritative in solo, server-driven in MP. */
+  readonly pickups: PickupManager;
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -107,6 +112,11 @@ export class Game {
    * This is the single biggest cross-cutting fix between Phase 9 → Phase 10:
    * every previous `=== 'player'` check failed in MP.
    */
+  /** Id of the currently-built map. Used by the minimap to detect map swaps. */
+  get currentMapId(): MapId {
+    return this.currentMap.meta.id;
+  }
+
   isLocalPlayer(id: string): boolean {
     if (id === 'player') return true;
     if (this.mp && id === this.mp.myId) return true;
@@ -214,9 +224,12 @@ export class Game {
 
     this.inventory = new WeaponInventory('ar', this.world, this.bus, 'player');
     this.viewmodel = new Viewmodel(this.camera);
+    this.viewmodel.setFinish(this.account.equippedFinishEmissive());
     this.tracers = new TracerPool(this.scene, 32);
+    this.impacts = new ImpactFX(this.scene, 36);
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
+    this.pickups = new PickupManager(this);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
@@ -257,6 +270,9 @@ export class Game {
       // bot tracers stay the warm red so you can read incoming fire.
       const tracerColor = isPlayer ? this.account.equippedTracerColor() : 0xff5a3a;
       this.tracers.spawn(start, end, isPlayer ? 0.08 : 0.14, tracerColor);
+      // Impact burst where the shot landed — red spark on flesh (targetId set),
+      // warm dust on world geometry. Skips shots that hit nothing (max range).
+      if (e.hit) this.impacts.spawn(e.hit.point, e.hit.targetId !== null);
       if (isPlayer) this.viewmodel.onFire();
 
       // Audio. Local shots play unspatialized; remote/bot shots play spatial
@@ -457,6 +473,10 @@ export class Game {
    */
   onMpChanged() {
     this.syncBotState();
+    // Pickups: connecting/disconnecting changes who owns pickup state. Reset to
+    // all-available; MP then applies the server's authoritative states via the
+    // Welcome handler, and solo just keeps them all present.
+    this.pickups.resetAll();
   }
 
   /**
@@ -580,6 +600,12 @@ export class Game {
     this.playerActor.health.setMax(100 + (passive.bonusMaxHp ?? 0));
     // Weapons: reload multiplier (Rush).
     this.inventory.setReloadMultiplier(passive.reloadMultiplier ?? 1.0);
+  }
+
+  /** Re-apply the equipped weapon-finish cosmetic to the viewmodel. Called on
+   *  any account change (equip) from main.ts. */
+  applyEquippedFinish() {
+    this.viewmodel.setFinish(this.account.equippedFinishEmissive());
   }
 
   /** Change class — called from the main menu or on respawn (we allow now). */
@@ -843,8 +869,10 @@ export class Game {
 
     // --- 5. Effects + world tick ---
     this.tracers.update(dt);
+    this.impacts.update(dt);    // tick pooled bullet-impact sparks/puffs
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
+    this.pickups.update(dt);    // animate + (solo) run map health pickups
     this.world.update();        // expires Engineer barrier solids when their TTL is up
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
 

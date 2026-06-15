@@ -13,7 +13,7 @@
  * (We don't have a shared package, intentionally — keeps the build simple.)
  */
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** Default WebSocket port. Match in server.ts and NetClient. */
 export const DEFAULT_NET_PORT = 3001;
@@ -226,6 +226,27 @@ export interface ServerWelcome {
   serverTick: number;
   tickHz: number;
   players: PlayerSnapshot[];
+  /** Initial map-pickup states so late joiners know which are currently gone.
+   *  Optional for forward-compat with older servers. */
+  pickups?: PickupState[];
+}
+
+/** One map pickup's availability. `id` matches PickupDef.id for the room's map. */
+export interface PickupState {
+  id: number;
+  available: boolean;
+}
+
+/**
+ * Broadcast when a pickup is grabbed (available=false, `byId` = grabber) or
+ * respawns (available=true). The heal itself is applied server-side to the
+ * grabber's authoritative HP and shows up in the next Snapshot; `byId` lets the
+ * grabbing client play local heal feedback (SFX / green flash).
+ */
+export interface ServerPickupUpdate {
+  id: number;
+  available: boolean;
+  byId?: string;
 }
 
 /**
@@ -291,4 +312,5 @@ export const EV = {
   Err:          'e',
   MatchOver:    'M',
   MatchReset:   'R',
+  Pickup:       'P',
 } as const;

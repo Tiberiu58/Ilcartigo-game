@@ -16,12 +16,17 @@ import type { Server, Socket } from 'socket.io';
 import { ServerController, type PlayerInput } from './Controller.js';
 import { COLLISION_BY_MAP, type SolidAABB } from './MapCollision.js';
 import {
+  PICKUPS_BY_MAP, HEALTH_PICKUP_AMOUNT, PICKUP_RESPAWN_MS,
+  PICKUP_RADIUS, PICKUP_VERTICAL_TOLERANCE, type PickupDef,
+} from './Pickups.js';
+import {
   EV, PROTOCOL_VERSION, type ClientInput, type PlayerSnapshot,
   type Snapshot, type ServerWelcome, type ServerPlayerJoined, type ServerPlayerLeft,
   type ClientFireRequest, type ServerShotEvent, type ServerDamageEvent, type ServerKillEvent,
   type Vec3, type ClientAbilityRequest, type ServerAbilityCast,
   type ServerAddSolid, type ServerRemoveSolid, type ClientHello,
   type ServerMatchOver, type ServerMatchReset,
+  type ServerPickupUpdate, type PickupState,
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
@@ -193,6 +198,8 @@ export class Room {
   /** Networked temporary solids (Engineer Barriers). */
   private tempSolids = new Map<number, TempSolid>();
   private nextSolidId = 1;
+  /** Map pickups: per-pickup availability + respawn timer (authoritative). */
+  private pickups = new Map<number, { def: PickupDef; available: boolean; respawnAt: number }>();
   private tick = 0;
   private tickInterval: NodeJS.Timeout | null = null;
   /** True once a player has hit MATCH_KILL_GOAL. Blocks re-triggering match
@@ -211,6 +218,14 @@ export class Room {
     this.mapId = COLLISION_BY_MAP[mapId] ? mapId : 'sandstone';
     this.staticSolids = COLLISION_BY_MAP[this.mapId];
     this.spawns = SPAWNS_BY_MAP[this.mapId] ?? SPAWNS_BY_MAP['sandstone'];
+    for (const def of PICKUPS_BY_MAP[this.mapId] ?? []) {
+      this.pickups.set(def.id, { def, available: true, respawnAt: 0 });
+    }
+  }
+
+  /** Current pickup availability list for Welcome / debugging. */
+  private pickupStates(): PickupState[] {
+    return Array.from(this.pickups.values()).map((p) => ({ id: p.def.id, available: p.available }));
   }
 
   start() {
@@ -271,6 +286,7 @@ export class Room {
       serverTick: this.tick,
       tickHz: TICK_HZ,
       players: Array.from(this.players.values()).map((pp) => this.toSnapshot(pp)),
+      pickups: this.pickupStates(),
     };
     socket.emit(EV.Welcome, welcome);
 
@@ -341,6 +357,9 @@ export class Room {
       const cutoff = now - POS_HISTORY_MS;
       while (p.posHistory.length > 0 && p.posHistory[0].t < cutoff) p.posHistory.shift();
     }
+
+    // Map pickups: respawn timers + overlap grabs (authoritative).
+    this.tickPickups(now);
 
     // Broadcast snapshots. Each player gets their own ackSeq.
     const allPlayers = Array.from(this.players.values()).map((p) => this.toSnapshot(p));
@@ -546,6 +565,54 @@ export class Room {
     p.controller.speedMultiplier = 1;
   }
 
+  // ── Pickups ───────────────────────────────────────────────────────────────
+
+  /**
+   * Authoritative pickup tick: respawn any pickups whose timer elapsed, then
+   * check every alive, hurt player against every available pickup. Grabbing
+   * heals the grabber server-side (reflected in the next Snapshot) and puts the
+   * pad on a respawn cooldown; both transitions broadcast a ServerPickupUpdate.
+   *
+   * Health packs only consume when the grabber is below max HP, so a full-HP
+   * player walking over one doesn't waste it.
+   */
+  private tickPickups(now: number) {
+    // Respawns first.
+    for (const pk of this.pickups.values()) {
+      if (!pk.available && now >= pk.respawnAt) {
+        pk.available = true;
+        this.broadcastPickup(pk.def.id, true);
+      }
+    }
+    // Grabs.
+    for (const pk of this.pickups.values()) {
+      if (!pk.available) continue;
+      const [px, py, pz] = pk.def.pos;
+      for (const player of this.players.values()) {
+        if (!player.alive) continue;
+        if (player.hp >= player.maxHp) continue;     // no waste at full HP
+        const pos = player.controller.position;
+        const dx = pos[0] - px;
+        const dz = pos[2] - pz;
+        if (dx * dx + dz * dz > PICKUP_RADIUS * PICKUP_RADIUS) continue;
+        if (Math.abs(pos[1] - py) > PICKUP_VERTICAL_TOLERANCE) continue;
+        // Grab.
+        if (pk.def.type === 'health') {
+          player.hp = Math.min(player.maxHp, player.hp + HEALTH_PICKUP_AMOUNT);
+        }
+        pk.available = false;
+        pk.respawnAt = now + PICKUP_RESPAWN_MS;
+        this.broadcastPickup(pk.def.id, false, player.id);
+        break;     // one grabber per pad per tick
+      }
+    }
+  }
+
+  private broadcastPickup(id: number, available: boolean, byId?: string) {
+    const msg: ServerPickupUpdate = { id, available, byId };
+    this.io.emit(EV.Pickup, msg);
+  }
+
   // ── Match lifecycle ───────────────────────────────────────────────────────
 
   /**
@@ -575,6 +642,14 @@ export class Room {
       p.kills = 0;
       p.deaths = 0;
       this.respawn(p.id);
+    }
+    // Restore every pickup for the fresh match.
+    for (const pk of this.pickups.values()) {
+      if (!pk.available) {
+        pk.available = true;
+        pk.respawnAt = 0;
+        this.broadcastPickup(pk.def.id, true);
+      }
     }
     const msg: ServerMatchReset = {};
     this.io.emit(EV.MatchReset, msg);

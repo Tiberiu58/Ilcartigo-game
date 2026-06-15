@@ -12,7 +12,13 @@
  * Level curve: 1000 XP per level. Simple and predictable.
  */
 
-import { findSkin, findTracer, defaultSkinForClass, findWeaponSkin, defaultWeaponSkin, weaponSkinsFor, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId, type WeaponSkinId, type WeaponSkinConfig } from './Cosmetics';
+import {
+  findSkin, findTracer, findFinish, findWeaponSkin,
+  defaultSkinForClass, defaultWeaponSkin, weaponSkinsFor,
+  DEFAULT_KILL_EFFECT, DEFAULT_TRACER, DEFAULT_FINISH,
+  type SkinId, type KillEffectId, type TracerId, type FinishId,
+  type WeaponSkinId, type WeaponSkinConfig,
+} from './Cosmetics';
 import type { ClassId } from '../classes/types';
 
 const STORAGE_KEY = 'ilc.account';
@@ -58,10 +64,12 @@ interface AccountData {
   unlockedSkins: SkinId[];
   unlockedEffects: KillEffectId[];
   unlockedTracers: TracerId[];
+  unlockedFinishes: FinishId[];
   /** Per-class equipped skin. If a class isn't here, the default is used. */
   equippedSkin: Partial<Record<ClassId, SkinId>>;
   equippedKillEffect: KillEffectId;
   equippedTracer: TracerId;
+  equippedFinish: FinishId;
   /** Lifetime kills per weapon id — drives weapon mastery + skin unlocks. */
   weaponKills: Record<string, number>;
   /** Per-weapon equipped skin id. Missing = the weapon's default skin. */
@@ -144,9 +152,11 @@ function freshData(): AccountData {
     ],
     unlockedEffects: [DEFAULT_KILL_EFFECT],
     unlockedTracers: [DEFAULT_TRACER],
+    unlockedFinishes: [DEFAULT_FINISH],
     equippedSkin: {},
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
+    equippedFinish: DEFAULT_FINISH,
     weaponKills: {},
     equippedWeaponSkin: {},
     stats: freshStats(),
@@ -181,6 +191,10 @@ export class Account {
         unlockedTracers: Array.isArray(parsed.unlockedTracers)
           ? Array.from(new Set([DEFAULT_TRACER, ...parsed.unlockedTracers]))
           : fresh.unlockedTracers,
+        // Always keep the default finish unlocked even on an older save.
+        unlockedFinishes: Array.isArray(parsed.unlockedFinishes)
+          ? Array.from(new Set([DEFAULT_FINISH, ...parsed.unlockedFinishes]))
+          : fresh.unlockedFinishes,
         equippedSkin: (parsed.equippedSkin && typeof parsed.equippedSkin === 'object')
           ? parsed.equippedSkin as Partial<Record<ClassId, SkinId>>
           : fresh.equippedSkin,
@@ -190,6 +204,9 @@ export class Account {
         equippedTracer: typeof parsed.equippedTracer === 'string'
           ? parsed.equippedTracer
           : fresh.equippedTracer,
+        equippedFinish: typeof parsed.equippedFinish === 'string'
+          ? parsed.equippedFinish
+          : fresh.equippedFinish,
         weaponKills: (parsed.weaponKills && typeof parsed.weaponKills === 'object')
           ? parsed.weaponKills as Record<string, number>
           : fresh.weaponKills,
@@ -244,6 +261,9 @@ export class Account {
   isTracerUnlocked(id: TracerId): boolean {
     return this.data.unlockedTracers.includes(id);
   }
+  isFinishUnlocked(id: FinishId): boolean {
+    return this.data.unlockedFinishes.includes(id);
+  }
 
   /** Equipped skin for the given class, falling back to default. */
   equippedSkinFor(classId: ClassId): SkinId {
@@ -266,6 +286,18 @@ export class Account {
   /** Equipped tracer colour (hex number) — read by Game for local tracers. */
   equippedTracerColor(): number {
     return findTracer(this.equippedTracer())?.color ?? 0xfff0a0;
+  }
+
+  /** Equipped weapon finish id, falling back to default if invalid. */
+  equippedFinish(): FinishId {
+    const id = this.data.equippedFinish;
+    if (this.isFinishUnlocked(id) && findFinish(id)) return id;
+    return DEFAULT_FINISH;
+  }
+
+  /** Equipped finish emissive tint (hex) — read by the Viewmodel. */
+  equippedFinishEmissive(): number {
+    return findFinish(this.equippedFinish())?.emissive ?? 0x000000;
   }
 
   /** Lifetime career stats (read-only snapshot). */
@@ -343,6 +375,24 @@ export class Account {
   equipTracer(id: TracerId): boolean {
     if (!this.isTracerUnlocked(id)) return false;
     this.data.equippedTracer = id;
+    this.save();
+    return true;
+  }
+
+  // ── Finishes (kill-finisher cosmetics) ────────────────────────────────────
+
+  tryUnlockFinish(id: FinishId, cost: number): boolean {
+    if (this.isFinishUnlocked(id)) return true;
+    if (this.data.xp < cost) return false;
+    this.data.xp -= cost;
+    this.data.unlockedFinishes.push(id);
+    this.save();
+    return true;
+  }
+
+  equipFinish(id: FinishId): boolean {
+    if (!this.isFinishUnlocked(id)) return false;
+    this.data.equippedFinish = id;
     this.save();
     return true;
   }
