@@ -7,6 +7,8 @@
  */
 
 import type { Account } from '../account/Account';
+import { MEDALS, medalsUnlocked } from '../account/Medals';
+import { TIMEATTACK_MODE_ID } from '../modes/TimeAttack';
 
 export class ProfileUI {
   private account: Account;
@@ -17,6 +19,9 @@ export class ProfileUI {
   private xpText: HTMLElement;
   private statsGrid: HTMLElement;
   private challengesList: HTMLElement;
+  private recordsGrid: HTMLElement;
+  private medalsGrid: HTMLElement;
+  private medalCount: HTMLElement;
 
   constructor(account: Account) {
     this.account = account;
@@ -27,6 +32,9 @@ export class ProfileUI {
     this.xpText = document.getElementById('prof-xp-text')!;
     this.statsGrid = document.getElementById('stats-grid')!;
     this.challengesList = document.getElementById('challenges-list')!;
+    this.recordsGrid = document.getElementById('records-grid')!;
+    this.medalsGrid = document.getElementById('medals-grid')!;
+    this.medalCount = document.getElementById('medal-count')!;
 
     // Name save.
     this.nameInput.value = account.hasName ? account.name : '';
@@ -58,7 +66,49 @@ export class ProfileUI {
     if (!this.statsGrid) return;
     this.renderSummary();
     this.renderStats();
+    this.renderRecords();
+    this.renderMedals();
     this.renderChallenges();
+  }
+
+  /** Per-mode personal bests. Modes the player hasn't tried show "—". */
+  private renderRecords() {
+    if (!this.recordsGrid) return;
+    const records: Array<[string, number]> = [
+      ['Time Attack', this.account.bestScore(TIMEATTACK_MODE_ID)],
+    ];
+    this.recordsGrid.innerHTML = records.map(([label, val]) => `
+      <div class="record-cell">
+        <span class="record-val">${val > 0 ? val.toLocaleString() : '—'}</span>
+        <span class="record-label">${label}</span>
+      </div>`).join('');
+  }
+
+  /** Achievement medals — derived purely from stats + bests, with progress. */
+  private renderMedals() {
+    if (!this.medalsGrid) return;
+    const a = this.account;
+    const unlocked = medalsUnlocked(a);
+    this.medalCount.textContent = `${unlocked}/${MEDALS.length}`;
+    this.medalsGrid.innerHTML = MEDALS.map((m) => {
+      const val = m.value(a);
+      const done = val >= m.goal;
+      const pct = Math.min(100, Math.round((val / m.goal) * 100));
+      const cur = m.format ? m.format(Math.min(val, m.goal)) : Math.min(val, m.goal).toLocaleString();
+      const goal = m.format ? m.format(m.goal) : m.goal.toLocaleString();
+      return `
+        <div class="medal-cell ${done ? 'unlocked' : 'locked'}">
+          <span class="medal-icon">${done ? '★' : '☆'}</span>
+          <span class="medal-name">${m.label}</span>
+          <span class="medal-desc">${m.desc}</span>
+          ${done
+            ? '<span class="medal-status">Unlocked</span>'
+            : `<div class="medal-prog">
+                 <div class="medal-bar"><div class="medal-bar-fill" style="width:${pct}%"></div></div>
+                 <span class="medal-progress">${cur} / ${goal}</span>
+               </div>`}
+        </div>`;
+    }).join('');
   }
 
   private renderSummary() {

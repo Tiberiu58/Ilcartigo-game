@@ -168,12 +168,13 @@ mode variety + reasons to come back, all of which deepen sessions → ad revenue
   perks reusing existing Health primitives: 3-streak partial heal, 5-streak full
   heal, 7+ (then every 3rd) overshield (brief invulnerability) + full heal.
   MP untouched (server is authoritative on HP). (Details below.)
-- **Phase 16 — A third map (planned).** New arena geometry + collision +
+- **Phase 16 — Medals / achievements + records (DONE, this round).** A medal
+  track + per-mode records surfaced in the Profile tab, derived purely from
+  already-persisted data (no new saved state). Ties the new score modes into the
+  progression loop. (Details below.)
+- **Phase 17 — A third map (planned).** New arena geometry + collision +
   per-map spawns + MapCollision export. Maps are the biggest Krunker-feel
   variety lever after modes.
-- **Phase 17 — Medals / achievements + best-scores surfacing (planned).**
-  Surface per-mode bests + a small achievement track in the Profile tab; ties
-  the new score modes into the existing progression loop.
 - **Phase 18 — Audio assets + deploy (planned).** Drop the CC0 SFX pack in and
   finish the Fly.io + Vercel deploy.
 
@@ -239,4 +240,28 @@ server-authoritative on HP.
 - Client typecheck + build green (app chunk ~62.75 KB gzip); server green.
 
 ### Phase 15 COMPLETE — Killstreak rewards shipped, solo-only, MP/protocol intact.
+
+---
+
+## Phase 16 — Medals & records (autonomous build, v0.16.0)
+
+A long-term "collectathon" retention layer + a home for the new modes' bests.
+Both are derived **purely from data the Account already persists** (lifetime
+stats + per-mode bests) — no new saved state, so medals unlock retroactively and
+survive any future migration. Pure client/UI; **no protocol or MP changes**.
+
+- **New `account/Medals.ts`** — an 11-medal catalog, each a pure function of the
+  account: Centurion/Executioner (100/1,000 kills), Headhunter (100 HS),
+  Untouchable/Rampage (10/20 streak), Veteran/Champion (25 matches / 10 wins),
+  Sharpshooter/Time Lord (Time Attack 1,000 / 2,500 pts), Dedicated/No Life
+  (1h / 5h playtime). `medalsUnlocked(account)` for the header count.
+- **Profile tab** gains two sections (extending `ProfileUI`): **Records**
+  (per-mode personal bests — Time Attack today, ready for more modes) and
+  **Medals** (unlocked count in the header, gold ★ unlocked cells, locked cells
+  show a progress bar + `current / goal`, with time-formatted goals for the
+  playtime medals).
+- New CSS for `.records-grid` / `.medals-grid` (gold accent matching Time
+  Attack). Client typecheck + build green (app chunk ~63.5 KB gzip); server green.
+
+### Phase 16 COMPLETE — Medals + records shipped, no new state, MP/protocol intact.
 

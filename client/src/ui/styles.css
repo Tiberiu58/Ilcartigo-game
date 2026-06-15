@@ -1858,6 +1858,109 @@ body.kill-flash #app::after {
   color: var(--muted);
   text-transform: uppercase;
 }
+/* ── Records (per-mode personal bests) ──────────────────────────────────── */
+.records-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.record-cell {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 12px 8px;
+  text-align: center;
+  border-left: 3px solid #ffd34a;
+}
+.record-val {
+  display: block;
+  font: 800 20px/1 'Segoe UI', sans-serif;
+  color: #ffd34a;
+}
+.record-label {
+  display: block;
+  margin-top: 5px;
+  font: 600 9px/1 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ── Medals (achievements) ──────────────────────────────────────────────── */
+.medal-count {
+  font: 700 11px/1 'JetBrains Mono', monospace;
+  color: #ffd34a;
+  letter-spacing: 1px;
+}
+.medals-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.medal-cell {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 12px 14px;
+  border-left: 3px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icon name" "icon desc" "icon prog";
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+}
+.medal-cell.unlocked {
+  border-left-color: #ffd34a;
+  background: rgba(255, 211, 74, 0.07);
+}
+.medal-icon {
+  grid-area: icon;
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.18);
+  align-self: center;
+}
+.medal-cell.unlocked .medal-icon {
+  color: #ffd34a;
+  text-shadow: 0 0 10px rgba(255, 211, 74, 0.7);
+}
+.medal-name {
+  grid-area: name;
+  font: 800 13px/1.1 'Segoe UI', sans-serif;
+  color: var(--text);
+}
+.medal-cell.locked .medal-name { color: var(--muted); }
+.medal-desc {
+  grid-area: desc;
+  font: 500 10px/1.2 'Segoe UI', sans-serif;
+  color: var(--muted);
+}
+.medal-status {
+  grid-area: prog;
+  font: 700 9px/1 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+  color: #ffd34a;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.medal-prog { grid-area: prog; margin-top: 5px; }
+.medal-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.medal-bar-fill {
+  height: 100%;
+  background: #ffd34a;
+  border-radius: 2px;
+}
+.medal-progress {
+  display: block;
+  font: 600 8px/1 'JetBrains Mono', monospace;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
 .challenges-list { display: flex; flex-direction: column; gap: 8px; }
 .chal-row {
   display: flex;
