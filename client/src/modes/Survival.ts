@@ -34,6 +34,21 @@ const KILL_SCORE: Record<BotDifficulty, number> = {
 /** Bonus points for a headshot kill. */
 const HEADSHOT_BONUS = 75;
 
+/** Max ms between kills to keep a combo alive. */
+const COMBO_WINDOW_MS = 3000;
+
+/**
+ * Score multiplier for the current combo length (consecutive fast kills).
+ * Rewards aggression — the core of the Survival score chase.
+ */
+export function comboMultiplier(combo: number): number {
+  if (combo >= 12) return 4;
+  if (combo >= 8) return 3;
+  if (combo >= 5) return 2;
+  if (combo >= 3) return 1.5;
+  return 1;
+}
+
 /** The minimal surface Survival needs from the engine. Keeps it decoupled. */
 export interface SurvivalHost {
   isLocalPlayer(id: string): boolean;
@@ -54,6 +69,10 @@ export interface SurvivalHud {
   wave: number;
   score: number;
   enemiesRemaining: number;
+  /** Current combo length (consecutive fast kills). */
+  combo: number;
+  /** Active score multiplier from the combo. */
+  multiplier: number;
 }
 
 export class Survival {
@@ -65,6 +84,9 @@ export class Survival {
   private score = 0;
   /** id → difficulty for the current wave's bots; presence means "still alive". */
   private waveBots = new Map<string, BotDifficulty>();
+  /** Combo state — consecutive kills within COMBO_WINDOW_MS keep it building. */
+  private combo = 0;
+  private lastKillAt = 0;
 
   /** Per-frame HUD push (wave / score / enemies-left). */
   onHud?: (hud: SurvivalHud) => void;
@@ -73,6 +95,8 @@ export class Survival {
   /** A wave was cleared. UI runs the intermission countdown then calls
    *  startNextWave(). `bonus` was already added to the score. */
   onWaveCleared?: (wave: number, bonus: number, intermissionSeconds: number) => void;
+  /** Fired on a kill that lands at multiplier > 1 — drives the combo flash. */
+  onCombo?: (combo: number, multiplier: number) => void;
   /** The run ended (player died). */
   onGameOver?: (wave: number, score: number) => void;
 
@@ -86,6 +110,8 @@ export class Survival {
     this.running = true;
     this.wave = 0;
     this.score = 0;
+    this.combo = 0;
+    this.lastKillAt = 0;
     this.host.clearWaveBots();
     this.waveBots.clear();
     this.startNextWave();
@@ -141,7 +167,16 @@ export class Survival {
     if (!this.host.isLocalPlayer(attackerId)) return;
 
     this.waveBots.delete(targetId);
-    this.score += KILL_SCORE[difficulty] + (isHeadshot ? HEADSHOT_BONUS : 0);
+
+    // Combo: consecutive kills inside the window build a score multiplier.
+    const now = Date.now();
+    this.combo = (now - this.lastKillAt <= COMBO_WINDOW_MS) ? this.combo + 1 : 1;
+    this.lastKillAt = now;
+    const mult = comboMultiplier(this.combo);
+
+    const base = KILL_SCORE[difficulty] + (isHeadshot ? HEADSHOT_BONUS : 0);
+    this.score += Math.round(base * mult);
+    if (mult > 1) this.onCombo?.(this.combo, mult);
     this.pushHud();
 
     if (this.waveBots.size === 0) this.waveCleared();
@@ -151,6 +186,9 @@ export class Survival {
     // Reward clearing: a wave bonus + a half-heal of breathing room.
     const bonus = this.wave * 250;
     this.score += bonus;
+    // The intermission (6s) outlasts the combo window — reset so the next wave
+    // starts fresh rather than inheriting a stale combo.
+    this.combo = 0;
     this.host.healPlayer(0.5);
     this.host.playSound('wave_clear');
     this.pushHud();
@@ -165,7 +203,13 @@ export class Survival {
   }
 
   private pushHud() {
-    this.onHud?.({ wave: this.wave, score: this.score, enemiesRemaining: this.waveBots.size });
+    this.onHud?.({
+      wave: this.wave,
+      score: this.score,
+      enemiesRemaining: this.waveBots.size,
+      combo: this.combo,
+      multiplier: comboMultiplier(this.combo),
+    });
   }
 }
 

@@ -292,3 +292,27 @@ protocol changes.
 
 ### Phase 17 COMPLETE — crosshair preset packs shipped, no protocol change, all modes intact.
 
+---
+
+## Phase 18 — Survival combo multiplier (v0.18.0)
+
+Deepens the Survival score chase (the retention hook) with a **combo multiplier**
+— rapid consecutive kills build an escalating score multiplier, the satisfying
+"big numbers" loop that makes horde modes addictive. Contained to `Survival.ts`
++ HUD, no protocol changes.
+
+- **Combo logic** (`Survival.ts`). Consecutive kills within a 3 s window build a
+  combo; the multiplier tiers ×1 → ×1.5 (3) → ×2 (5) → ×3 (8) → ×4 (12+) via
+  `comboMultiplier()`. Each kill's score is `round(base × mult)`. The combo
+  resets on a slow kill (window lapse) and on wave clear (the 6 s intermission
+  outlasts the window). `SurvivalHud` now carries `combo` + `multiplier`; a new
+  `onCombo` callback drives the flash.
+- **HUD**. A multiplier chip (`×N`) in the Survival ticker (shown only while a
+  combo is live) + a center "×N COMBO" pop on each multiplier kill. Both hidden
+  on game-over / quit / mode switch.
+- Verified: client tsc + build green (app chunk ~65.3 KB gzip), server tsc green,
+  combo logic smoke-tested (tiers correct, scoring `100+100+150+250 bonus = 600`,
+  combo flash at 3, reset on wave clear). Bumped client + server to v0.18.0.
+
+### Phase 18 COMPLETE — Survival combo multiplier shipped, other modes intact, no protocol change.
+

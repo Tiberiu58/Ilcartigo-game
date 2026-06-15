@@ -140,6 +140,10 @@ const svTicker = document.getElementById('survival-ticker')!;
 const svWaveNum = document.getElementById('sv-wave-num')!;
 const svEnemiesNum = document.getElementById('sv-enemies-num')!;
 const svScoreNum = document.getElementById('sv-score-num')!;
+const svMult = document.getElementById('sv-mult')!;
+const svCombo = document.getElementById('survival-combo')!;
+const svComboMult = document.getElementById('sv-combo-mult')!;
+let svComboTimer: number | null = null;
 
 const sviOverlay = document.getElementById('survival-intermission')!;
 const sviTitle = document.getElementById('svi-title')!;
@@ -170,6 +174,26 @@ survival.onHud = (h) => {
   svWaveNum.textContent = String(h.wave);
   svEnemiesNum.textContent = String(h.enemiesRemaining);
   svScoreNum.textContent = h.score.toLocaleString();
+  // Multiplier chip — shown only while a combo bonus is active.
+  if (h.multiplier > 1) {
+    svMult.textContent = `×${h.multiplier}`;
+    svMult.classList.remove('hidden');
+  } else {
+    svMult.classList.add('hidden');
+  }
+};
+
+survival.onCombo = (_combo, mult) => {
+  // Flash a center "×N COMBO" pop on each multiplier kill.
+  svComboMult.textContent = `×${mult}`;
+  svCombo.classList.remove('hidden', 'show');
+  void svCombo.offsetWidth;   // restart the animation on back-to-back kills
+  svCombo.classList.add('show');
+  if (svComboTimer !== null) window.clearTimeout(svComboTimer);
+  svComboTimer = window.setTimeout(() => {
+    svCombo.classList.remove('show');
+    svCombo.classList.add('hidden');
+  }, 700);
 };
 
 survival.onWaveStart = () => {
@@ -209,6 +233,7 @@ survival.onGameOver = (wave, score) => {
   clearSviTimer();
   sviOverlay.classList.add('hidden');
   svTicker.classList.add('hidden');
+  svCombo.classList.add('hidden');
   game.input.exitPointerLock();
   // (Survival already played the 'game_over' sting; no extra cue here.)
 
@@ -436,6 +461,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'survival' = 'comba
     survival.stop();
     clearSviTimer();
     svTicker.classList.add('hidden');
+    svCombo.classList.add('hidden');
     sviOverlay.classList.add('hidden');
     svoOverlay.classList.add('hidden');
   }
@@ -526,6 +552,7 @@ function quitToMenu() {
   game.clearPickups();
   clearSviTimer();
   svTicker.classList.add('hidden');
+  svCombo.classList.add('hidden');
   sviOverlay.classList.add('hidden');
   svoOverlay.classList.add('hidden');
   game.input.exitPointerLock();
