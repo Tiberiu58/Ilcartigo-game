@@ -967,6 +967,29 @@ body.kill-flash #app::after {
   box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
 }
 
+/* ── Killstreak reward toast (lower-center HUD) ──────────────────────────── */
+#streak-reward {
+  position: absolute;
+  left: 50%; bottom: 26%;
+  transform: translateX(-50%);
+  font: 800 20px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #6fffd0;
+  text-shadow: 0 0 12px rgba(111, 255, 208, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 13;
+  white-space: nowrap;
+}
+#streak-reward.hidden { display: none; }
+#streak-reward.show { animation: streak-reward-pop 1.6s ease-out forwards; }
+@keyframes streak-reward-pop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(14px) scale(0.8); }
+  16%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.12); }
+  30%  { transform: translateX(-50%) translateY(0) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(1); }
+}
+
 /* ── Time Attack ticker (top-center HUD) ────────────────────────────────── */
 #timeattack-ticker {
   position: absolute;

@@ -774,6 +774,21 @@ function hidePostMatch() {
 
 game.onMatchEnded = (winnerId) => showPostMatch(winnerId);
 
+// ─── Killstreak reward toast (solo) ────────────────────────────────────────
+const streakReward = document.getElementById('streak-reward')!;
+let streakRewardTimer: number | null = null;
+game.onKillstreakReward = (_streak, label) => {
+  streakReward.textContent = label;
+  streakReward.classList.remove('hidden', 'show');
+  void streakReward.offsetWidth;   // restart the animation
+  streakReward.classList.add('show');
+  if (streakRewardTimer !== null) window.clearTimeout(streakRewardTimer);
+  streakRewardTimer = window.setTimeout(() => {
+    streakReward.classList.add('hidden');
+    streakReward.classList.remove('show');
+  }, 1600);
+};
+
 pmPlayAgain.addEventListener('click', () => {
   if (game.mp) {
     // MP: ask the SERVER to start a fresh match. We don't reset locally or

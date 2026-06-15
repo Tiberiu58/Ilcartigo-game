@@ -89,6 +89,10 @@
           <div id="announcer-sub"></div>
         </div>
 
+        <!-- Killstreak reward toast — pops lower-center on a milestone streak
+             (solo). Populated + animated by main.ts via Game.onKillstreakReward. -->
+        <div id="streak-reward" class="hidden"></div>
+
         <!-- Respawn countdown overlay during the death window. -->
         <div id="respawn-countdown" class="hidden">
           <div class="rc-label">You died</div>
@@ -202,7 +206,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.14</p>
+          <p class="subtitle">Browser arena shooter · v0.15</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -254,7 +258,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.14.0 — Time Attack mode</div>
+          <div>v0.15.0 — Killstreak rewards</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

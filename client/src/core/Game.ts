@@ -178,6 +178,9 @@ export class Game {
   /** Fired in MP when the first player hits MATCH_KILL_GOAL kills. Main.ts
    *  uses this to show the post-match overlay. */
   onMatchEnded?: (winnerId: string) => void;
+  /** Fired when the local player earns a killstreak reward (solo only). Main.ts
+   *  pops a reward toast. The HP/overshield effect is already applied. */
+  onKillstreakReward?: (streak: number, label: string) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -300,6 +303,10 @@ export class Game {
         this.account.recordStreak(this.localStreak);
         this.playKillEffect(e.hitPoint ?? null);
         this.audio.play('kill_feedback');
+        // Killstreak rewards — solo combat only (MP is server-authoritative on
+        // HP, so we never grant client-side heals there). Applied on milestone
+        // streaks; the buff is live immediately, main.ts pops the toast.
+        if (!this.mp && isCombatMode(this.mode)) this.applyKillstreakReward(this.localStreak);
       }
 
       if (youDied) {
@@ -634,6 +641,36 @@ export class Game {
       document.body.style.setProperty('--kill-flash-color', `rgba(${r}, ${g}, ${b}, 0.4)`);
       setTimeout(() => document.body.classList.remove('kill-flash'), 150);
     }
+  }
+
+  /**
+   * Killstreak rewards (solo combat only). On milestone consecutive-kill counts
+   * the local player earns a survivability buff — Krunker/CoD-style momentum
+   * payoff that makes a hot streak feel earned. Reuses existing Health
+   * primitives (heal / invulnerability) so there's no new state and MP stays
+   * untouched. Returns the reward label, or '' if this streak isn't a milestone.
+   *
+   * Tiers: 3 → partial heal, 5 → full heal, 7+ (then every 3rd) → overshield
+   * (a short window of damage immunity) + full heal.
+   */
+  private applyKillstreakReward(streak: number) {
+    const hp = this.playerActor.health;
+    let label = '';
+    if (streak === 3) {
+      hp.heal(35);
+      label = 'ADRENALINE · +35 HP';
+    } else if (streak === 5) {
+      hp.heal(hp.max);
+      label = 'SECOND WIND · FULL HEAL';
+    } else if (streak >= 7 && (streak - 7) % 3 === 0) {
+      hp.heal(hp.max);
+      hp.grantInvulnerability(2.5);
+      label = 'OVERSHIELD · 2.5s';
+    } else {
+      return;
+    }
+    this.audio.play('spawn_protect');
+    this.onKillstreakReward?.(streak, label);
   }
 
   /** Reset per-match score tallies. Called on mode swap and on Play Again. */

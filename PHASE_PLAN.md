@@ -164,9 +164,10 @@ mode variety + reasons to come back, all of which deepen sessions → ad revenue
 - **Phase 14 — Time Attack mode (DONE, this round).** A timed score-sprint vs
   bots with a combo multiplier + persistent personal bests. Self-contained,
   solo-only, no protocol change. (Details below.)
-- **Phase 15 — Killstreak rewards (planned).** In-match milestone perks (solo
-  first): e.g. 3-streak heal, 5-streak ammo/overshield, 7-streak radar ping.
-  Client-side feedback only; MP-safe variant deferred until server authority.
+- **Phase 15 — Killstreak rewards (DONE, this round).** Solo-only milestone
+  perks reusing existing Health primitives: 3-streak partial heal, 5-streak full
+  heal, 7+ (then every 3rd) overshield (brief invulnerability) + full heal.
+  MP untouched (server is authoritative on HP). (Details below.)
 - **Phase 16 — A third map (planned).** New arena geometry + collision +
   per-map spawns + MapCollision export. Maps are the biggest Krunker-feel
   variety lever after modes.
@@ -212,4 +213,30 @@ the retention hook. Purely client-side, solo-only, **no protocol or MP changes**
   typecheck + build green (app chunk ~62.5 KB gzip); server typecheck green.
 
 ### Phase 14 COMPLETE — Time Attack shipped, solo + MP intact, no protocol change.
+
+---
+
+## Phase 15 — Killstreak rewards (autonomous build, v0.15.0)
+
+Momentum payoff. On a hot solo streak the player earns escalating survivability
+buffs — the Krunker/CoD "I'm on fire" feeling that makes aggression rewarding and
+extends great runs (longer sessions → more ad impressions). Reuses the existing
+`Game.localStreak` counter (already tracked, already resets on death) and the
+existing `Health` primitives, so there's **no new state and zero protocol/MP
+risk** — rewards are gated to solo combat (`!mp && isCombatMode`) because MP is
+server-authoritative on HP.
+
+- **Tiers** (consecutive kills without dying): **3** → +35 HP ("ADRENALINE"),
+  **5** → full heal ("SECOND WIND"), **7 and every 3rd after** → full heal +
+  2.5s **overshield** (damage immunity via `grantInvulnerability`, which also
+  lights the existing spawn-protect shimmer + cue — free, consistent feedback).
+- **`Game.applyKillstreakReward(streak)`** — private, called from the local-kill
+  branch right after `localStreak++`. Plays `spawn_protect` and fires the new
+  `onKillstreakReward(streak, label)` callback.
+- **HUD**: new lower-center `#streak-reward` toast (teal, pops + fades over 1.6s),
+  positioned away from the upper announcer banner so streak text + reward don't
+  collide. Driven from `main.ts`.
+- Client typecheck + build green (app chunk ~62.75 KB gzip); server green.
+
+### Phase 15 COMPLETE — Killstreak rewards shipped, solo-only, MP/protocol intact.
 
