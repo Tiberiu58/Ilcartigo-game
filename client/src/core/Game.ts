@@ -21,7 +21,7 @@ import { World } from './World';
 import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
-import { Bot } from '../entities/Bot';
+import { Bot, type BotDifficulty } from '../entities/Bot';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -49,13 +49,13 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'survival';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
- *  ladder layered on top. */
+ *  ladder layered on top; Survival is wave-based horde combat. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame';
+  return m === 'combat' || m === 'gungame' || m === 'survival';
 }
 
 export interface FrameInfo {
@@ -84,6 +84,11 @@ export class Game {
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
+  /** Bots spawned by Survival ("Last Stand") for the current wave. A subset of
+   *  `bots` (so they tick / render / are hittable like any bot) but managed
+   *  on a separate lifecycle: spawned per wave, disposed when the wave ends.
+   *  syncBotState skips these — Survival owns their active state. */
+  readonly survivalBots: Bot[] = [];
   /** Current game mode. Practice = no bots, lab spawn, peaceful. */
   mode: GameMode = 'combat';
   /** Currently loaded map. Set via setMap(). */
@@ -308,7 +313,9 @@ export class Game {
         this.localStreak = 0;
         this.audio.play('death');
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
-        if (!this.mp) {
+        // Survival is the exception — dying ENDS the run (the Survival
+        // controller shows the game-over screen), so we don't auto-respawn.
+        if (!this.mp && this.mode !== 'survival') {
           setTimeout(() => this.respawnPlayer(), 1800);
         }
       }
@@ -347,6 +354,10 @@ export class Game {
     if (mode === this.mode) return;
     this.mode = mode;
     this.resetMatchScore();
+
+    // Leaving Survival: tear down any lingering wave bots so they don't bleed
+    // into the next mode. (Entering Survival, the controller spawns fresh.)
+    if (mode !== 'survival') this.clearSurvivalBots();
 
     // If a duration ability is active (Pulse, Cloak, Surge), tear it down —
     // its targets (bot meshes for Pulse) are about to change visibility, and
@@ -395,14 +406,76 @@ export class Game {
     this.viewmodel.swapTo(id);
   }
 
+  // ── Survival ("Last Stand") bot pool ──────────────────────────────────────
+  // A monotonic counter so each spawned survival bot gets a unique id (and so
+  // re-killing across waves never collides in matchKills/matchDeaths).
+  private survivalBotSeq = 0;
+
+  /**
+   * Spawn one wave bot of the given difficulty at a point clear of solids and
+   * away from the player. Registered like any bot (ticks, hittable, counts on
+   * the scoreboard) but flagged `autoRespawn = false` so a kill is permanent.
+   * Returns the new bot's id. Used only by the Survival controller.
+   */
+  spawnSurvivalBot(difficulty: BotDifficulty): string {
+    const id = `surv-${++this.survivalBotSeq}`;
+    const spawn = this.pickSurvivalSpawn();
+    const bot = new Bot(id, spawn, this.world, this.bus, difficulty);
+    bot.autoRespawn = false;
+    bot.active = true;
+    bot.group.visible = true;
+    this.bots.push(bot);
+    this.survivalBots.push(bot);
+    return id;
+  }
+
+  /** Dispose every wave bot and forget them. Called between waves and on exit. */
+  clearSurvivalBots() {
+    for (const b of this.survivalBots) {
+      const idx = this.bots.indexOf(b);
+      if (idx >= 0) this.bots.splice(idx, 1);
+      b.dispose();
+    }
+    this.survivalBots.length = 0;
+  }
+
+  /**
+   * Pick a wave-bot spawn: the map's FFA spawns, scored by distance from the
+   * player (farther is better so enemies don't pop on top of you), with a small
+   * random horizontal jitter so multiple bots in a wave don't stack exactly.
+   */
+  private pickSurvivalSpawn(): THREE.Vector3 {
+    const spawns = this.currentMap.meta.ffaSpawns;
+    this.player.eyePos(this._eyePos);
+    let best = spawns[0];
+    let bestScore = -Infinity;
+    for (const s of spawns) {
+      const d = Math.hypot(s.x - this._eyePos.x, s.z - this._eyePos.z);
+      // Prefer distance but add jitter so the same spawn isn't always chosen.
+      const score = d + Math.random() * 8;
+      if (score > bestScore) { bestScore = score; best = s; }
+    }
+    const jx = (Math.random() - 0.5) * 3;
+    const jz = (Math.random() - 0.5) * 3;
+    const out = new THREE.Vector3(best.x + jx, best.y, best.z + jz);
+    // If the jitter pushed us into a wall, fall back to the clean spawn point.
+    if (this.world.firstOverlap(out, _SURV_HALF) !== null) out.set(best.x, best.y, best.z);
+    return out;
+  }
+
   /**
    * Bots should be live only when we're in Combat/Gun Game AND not connected to
    * MP. Called from setMode and from MP connect/disconnect — keeps the "are
    * bots running?" predicate in one place.
    */
   private syncBotState() {
-    const botsLive = isCombatMode(this.mode) && !this.mp;
+    // The fixed combat bots run only in non-survival, non-MP combat. In
+    // Survival the threats are the wave-spawned bots (managed by Survival via
+    // spawnSurvivalBot / clearSurvivalBots), so the base trio stays parked.
+    const botsLive = isCombatMode(this.mode) && this.mode !== 'survival' && !this.mp;
     for (const b of this.bots) {
+      // Survival bots have their own lifecycle — never toggle them here.
+      if (this.survivalBots.includes(b)) continue;
       if (botsLive) {
         b.active = true;
         b.group.visible = true;
@@ -853,3 +926,5 @@ export class Game {
 const _SCRATCH_END = new THREE.Vector3();
 const _SCRATCH_SPAWN_A = new THREE.Vector3();
 const _SCRATCH_SPAWN_B = new THREE.Vector3();
+/** Bot body half-extents, for the survival-spawn wall-overlap check. */
+const _SURV_HALF = new THREE.Vector3(0.4, 0.9, 0.4);

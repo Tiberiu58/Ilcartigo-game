@@ -963,6 +963,153 @@ body.kill-flash #app::after {
   box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
 }
 
+/* ── Survival ("Last Stand") ────────────────────────────────────────────── */
+.menu-btn.survival {
+  border-left: 3px solid #e2444a;
+}
+.menu-btn.survival:hover { border-left-color: #e2444a; color: #e2444a; }
+
+/* Survival ticker (top-center HUD). */
+#survival-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(28, 18, 20, 0.82);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #e2444a;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#survival-ticker.hidden { display: none; }
+.sv-wave {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.sv-wave #sv-wave-num { color: #e2444a; }
+.sv-enemies, .sv-score {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.sv-enemies #sv-enemies-num { color: #ff8a3a; }
+.sv-score #sv-score-num { color: var(--accent); }
+
+/* Survival intermission — a non-blocking centered banner (pointer stays
+   locked; player keeps control through the short countdown). */
+#survival-intermission {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 14;
+  pointer-events: none;
+}
+#survival-intermission.hidden { display: none; }
+.svi-card {
+  background: rgba(28, 18, 20, 0.86);
+  border: 1px solid rgba(226, 68, 74, 0.4);
+  border-top: 3px solid #e2444a;
+  border-radius: 10px;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  padding: 22px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+/* Survival game-over — full-screen blocking overlay, above the HUD. */
+#survival-over {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 26;
+}
+#survival-over.hidden { display: none; }
+.svo-card {
+  background: var(--panel);
+  border-top: 4px solid #e2444a;
+  border-radius: 10px;
+  width: 520px;
+  max-width: calc(100vw - 40px);
+  padding: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.svi-card h2, .svo-card h2 {
+  font-size: 26px;
+  letter-spacing: 6px;
+  color: #e2444a;
+  margin-bottom: 6px;
+}
+.svi-sub, .svo-sub {
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.svi-next {
+  font: 800 22px/1.2 'Segoe UI', sans-serif;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.svi-next #svi-count { color: #e2444a; }
+.svi-incoming {
+  font: 600 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+.svo-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.svo-stat { display: flex; flex-direction: column; gap: 4px; }
+.svo-k {
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.svo-v {
+  font: 800 22px/1 'Segoe UI', sans-serif;
+  color: var(--text);
+}
+.svo-newbest {
+  font: 800 13px/1 'Segoe UI', sans-serif;
+  letter-spacing: 3px;
+  color: var(--accent);
+  margin-bottom: 14px;
+  animation: svo-pulse 1.1s ease-in-out infinite;
+}
+.svo-newbest.hidden { display: none; }
+@keyframes svo-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.svi-card .ad-slot, .svo-card .ad-slot {
+  min-height: 90px;
+  margin: 0 0 18px;
+}
+.svi-card .menu-btn, .svo-card .menu-btn { min-width: 240px; }
+.svo-card .pm-buttons { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+
 .menu-footer {
   grid-area: footer;
   display: flex;

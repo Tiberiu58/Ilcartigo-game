@@ -152,3 +152,57 @@ or MP changes, fully browser-verified.
 
 ### Phase 13 COMPLETE — Gun Game shipped, solo + MP intact, no protocol change.
 
+---
+
+## Phase 14 — "Last Stand" Survival mode (v0.14.0)
+
+The second NEW GAME MODE — a wave-based horde survival run (solo vs bots). Mode
+variety is the #1 driver of replay value, and Survival adds a *high-score chase*
+retention loop (deeper run = bigger flex) that brings players back — and "back"
+is exactly what AdSense revenue needs. Self-contained like Gun Game, no protocol
+or MP changes, fully solo.
+
+The loop: clear a wave of bots → short intermission → a bigger, harder wave.
+There is **no respawn** — one death ends the run. You chase a personal best
+(highest wave + score), persisted locally.
+
+- **Weapon-free escalation.** Each wave spawns more enemies (3 → +1/wave, capped
+  at 10) and shifts the difficulty mix from harmless Wanderers toward lethal
+  Predictors (`Survival.waveComposition`). Clearing a wave grants a score bonus
+  (`wave × 250`) + a half-heal of breathing room.
+- **Scoring** — per-kill by difficulty (Wanderer 100 / Engager 150 / Predictor
+  250) + headshot bonus (75) + the wave-clear bonus. End-of-run XP =
+  `floor(score/100)×5 + wave×20`.
+- **New `modes/Survival.ts`** — bus-driven, decoupled via a small `SurvivalHost`
+  interface (isLocalPlayer / spawnBot / clearWaveBots / healPlayer / playerAlive
+  / playSound), mirroring GunGame. Pure logic → headless-smoke-tested (wave 1 = 3
+  bots, scoring incl. headshot, wave-clear fires once + waits for the UI to
+  advance, player-death → game over, post-death kills ignored, count caps at 10).
+- **Managed wave-bot pool in Game.** New `spawnSurvivalBot(difficulty)` /
+  `clearSurvivalBots()` + a `survivalBots` list. Survival bots are real `Bot`s
+  (tick / render / hittable / count on the scoreboard) but flagged
+  `autoRespawn = false` so a kill is permanent — the wave clears when they're all
+  down. `Bot.dispose()` added to free them between waves. `syncBotState` parks
+  the fixed combat trio during Survival; `setMode` clears wave bots on exit; the
+  kill handler's solo auto-respawn is gated off for Survival (death = game over).
+- **GameMode extended** to include `'survival'`; `isCombatMode()` covers it (so
+  spawn protection / map logic / bot ticking treat it like Combat).
+- **HUD**: new top-center Survival ticker — "WAVE n · n left · n pts".
+- **Intermission**: a **non-blocking** centered banner with a live countdown —
+  the player stays pointer-locked so the horde loop snaps into the next wave
+  (re-locking from a timer would need a user gesture and fail). Snappy
+  Krunker-feel over a forced pause.
+- **Game-over card** (`#survival-over`): run summary (wave/score) + personal best
+  + "★ NEW PERSONAL BEST ★" + XP earned, with the mode's **ad breakpoint** (a
+  reliable non-combat pause exactly like post-match). Play Again / Quit.
+- **Account**: migration-safe `survivalBest {wave, score}` + `recordSurvivalRun`
+  (best keyed on wave then score). Surfaced as two cells in the Profile tab.
+- **Menu**: new "🩸 Last Stand (Survival)" button. Ads: new `survival-over` slot.
+- New sound ids reserved (silent until `.wav`s land): `wave_start`,
+  `wave_clear`, `game_over`.
+- Verified: client tsc + build green (app chunk ~63.3 KB gzip), server tsc green,
+  Survival logic smoke test passed, all DOM ids cross-checked. Bumped client +
+  server to v0.14.0 (+ menu subtitle/footer).
+
+### Phase 14 COMPLETE — Last Stand survival shipped, solo + MP intact, no protocol change.
+

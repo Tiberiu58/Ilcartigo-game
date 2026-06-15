@@ -73,6 +73,11 @@ export class Bot implements Damageable {
   readonly group: THREE.Group;
   /** Soft on/off switch — Practice Range deactivates bots without destroying them. */
   active = true;
+  /** When false, a killed bot stays a corpse instead of auto-respawning.
+   *  Survival ("Last Stand") spawns one-shot bots that must NOT come back —
+   *  the wave is cleared once they're all down. Default true preserves the
+   *  endless-respawn behaviour every other mode relies on. */
+  autoRespawn = true;
 
   private position = new THREE.Vector3();
   private yaw = 0;
@@ -189,7 +194,7 @@ export class Bot implements Damageable {
         this.position.y - this.deathFallOffset,
         this.position.z,
       );
-      if (this.deathTime >= RESPAWN_DELAY) this.respawn();
+      if (this.deathTime >= RESPAWN_DELAY && this.autoRespawn) this.respawn();
       return;
     }
     this.group.rotation.z = 0;
@@ -325,6 +330,24 @@ export class Bot implements Damageable {
     this.group.rotation.set(0, this.yaw, 0);
     this.syncMesh();
     void this.bus;
+  }
+
+  /**
+   * Permanently remove this bot: unregister from collision/raycast and drop its
+   * mesh + dispose GPU resources. Used by Survival mode to clear a finished
+   * wave before spawning the next one. Do NOT call on the fixed combat bots —
+   * those are meant to live for the whole session.
+   */
+  dispose() {
+    this.world.unregisterDamageable(this.id);
+    this.world.scene.remove(this.group);
+    this.group.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+      else if (mat) mat.dispose();
+    });
   }
 }
 

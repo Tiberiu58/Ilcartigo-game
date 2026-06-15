@@ -62,6 +62,11 @@ export const SOUND_FILES = {
   match_end:     'match_end.wav',
   ui_click:      'ui_click.wav',
 
+  // Survival ("Last Stand") — wave transitions + run end.
+  wave_start:    'wave_start.wav',
+  wave_clear:    'wave_clear.wav',
+  game_over:     'game_over.wav',
+
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',
 

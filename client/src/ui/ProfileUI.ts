@@ -78,6 +78,8 @@ export class ProfileUI {
       ['Matches', s.matches.toLocaleString()],
       ['Wins', s.wins.toLocaleString()],
       ['Best Streak', s.bestStreak.toLocaleString()],
+      ['Survival Wave', this.account.survivalBest.wave.toLocaleString()],
+      ['Survival Score', this.account.survivalBest.score.toLocaleString()],
       ['Playtime', formatPlaytime(s.playSeconds)],
     ];
     this.statsGrid.innerHTML = cells.map(([label, val]) => `

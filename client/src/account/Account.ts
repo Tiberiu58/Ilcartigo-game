@@ -68,6 +68,25 @@ interface AccountData {
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
   daily: DailyState;
+  /** Best Survival ("Last Stand") run — highest wave reached + score. */
+  survivalBest: SurvivalBest;
+}
+
+/** Personal best for the Survival mode — the retention chase. */
+export interface SurvivalBest {
+  wave: number;
+  score: number;
+}
+
+function freshSurvivalBest(): SurvivalBest {
+  return { wave: 0, score: 0 };
+}
+
+/** Merge a (possibly partial / undefined) saved survival-best onto defaults. */
+function mergeSurvivalBest(saved: Partial<SurvivalBest> | undefined, fresh: SurvivalBest): SurvivalBest {
+  if (!saved || typeof saved !== 'object') return fresh;
+  const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+  return { wave: num(saved.wave, fresh.wave), score: num(saved.score, fresh.score) };
 }
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
@@ -146,6 +165,7 @@ function freshData(): AccountData {
     stats: freshStats(),
     name: '',
     daily: freshDaily(freshStats()),
+    survivalBest: freshSurvivalBest(),
   };
 }
 
@@ -191,6 +211,7 @@ export class Account {
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
           : fresh.daily,
+        survivalBest: mergeSurvivalBest(parsed.survivalBest, fresh.survivalBest),
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
@@ -263,6 +284,9 @@ export class Account {
     const { kills, deaths } = this.data.stats;
     return deaths === 0 ? kills.toFixed(1) : (kills / deaths).toFixed(2);
   }
+  /** Best Survival run so far (wave + score). */
+  get survivalBest(): Readonly<SurvivalBest> { return this.data.survivalBest; }
+
   /** Player display name, or 'You' if unset. */
   get name(): string { return this.data.name || 'You'; }
   /** True if the player has set a custom name. */
@@ -375,6 +399,22 @@ export class Account {
       this.playSecondsAccum -= Math.floor(this.playSecondsAccum);
       this.save();
     }
+  }
+
+  /**
+   * Record a finished Survival run. Updates the personal best when this run
+   * beat it (by wave first, then score). Returns true if a new best was set —
+   * the UI uses this to celebrate. Best is keyed on wave reached, then score,
+   * so a deeper run always wins even if an earlier one farmed more points.
+   */
+  recordSurvivalRun(wave: number, score: number): boolean {
+    const best = this.data.survivalBest;
+    const isBest = wave > best.wave || (wave === best.wave && score > best.score);
+    if (isBest) {
+      this.data.survivalBest = { wave, score };
+      this.save();
+    }
+    return isBest;
   }
 
   /** Set the player's display name (trimmed, max 16 chars). */

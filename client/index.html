@@ -65,6 +65,14 @@
           <div class="gg-pips" id="gg-pips"></div>
         </div>
 
+        <!-- Survival ("Last Stand") ticker — top-center. Wave, enemies left,
+             running score. Populated by main.ts via Survival.onHud. -->
+        <div id="survival-ticker" class="hidden">
+          <span class="sv-wave">WAVE <span id="sv-wave-num">1</span></span>
+          <span class="sv-enemies"><span id="sv-enemies-num">0</span> left</span>
+          <span class="sv-score"><span id="sv-score-num">0</span> pts</span>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -193,7 +201,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.13</p>
+          <p class="subtitle">Browser arena shooter · v0.14</p>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -237,6 +245,7 @@
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
+            <button class="menu-btn survival" id="menu-survival">🩸 Last Stand (Survival)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
@@ -244,7 +253,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.13.0 — Gun Game mode</div>
+          <div>v0.14.0 — Last Stand (Survival)</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -297,6 +306,47 @@
           <div class="pm-buttons">
             <button class="menu-btn primary" id="pm-play-again">▸ Play Again</button>
             <button class="menu-btn" id="pm-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Survival intermission — a non-blocking banner shown between waves.
+           The player stays in control (pointer stays locked) while a short
+           countdown ticks to the next wave. Filled by main.ts. -->
+      <div id="survival-intermission" class="hidden">
+        <div class="svi-card">
+          <h2 id="svi-title">WAVE 1 CLEARED</h2>
+          <p class="svi-sub">+<span id="svi-bonus">0</span> bonus · <span id="svi-score">0</span> pts</p>
+          <div class="svi-next">Next wave in <span id="svi-count">6</span>s</div>
+          <p class="svi-incoming" id="svi-incoming">Incoming: — enemies</p>
+        </div>
+      </div>
+
+      <!-- Survival game-over card — shown on death. Run summary + personal best
+           + the main ad breakpoint for the mode. -->
+      <div id="survival-over" class="hidden">
+        <div class="svo-card">
+          <h2 id="svo-title">YOU FELL</h2>
+          <p class="svo-sub">Last Stand</p>
+
+          <div class="svo-stats">
+            <div class="svo-stat"><span class="svo-k">Wave reached</span><span class="svo-v" id="svo-wave">0</span></div>
+            <div class="svo-stat"><span class="svo-k">Score</span><span class="svo-v" id="svo-score">0</span></div>
+            <div class="svo-stat"><span class="svo-k">Best wave</span><span class="svo-v" id="svo-best-wave">0</span></div>
+            <div class="svo-stat"><span class="svo-k">Best score</span><span class="svo-v" id="svo-best-score">0</span></div>
+          </div>
+          <div id="svo-newbest" class="svo-newbest hidden">★ NEW PERSONAL BEST ★</div>
+
+          <div class="pm-rewards">
+            <div class="pm-xp">+<span id="svo-xp">0</span> XP</div>
+          </div>
+
+          <!-- Ad slot — game-over is the prime breakpoint for the mode. -->
+          <div class="ad-slot" id="ad-survival-over" data-ad-slot="survival-over"></div>
+
+          <div class="pm-buttons">
+            <button class="menu-btn primary" id="svo-again">▸ Play Again</button>
+            <button class="menu-btn" id="svo-quit">Quit to Menu</button>
           </div>
         </div>
       </div>

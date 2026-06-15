@@ -33,6 +33,10 @@ export const AD_CONFIG = {
     'menu-top':  { adUnitId: '0000000000', label: 'Top Banner · 728×90' },
     'menu-side': { adUnitId: '0000000000', label: 'Sidebar · 300×600' },
     'postmatch': { adUnitId: '0000000000', label: 'Sponsored' },
+    // Survival game-over card — a non-combat breakpoint (player decides whether
+    // to replay), exactly like post-match. The between-wave intermission keeps
+    // the player pointer-locked so it carries no ad (policy-safe).
+    'survival-over':  { adUnitId: '0000000000', label: 'Sponsored' },
   } as Record<string, AdSlotDef>,
 };
 

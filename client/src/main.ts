@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { Survival } from './modes/Survival';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -58,6 +59,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuSurvival = document.getElementById('menu-survival') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
 const menuAbout = document.getElementById('menu-about') as HTMLButtonElement;
@@ -117,6 +119,136 @@ gunGame.onWin = (winnerId) => {
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
 };
+
+// ─── Survival ("Last Stand") mode ──────────────────────────────────────────
+// Wave-based horde survival (solo vs bots). Self-contained + bus-driven; the
+// host adapter exposes only the engine surfaces it needs.
+const survival = new Survival(game.bus, {
+  isLocalPlayer: (id) => game.isLocalPlayer(id),
+  spawnBot: (d) => game.spawnSurvivalBot(d),
+  clearWaveBots: () => game.clearSurvivalBots(),
+  healPlayer: (frac) => game.playerActor.health.heal(frac * game.playerActor.health.max),
+  playerAlive: () => !game.playerActor.health.dead,
+  playSound: (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]),
+});
+
+const svTicker = document.getElementById('survival-ticker')!;
+const svWaveNum = document.getElementById('sv-wave-num')!;
+const svEnemiesNum = document.getElementById('sv-enemies-num')!;
+const svScoreNum = document.getElementById('sv-score-num')!;
+
+const sviOverlay = document.getElementById('survival-intermission')!;
+const sviTitle = document.getElementById('svi-title')!;
+const sviBonus = document.getElementById('svi-bonus')!;
+const sviScore = document.getElementById('svi-score')!;
+const sviCount = document.getElementById('svi-count')!;
+const sviIncoming = document.getElementById('svi-incoming')!;
+
+const svoOverlay = document.getElementById('survival-over')!;
+const svoWave = document.getElementById('svo-wave')!;
+const svoScore = document.getElementById('svo-score')!;
+const svoBestWave = document.getElementById('svo-best-wave')!;
+const svoBestScore = document.getElementById('svo-best-score')!;
+const svoNewBest = document.getElementById('svo-newbest')!;
+const svoXp = document.getElementById('svo-xp')!;
+const svoAgain = document.getElementById('svo-again') as HTMLButtonElement;
+const svoQuit = document.getElementById('svo-quit') as HTMLButtonElement;
+
+/** Intermission countdown handle so we can cancel it on skip/quit. */
+let sviTimer: number | null = null;
+
+function clearSviTimer() {
+  if (sviTimer !== null) { window.clearInterval(sviTimer); sviTimer = null; }
+}
+
+survival.onHud = (h) => {
+  svWaveNum.textContent = String(h.wave);
+  svEnemiesNum.textContent = String(h.enemiesRemaining);
+  svScoreNum.textContent = h.score.toLocaleString();
+};
+
+survival.onWaveStart = () => {
+  // A fresh wave just spawned — hide the intermission banner, show the ticker.
+  // The player stays pointer-locked across the intermission (it's a
+  // non-blocking banner), so there's nothing to re-lock here.
+  sviOverlay.classList.add('hidden');
+  svTicker.classList.remove('hidden');
+  game.audio.play('wave_start');
+};
+
+survival.onWaveCleared = (wave, bonus, seconds) => {
+  // Non-blocking intermission banner with a live countdown. We deliberately
+  // DON'T exit pointer lock: re-locking from a timer would need a user gesture
+  // and fail, leaving the player stuck. Keeping lock makes the horde loop snap
+  // straight into the next wave. (The reliable ad breakpoint is game-over.)
+  sviTitle.textContent = `WAVE ${wave} CLEARED`;
+  sviBonus.textContent = bonus.toLocaleString();
+  sviScore.textContent = survival.currentScore.toLocaleString();
+  const incoming = Math.min(3 + wave, 10);    // mirrors Survival.waveComposition cap
+  sviIncoming.textContent = `Incoming: ${incoming} enemies`;
+  let remaining = seconds;
+  sviCount.textContent = String(remaining);
+  sviOverlay.classList.remove('hidden');
+  clearSviTimer();
+  sviTimer = window.setInterval(() => {
+    remaining--;
+    sviCount.textContent = String(Math.max(0, remaining));
+    if (remaining <= 0) {
+      clearSviTimer();
+      survival.startNextWave();
+    }
+  }, 1000);
+};
+
+survival.onGameOver = (wave, score) => {
+  clearSviTimer();
+  sviOverlay.classList.add('hidden');
+  svTicker.classList.add('hidden');
+  game.input.exitPointerLock();
+  // (Survival already played the 'game_over' sting; no extra cue here.)
+
+  const isBest = game.account.recordSurvivalRun(wave, score);
+  // Award XP for the run: 5 per 100 points, plus a per-wave bonus.
+  const xp = Math.floor(score / 100) * 5 + wave * 20;
+  game.account.awardXP(xp);
+
+  const best = game.account.survivalBest;
+  svoWave.textContent = String(wave);
+  svoScore.textContent = score.toLocaleString();
+  svoBestWave.textContent = String(best.wave);
+  svoBestScore.textContent = best.score.toLocaleString();
+  svoNewBest.classList.toggle('hidden', !isBest);
+  svoXp.textContent = String(xp);
+
+  svoOverlay.classList.remove('hidden');
+  hud.classList.add('hidden');
+  Ads.refreshSlot('survival-over');
+};
+
+function startSurvivalRun() {
+  svoOverlay.classList.add('hidden');
+  sviOverlay.classList.add('hidden');
+  // Clear any carried-over kill tallies (Play Again / re-entry without a mode
+  // switch) so the Tab scoreboard reflects only this run.
+  game.resetMatchScore();
+  announcer.reset();
+  // Make sure the player is alive + at a fresh spawn before wave 1.
+  game.respawnPlayer();
+  survival.start();
+  svTicker.classList.remove('hidden');
+}
+
+svoAgain.addEventListener('click', () => {
+  game.audio.play('ui_click');
+  game.input.requestPointerLock();
+  startSurvivalRun();
+});
+svoQuit.addEventListener('click', () => {
+  game.audio.play('ui_click');
+  survival.stop();
+  svoOverlay.classList.add('hidden');
+  quitToMenu();
+});
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -257,12 +389,20 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'survival' = 'combat') {
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
     onlineBadge.classList.add('hidden');
+  }
+  // Stop any prior Survival run + hide its overlays before switching modes.
+  if (mode !== 'survival') {
+    survival.stop();
+    clearSviTimer();
+    svTicker.classList.add('hidden');
+    sviOverlay.classList.add('hidden');
+    svoOverlay.classList.add('hidden');
   }
   game.setMode(mode);
   announcer.reset();
@@ -276,6 +416,12 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
     ggTicker.classList.remove('hidden');
   } else {
     ggTicker.classList.add('hidden');
+  }
+
+  // Survival: kick off wave 1. (Started AFTER setMode so the wave bots spawn
+  // into the live combat map; setMode already parked the base bots.)
+  if (mode === 'survival') {
+    startSurvivalRun();
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -340,6 +486,12 @@ function quitToMenu() {
     // Re-enable bots so the next solo Play vs Bots session works.
     game.onMpChanged();
   }
+  // Stop any Survival run + clear its overlays/timer.
+  survival.stop();
+  clearSviTimer();
+  svTicker.classList.add('hidden');
+  sviOverlay.classList.add('hidden');
+  svoOverlay.classList.add('hidden');
   game.input.exitPointerLock();
   pauseOverlay.classList.add('hidden');
   mainMenu.classList.remove('hidden');
@@ -418,6 +570,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuSurvival.addEventListener('click', () => startGame('survival'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 backToMenu.addEventListener('click', quitToMenu);
 
@@ -510,7 +663,11 @@ function playerName(): string {
  * MP are kept authoritative by the server (snapshot kills + MatchOver).
  */
 function renderScoreboard() {
-  sbMode.textContent = game.mp ? 'Free-for-All · Online' : (game.mode === 'practice' ? 'Practice' : 'Free-for-All · Bots');
+  sbMode.textContent = game.mp ? 'Free-for-All · Online'
+    : game.mode === 'practice' ? 'Practice'
+    : game.mode === 'survival' ? 'Last Stand · Survival'
+    : game.mode === 'gungame' ? 'Gun Game · Bots'
+    : 'Free-for-All · Bots';
   sbGoal.textContent = String(Game.MATCH_KILL_GOAL);
 
   const ids = new Set<string>();

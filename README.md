@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 12 — v0.12.0. Combat-feel juice: directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 14 — v0.14.0. **Last Stand** wave-survival mode (solo horde, high-score chase, ad breakpoint on the game-over screen). Built on Phase 13 (Gun Game mode), Phase 12 (combat-feel juice: directional damage indicators, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -361,14 +361,43 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
+## Phase 14 — Last Stand (Survival mode) (this round, v0.14.0)
+
+The second new game mode (after Gun Game) — a **wave-based horde survival** run,
+solo vs bots. Mode variety drives replay value and Survival layers on a
+high-score chase (retention → ad impressions). Self-contained, **no protocol or
+MP changes**, solo + MP intact.
+
+- **The loop.** Clear a wave of bots → short intermission → a bigger, harder
+  wave. **No respawn** — one death ends the run. Chase a personal best (highest
+  wave + score, persisted locally).
+- **Escalation.** Each wave spawns more enemies (3 → +1/wave, capped at 10) and
+  shifts the difficulty mix from Wanderers toward Predictors. Clearing a wave
+  grants a `wave × 250` bonus + a half-heal.
+- **Scoring.** Per-kill by difficulty (100 / 150 / 250) + headshot bonus (75) +
+  wave-clear bonus. Run XP = `floor(score/100)×5 + wave×20`.
+- **HUD.** A top-center "WAVE n · n left · n pts" ticker.
+- **Intermission.** A non-blocking countdown banner — the player stays in
+  control, so the loop snaps into the next wave (snappy, Krunker-feel).
+- **Game-over card.** Run summary + personal best + "NEW PERSONAL BEST" + XP,
+  with the mode's ad breakpoint (a reliable non-combat pause, like post-match).
+- **Under the hood.** New `modes/Survival.ts` (bus-driven, decoupled via a
+  `SurvivalHost` interface, headless-smoke-tested). A managed wave-bot pool in
+  `Game` (`spawnSurvivalBot` / `clearSurvivalBots`, `Bot.autoRespawn` +
+  `Bot.dispose`) — wave bots are real `Bot`s that don't respawn, so a kill is
+  permanent. `GameMode` gains `'survival'`; the fixed combat trio is parked
+  during a run; death is gated off the solo auto-respawn path. Migration-safe
+  `Account.survivalBest` + Profile-tab cells. New menu button, ad slot, and
+  three reserved sound ids (`wave_start` / `wave_clear` / `game_over`).
+
 ## Project status
 
-12 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+13 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~187 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.12.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.12.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
