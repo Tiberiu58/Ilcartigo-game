@@ -17,6 +17,7 @@ import type { ClassId } from '../classes/types';
 export type SkinId = string;          // e.g. 'phantom-violet', 'rush-ember'
 export type KillEffectId = string;    // e.g. 'puff-yellow', 'shock-cyan'
 export type TracerId = string;        // e.g. 'tracer-gold', 'tracer-cyan'
+export type CrosshairId = string;     // e.g. 'ch-default', 'ch-dot'
 
 export interface SkinConfig {
   id: SkinId;
@@ -173,6 +174,37 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
 
+/** A crosshair preset — a named bundle of the per-control crosshair settings.
+ *  Equipping one overwrites the player's crosshair (the Crosshair tab can still
+ *  fine-tune afterward). Default mirrors the :root CSS values. */
+export interface CrosshairConfig {
+  id: CrosshairId;
+  displayName: string;
+  cost: number;
+  color: string;     // hex string e.g. '#f5d442'
+  size: number;      // px arm length
+  thickness: number; // px arm thickness
+  gap: number;       // px center gap
+  outline: boolean;
+  dot: boolean;
+}
+
+/**
+ * Crosshair presets — a cheap, high-pull unlock track (everyone tweaks their
+ * crosshair). Default is free + matches the CSS :root defaults so equipping
+ * nothing changes nothing.
+ */
+export const CROSSHAIRS: ReadonlyArray<CrosshairConfig> = [
+  { id: 'ch-classic',  displayName: 'Classic',     cost: 0,    color: '#f5d442', size: 8,  thickness: 2, gap: 0,  outline: true,  dot: true  },
+  { id: 'ch-dot',      displayName: 'Micro Dot',   cost: 150,  color: '#ffffff', size: 2,  thickness: 2, gap: 0,  outline: true,  dot: true  },
+  { id: 'ch-tee',      displayName: 'T-Cross',     cost: 300,  color: '#39d98a', size: 10, thickness: 2, gap: 4,  outline: true,  dot: false },
+  { id: 'ch-wide',     displayName: 'Wide Pro',    cost: 500,  color: '#6cc6ff', size: 14, thickness: 3, gap: 7,  outline: true,  dot: false },
+  { id: 'ch-precise',  displayName: 'Precision',   cost: 800,  color: '#ff4ad6', size: 6,  thickness: 1, gap: 2,  outline: false, dot: true  },
+  { id: 'ch-hot',      displayName: 'Crimson Tac', cost: 1500, color: '#ff3b3b', size: 9,  thickness: 2, gap: 3,  outline: true,  dot: true  },
+];
+
+export const DEFAULT_CROSSHAIR: CrosshairId = 'ch-classic';
+
 /** Lookup helpers. */
 export function findSkin(id: SkinId): SkinConfig | undefined {
   return SKINS.find((s) => s.id === id);
@@ -182,6 +214,9 @@ export function findTracer(id: TracerId): TracerConfig | undefined {
 }
 export function findKillEffect(id: KillEffectId): KillEffectConfig | undefined {
   return KILL_EFFECTS.find((e) => e.id === id);
+}
+export function findCrosshair(id: CrosshairId): CrosshairConfig | undefined {
+  return CROSSHAIRS.find((c) => c.id === id);
 }
 export function defaultSkinForClass(classId: ClassId): SkinId {
   return `${classId}-default`;

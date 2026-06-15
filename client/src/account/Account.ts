@@ -12,7 +12,7 @@
  * Level curve: 1000 XP per level. Simple and predictable.
  */
 
-import { findSkin, findTracer, defaultSkinForClass, SKINS, KILL_EFFECTS, TRACERS, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, type SkinId, type KillEffectId, type TracerId } from './Cosmetics';
+import { findSkin, findTracer, defaultSkinForClass, SKINS, KILL_EFFECTS, TRACERS, CROSSHAIRS, DEFAULT_KILL_EFFECT, DEFAULT_TRACER, DEFAULT_CROSSHAIR, type SkinId, type KillEffectId, type TracerId, type CrosshairId } from './Cosmetics';
 import type { ClassId } from '../classes/types';
 
 const STORAGE_KEY = 'ilc.account';
@@ -58,10 +58,12 @@ interface AccountData {
   unlockedSkins: SkinId[];
   unlockedEffects: KillEffectId[];
   unlockedTracers: TracerId[];
+  unlockedCrosshairs: CrosshairId[];
   /** Per-class equipped skin. If a class isn't here, the default is used. */
   equippedSkin: Partial<Record<ClassId, SkinId>>;
   equippedKillEffect: KillEffectId;
   equippedTracer: TracerId;
+  equippedCrosshair: CrosshairId;
   /** Lifetime career stats. */
   stats: LifetimeStats;
   /** Player's chosen display name (shown on scoreboard). Empty = "You". */
@@ -159,9 +161,11 @@ function freshData(): AccountData {
     ],
     unlockedEffects: [DEFAULT_KILL_EFFECT],
     unlockedTracers: [DEFAULT_TRACER],
+    unlockedCrosshairs: [DEFAULT_CROSSHAIR],
     equippedSkin: {},
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
+    equippedCrosshair: DEFAULT_CROSSHAIR,
     stats: freshStats(),
     name: '',
     daily: freshDaily(freshStats()),
@@ -195,6 +199,10 @@ export class Account {
         unlockedTracers: Array.isArray(parsed.unlockedTracers)
           ? Array.from(new Set([DEFAULT_TRACER, ...parsed.unlockedTracers]))
           : fresh.unlockedTracers,
+        // Always keep the default crosshair unlocked even on an older save.
+        unlockedCrosshairs: Array.isArray(parsed.unlockedCrosshairs)
+          ? Array.from(new Set([DEFAULT_CROSSHAIR, ...parsed.unlockedCrosshairs]))
+          : fresh.unlockedCrosshairs,
         equippedSkin: (parsed.equippedSkin && typeof parsed.equippedSkin === 'object')
           ? parsed.equippedSkin as Partial<Record<ClassId, SkinId>>
           : fresh.equippedSkin,
@@ -204,6 +212,9 @@ export class Account {
         equippedTracer: typeof parsed.equippedTracer === 'string'
           ? parsed.equippedTracer
           : fresh.equippedTracer,
+        equippedCrosshair: typeof parsed.equippedCrosshair === 'string'
+          ? parsed.equippedCrosshair
+          : fresh.equippedCrosshair,
         // Merge stats field-by-field so a save from before a stat was added
         // still upgrades cleanly (missing fields default to 0).
         stats: mergeStats(parsed.stats, fresh.stats),
@@ -253,6 +264,9 @@ export class Account {
   isTracerUnlocked(id: TracerId): boolean {
     return this.data.unlockedTracers.includes(id);
   }
+  isCrosshairUnlocked(id: CrosshairId): boolean {
+    return this.data.unlockedCrosshairs.includes(id);
+  }
 
   /** Equipped skin for the given class, falling back to default. */
   equippedSkinFor(classId: ClassId): SkinId {
@@ -277,6 +291,11 @@ export class Account {
     return findTracer(this.equippedTracer())?.color ?? 0xfff0a0;
   }
 
+  /** Equipped crosshair preset id (last applied). */
+  equippedCrosshair(): CrosshairId {
+    return this.data.equippedCrosshair;
+  }
+
   /** Lifetime career stats (read-only snapshot). */
   get stats(): Readonly<LifetimeStats> { return this.data.stats; }
   /** Lifetime kill/death ratio as a display string. */
@@ -297,6 +316,7 @@ export class Account {
     for (const s of SKINS) if (s.cost > 0 && !this.isSkinUnlocked(s.id) && this.data.xp >= s.cost) n++;
     for (const e of KILL_EFFECTS) if (e.cost > 0 && !this.isEffectUnlocked(e.id) && this.data.xp >= e.cost) n++;
     for (const t of TRACERS) if (t.cost > 0 && !this.isTracerUnlocked(t.id) && this.data.xp >= t.cost) n++;
+    for (const c of CROSSHAIRS) if (c.cost > 0 && !this.isCrosshairUnlocked(c.id) && this.data.xp >= c.cost) n++;
     return n;
   }
 
@@ -368,6 +388,22 @@ export class Account {
   equipTracer(id: TracerId): boolean {
     if (!this.isTracerUnlocked(id)) return false;
     this.data.equippedTracer = id;
+    this.save();
+    return true;
+  }
+
+  tryUnlockCrosshair(id: CrosshairId, cost: number): boolean {
+    if (this.isCrosshairUnlocked(id)) return true;
+    if (this.data.xp < cost) return false;
+    this.data.xp -= cost;
+    this.data.unlockedCrosshairs.push(id);
+    this.save();
+    return true;
+  }
+
+  equipCrosshair(id: CrosshairId): boolean {
+    if (!this.isCrosshairUnlocked(id)) return false;
+    this.data.equippedCrosshair = id;
     this.save();
     return true;
   }

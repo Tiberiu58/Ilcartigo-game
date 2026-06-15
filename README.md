@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 16 — v0.16.0. **Survival health pickups** — killed horde bots drop healing orbs (risk/reward chase). Built on Phase 15 (progression feedback — +XP popups, level-up banner, unlock nudges), Phase 14 (**Last Stand** wave-survival mode), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 17 — v0.17.0. **Crosshair preset packs** — a new cosmetic unlock axis feeding the unlock-nudge loop. Built on Phase 16 (Survival health pickups), Phase 15 (progression feedback — +XP popups, level-up banner, unlock nudges), Phase 14 (**Last Stand** wave-survival mode), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -417,14 +417,28 @@ Survival + solo, no protocol changes.
   `updatePickups`); drops on Survival kills (solo), collected on player overlap.
 - New `pickup_health` sound id (silent until a `.wav` is dropped in).
 
+## Phase 17 — Crosshair preset packs (this round, v0.17.0)
+
+A new cosmetic unlock axis: **crosshair presets**. Everyone tweaks their
+crosshair, so it's a high-pull, cheap unlock track that feeds the Phase 15
+unlock-nudge loop (more to chase → more return sessions → more ad impressions).
+Pure client, no protocol changes.
+
+- 6 presets (Classic free → Crimson Tac, 0–1500 XP); each bundles the existing
+  per-control crosshair settings.
+- `Account` extended migration-safe (`unlockedCrosshairs` / `equippedCrosshair`),
+  folded into `affordableLockedCount` so it powers the unlock nudges.
+- New Crosshair Preset grid in the Cosmetics tab with a live mini-preview;
+  equipping applies to the live HUD + syncs the Crosshair-tab controls.
+
 ## Project status
 
-15 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, **progression feedback (XP popups + level-up + unlock nudges)**, Survival health pickups, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.16.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, **progression feedback (XP popups + level-up + unlock nudges)**, Survival health pickups, crosshair preset packs, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.17.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

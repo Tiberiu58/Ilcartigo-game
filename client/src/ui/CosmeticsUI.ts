@@ -12,7 +12,7 @@
  */
 
 import type { Account } from '../account/Account';
-import { KILL_EFFECTS, TRACERS, skinsForClass, findKillEffect, findTracer, type SkinConfig, type KillEffectConfig, type TracerConfig } from '../account/Cosmetics';
+import { KILL_EFFECTS, TRACERS, CROSSHAIRS, skinsForClass, findKillEffect, findTracer, findCrosshair, type SkinConfig, type KillEffectConfig, type TracerConfig, type CrosshairConfig } from '../account/Cosmetics';
 import { CLASS_LIBRARY, CLASS_ORDER, type ClassId } from '../classes/types';
 
 export class CosmeticsUI {
@@ -21,16 +21,22 @@ export class CosmeticsUI {
   private skinsEl: HTMLElement;
   private effectsEl: HTMLElement;
   private tracersEl: HTMLElement;
+  private crosshairsEl: HTMLElement;
   private levelEl: HTMLElement;
   private xpEl: HTMLElement;
   private fillEl: HTMLElement;
+  /** Called when a crosshair preset is equipped — applies it to the live HUD +
+   *  the Crosshair-tab controls (owned by main.ts). */
+  private onCrosshairApply: (cfg: CrosshairConfig) => void;
 
-  constructor(account: Account) {
+  constructor(account: Account, onCrosshairApply: (cfg: CrosshairConfig) => void = () => {}) {
     this.account = account;
+    this.onCrosshairApply = onCrosshairApply;
     this.root = document.querySelector('[data-pane="cosmetics"]') as HTMLElement;
     this.skinsEl = document.getElementById('cos-skins')!;
     this.effectsEl = document.getElementById('cos-effects')!;
     this.tracersEl = document.getElementById('cos-tracers')!;
+    this.crosshairsEl = document.getElementById('cos-crosshairs')!;
     this.levelEl = document.getElementById('cos-level')!;
     this.xpEl = document.getElementById('cos-xp')!;
     this.fillEl = document.getElementById('cos-xp-fill')!;
@@ -44,6 +50,7 @@ export class CosmeticsUI {
     this.renderSkins();
     this.renderEffects();
     this.renderTracers();
+    this.renderCrosshairs();
   }
 
   private renderSummary() {
@@ -119,6 +126,46 @@ export class CosmeticsUI {
       <div class="cos-name">${escape(e.displayName)}</div>
       <div class="cos-status">${status}</div>
     </div>`;
+  }
+
+  private renderCrosshairs() {
+    if (!this.crosshairsEl) return;
+    this.crosshairsEl.innerHTML = CROSSHAIRS.map((c) => this.crosshairCardHtml(c)).join('');
+    this.crosshairsEl.querySelectorAll<HTMLElement>('[data-crosshair-id]').forEach((el) => {
+      const id = el.dataset.crosshairId!;
+      el.addEventListener('click', () => this.handleCrosshairClick(id));
+    });
+  }
+
+  private crosshairCardHtml(c: CrosshairConfig): string {
+    const unlocked = this.account.isCrosshairUnlocked(c.id);
+    const equipped = this.account.equippedCrosshair() === c.id;
+    const status = !unlocked ? `${c.cost} XP` : equipped ? 'EQUIPPED' : 'EQUIP';
+    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    // Mini live-ish preview: a plus built from two bars + optional dot, coloured
+    // by the preset. Gap/size are approximated for the small swatch.
+    const gap = Math.min(8, c.gap + 2);
+    const arm = Math.min(12, c.size);
+    return `<div class="${cls}" data-crosshair-id="${c.id}" style="--ch-c: ${c.color}; --ch-gap-p: ${gap}px; --ch-arm-p: ${arm}px; --ch-th-p: ${c.thickness}px">
+      <div class="cos-swatch cos-swatch-ch">
+        <div class="chp-v"></div><div class="chp-h"></div>
+        ${c.dot ? '<div class="chp-dot"></div>' : ''}
+      </div>
+      <div class="cos-name">${escape(c.displayName)}</div>
+      <div class="cos-status">${status}</div>
+    </div>`;
+  }
+
+  private handleCrosshairClick(id: string) {
+    if (!this.account.isCrosshairUnlocked(id)) {
+      const cfg = findCrosshair(id);
+      if (!cfg) return;
+      if (!this.account.tryUnlockCrosshair(id, cfg.cost)) return;
+    }
+    if (this.account.equipCrosshair(id)) {
+      const cfg = findCrosshair(id);
+      if (cfg) this.onCrosshairApply(cfg);
+    }
   }
 
   private tracerCardHtml(t: TracerConfig): string {

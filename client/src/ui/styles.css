@@ -1492,6 +1492,29 @@ body.kill-flash #app::after {
   background: var(--body-c);
   box-shadow: 0 0 6px 1px var(--body-c);
 }
+/* Crosshair swatch — a mini live preview of the preset (plus + optional dot). */
+.cos-card .cos-swatch-ch {
+  position: relative;
+  align-items: center;
+  background: #0d0f14;
+}
+.cos-card .cos-swatch-ch .chp-v,
+.cos-card .cos-swatch-ch .chp-h {
+  position: absolute;
+  left: 50%; top: 50%;
+  background: var(--ch-c, #f5d442);
+  transform: translate(-50%, -50%);
+}
+.cos-card .cos-swatch-ch .chp-v { width: var(--ch-th-p, 2px); height: var(--ch-arm-p, 8px); }
+.cos-card .cos-swatch-ch .chp-h { height: var(--ch-th-p, 2px); width: var(--ch-arm-p, 8px); }
+.cos-card .cos-swatch-ch .chp-dot {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 2px; height: 2px;
+  background: var(--ch-c, #f5d442);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
 .cos-card .cos-name {
   font: 700 11px/1.2 'Segoe UI', sans-serif;
   letter-spacing: 1px;

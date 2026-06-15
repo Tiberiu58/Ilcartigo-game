@@ -265,3 +265,30 @@ gated to Survival + solo, no protocol changes.
 
 ### Phase 16 COMPLETE — Survival health pickups shipped, other modes intact, no protocol change.
 
+---
+
+## Phase 17 — Crosshair preset packs (v0.17.0)
+
+A new **cosmetic unlock axis** — crosshair presets. Everyone fiddles with their
+crosshair, so it's a high-pull, cheap-to-author unlock track that pairs directly
+with the Phase 15 unlock-nudge loop (more affordable cosmetics → more "ready to
+unlock" pulls → more return sessions → more ad impressions). Pure client, no
+protocol changes.
+
+- **6 presets** (`CROSSHAIRS`): Classic (free), Micro Dot, T-Cross, Wide Pro,
+  Precision, Crimson Tac — 0–1500 XP. Each is a named bundle of the existing
+  per-control settings (colour / size / thickness / gap / outline / dot).
+- **Account** extended migration-safe: `unlockedCrosshairs` + `equippedCrosshair`
+  (default kept unlocked on old saves) with `isCrosshairUnlocked` /
+  `tryUnlockCrosshair` / `equipCrosshair`. Folded into `affordableLockedCount`
+  so crosshairs feed the unlock nudges too.
+- **Cosmetics tab** gains a Crosshair Preset grid with a mini live preview swatch
+  (plus + optional dot, coloured by the preset). Equipping applies the preset to
+  the live HUD **and** syncs the Crosshair-tab controls + localStorage via a new
+  `applyCrosshairPreset` callback wired from main.ts — the two stay consistent,
+  and the player can still fine-tune afterward.
+- Verified: client tsc + build green (app chunk ~65 KB gzip), server tsc green,
+  new DOM id cross-checked. Bumped client + server to v0.17.0.
+
+### Phase 17 COMPLETE — crosshair preset packs shipped, no protocol change, all modes intact.
+

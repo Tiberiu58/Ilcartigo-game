@@ -358,6 +358,31 @@ chDot.addEventListener('change', () => {
   localStorage.setItem('ilc.ch.dot', String(chDot.checked));
 });
 
+/**
+ * Apply a crosshair preset pack (from the Cosmetics tab): overwrite the live
+ * CSS vars, persist to localStorage, AND sync the Crosshair-tab controls so the
+ * two stay consistent. The player can still fine-tune afterward.
+ */
+function applyCrosshairPreset(cfg: import('./account/Cosmetics').CrosshairConfig) {
+  chColor.value = cfg.color; chColorVal.textContent = cfg.color;
+  applyChVar('--ch-color', cfg.color); localStorage.setItem('ilc.ch.color', cfg.color);
+
+  chSize.value = String(cfg.size); chSizeVal.textContent = String(cfg.size);
+  applyChVar('--ch-size', `${cfg.size}px`); localStorage.setItem('ilc.ch.size', String(cfg.size));
+
+  chThickness.value = String(cfg.thickness); chThicknessVal.textContent = String(cfg.thickness);
+  applyChVar('--ch-thickness', `${cfg.thickness}px`); localStorage.setItem('ilc.ch.thickness', String(cfg.thickness));
+
+  chGapBase.value = String(cfg.gap); chGapBaseVal.textContent = String(cfg.gap);
+  applyChVar('--ch-gap-base', `${cfg.gap}px`); localStorage.setItem('ilc.ch.gap', String(cfg.gap));
+
+  chOutline.checked = cfg.outline;
+  applyChVar('--ch-outline', cfg.outline ? '1' : '0'); localStorage.setItem('ilc.ch.outline', String(cfg.outline));
+
+  chDot.checked = cfg.dot;
+  applyChVar('--ch-dot', cfg.dot ? 'block' : 'none'); localStorage.setItem('ilc.ch.dot', String(cfg.dot));
+}
+
 // ─── Audio settings ─────────────────────────────────────────────────────────
 const audioMaster = document.getElementById('audio-master') as HTMLInputElement;
 const audioMasterVal = document.getElementById('audio-master-val')!;
@@ -779,7 +804,7 @@ game.onFrame = ({ fps, speed, state, pos }) => {
 };
 
 // ─── Cosmetics + Profile tabs + account-linked behavior ────────────────────
-const cosmeticsUI = new CosmeticsUI(game.account);
+const cosmeticsUI = new CosmeticsUI(game.account, applyCrosshairPreset);
 void cosmeticsUI;
 const profileUI = new ProfileUI(game.account);
 void profileUI;
