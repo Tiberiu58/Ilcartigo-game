@@ -35,6 +35,7 @@ import { AudioManager, type SoundId } from '../audio/AudioManager';
 import { TEST_MAP } from '../maps/TestMap';
 import { SANDSTONE_MAP } from '../maps/SandstoneMap';
 import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
+import { FROSTBITE_MAP } from '../maps/FrostbiteMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
@@ -47,6 +48,7 @@ const MAPS: Record<MapId, GameMap> = {
   practice: TEST_MAP,
   sandstone: SANDSTONE_MAP,
   industrial: INDUSTRIAL_MAP,
+  frostbite: FROSTBITE_MAP,
 };
 
 export type GameMode = 'combat' | 'practice' | 'gungame' | 'timeattack';

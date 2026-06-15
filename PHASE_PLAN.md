@@ -172,11 +172,14 @@ mode variety + reasons to come back, all of which deepen sessions → ad revenue
   track + per-mode records surfaced in the Profile tab, derived purely from
   already-persisted data (no new saved state). Ties the new score modes into the
   progression loop. (Details below.)
-- **Phase 17 — A third map (planned).** New arena geometry + collision +
-  per-map spawns + MapCollision export. Maps are the biggest Krunker-feel
-  variety lever after modes.
+- **Phase 17 — Frostbite, a third map (DONE, this round).** A frozen-fortress
+  arena, solo/combat-selectable. Solo-only (server keeps its own map list), so
+  no networking changes. (Details below.)
 - **Phase 18 — Audio assets + deploy (planned).** Drop the CC0 SFX pack in and
   finish the Fly.io + Vercel deploy.
+- **Phase 19 — MP map rotation + Frostbite for MP (planned).** Port Frostbite's
+  collision to the server `MapCollision` + client `MapCollision`, add it to the
+  MP welcome map list, optional per-match rotation.
 
 ---
 
@@ -264,4 +267,31 @@ survive any future migration. Pure client/UI; **no protocol or MP changes**.
   Attack). Client typecheck + build green (app chunk ~63.5 KB gzip); server green.
 
 ### Phase 16 COMPLETE — Medals + records shipped, no new state, MP/protocol intact.
+
+---
+
+## Phase 17 — Frostbite map (autonomous build, v0.17.0)
+
+A third arena — map variety is the biggest Krunker-feel lever after mode variety.
+**Frostbite** is a frozen-fortress map: a fully-symmetric ~80×80 arena with two
+long ridge sightlines, a two-tier central ice **keep** (the vertical power
+position, reachable by climbable 0.5 m steps + four flanking jump pads), four
+corner bunkers with walkable roofs, half-cover blocks, ice crates, and a frozen
+central lake. Cool blue palette + fog so it reads instantly distinct from
+sun-baked Sandstone and rusty Industrial.
+
+- **New `maps/FrostbiteMap.ts`** — mirrors the existing map pattern (addBox /
+  addJumpPad helpers, MapMeta with 4 FFA spawns + a TDM pair + a cold spawn
+  flash). Registered in `Game.MAPS`; `MapId` extended with `'frostbite'`.
+- **Solo-only by design — zero networking risk.** Solo collision comes from the
+  `build()` solids (World), not from `MapCollision.ts`, which is MP-only. The MP
+  welcome handler still adopts only `sandstone`/`industrial`, so the server never
+  sends Frostbite and MP is completely unaffected. (Phase 19 will port it to MP.)
+- **Menu**: third map button ("Frostbite"). `main.ts` map validation generalised
+  to a `VALID_COMBAT_MAPS` list so the persisted pick round-trips safely.
+- Headless-verified: the map builds without error and all four FFA spawns are
+  clear of solids (player-extent overlap probe). Client typecheck + build green
+  (app chunk ~64.2 KB gzip); server typecheck green.
+
+### Phase 17 COMPLETE — Frostbite map shipped (solo), MP/protocol untouched.
 

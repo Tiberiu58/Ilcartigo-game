@@ -433,10 +433,10 @@ mapBtns.forEach((btn) => {
   });
 });
 // Recover from a corrupt localStorage value.
-if (savedMap !== 'sandstone' && savedMap !== 'industrial') {
-  localStorage.setItem('ilc.map', 'sandstone');
-}
-game.setCombatMap(savedMap === 'sandstone' || savedMap === 'industrial' ? savedMap : 'sandstone');
+const VALID_COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'frostbite'];
+const validMap: MapId = VALID_COMBAT_MAPS.includes(savedMap) ? savedMap : 'sandstone';
+if (validMap !== savedMap) localStorage.setItem('ilc.map', validMap);
+game.setCombatMap(validMap);
 
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.

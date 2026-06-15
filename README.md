@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 16 — v0.16.0. **Medals & records** (achievement track + per-mode bests in the Profile tab). **Killstreak rewards** (solo momentum buffs: heals + overshield on hot streaks). Game-mode variety: **Time Attack** (60s score-sprint vs bots with a combo multiplier + persistent personal bests) on top of **Gun Game** (Phase 13 weapon-ladder mode). Combat-feel juice (Phase 12): directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 17 — v0.17.0. **Frostbite** — a third (frozen-fortress) map for solo/combat. **Medals & records** (achievement track + per-mode bests in the Profile tab). **Killstreak rewards** (solo momentum buffs: heals + overshield on hot streaks). Game-mode variety: **Time Attack** (60s score-sprint vs bots with a combo multiplier + persistent personal bests) on top of **Gun Game** (Phase 13 weapon-ladder mode). Combat-feel juice (Phase 12): directional damage indicators, low-HP danger vignette + heartbeat, death recap card, bullet-tracer cosmetics, announcer specials (First Blood / Revenge / Comeback), kill-confirm marker. Built on Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -408,14 +408,24 @@ achievements (kills, headshots, streaks, matches/wins, Time Attack scores,
 playtime) with an unlocked count, gold ★ unlocked cells, and progress bars on the
 locked ones. New `account/Medals.ts`. Pure client/UI — **no protocol or MP changes**.
 
+## Phase 17 — Frostbite map (v0.17.0)
+
+A third arena for variety. **Frostbite** is a frozen-fortress map — a symmetric
+~80×80 arena with two ridge sightlines, a two-tier central ice keep (reachable by
+climbable steps + flanking jump pads), four corner bunkers with walkable roofs,
+ice-crate cover, and a cold blue palette/fog distinct from Sandstone/Industrial.
+Solo/combat-selectable; **solo-only by design** (the MP server keeps its own map
+list, so networking is untouched). New `maps/FrostbiteMap.ts` + a third map
+button. Headless-verified build + spawn clearance.
+
 ## Project status
 
-16 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, **and two extra game modes — Gun Game (weapon ladder) + Time Attack (timed combo score-sprint with personal bests)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+17 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, combat-feel juice, **and two extra game modes — Gun Game (weapon ladder) + Time Attack (timed combo score-sprint with personal bests)** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, killstreak rewards, medals + records. v0.16.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.16.0.
+- `/client` — Vite + TS + Three.js game client. `~192 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, Time Attack, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, killstreak rewards, medals + records, Frostbite map. v0.17.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.17.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
