@@ -635,6 +635,17 @@ menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
 menuSurvival.addEventListener('click', () => startGame('survival'));
 menuPractice.addEventListener('click', () => startGame('practice'));
+
+// Surface the Survival personal best on the menu button — a retention nudge
+// ("beat your best") that updates live whenever a run ends.
+function refreshSurvivalButton() {
+  const best = game.account.survivalBest;
+  menuSurvival.textContent = best.wave > 0
+    ? `🩸 Last Stand · Best: Wave ${best.wave}`
+    : '🩸 Last Stand (Survival)';
+}
+refreshSurvivalButton();
+game.account.onChange(refreshSurvivalButton);
 backToMenu.addEventListener('click', quitToMenu);
 
 // Resume: re-acquire pointer lock without re-running setMode (that would

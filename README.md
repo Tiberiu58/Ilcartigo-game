@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 18 — v0.18.0. **Survival combo multiplier** — rapid consecutive kills build an escalating score multiplier (×1→×4). Built on Phase 17 (crosshair preset packs), Phase 16 (Survival health pickups), Phase 15 (progression feedback — +XP popups, level-up banner, unlock nudges), Phase 14 (**Last Stand** wave-survival mode), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 19 — v0.19.0. **Mode discoverability + personal-best surfacing** — Last Stand best on the menu, new modes in the how-to card. Built on Phase 18 (Survival combo multiplier), Phase 17 (crosshair preset packs), Phase 16 (Survival health pickups), Phase 15 (progression feedback — +XP popups, level-up banner, unlock nudges), Phase 14 (**Last Stand** wave-survival mode), Phase 13 (Gun Game mode), Phase 12 (combat-feel juice), and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end (protocol v2), server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -443,12 +443,12 @@ Contained to `Survival.ts` + HUD, no protocol changes.
 
 ## Project status
 
-17 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+18 phases (+ this one) complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, **directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, **progression feedback (XP popups + level-up + unlock nudges)**, Survival health pickups, crosshair preset packs, Survival combo multiplier, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.18.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.18.0.
+- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, Gun Game, **Last Stand (Survival)**, scoreboard, killstreaks, profile/stats, **progression feedback (XP popups + level-up + unlock nudges)**, Survival health pickups, crosshair preset packs, Survival combo multiplier, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials. v0.19.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Protocol v2. v0.19.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

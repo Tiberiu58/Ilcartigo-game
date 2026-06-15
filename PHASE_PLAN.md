@@ -316,3 +316,21 @@ Deepens the Survival score chase (the retention hook) with a **combo multiplier*
 
 ### Phase 18 COMPLETE — Survival combo multiplier shipped, other modes intact, no protocol change.
 
+---
+
+## Phase 19 — Mode discoverability + personal-best surfacing (v0.19.0)
+
+A small retention/discoverability polish pass tying the recent modes together.
+Pure DOM/account, no protocol changes.
+
+- **Survival best on the menu button.** "🩸 Last Stand" shows "· Best: Wave N"
+  once the player has a run, refreshed live via `Account.onChange` — a "beat your
+  best" nudge that pulls players back into the mode (return visits = ad views).
+- **Mode discoverability in How-to-Play.** The first-run card now describes Gun
+  Game + Last Stand so new players actually find the modes (previously buried in
+  unlabeled menu buttons).
+- Verified: client tsc + build green (app chunk ~65.4 KB gzip), server tsc green.
+  Bumped client + server to v0.19.0.
+
+### Phase 19 COMPLETE — discoverability polish shipped, no protocol change, all modes intact.
+
