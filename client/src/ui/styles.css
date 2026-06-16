@@ -865,10 +865,24 @@ body.no-speedlines #speed-lines { display: none; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* `safe center` keeps the content vertically centred when it fits, but pins
+   * it to the top (instead of clipping the overflow) when it's taller than the
+   * cell — so every loadout + button stays reachable via scroll on short
+   * windows. Plain `center` would hide the top rows in a scroll container. */
+  justify-content: safe center;
+  overflow-y: auto;
   padding: 24px;
   text-align: center;
+  /* Thin, unobtrusive scrollbar that matches the dark theme. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 212, 66, 0.4) transparent;
 }
+.menu-center::-webkit-scrollbar { width: 8px; }
+.menu-center::-webkit-scrollbar-thumb {
+  background: rgba(245, 212, 66, 0.35);
+  border-radius: 4px;
+}
+.menu-center::-webkit-scrollbar-track { background: transparent; }
 .menu-center h1 {
   font-size: 64px;
   letter-spacing: 10px;
