@@ -206,3 +206,31 @@ feedback + visible-progression loops (retention → ad impressions).
 ### Phase 14 COMPLETE — A–C + polish shipped, pure client, no protocol change, solo + MP intact.
 
 
+
+---
+
+## Integration consolidation (manual, by Claude — v0.14.0)
+
+The autonomous routine pushed many parallel feature branches off the same base
+instead of building on `main`, so they diverged + conflicted. This pass
+hand-integrated the four strongest into one coherent `main`, verifying
+typecheck + build after each branch:
+
+- **Phase 13 — Gun Game** (weapon-ladder mode, written directly) — base for the rest.
+- **lEs1h — Aim Lab** (Target Rush solo trainer + drills + crosshair presets + Profile PBs).
+- **FuwnK — Rank ladder + weapon mastery** (rank badges, level-up FX, +XP popups,
+  per-weapon mastery skins) — also brought the Marksman DMR + server-authoritative
+  per-weapon damage (real MP combat-feel fix).
+- **nP0CT — Minimap + FX + pickups** (tactical radar, bullet-impact sparks, score/heal
+  popups, speed lines, map health pickups, weapon-finish cosmetics).
+
+Conflict policy: kept all additive features; where two branches built the *same*
+thing, kept one (lEs1h's crosshair presets over FuwnK's duplicate; nP0CT's
+health-pickups over t2Opo's power-ups). **t2Opo deliberately NOT merged** — its
+power-up system was architecturally incompatible with nP0CT's already-integrated
+pickups (different Protocol `Pickup` payloads, `dmr` vs `marksman` weapon id) and
+would have needed a from-scratch reconciliation. Its best parts (Marksman,
+per-weapon damage) already arrived via FuwnK.
+
+### Result: Gun Game · Aim Lab · rank ladder · weapon mastery · minimap · impact FX ·
+### score popups · health pickups · weapon finishes — all on main, tsc + build green.
