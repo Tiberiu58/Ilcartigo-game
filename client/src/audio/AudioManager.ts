@@ -74,6 +74,9 @@ export const SOUND_FILES = {
   // Quick melee (Phase 20) — knife swing whoosh.
   melee:         'melee.wav',
 
+  // Frag grenade (Phase 21) — detonation boom.
+  grenade_explode: 'grenade_explode.wav',
+
   // Announcer specials (Phase 12E) — one-off callouts, escalating stings.
   first_blood:   'first_blood.wav',
   revenge:       'revenge.wav',

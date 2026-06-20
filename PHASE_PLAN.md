@@ -484,3 +484,31 @@ change.
   Bumped to v0.20.0 (+ menu subtitle/footer).
 
 ### Phase 20 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 21 — Frag grenade (autonomous build, v0.21.0)
+
+A thrown explosive on **G** — the other classic arena throw, adding area-denial
++ a high-skill arc lob to the solo sandbox. Pure client, no protocol change.
+
+- New `entities/GrenadeManager.ts` — pooled grenades that arc under gravity,
+  settle on the first solid/ground contact, and detonate on a ~1.4 s fuse: a
+  bright `CastFX.flash` + expanding `CastFX.wave` shockwave + impact spark +
+  proximity screen-shake, and a LoS-gated area burst (radius 6.5, up to 95 dmg,
+  linear falloff) against bots. Reuses the damage/kill bus (`weaponId
+  'grenade'`); TDM teammates are skipped; self-damage omitted (PvE-friendly).
+- New `grenade` input action (KeyG); `Game.throwGrenade()` with a ~6 s cooldown,
+  solo-only + pointer-lock-gated (same safety as melee). `applyShake` promoted to
+  public for the manager. New `grenade_explode` sound id + catalog entry; how-to
+  card + README controls updated.
+- Melee hardening from this round: gated on pointer-lock so a stray V/F in a menu
+  can't damage bots.
+
+### Status log
+- ✅ Phase 21 — Frag grenade. DONE (client + server tsc + client build green).
+  GrenadeManager (arc + settle + fuse + AoE/LoS/falloff + FX), input action +
+  cooldown + solo/lock gating, public applyShake, grenade sound id, docs. Bumped
+  to v0.21.0 (+ menu subtitle/footer).
+
+### Phase 21 COMPLETE — pure client, no protocol change, solo + MP intact.

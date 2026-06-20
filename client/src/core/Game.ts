@@ -23,6 +23,7 @@ import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot, type BotTarget, type GameDifficulty } from '../entities/Bot';
 import { PickupManager } from '../entities/PickupManager';
+import { GrenadeManager } from '../entities/GrenadeManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
 import { Viewmodel } from '../weapons/Viewmodel';
@@ -116,6 +117,8 @@ export class Game {
   readonly dmgNumbers: DamageNumbers;
   /** Map health pickups — authoritative in solo, server-driven in MP. */
   readonly pickups: PickupManager;
+  /** Thrown frag grenades (solo only). */
+  grenades!: GrenadeManager;
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
@@ -235,6 +238,9 @@ export class Game {
   static readonly MELEE_RANGE = 3.2;
   static readonly MELEE_DAMAGE = 55;
   static readonly MELEE_COOLDOWN = 0.6;
+  // Frag-grenade throw cooldown (seconds). G, solo-only.
+  private grenadeCooldown = 0;
+  static readonly GRENADE_COOLDOWN = 6;
 
   // Reload-edge tracker for the reload SFX. We poll inventory.current rather
   // than wiring an event bus into Weapon (Weapon stays pure-logic).
@@ -295,6 +301,7 @@ export class Game {
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
     this.pickups = new PickupManager(this);
+    this.grenades = new GrenadeManager(this);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
     // both Sandstone's buildings and TestMap's central pillar. The Predictor
@@ -796,7 +803,8 @@ export class Game {
     cancelAnimationFrame(this.rafHandle);
   }
 
-  private applyShake(intensity: number, decay: number) {
+  /** Public so feature modules (e.g. GrenadeManager) can punch the camera. */
+  applyShake(intensity: number, decay: number) {
     this.shake.intensity = Math.max(this.shake.intensity, intensity);
     this.shake.decay = decay;
   }
@@ -900,6 +908,15 @@ export class Game {
     }
   }
 
+  /** Throw a frag grenade along the current aim (solo-only; cooldown-gated). */
+  private throwGrenade() {
+    if (this.grenadeCooldown > 0 || this.playerActor.health.dead) return;
+    this.grenadeCooldown = Game.GRENADE_COOLDOWN;
+    this.player.eyePos(this._eyePos);
+    this.player.aimDir(this._aimDir);
+    this.grenades.throw(this._eyePos, this._aimDir);
+  }
+
   private onResize = () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -998,7 +1015,13 @@ export class Game {
     // authoritative and there's no melee in the protocol; a client-only hit
     // would mislead). The cooldown ticks regardless so the timer stays sane.
     if (this.meleeCooldown > 0) this.meleeCooldown = Math.max(0, this.meleeCooldown - dt);
-    if (this.input.consumeAction('melee') && !this.mp) this.doMelee();
+    // Gated on pointer-lock so a stray V/F in a menu can't deal damage to bots.
+    if (this.input.pointerLocked && this.input.consumeAction('melee') && !this.mp) this.doMelee();
+
+    // Frag grenade (G) — edge-triggered, solo-only, pointer-lock gated.
+    if (this.grenadeCooldown > 0) this.grenadeCooldown = Math.max(0, this.grenadeCooldown - dt);
+    if (this.input.pointerLocked && this.input.consumeAction('grenade') && !this.mp) this.throwGrenade();
+    this.grenades.update(dt);
 
     // Ability press (E) — edge-triggered.
     if (this.input.consumeAction('ability') && !this.playerActor.health.dead) {
