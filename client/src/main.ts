@@ -524,10 +524,11 @@ mapBtns.forEach((btn) => {
   });
 });
 // Recover from a corrupt localStorage value.
-if (savedMap !== 'sandstone' && savedMap !== 'industrial') {
+const VALID_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt'];
+if (!VALID_MAPS.includes(savedMap)) {
   localStorage.setItem('ilc.map', 'sandstone');
 }
-game.setCombatMap(savedMap === 'sandstone' || savedMap === 'industrial' ? savedMap : 'sandstone');
+game.setCombatMap(VALID_MAPS.includes(savedMap) ? savedMap : 'sandstone');
 
 // Bot difficulty selector — Easy / Normal / Hard. Scales the whole bot roster's
 // AI feel (reaction, aim, lead, fire cadence). Persisted; applies live.

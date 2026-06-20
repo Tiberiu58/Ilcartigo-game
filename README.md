@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 17 — v0.17.0. **Enemy nameplates** — floating callsign + HP bar over bots (depthTest-occluded, distance-faded, team-coloured in TDM). Phase 16 — v0.16.0. **Bot difficulty (Easy/Normal/Hard) + humanized bot callsigns** (Drifter/Viper/Specter/Bishop/Havoc) across the killfeed, scoreboard, and death recap. Phase 15 — v0.15.0. **Team Deathmatch**: the first team mode — solo 3-v-3 (you + 2 ally bots vs 3 enemy bots), first team to 50 frags wins, with bots that now fight across team lines (a big AI upgrade), team colours, a BLUE-vs-RED ticker, a team-grouped scoreboard, and VICTORY/DEFEAT post-match. No protocol change. Built on Phase 13–14 — v0.14.0. **New modes + progression depth**: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
+> **Status:** Phase 18 — v0.18.0. **Cobalt** — a third combat map, the first built for competitive symmetry (cool steel + neon, raised central platform + team decks), selectable for all solo modes. Phase 17 — v0.17.0. **Enemy nameplates** — floating callsign + HP bar over bots (depthTest-occluded, distance-faded, team-coloured in TDM). Phase 16 — v0.16.0. **Bot difficulty (Easy/Normal/Hard) + humanized bot callsigns** (Drifter/Viper/Specter/Bishop/Havoc) across the killfeed, scoreboard, and death recap. Phase 15 — v0.15.0. **Team Deathmatch**: the first team mode — solo 3-v-3 (you + 2 ally bots vs 3 enemy bots), first team to 50 frags wins, with bots that now fight across team lines (a big AI upgrade), team colours, a BLUE-vs-RED ticker, a team-grouped scoreboard, and VICTORY/DEFEAT post-match. No protocol change. Built on Phase 13–14 — v0.14.0. **New modes + progression depth**: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
 
 ## Repo layout
 
@@ -469,6 +469,16 @@ Game and Aim Lab all keep working.
   team-grouped Tab scoreboard, and a VICTORY/DEFEAT post-match by *your team's*
   result. New "⚔ Team Deathmatch" main-menu button.
 
+## Phase 18 — Cobalt arena (this round, v0.18.0)
+
+The third combat map. **Cobalt** is the first built for pure competitive symmetry
+(mirrored about both axes) with a cool steel-blue + teal-neon palette for instant
+contrast with warm Sandstone / rusty Industrial. A raised central platform
+(jump-pad ring + cover), two symmetric raised team decks for TDM, diagonal crate
+cover, flank walls, and health pickups. Selectable for all solo combat modes;
+MP keeps serving its authoritative map, so Cobalt is solo-only and changes
+nothing online.
+
 ## Phase 17 — Enemy nameplates (this round, v0.17.0)
 
 Floating **callsign + health bar** over bots — a Krunker staple that makes combat
@@ -560,12 +570,12 @@ documented three-edit checklist.
 
 ## Project status
 
-17 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, **Team Deathmatch**, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+18 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 4 maps (incl. **Cobalt**), **Team Deathmatch**, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~196 KB gzipped`. Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates. v0.17.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.17.0.
+- `/client` — Vite + TS + Three.js game client. `~196 KB gzipped`. Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, Cobalt map. v0.18.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.18.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

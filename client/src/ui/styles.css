@@ -916,7 +916,7 @@ body.no-speedlines #speed-lines { display: none; }
   min-width: 380px;
 }
 .loadout-grid.map-grid {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
 }
 .loadout-grid.diff-grid {
   grid-template-columns: 1fr 1fr 1fr;

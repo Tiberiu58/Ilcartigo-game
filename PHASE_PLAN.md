@@ -396,3 +396,33 @@ protocol change. Typecheck + build green; app chunk ~72.9 KB gzip.
   General-tab toggle. Bumped to v0.17.0 (+ menu subtitle/footer).
 
 ### Phase 17 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 18 — Cobalt arena (autonomous build, v0.18.0)
+
+The third combat map — fresh content is the biggest single driver of "one more
+game." **Cobalt** is the first map built for pure **competitive symmetry**
+(mirrored about both axes, so no TDM side has an edge) and a cool steel-blue +
+teal-neon palette for instant visual contrast with warm Sandstone and rusty
+Industrial. Selectable for all solo combat modes (FFA / TDM / Gun Game).
+
+- New `maps/CobaltMap.ts` — 84×84 arena: perimeter walls, a raised central
+  platform (jump-pad ring, pillar + corner cover), two symmetric raised team
+  decks (N/S, with front parapets) for TDM identity + high ground, diagonal
+  crate cover, E/W flank walls to break cross-map sightlines, and low steppable
+  spawn bumps. Verticality is entirely jump-pad-driven (no mid-height ledges that
+  snag the 0.55 m step-up). Emissive teal trim for flair (non-colliding).
+- Wired everywhere a map id flows: `MapId` union, `Game.MAPS`, the menu map grid
+  (now 3-wide) + selector validation, and **health pickups** added for Cobalt in
+  both `maps/Pickups.ts` and `server/Pickups.ts` (kept in sync, though the MP
+  server never loads Cobalt — it's solo-only; MP still serves Sandstone/
+  Industrial via the server's authoritative `Welcome.mapId`).
+
+### Status log
+- ✅ Phase 18 — Cobalt arena. DONE (client + server tsc + client build green).
+  New symmetric map + full wiring (MapId/MAPS/menu/validation), Cobalt health
+  pickups mirrored client+server, 3-column map grid. Solo-only (MP unaffected —
+  server map stays authoritative). Bumped to v0.18.0 (+ menu subtitle/footer).
+
+### Phase 18 COMPLETE — additive map, no protocol change, solo + MP intact.
