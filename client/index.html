@@ -203,6 +203,16 @@
         </div>
         <div id="reload-indicator" class="hidden">RELOADING</div>
 
+        <!-- Utility readiness — grenade cooldown (G). Solo only; HUD shows/hides
+             it. Fill bar empties on throw and refills over the cooldown. -->
+        <div id="utility-pill" class="hidden">
+          <div class="up-key">G</div>
+          <div class="up-body">
+            <div class="up-name">FRAG</div>
+            <div class="up-bar"><div class="up-fill"></div></div>
+          </div>
+        </div>
+
         <div id="killfeed"></div>
 
         <!-- Scoreboard overlay — hold TAB. Populated by main.ts each frame
@@ -238,7 +248,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.22</p>
+          <p class="subtitle">Browser arena shooter · v0.23</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -304,7 +314,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.22.0 — LMG weapon · Frag grenades · Quick melee · Cobalt · TDM</div>
+          <div>v0.23.0 — Grenade HUD · LMG · Frag grenades · Quick melee · Cobalt · TDM</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

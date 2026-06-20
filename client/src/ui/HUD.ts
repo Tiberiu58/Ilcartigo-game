@@ -52,6 +52,8 @@ export class HUD {
   private apFill: HTMLElement;
   private apCharges: HTMLElement;
   private apDots: HTMLElement[];
+  private utilityPill: HTMLElement;
+  private upFill: HTMLElement;
 
   private lastHp = -1;
   private lastAmmo = -1;
@@ -109,6 +111,8 @@ export class HUD {
     this.apFill = this.abilityPill.querySelector('.ap-cd-fill') as HTMLElement;
     this.apCharges = this.abilityPill.querySelector('.ap-charges') as HTMLElement;
     this.apDots = Array.from(this.abilityPill.querySelectorAll<HTMLElement>('.ap-dot'));
+    this.utilityPill = document.getElementById('utility-pill')!;
+    this.upFill = this.utilityPill.querySelector('.up-fill') as HTMLElement;
 
     // Player-shot hits → hitmarker (local-only event).
     bus.on('hitConfirm', ({ isHeadshot }) => {
@@ -190,10 +194,25 @@ export class HUD {
     }
 
     this.tickAbilityPill();
+    this.tickUtilityPill();
     this.tickCrosshairSpread();
     this.tickLowHp();
     this.tickMatchScore();
     this.tickRespawnCountdown();
+  }
+
+  /** Grenade readiness pill — solo only (grenades are disabled in MP). The fill
+   *  empties on throw and refills over the cooldown; 'ready' class when full. */
+  private tickUtilityPill() {
+    const show = this.game.mp === null;
+    if (!show) {
+      if (!this.utilityPill.classList.contains('hidden')) this.utilityPill.classList.add('hidden');
+      return;
+    }
+    this.utilityPill.classList.remove('hidden');
+    const f = this.game.grenadeReadyFraction;
+    this.upFill.style.transform = `scaleX(${f.toFixed(3)})`;
+    this.utilityPill.classList.toggle('ready', f >= 1);
   }
 
   /**

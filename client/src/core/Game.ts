@@ -908,6 +908,11 @@ export class Game {
     }
   }
 
+  /** Grenade readiness 0..1 (1 = ready) — drives the HUD utility pill. */
+  get grenadeReadyFraction(): number {
+    return 1 - this.grenadeCooldown / Game.GRENADE_COOLDOWN;
+  }
+
   /** Throw a frag grenade along the current aim (solo-only; cooldown-gated). */
   private throwGrenade() {
     if (this.grenadeCooldown > 0 || this.playerActor.health.dead) return;

@@ -534,3 +534,35 @@ by volume + area denial rather than precision.
   WEAPON_LABEL. Bumped to v0.22.0 (+ menu subtitle/footer).
 
 ### Phase 22 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 23 — Grenade HUD indicator + LMG mastery (autonomous build, v0.23.0)
+
+Polish that closes the loop on the two prior phases.
+
+- **Grenade readiness pill** (`#utility-pill`, bottom-centre by the ability pill)
+  — a "G · FRAG" chip whose bar empties on throw and refills over the 6 s
+  cooldown, glowing gold when ready. Solo-only (hidden in MP, where grenades are
+  disabled). New `Game.grenadeReadyFraction` getter + `HUD.tickUtilityPill`.
+- **LMG mastery skins** — three (Gunner/Verdant/Molten) + `lmg` added to
+  `WEAPON_SKIN_ORDER`, so the new weapon participates in the use-to-unlock
+  cosmetics loop like every other gun (was the only weapon without one).
+
+### Status log
+- ✅ Phase 23 — Grenade HUD + LMG mastery. DONE (client + server tsc + client
+  build green). Utility pill (HTML + CSS + HUD tick + readiness getter), LMG
+  mastery skins + order. Bumped to v0.23.0 (+ menu subtitle/footer).
+
+### Phase 23 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Run summary (phases 15–23, this autonomous session)
+
+A nine-phase solo-expansion arc, each typecheck + build green, no protocol
+changes, MP + every prior mode left intact:
+
+15 Team Deathmatch · 16 bot difficulty + callsigns · 17 enemy nameplates ·
+18 Cobalt arena (3rd map) · 19 solo FFA matches (post-match ad breakpoint) ·
+20 quick melee · 21 frag grenade · 22 LMG weapon · 23 grenade HUD + LMG mastery.
