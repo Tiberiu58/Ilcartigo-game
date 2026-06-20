@@ -230,6 +230,12 @@ export class Game {
   private fpsAccum = 0;
   private fps = 0;
 
+  // Quick-melee cooldown (seconds). A fast knife strike on V/F, solo-only.
+  private meleeCooldown = 0;
+  static readonly MELEE_RANGE = 3.2;
+  static readonly MELEE_DAMAGE = 55;
+  static readonly MELEE_COOLDOWN = 0.6;
+
   // Reload-edge tracker for the reload SFX. We poll inventory.current rather
   // than wiring an event bus into Weapon (Weapon stays pure-logic).
   private lastReloadingState = false;
@@ -857,6 +863,43 @@ export class Game {
     return out;
   }
 
+  /**
+   * Quick melee — a short-range knife strike straight ahead. Solo-only (gated
+   * by the caller). Reuses the damage/kill bus so the killfeed, XP, hitmarker,
+   * impact FX and announcer all "just work"; weaponId 'knife' is harmless to
+   * mastery (no knife skins → no unlock). Friendly fire respects the TDM team.
+   */
+  private doMelee() {
+    if (this.meleeCooldown > 0 || this.playerActor.health.dead) return;
+    this.meleeCooldown = Game.MELEE_COOLDOWN;
+
+    this.viewmodel.meleeSwing();
+    this.audio.play('melee');
+    this.applyShake(0.02, 12);
+
+    this.player.eyePos(this._eyePos);
+    this.player.aimDir(this._aimDir);
+    const friendlyTeam = this.mode === 'tdm' ? this.playerActor.team : undefined;
+    const hit = this.world.raycast(this._eyePos, this._aimDir, Game.MELEE_RANGE, 'player', friendlyTeam);
+    if (!hit) return;
+    // Impact spark even on world hits (you whacked a wall).
+    this.impacts.spawn(hit.point, hit.target !== null);
+    if (!hit.target) return;
+
+    const dmg = Game.MELEE_DAMAGE * (hit.isHeadshot ? 1.3 : 1);
+    const killed = hit.target.health.takeDamage(dmg);
+    this.bus.emit('damage', {
+      attackerId: 'player', targetId: hit.target.id, amount: dmg,
+      isHeadshot: hit.isHeadshot, hitPoint: hit.point.clone(), weaponId: 'knife',
+    });
+    if (killed) {
+      this.bus.emit('kill', {
+        attackerId: 'player', targetId: hit.target.id, weaponId: 'knife',
+        isHeadshot: hit.isHeadshot, hitPoint: hit.point.clone(),
+      });
+    }
+  }
+
   private onResize = () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -950,6 +993,12 @@ export class Game {
     this.input.zoomSensitivityScale = fovRatio;
 
     if (this.input.consumeAction('reload')) this.inventory.current.startReload();
+
+    // Quick melee (V / F) — edge-triggered, solo-only (MP damage is server-
+    // authoritative and there's no melee in the protocol; a client-only hit
+    // would mislead). The cooldown ticks regardless so the timer stays sane.
+    if (this.meleeCooldown > 0) this.meleeCooldown = Math.max(0, this.meleeCooldown - dt);
+    if (this.input.consumeAction('melee') && !this.mp) this.doMelee();
 
     // Ability press (E) — edge-triggered.
     if (this.input.consumeAction('ability') && !this.playerActor.health.dead) {

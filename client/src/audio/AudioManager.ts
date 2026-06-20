@@ -71,6 +71,9 @@ export const SOUND_FILES = {
   // Pickups (Phase 13D) — health pack grabbed.
   pickup_health: 'pickup_health.wav',
 
+  // Quick melee (Phase 20) — knife swing whoosh.
+  melee:         'melee.wav',
+
   // Announcer specials (Phase 12E) — one-off callouts, escalating stings.
   first_blood:   'first_blood.wav',
   revenge:       'revenge.wav',

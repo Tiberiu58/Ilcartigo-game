@@ -19,6 +19,7 @@ import type { WeaponId } from './Weapon';
 
 const SWAP_DURATION = 0.32;       // total time gun is offscreen during swap
 const SWAP_DROP = 0.35;           // y-offset at full swap
+const MELEE_ANIM = 0.22;          // melee swing duration (seconds)
 
 export class Viewmodel {
   readonly group: THREE.Group;
@@ -30,6 +31,8 @@ export class Viewmodel {
   private currentId: WeaponId = 'ar';
   private bobPhase = 0;
   private recoilOffset = 0;
+  // Melee swing animation timer (seconds remaining). 0 = idle.
+  private meleeTime = 0;
   private restPos = new THREE.Vector3(0.32, -0.28, -0.55);
   private restRot = new THREE.Euler(0, Math.PI, 0); // -Z forward
 
@@ -138,6 +141,12 @@ export class Viewmodel {
     this.recoilOffset = 0.05;
   }
 
+  /** Call on melee — triggers a quick slash swing. No-op while swapping. */
+  meleeSwing() {
+    if (this.swapPhase >= 0 || this.hidden) return;
+    this.meleeTime = MELEE_ANIM;
+  }
+
   update(dt: number, playerSpeed: number, isGrounded: boolean) {
     // Swap progression.
     let swapDip = 0;
@@ -166,11 +175,23 @@ export class Viewmodel {
     // Recoil offset decays exponentially.
     this.recoilOffset *= Math.exp(-dt * 18);
 
+    // Melee swing — a quick down-left arc that returns to rest.
+    let meleeX = 0, meleeY = 0, meleeRotZ = 0;
+    if (this.meleeTime > 0) {
+      this.meleeTime = Math.max(0, this.meleeTime - dt);
+      const arc = Math.sin((1 - this.meleeTime / MELEE_ANIM) * Math.PI);
+      meleeX = -arc * 0.10;
+      meleeY = -arc * 0.05;
+      meleeRotZ = -arc * 0.9;
+    }
+
     this.group.position.set(
-      this.restPos.x + bobX,
-      this.restPos.y - bobY - swapDip,
+      this.restPos.x + bobX + meleeX,
+      this.restPos.y - bobY - swapDip + meleeY,
       this.restPos.z + this.recoilOffset,
     );
+    // Roll the model during the swing (idle = restRot, so this is a no-op when not meleeing).
+    this.group.rotation.z = this.restRot.z + meleeRotZ;
 
     // Flash fade.
     const flashMat = this.flashMesh.material as THREE.MeshBasicMaterial;

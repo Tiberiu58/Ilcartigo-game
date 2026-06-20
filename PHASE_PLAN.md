@@ -455,3 +455,32 @@ completion. Pure client, no protocol change.
   v0.19.0 (+ menu subtitle/footer).
 
 ### Phase 19 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 20 — Quick melee (autonomous build, v0.20.0)
+
+The universal close-range "panic button" every arena shooter has — a fast knife
+strike on **V** / **F** that doesn't require a weapon swap. Satisfying way to
+finish a rush; high skill-expression in a bhop fight. Pure client, no protocol
+change.
+
+- New `melee` input action (bound to KeyV + KeyF). `Game.doMelee()` — a short
+  forward raycast (3.2 m, 55 dmg, ×1.3 on a head), ~0.6 s cooldown, reusing the
+  damage/kill bus so killfeed, XP, hitmarker, impact spark, screen-shake and
+  announcer all "just work" (`weaponId 'knife'`, harmless to mastery). Friendly-
+  fire-aware in TDM (passes the player's team to `raycast`).
+- `Viewmodel.meleeSwing()` — a quick down-left arc (rotation + offset) that
+  returns to rest; idle is a no-op so it never disturbs the normal pose.
+- **Solo only** — MP damage is server-authoritative and there's no melee in the
+  protocol, so a client-only hit would mislead; gated at the call site. New
+  `melee` SoundId + audio-catalog entry (silent until the asset lands). How-to
+  card + README controls updated.
+
+### Status log
+- ✅ Phase 20 — Quick melee. DONE (client + server tsc + client build green).
+  Input action + bindings, Game.doMelee (raycast + bus reuse + TDM friendly
+  fire + cooldown), Viewmodel swing, melee sound id, howto/README/controls.
+  Bumped to v0.20.0 (+ menu subtitle/footer).
+
+### Phase 20 COMPLETE — pure client, no protocol change, solo + MP intact.
