@@ -468,14 +468,20 @@ documented three-edit checklist.
   game at `/play/` — matching the site's existing `/play/` links. Verified the
   combined build locally (asset paths correctly rewritten to `/play/assets/…`).
 
-**AdSense — approval-ready, one-switch activation:**
-- New **`website/ads.txt`** (comment-only until you hold a `pub-` id — 200s
-  correctly during AdSense review).
-- New **`ADSENSE.md`** — the complete switch-on checklist: exactly three edits
-  (`client/src/ads/Ads.ts` publisher id + unit ids, `website/index.html` loader
-  + `<ins>` units, `website/ads.txt` line) once Google approves. Until then the
-  game shows in-house placeholders and **no real AdSense script loads anywhere**
-  (the policy-safe state — Google rejects sites showing empty live units).
+**AdSense — publisher ID live, verification done:**
+- Real publisher id **`ca-pub-8134911671778438`** wired into: the `<head>` of all
+  four site pages (home/about/privacy/terms — the AdSense site-verification
+  snippet), `website/ads.txt` (`google.com, pub-8134911671778438, DIRECT, …`),
+  and the game client (`client/src/ads/Ads.ts` → `isConfigured` now true, so the
+  AdSense loader script runs in-game).
+- Site ownership **verified** via AdSense's "code fragment" method against the
+  live Vercel URL. **Account approval is the next gate** (Google reviews the live
+  site); per-slot **ad-unit ids are still placeholders** (`0000000000`) — you
+  create those units in the AdSense dashboard *after* approval and paste them
+  into `Ads.ts` / replace the site's reserved `.ad-slot` divs with `<ins>` tags.
+  Until the units are real, AdSense serves blank for them, which is the correct
+  state for a verified-but-pending account.
+- `ADSENSE.md` documents the post-approval ad-unit step.
 - The privacy policy already discloses AdSense cookies (`privacy.html` §4) and
   the consent banner gates personalized ads — both approval requirements met.
 
@@ -501,8 +507,9 @@ documented three-edit checklist.
 - ▶ MP server → Fly.io: config ready, runbook written; you run the `flyctl`
   steps (needs your Fly login). Online FFA works once that's deployed and
   `CLIENT_ORIGIN` / `VITE_SERVER_URL` are set.
-- ⏸ AdSense → placeholders held until you have an approved `ca-pub` id
-  (`ADSENSE.md` is the activation checklist).
+- ✅ AdSense → real publisher id `ca-pub-8134911671778438` live on all pages +
+  in-game; site ownership verified. ⏸ Pending Google **approval** + creating the
+  per-slot ad units (then paste their ids into `Ads.ts` / the site `<ins>` tags).
 - ⏸ Domain → using the free `*.vercel.app` URL for now; canonical URLs already
   point at `ilcartigo.com` for the eventual cutover.
 
