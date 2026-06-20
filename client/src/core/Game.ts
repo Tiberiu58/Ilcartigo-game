@@ -21,7 +21,7 @@ import { World } from './World';
 import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
-import { Bot } from '../entities/Bot';
+import { Bot, type BotTarget } from '../entities/Bot';
 import { PickupManager } from '../entities/PickupManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
@@ -52,14 +52,32 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
- *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
- *  ladder layered on top. */
+ *  the peaceful Practice sandbox). Gun Game + TDM play like Combat with extra
+ *  rules layered on top. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame';
+  return m === 'combat' || m === 'gungame' || m === 'tdm';
 }
+
+/** TDM team identity colours (figures + HUD). Blue = the player's team. */
+export const TDM_BLUE = 0x4a8cff;
+export const TDM_RED = 0xff5a52;
+
+/** Which TDM team each bot belongs to, by id. Player is always BLUE (team 0).
+ *  The two `sentinel`/`raider` bots only exist for TDM (inactive otherwise) so
+ *  the mode runs a full 3-v-3 (player + 2 allies vs 3 enemies). */
+const TDM_BOT_TEAM: Record<string, number> = {
+  engager: 0,    // ally
+  sentinel: 0,   // ally
+  wanderer: 1,   // enemy
+  predictor: 1,  // enemy
+  raider: 1,     // enemy
+};
+/** Bots that exist ONLY for TDM — hidden/unregistered in Combat + Gun Game so
+ *  those modes keep their original 3-bot roster. */
+const TDM_ONLY_BOTS = new Set(['sentinel', 'raider']);
 
 export interface FrameInfo {
   fps: number;
@@ -132,6 +150,16 @@ export class Game {
     return this.mp?.myId || 'player';
   }
 
+  /** Resolve an actor id to its TDM team (0 = BLUE/player, 1 = RED). The local
+   *  player is always BLUE; bots carry their assigned team. Used for team
+   *  scoring + the TDM scoreboard. */
+  teamOf(id: string): number {
+    if (this.isLocalPlayer(id)) return this.playerActor.team;
+    const bot = this.bots.find((b) => b.id === id);
+    if (bot) return bot.team;
+    return 1;
+  }
+
   /**
    * Resolve an actor id to a world position (feet-anchored, roughly torso for
    * direction math). Used by directional damage indicators to point at whoever
@@ -162,6 +190,10 @@ export class Game {
   localStreak = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
+  /** TDM per-team frag totals. Index = team (0 = BLUE/player, 1 = RED). */
+  teamScore: [number, number] = [0, 0];
+  /** First team to this many frags wins Team Deathmatch. */
+  static readonly TDM_GOAL = 50;
 
   private lastTime = 0;
   private rafHandle = 0;
@@ -238,6 +270,18 @@ export class Game {
     this.bots.push(new Bot('wanderer', new THREE.Vector3( 18, 0.5,   3), this.world, this.bus, 'wanderer'));
     this.bots.push(new Bot('engager',  new THREE.Vector3(-18, 0.5,   3), this.world, this.bus, 'engager'));
     this.bots.push(new Bot('predictor', new THREE.Vector3(  0, 0.5, -22), this.world, this.bus, 'predictor'));
+    // Two extra bots used ONLY by Team Deathmatch, so the mode fields a full
+    // 3-v-3. They start inactive (hidden + unregistered) so Combat / Gun Game
+    // keep their original 3-bot feel; syncBotState turns them on for TDM.
+    this.bots.push(new Bot('sentinel', new THREE.Vector3( 10, 0.5,  10), this.world, this.bus, 'engager'));
+    this.bots.push(new Bot('raider',   new THREE.Vector3(-10, 0.5, -10), this.world, this.bus, 'predictor'));
+    for (const b of this.bots) {
+      if (TDM_ONLY_BOTS.has(b.id)) {
+        b.active = false;
+        b.group.visible = false;
+        this.world.unregisterDamageable(b.id);
+      }
+    }
 
     // Ability runner — class chosen from menu; passives applied via setClass.
     const initialClass = (localStorage.getItem('ilc.class') as ClassId) ?? 'vanguard';
@@ -315,6 +359,16 @@ export class Game {
       // Per-match score tally — works in both solo and MP.
       this.matchKills.set(e.attackerId, (this.matchKills.get(e.attackerId) ?? 0) + 1);
       this.matchDeaths.set(e.targetId, (this.matchDeaths.get(e.targetId) ?? 0) + 1);
+
+      // TDM team scoring — the killer's team scores; first to TDM_GOAL wins.
+      if (this.mode === 'tdm' && e.attackerId !== e.targetId) {
+        const t = this.teamOf(e.attackerId);
+        this.teamScore[t]++;
+        if (!this.matchEnded && this.teamScore[t] >= Game.TDM_GOAL) {
+          this.matchEnded = true;
+          this.onMatchEnded?.(`team:${t}`);
+        }
+      }
 
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
@@ -451,9 +505,27 @@ export class Game {
    * bots running?" predicate in one place.
    */
   private syncBotState() {
-    const botsLive = isCombatMode(this.mode) && !this.mp;
+    const combat = isCombatMode(this.mode) && !this.mp;
+    const tdm = combat && this.mode === 'tdm';
     for (const b of this.bots) {
-      if (botsLive) {
+      // TDM-only bots (sentinel/raider) are live only in TDM; the core three
+      // are live in any combat mode.
+      const live = combat && (tdm || !TDM_ONLY_BOTS.has(b.id));
+      if (live) {
+        if (tdm) {
+          // Assign team identity: colour, friendly-fire team, home spawn.
+          const team = TDM_BOT_TEAM[b.id] ?? 1;
+          b.team = team;
+          b.setTeamColor(team === 0 ? TDM_BLUE : TDM_RED);
+          b.homeSpawn = this.currentMap.meta.teamSpawns?.[team] ?? null;
+          b.weapon.ownerTeam = team;
+        } else {
+          // FFA: restore the difficulty colour + enemy team, no friendly fire.
+          b.team = 1;
+          b.setTeamColor(null);
+          b.homeSpawn = null;
+          b.weapon.ownerTeam = undefined;
+        }
         b.active = true;
         b.group.visible = true;
         this.world.registerDamageable(b);
@@ -464,6 +536,9 @@ export class Game {
         this.world.unregisterDamageable(b.id);
       }
     }
+    // The local player's weapons get the BLUE team in TDM so allied fire passes
+    // through teammates; FFA clears it (hit anyone but self).
+    this.inventory.setOwnerTeam(tdm ? this.playerActor.team : undefined);
   }
 
   /**
@@ -524,7 +599,11 @@ export class Game {
     const spawns = this.currentMap.meta.ffaSpawns;
     if (this.mode === 'practice' || spawns.length === 0) return spawns[0];
 
-    const activeBots = this.bots.filter((b) => b.active && !b.health.dead);
+    // In TDM only ENEMY bots should push the player's spawn away — spawning
+    // near allies is fine (and desirable). FFA penalizes every active bot.
+    const activeBots = this.bots.filter((b) =>
+      b.active && !b.health.dead &&
+      (this.mode !== 'tdm' || b.team !== this.playerActor.team));
     if (activeBots.length === 0) return spawns[0];
 
     let bestSpawn = spawns[0];
@@ -701,6 +780,38 @@ export class Game {
     this.matchKills.clear();
     this.matchDeaths.clear();
     this.matchEnded = false;
+    this.teamScore[0] = 0;
+    this.teamScore[1] = 0;
+  }
+
+  /**
+   * Build the per-tick list of targets the bots can engage. Always includes the
+   * local player; in TDM it also includes every active bot so bots fight across
+   * team lines. Vectors are reused via a cache to avoid per-frame allocation.
+   */
+  private targetCache = new Map<string, { eye: THREE.Vector3; vel: THREE.Vector3 }>();
+  private buildBotTargets(): BotTarget[] {
+    const out: BotTarget[] = [];
+    let pc = this.targetCache.get('player');
+    if (!pc) { pc = { eye: new THREE.Vector3(), vel: new THREE.Vector3() }; this.targetCache.set('player', pc); }
+    this.player.eyePos(pc.eye);
+    pc.vel.copy(this.player.vel);
+    out.push({
+      id: 'player', team: this.playerActor.team, eye: pc.eye, vel: pc.vel,
+      cloaked: this.playerActor.isCloaked, dead: this.playerActor.health.dead,
+    });
+    // Only in TDM do bots see each other as targets — keeps FFA/Gun Game feel
+    // identical (bots only ever hunt the player there).
+    if (this.mode === 'tdm') {
+      for (const b of this.bots) {
+        if (!b.active) continue;
+        let bc = this.targetCache.get(b.id);
+        if (!bc) { bc = { eye: new THREE.Vector3(), vel: new THREE.Vector3() }; this.targetCache.set(b.id, bc); }
+        b.getEye(bc.eye);   // bots carry ~no velocity, so vel stays zero (no lead)
+        out.push({ id: b.id, team: b.team, eye: bc.eye, vel: bc.vel, cloaked: false, dead: b.health.dead });
+      }
+    }
+    return out;
   }
 
   private onResize = () => {
@@ -852,9 +963,10 @@ export class Game {
     // --- 3. Bots --- (skipped in Practice and MP modes)
     this.player.eyePos(this._eyePos);
     if (!this.mp) {
+      const targets = this.buildBotTargets();
       for (const b of this.bots) {
         if (!b.active) continue;
-        b.update(dt, this._eyePos, this.player.vel, this.playerActor.isCloaked);
+        b.update(dt, targets);
       }
     }
 

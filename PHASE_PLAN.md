@@ -262,3 +262,73 @@ round — pure deploy/monetization infrastructure.
 
 ### Pending on the user: `vercel login` (to run the deploy), `fly` steps for the
 ### MP server, an approved `ca-pub` id, and registering `ilcartigo.com`.
+
+---
+
+## Phase 15 — Team Deathmatch mode (autonomous build, v0.15.0)
+
+The headline gap in the mode roster was a **team** mode — the most-played format
+in Krunker/CS. Phase 15 ships **Team Deathmatch (TDM)** as a self-contained
+**solo-vs-bots** mode: BLUE (you + 2 ally bots) vs RED (3 enemy bots), first team
+to **50 frags** wins. It doubles as a big **bot-AI upgrade** — bots now fight
+each other across team lines, so the arena finally feels alive even when you hang
+back. **No protocol change** (MP stays FFA); solo + MP + Gun Game + Aim Lab all
+keep working. Typecheck (client + server) + client build green; app chunk
+~71.8 KB gzip.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+**Core systems (low-level, behaviour-preserving for FFA):**
+- **Unified bot targeting.** `Bot.update(dt, targets)` now takes a `BotTarget[]`
+  and engages the nearest visible **enemy** (different team, alive, not cloaked,
+  in range, with LoS). Game builds the list each tick: just the player in
+  FFA/Gun Game (so behaviour is *identical* — the only enemy is you), player +
+  all bots in TDM (so bots hunt the other team). Vectors are pooled in a cache to
+  avoid per-frame allocation.
+- **Team-aware friendly fire.** `World.raycast` gained an optional `friendlyTeam`
+  param that skips same-team damageables — bullets pass through teammates
+  (Krunker convention). Plumbed through `Weapon.ownerTeam` +
+  `WeaponInventory.setOwnerTeam` (persisted across `setPrimary`). Set per-match by
+  Game; `undefined` everywhere else = FFA (hit anyone but self).
+- **`registerDamageable` is now idempotent** — TDM re-runs `syncBotState`, which
+  could otherwise double-register a live bot and double its incoming damage.
+
+**TDM mode (`'tdm'` GameMode, `isCombatMode` includes it):**
+- **Roster.** Two extra bots (`sentinel`/`raider`) are created up front but stay
+  dormant (hidden + unregistered) in Combat / Gun Game so those modes keep their
+  original 3-bot feel; `syncBotState` activates the full 5 for a real **3-v-3**.
+- **Teams.** `TDM_BOT_TEAM` maps each bot to BLUE/RED; player is always BLUE.
+  Bots get a **team colour** (blue/red figure tint, restored to difficulty colour
+  in FFA), a **home spawn** anchored on the map's existing `teamSpawns` (scatter +
+  solid-nudge on respawn), and their weapon's friendly-fire team.
+- **Scoring + win.** `Game.teamScore[2]`; the killer's team scores on every
+  cross-team frag (`teamOf(id)` resolves player→0 / bot→team); first to
+  `TDM_GOAL` (50) fires `onMatchEnded('team:N')`. `pickSafeSpawn` ignores allies
+  in TDM (spawn near friends, away from enemies).
+
+**UI / feel:**
+- **HUD ticker** — `#tdm-ticker` "BLUE n vs m RED · first to 50", updated each
+  frame, themed blue/red.
+- **Scoreboard (Tab)** — TDM renders two team blocks (BLUE then RED) with a
+  team-frag header each, members sorted by kills, you highlighted, dotted rank
+  markers tinted by team.
+- **Post-match** — winner line reads "BLUE/RED TEAM WINS · score–score";
+  VICTORY/DEFEAT by *your team's* result (not your rank); win grants +50 XP.
+- **Minimap** — allies draw blue, enemies red in TDM (all red in FFA).
+- **Menu** — new "⚔ Team Deathmatch (vs Bots)" button (blue accent); ticker
+  shown on start, hidden on quit / online / other modes; Play Again resets team
+  scores and resumes.
+
+### Status log
+- ✅ Phase 15 — Team Deathmatch. DONE (client + server tsc + client build green).
+  Low-level: unified `BotTarget` targeting (FFA behaviour preserved), team-aware
+  `raycast`/`Weapon.ownerTeam`/`WeaponInventory.setOwnerTeam`, idempotent
+  `registerDamageable`. Mode: `'tdm'` 3-v-3 with team colours, home spawns,
+  friendly-fire, team scoring + 50-frag win, TDM scoreboard/ticker/post-match,
+  team-coloured minimap. Two dormant TDM-only bots (sentinel/raider) keep
+  FFA/Gun Game at their original 3-bot roster (filtered out of FFA scoreboard +
+  Gun Game ladder). Version bumped to v0.15.0 (+ menu subtitle/footer).
+
+### Phase 15 COMPLETE — solo TDM mode + bots-fight-bots AI, no protocol change,
+### solo + MP + Gun Game + Aim Lab all intact.

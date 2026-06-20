@@ -1022,6 +1022,46 @@ body.no-speedlines #speed-lines { display: none; }
   border-left: 3px solid #ff8a3a;
 }
 .menu-btn.gungame:hover { border-left-color: #ff8a3a; color: #ff8a3a; }
+.menu-btn.tdm {
+  border-left: 3px solid #4a8cff;
+}
+.menu-btn.tdm:hover { border-left-color: #4a8cff; color: #6ca0ff; }
+
+/* ── Team Deathmatch ticker (top-center HUD) ────────────────────────────── */
+#tdm-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(20, 25, 35, 0.82);
+  padding: 7px 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+}
+#tdm-ticker.hidden { display: none; }
+#tdm-ticker .tdm-team b { font-size: 18px; }
+#tdm-ticker .tdm-blue { color: #6ca0ff; }
+#tdm-ticker .tdm-blue b { color: #9cc0ff; }
+#tdm-ticker .tdm-red { color: #ff7a72; }
+#tdm-ticker .tdm-red b { color: #ffa49e; }
+#tdm-ticker .tdm-vs {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+#tdm-ticker .tdm-goal {
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  letter-spacing: 1px;
+  border-left: 1px solid rgba(255,255,255,0.14);
+  padding-left: 12px;
+}
 
 /* ── Gun Game ticker (top-center HUD) ───────────────────────────────────── */
 #gungame-ticker {
@@ -1948,6 +1988,24 @@ body.no-speedlines #speed-lines { display: none; }
 }
 #sb-body .sb-row.sb-me .sb-name { color: var(--accent); font-weight: 700; }
 #sb-body .sb-row.sb-lead .sb-rank { text-shadow: 0 0 8px var(--accent); }
+
+/* TDM team blocks — a header per team, dotted rank markers tinted by team. */
+.sb-team-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px 5px;
+  margin-top: 6px;
+  font: 800 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sb-team-head:first-child { margin-top: 0; }
+.sb-team-head .sb-team-score { font-size: 16px; }
+.sb-team-head.sb-team-blue { color: #6ca0ff; }
+.sb-team-head.sb-team-red { color: #ff7a72; }
+#sb-body .sb-rank.sb-team-blue { color: #6ca0ff; text-shadow: 0 0 6px rgba(108,160,255,0.5); }
+#sb-body .sb-rank.sb-team-red { color: #ff7a72; text-shadow: 0 0 6px rgba(255,122,114,0.5); }
 .sb-name {
   overflow: hidden;
   text-overflow: ellipsis;

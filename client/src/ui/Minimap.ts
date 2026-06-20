@@ -171,8 +171,13 @@ export class Minimap {
         dot(ctx, this.toX(wx), this.toY(wz), 3);
       });
     } else {
+      const tdm = this.game.mode === 'tdm';
       for (const bot of this.game.bots) {
         if (!bot.active || bot.health.dead) continue;
+        // In TDM, colour by team (allies blue, enemies red); FFA = all red.
+        ctx.fillStyle = tdm
+          ? (bot.team === this.game.playerActor.team ? '#5a9cff' : '#ff5a5a')
+          : '#ff5a5a';
         const pos = bot.group.position;
         dot(ctx, this.toX(pos.x), this.toY(pos.z), 3);
       }

@@ -73,6 +73,15 @@
           <div class="gg-pips" id="gg-pips"></div>
         </div>
 
+        <!-- Team Deathmatch ticker — top-center. BLUE vs RED team frags + goal.
+             Populated by main.ts from game.teamScore each frame in TDM. -->
+        <div id="tdm-ticker" class="hidden">
+          <span class="tdm-team tdm-blue">BLUE <b id="tdm-blue-score">0</b></span>
+          <span class="tdm-vs">vs</span>
+          <span class="tdm-team tdm-red"><b id="tdm-red-score">0</b> RED</span>
+          <span class="tdm-goal">first to <span id="tdm-goal">50</span></span>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -229,7 +238,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.14</p>
+          <p class="subtitle">Browser arena shooter · v0.15</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -276,6 +285,7 @@
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
+            <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
@@ -284,7 +294,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.14.0 — Gun Game · Aim Lab · rank ladder · mastery · minimap</div>
+          <div>v0.15.0 — Team Deathmatch · Gun Game · Aim Lab · rank ladder · minimap</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

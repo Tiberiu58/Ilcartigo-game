@@ -241,6 +241,9 @@ export class Weapon {
   private world: World;
   private bus: GameEventBus;
   private ownerId: string;
+  /** TDM team for friendly-fire skipping. Undefined = FFA (hit everyone but
+   *  self). Set by Game when entering Team Deathmatch. */
+  ownerTeam: number | undefined = undefined;
 
   private ammoInMag: number;
   private cooldown = 0;             // time until next shot is allowed
@@ -383,7 +386,7 @@ export class Weapon {
       dir.normalize();
     }
 
-    const hit = this.world.raycast(origin, dir, this.config.maxRange, this.ownerId);
+    const hit = this.world.raycast(origin, dir, this.config.maxRange, this.ownerId, this.ownerTeam);
 
     this.bus.emit('shot', {
       shooterId: this.ownerId,

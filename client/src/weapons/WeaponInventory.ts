@@ -33,6 +33,9 @@ export class WeaponInventory {
   private active: Slot = 0;
   private last: Slot = 1;
   private scoped = false;
+  /** TDM team (friendly-fire). Persisted here so it survives setPrimary, which
+   *  builds a fresh Weapon. Undefined = FFA. */
+  private ownerTeam: number | undefined = undefined;
 
   // For swap-pending state: the next weapon-id queue, set when 1/2 pressed but
   // we're still in the middle of an in-flight swap animation. Viewmodel owns
@@ -60,6 +63,7 @@ export class WeaponInventory {
     const prevMul = this.weapons[0]?.reloadMultiplier ?? 1.0;
     this.weapons[0] = new Weapon(WEAPON_LIBRARY[id], this.world, this.bus, this.ownerId);
     this.weapons[0].reloadMultiplier = prevMul;
+    this.weapons[0].ownerTeam = this.ownerTeam;
     this.active = 0;
     this.scoped = false;
     return id;
@@ -68,6 +72,13 @@ export class WeaponInventory {
   /** Apply a global reload multiplier (Rush passive). */
   setReloadMultiplier(m: number) {
     for (const w of this.weapons) w.reloadMultiplier = m;
+  }
+
+  /** Set the TDM friendly-fire team on every weapon (and remember it so a later
+   *  setPrimary keeps it). Undefined restores FFA semantics. */
+  setOwnerTeam(team: number | undefined) {
+    this.ownerTeam = team;
+    for (const w of this.weapons) w.ownerTeam = team;
   }
 
   get current(): Weapon { return this.weapons[this.active]; }

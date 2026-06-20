@@ -62,6 +62,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -138,6 +139,21 @@ gunGame.onWin = (winnerId) => {
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
 };
+
+// ─── Team Deathmatch ticker ────────────────────────────────────────────────
+const tdmTicker = document.getElementById('tdm-ticker')!;
+const tdmBlueEl = document.getElementById('tdm-blue-score')!;
+const tdmRedEl = document.getElementById('tdm-red-score')!;
+const tdmGoalEl = document.getElementById('tdm-goal')!;
+tdmGoalEl.textContent = String(Game.TDM_GOAL);
+let lastTdmScore = '';
+function updateTdmTicker() {
+  const s = `${game.teamScore[0]}-${game.teamScore[1]}`;
+  if (s === lastTdmScore) return;
+  lastTdmScore = s;
+  tdmBlueEl.textContent = String(game.teamScore[0]);
+  tdmRedEl.textContent = String(game.teamScore[1]);
+}
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -349,7 +365,7 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' = 'combat') {
   stopAimLab();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
@@ -364,11 +380,20 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
   // weapon swap lands on the live inventory.)
   if (mode === 'gungame') {
-    const participants = [game.localPlayerId(), ...game.bots.map((b) => b.id)];
+    const participants = [game.localPlayerId(), ...game.bots.filter((b) => b.active).map((b) => b.id)];
     gunGame.start(participants);
     ggTicker.classList.remove('hidden');
   } else {
     ggTicker.classList.add('hidden');
+  }
+
+  // Team Deathmatch: show the BLUE-vs-RED ticker; reset its cached display.
+  if (mode === 'tdm') {
+    lastTdmScore = '';
+    updateTdmTicker();
+    tdmTicker.classList.remove('hidden');
+  } else {
+    tdmTicker.classList.add('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -422,6 +447,8 @@ function startOnline() {
   // Poll-update the player count off the remotes map (cheap; runs at the
   // game's frame rate via game.onFrame).
   practiceBadge.classList.add('hidden');
+  ggTicker.classList.add('hidden');
+  tdmTicker.classList.add('hidden');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
   game.input.requestPointerLock();
@@ -442,6 +469,7 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
+  tdmTicker.classList.add('hidden');
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -513,6 +541,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuTdm.addEventListener('click', () => startGame('tdm'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -728,14 +757,18 @@ function playerName(): string {
  * MP are kept authoritative by the server (snapshot kills + MatchOver).
  */
 function renderScoreboard() {
+  if (game.mode === 'tdm' && !game.mp) {
+    renderTdmScoreboard();
+    return;
+  }
   sbMode.textContent = game.mp ? 'Free-for-All · Online' : (game.mode === 'practice' ? 'Practice' : 'Free-for-All · Bots');
   sbGoal.textContent = String(Game.MATCH_KILL_GOAL);
 
   const ids = new Set<string>();
   // Always include the local player.
   ids.add(game.localPlayerId());
-  // Solo bots.
-  if (!game.mp) for (const b of game.bots) ids.add(b.id);
+  // Solo bots (only active ones — TDM-only bots are dormant in FFA/Gun Game).
+  if (!game.mp) for (const b of game.bots) if (b.active) ids.add(b.id);
   // MP remotes.
   if (game.mp) for (const id of game.mp.remoteIds) ids.add(id);
   // Anyone who already has a tally.
@@ -761,6 +794,49 @@ function renderScoreboard() {
       <span class="sb-kd">${kd}</span>
     </div>`;
   }).join('');
+}
+
+/**
+ * Team Deathmatch scoreboard — two team blocks (BLUE then RED), each with a
+ * team-frag header and its members sorted by kills, the local player
+ * highlighted. Reads game.teamScore + per-player matchKills/matchDeaths.
+ */
+function renderTdmScoreboard() {
+  sbMode.textContent = 'Team Deathmatch · Bots';
+  sbGoal.textContent = String(Game.TDM_GOAL);
+
+  type Row = { id: string; kills: number; deaths: number };
+  const teams: [Row[], Row[]] = [[], []];
+  const ids = new Set<string>();
+  ids.add(game.localPlayerId());
+  for (const b of game.bots) if (b.active) ids.add(b.id);
+  game.matchKills.forEach((_, k) => ids.add(k));
+  game.matchDeaths.forEach((_, k) => ids.add(k));
+  for (const id of ids) {
+    const row = { id, kills: game.matchKills.get(id) ?? 0, deaths: game.matchDeaths.get(id) ?? 0 };
+    teams[game.teamOf(id)].push(row);
+  }
+  for (const t of teams) t.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
+
+  const block = (team: 0 | 1) => {
+    const label = team === 0 ? 'BLUE' : 'RED';
+    const cls = team === 0 ? 'sb-team-blue' : 'sb-team-red';
+    const head = `<div class="sb-team-head ${cls}"><span>${label} TEAM</span><span class="sb-team-score">${game.teamScore[team]}</span></div>`;
+    const rows = teams[team].map((r) => {
+      const me = game.isLocalPlayer(r.id);
+      const kd = r.deaths === 0 ? r.kills.toFixed(1) : (r.kills / r.deaths).toFixed(2);
+      return `<div class="sb-row${me ? ' sb-me' : ''}">
+        <span class="sb-rank ${cls}">●</span>
+        <span class="sb-name">${participantName(r.id)}</span>
+        <span class="sb-k">${r.kills}</span>
+        <span class="sb-d">${r.deaths}</span>
+        <span class="sb-kd">${kd}</span>
+      </div>`;
+    }).join('');
+    return head + rows;
+  };
+
+  sbBody.innerHTML = block(0) + block(1);
 }
 
 // Tab nav inside the settings page.
@@ -836,6 +912,7 @@ game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
   minimap.tick();
   updateSpeedLines(speed);
+  if (game.mode === 'tdm') updateTdmTicker();
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;
@@ -911,22 +988,30 @@ function showPostMatch(winnerId: string) {
 
   const myRank = rows.findIndex((r) => r.isYou) + 1;
   const myKills = rows.find((r) => r.isYou)?.kills ?? 0;
-  const youWon = myRank === 1;
+
+  // TDM result: winnerId is "team:N". Win is your team winning, not your rank.
+  const tdmTeam = winnerId.startsWith('team:') ? Number(winnerId.slice(5)) : null;
+  const youWon = tdmTeam !== null ? tdmTeam === game.playerActor.team : myRank === 1;
 
   // Lifetime career: count this finished match + win.
   game.account.recordMatchEnd(youWon);
 
-  // Award end-of-match XP per spec: 50 for win, 25 for top-3 (else 0).
+  // Award end-of-match XP: 50 for a win. FFA also grants 25 for a top-3 finish.
   const xpBefore = game.account.xp;
   if (youWon) game.account.awardXP(50);
-  else if (myRank > 0 && myRank <= 3) game.account.awardXP(25);
+  else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardXP(25);
   const xpDelta = game.account.xp - xpBefore;
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
 
-  pmTitle.textContent = youWon ? 'VICTORY' : 'MATCH OVER';
-  pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : winnerId.slice(0, 6)}</b>`;
+  pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null ? 'DEFEAT' : 'MATCH OVER');
+  if (tdmTeam !== null) {
+    const label = tdmTeam === 0 ? 'BLUE' : 'RED';
+    pmWinnerLine.innerHTML = `<b>${label} TEAM WINS</b> · ${game.teamScore[0]}–${game.teamScore[1]}`;
+  } else {
+    pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : winnerId.slice(0, 6)}</b>`;
+  }
 
   // Build scoreboard rows.
   pmScoreboardBody.innerHTML = rows.map((r, i) => {
@@ -971,7 +1056,7 @@ pmPlayAgain.addEventListener('click', () => {
     announcer.reset();
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
-      gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+      gunGame.start([game.localPlayerId(), ...game.bots.filter((b) => b.active).map((b) => b.id)]);
     }
     game.input.requestPointerLock();
   }

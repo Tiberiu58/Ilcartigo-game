@@ -135,6 +135,10 @@ export class World {
   }
 
   registerDamageable(d: Damageable) {
+    // Idempotent — never double-register the same id (TDM re-runs syncBotState
+    // which can re-register an already-live bot; a duplicate would make every
+    // ray hit it twice and double its damage).
+    if (this.damageables.some((x) => x.id === d.id)) return;
     this.damageables.push(d);
   }
 
@@ -221,6 +225,9 @@ export class World {
     dir: THREE.Vector3,
     maxDistance: number,
     skipId: string | null,
+    /** TDM friendly-fire: when set, damageables on this team are skipped so
+     *  bullets pass through teammates (Krunker convention). Undefined = FFA. */
+    friendlyTeam?: number,
   ): RayHit | null {
     let bestT = maxDistance;
     let bestTarget: Damageable | null = null;
@@ -258,6 +265,7 @@ export class World {
     // Damageables: head first (so it wins ties), then body.
     for (const d of this.damageables) {
       if (d.id === skipId || d.health.dead) continue;
+      if (friendlyTeam !== undefined && d.team === friendlyTeam) continue;
       const head = d.headAABB();
       if (head) {
         const t = test(head);
