@@ -290,7 +290,9 @@ export class HUD {
    * kill count from game.matchKills and the current leader's count.
    */
   private tickMatchScore() {
-    const showIt = this.game.mp !== null && this.game.mode === 'combat';
+    // FFA match ticker — shown in both solo and online combat (TDM/Gun Game
+    // have their own tickers; practice has none).
+    const showIt = this.game.mode === 'combat';
     if (!showIt) {
       if (!this.matchScore.classList.contains('hidden')) {
         this.matchScore.classList.add('hidden');
@@ -312,7 +314,7 @@ export class HUD {
     if (leaderId === myId) {
       this.msLeader.textContent = 'you lead';
     } else {
-      this.msLeader.textContent = `leader: ${shortId(leaderId)} (${leaderKills})`;
+      this.msLeader.textContent = `leader: ${this.game.displayNameFor(leaderId)} (${leaderKills})`;
     }
   }
 
@@ -435,10 +437,5 @@ export class HUD {
       if (e.parentElement) e.parentElement.removeChild(e);
     }, KILLFEED_TTL);
   }
-}
-
-/** Truncate long ids (socket ids in MP) to a readable 6-char tag. */
-function shortId(id: string): string {
-  return id.length <= 8 ? id.toUpperCase() : id.slice(0, 6).toUpperCase();
 }
 

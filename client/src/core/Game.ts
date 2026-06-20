@@ -400,6 +400,16 @@ export class Game {
         }
       }
 
+      // Solo FFA match end (combat mode, no server). MP's end is
+      // server-authoritative; TDM + Gun Game own theirs. First participant
+      // (player OR bot) to the kill goal wins → post-match overlay.
+      if (this.mode === 'combat' && !this.mp && !this.matchEnded && e.attackerId !== e.targetId) {
+        if ((this.matchKills.get(e.attackerId) ?? 0) >= Game.MATCH_KILL_GOAL) {
+          this.matchEnded = true;
+          this.onMatchEnded?.(e.attackerId);
+        }
+      }
+
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
         this.account.awardXP(10);

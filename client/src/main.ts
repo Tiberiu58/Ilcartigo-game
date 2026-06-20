@@ -1042,12 +1042,12 @@ function showPostMatch(winnerId: string) {
     const label = tdmTeam === 0 ? 'BLUE' : 'RED';
     pmWinnerLine.innerHTML = `<b>${label} TEAM WINS</b> · ${game.teamScore[0]}–${game.teamScore[1]}`;
   } else {
-    pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : winnerId.slice(0, 6)}</b>`;
+    pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : game.displayNameFor(winnerId)}</b>`;
   }
 
   // Build scoreboard rows.
   pmScoreboardBody.innerHTML = rows.map((r, i) => {
-    const name = r.isYou ? 'YOU' : r.id.slice(0, 6);
+    const name = r.isYou ? 'YOU' : game.displayNameFor(r.id);
     return `<div class="pm-row ${r.isYou ? 'you' : ''}">
       <span>#${i + 1}</span>
       <span>${name}</span>

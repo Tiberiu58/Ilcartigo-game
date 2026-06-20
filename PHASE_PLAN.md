@@ -426,3 +426,32 @@ Industrial. Selectable for all solo combat modes (FFA / TDM / Gun Game).
   server map stays authoritative). Bumped to v0.18.0 (+ menu subtitle/footer).
 
 ### Phase 18 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 19 — Solo FFA match objective + post-match (autonomous build, v0.19.0)
+
+The default mode ("Play vs Bots" / solo combat) was the only combat mode with
+**no win condition** — it ran forever, so it never hit the post-match overlay
+(the game's main natural ad breakpoint). Phase 19 gives it a real match: first
+participant (you OR a bot) to the kill goal (30) wins → post-match → Play Again.
+Directly increases ad impressions on the most-played mode + adds a sense of
+completion. Pure client, no protocol change.
+
+- **Solo FFA match end** in `Game`'s kill handler (combat mode, no server; MP's
+  end stays server-authoritative, TDM/Gun Game own theirs). Reuses the existing
+  post-match overlay + Play Again reset.
+- **FFA match ticker now shows in solo** too (was MP-only) — your kills / goal +
+  the current leader, so you can see the race.
+- **Callsign polish everywhere** — the match ticker leader, post-match winner
+  line, and post-match scoreboard rows now show bot callsigns (via
+  `Game.displayNameFor`) instead of raw ids; removed the now-dead `shortId`
+  helper in HUD.
+
+### Status log
+- ✅ Phase 19 — Solo FFA match + post-match. DONE (client + server tsc + client
+  build green). Solo combat ends at MATCH_KILL_GOAL via the kill handler; match
+  ticker un-gated to solo; displayNameFor used in ticker/post-match. Bumped to
+  v0.19.0 (+ menu subtitle/footer).
+
+### Phase 19 COMPLETE — pure client, no protocol change, solo + MP intact.
