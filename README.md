@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 14 — v0.14.0. Combat & personalization juice: **dynamic crosshair hit feedback**, floating **score/heal popups**, and **weapon-finish cosmetics**. Built on Phase 13 (minimap/radar, speed lines, bullet-impact FX, map health pickups — protocol v3), Phase 12 (directional damage indicators, low-HP vignette + heartbeat, death recap, bullet-tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 13–14 — v0.14.0. **New modes + progression depth**: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
 
 ## Repo layout
 
@@ -367,71 +367,93 @@ New sound ids reserved (silent until `.wav`s land): `heartbeat`, `first_blood`,
 Production client: **~187 KB gzipped** total (engine 120 + app 61 + CSS 7 + HTML 6).
 ~+2 KB this phase for the whole combat-feel layer. No new dependencies.
 
-## Phase 13 — Spatial Awareness & Movement Juice (this round, v0.13.0)
+## Phase 13 — Gun Game mode (this round, v0.13.0)
 
-After Phase 12 closed the combat-*feedback* gap, Phase 13 closes the *spatial
-awareness* gap and rewards the movement that's always been the game's best part —
-plus the first real gameplay-loop addition since class abilities.
+The first new game mode — mode variety is the biggest driver of replay value in
+arena shooters. Self-contained, solo-vs-bots, no protocol/MP changes, fully
+browser-verified.
 
-- **A. Minimap / tactical radar.** Top-right canvas radar (the single most
-  Krunker-defining missing HUD piece). North-up, whole-arena aspect-fit. Draws
-  the static collision footprint (walls/buildings/cover — tall boxes brighter),
-  jump pads (yellow), health pickups (green crosses, dimmed on cooldown), a teal
-  heading-arrow for you, and red enemy dots — solo bots or MP remotes, hiding
-  cloaked + dead. Pure client; geometry cached per map, draw throttled to 25 Hz.
-  Toggle in Settings → General. New `ui/Minimap.ts`.
-- **B. Speed lines.** Radial motion streaks at the screen edges that ramp in
-  above bhop-tier speed (start 10.5, saturate 18 u/s). CSS-only overlay driven
-  per-frame — deliberately does NOT touch the camera FOV pipeline. Toggle in
-  Settings → General.
-- **C. Bullet-impact FX.** Every landed shot pops a small additive burst at the
-  hit point — warm dust on world geometry, red sparks on flesh. Pooled (impacts
-  fire every shot) with one shared soft radial texture. Works for local, bot,
-  and MP-remote shots. New `weapons/ImpactFX.ts`.
-- **D. Map health pickups.** Floating health pads (4 per combat map) restore
-  +40 HP and respawn after 12 s. **Server-authoritative in MP** (overlap → heal
-  the grabber's authoritative HP, only when hurt → cooldown → respawn, broadcast;
-  restored on rematch). **Client-local logic in solo** via `PickupManager`.
-  Protocol bumped to **v3** (`PickupState`, `ServerWelcome.pickups`,
-  `ServerPickupUpdate`, `EV.Pickup`, mirrored both sides). Shared placement in
-  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts`. Grab feedback: `pickup_health`
-  SFX + a green `#heal-flash` vignette. New `entities/PickupManager.ts`.
+- **Weapon ladder** `smg → ar → shotgun → sniper → marksman → pistol`. Each kill
+  advances the killer one rung; the player's gun visibly swaps in hand. First to
+  land a kill on the FINAL rung (pistol) wins → post-match overlay. The pistol is
+  special-cased (it's the secondary slot, so it selects slot 1).
+- New `modes/GunGame.ts` (bus-driven, decoupled via a small `GunGameHost`
+  interface), `Game.setPlayerPrimaryWeapon`, `GameMode` extended +
+  `isCombatMode()` helper, a top-center Gun Game ticker ("LVL n/6 · WEAPON" +
+  pips), and a "🔫 Gun Game" main-menu button. Play Again restarts the ladder;
+  Quit restores your chosen loadout weapon.
+
+## Phase 14 — Mode + progression expansion (this round, v0.14.0)
+
+This round **integrated four parallel build branches** (an autonomous build loop
+pushed each to its own branch) feature-by-feature onto `main`, resolving the
+overlaps by hand and verifying typecheck + build green after each merge. Net
+result, all live on `main`:
+
+**New modes & content:**
+- **Aim Lab — solo aim trainer.** A "Training" hub with timed drills (Target Rush,
+  Flick Precision) — glowing targets pop into the arena, you flick to them; score =
+  targets popped, with per-drill persistent personal bests surfaced in the Profile
+  tab. Targets are huge-HP `Damageable`s so they never fire `kill` events (combat
+  feedback/progression stays clean). New `modes/AimLab.ts` + drill-select hub +
+  results card (a natural ad breakpoint). Reachable from the menu.
+- **Marksman — new weapon (semi-auto precision DMR).** Fills the gap between AR and
+  sniper. Full client config + viewmodel + a server-side damage profile, and it's
+  the 5th rung of the Gun Game ladder.
+
+**Progression depth (retention → ad impressions):**
+- **Rank ladder + level-up celebration.** A named rank track with a center-screen
+  level-up banner, floating **+XP popups** on kills, and rank badges (HUD + menu).
+  New `account/Ranks.ts` + `ui/ProgressionFX.ts`.
+- **Weapon mastery + skins.** Per-weapon lifetime kills unlock viewmodel-tint skins
+  (no XP cost — you earn them by *using* the gun). New "Weapon Skins" grid grouped
+  by weapon in Cosmetics; mastery counts shown.
+- **Weapon-finish cosmetics.** A second viewmodel axis — an emissive sheen (Standard
+  free, then Gilded / Frostforge / Toxic / Crimson / Voidlight, 350–2500 XP).
+  `Account` extended migration-safe for both axes.
+
+**Real MP fix:**
+- **Server-authoritative per-weapon damage + falloff.** The server previously dealt
+  AR damage for *every* weapon online; now a `SERVER_WEAPONS` table mirrors each
+  client weapon's base damage / headshot mult / falloff ramp, so weapon identity
+  actually matters in MP (snipers one-shot heads, SMGs chip, etc.).
+
+**Spatial awareness & combat juice (from the radar/FX branch):**
+- **Minimap / tactical radar** (top-right canvas; static geometry + jump pads +
+  health pickups + your heading arrow + enemy dots, cloaked/dead hidden; toggle in
+  Settings → General). New `ui/Minimap.ts`.
+- **Speed lines** (edge motion streaks above bhop speed), **bullet-impact FX**
+  (pooled dust/spark bursts at every hit, `weapons/ImpactFX.ts`), **map health
+  pickups** (+40 HP pads, server-authoritative in MP — **protocol v3** —, local in
+  solo, `entities/PickupManager.ts`), **dynamic crosshair hit feedback** (recolour +
+  pop: white body / gold head / red kill), and **floating score/heal popups**
+  (`ui/ScorePopup.ts`).
+- **Crosshair preset packs** (one-click shape packs in Settings → Crosshair).
+
+**Polish:**
+- **Main-menu scroll fix.** The grown menu (added Gun Game / Aim Lab / How-to
+  buttons) was clipped top + bottom on short windows; `.menu-center` now uses
+  `overflow-y: auto` + `safe center` so everything is reachable via scroll, with a
+  themed scrollbar. Browser-verified.
+
+> **Integration note:** a fifth routine branch (arena power-ups: damage-boost /
+> haste) was deliberately **not** merged — it implemented an incompatible second
+> pickup system (and a duplicate "DMR" weapon) that would have clashed with the
+> health-pickup system above. Left for a future, deconflicted pass.
 
 ### Bundle size
 
-Production client: **~190 KB gzipped** total (engine 121 + app 64 + CSS 7 + HTML 6).
-~+3 KB this phase. No new dependencies.
-
-## Phase 14 — Combat & Personalization Juice (this round, v0.14.0)
-
-A pure-client, zero-protocol round of high-feel touches reinforcing Krunker's
-instant-feedback + visible-progression loops (retention → ad impressions).
-
-- **A. Dynamic crosshair hit feedback.** The crosshair briefly recolours +
-  scale-pops on a confirmed hit — white = body, gold = headshot, red = kill —
-  then reverts to your chosen colour. Pure CSS + a small HUD method off the
-  hitConfirm / kill bus events.
-- **B. Floating score / heal popups.** A tasteful "+10 XP" gold toast on each
-  local frag and a green "+40 HP" on a health-pack grab, drifting up + fading.
-  New `ui/ScorePopup.ts` (static API), wired from the kill bus + `PickupManager`.
-- **C. Weapon-finish cosmetics.** A new unlockable axis you see every second you
-  hold a gun — an emissive sheen over the viewmodel (Standard free, then Gilded /
-  Frostforge / Toxic / Crimson / Voidlight at 350–2500 XP). `Account` extended
-  migration-safe (`unlockedFinishes` + `equippedFinish`). `Viewmodel.setFinish`
-  re-applies after each weapon rebuild. New "Weapon Finish" grid in Cosmetics.
-
-### Bundle size
-
-Production client: **~191 KB gzipped** total. ~+1 KB this phase, no new deps.
+Production client: **~196 KB gzipped** total (engine ~122 + app ~70 + CSS ~9 + HTML ~8).
+No new dependencies.
 
 ## Project status
 
-14 phases complete. Movement, combat, classes, weapons, maps, HUD, multiplayer, landing site, progression, audio, polish, scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding, directional damage indicators + low-HP tension + death recap + tracer cosmetics + announcer specials, minimap/radar + speed lines + bullet-impact FX + map health pickups, **crosshair hit feedback + score popups + weapon-finish cosmetics** — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~191 KB gzipped`. Single-player, Practice Range, online FFA, scoreboard, killstreaks, profile/stats, ads, directional damage indicators, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, weapon-finish cosmetics. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~196 KB gzipped`. Single-player, Practice Range, online FFA, **Gun Game**, **Aim Lab**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups. v0.14.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.14.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)
@@ -444,7 +466,8 @@ Things deliberately left for later:
 - **TDM game mode** — team assignment, team spawns (maps already define `teamSpawns`), team scoring.
 - **Matchmaking + multiple rooms** instead of one shared FFA.
 - **Anti-cheat** beyond server authority (movement validation, fire rate caps).
-- **More cosmetics**: crosshair preset packs, tracer colors, victory poses.
+- **Arena power-ups** (damage boost / haste) — the un-merged routine branch; needs deconflicting with the existing health-pickup system into one shared pickup model.
+- **More cosmetics**: victory poses, more weapon skins/finishes.
 - **Bot AI improvements**: per-map waypoints, stair climbing.
 
 ---
