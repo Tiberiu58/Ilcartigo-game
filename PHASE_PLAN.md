@@ -366,3 +366,33 @@ Game). Typecheck (client + server) + client build green; app chunk ~72 KB gzip.
   scoreboard `participantName`. Version bumped to v0.16.0 (+ menu subtitle/footer).
 
 ### Phase 16 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 17 — Enemy nameplates + health bars (autonomous build, v0.17.0)
+
+Pairs with Phase 16's callsigns: floating **callsign + HP bar** over bots — a
+Krunker staple that makes combat instantly readable + juicy, and surfaces the
+new names where they matter (mid-fight, not just the killfeed). Pure client, no
+protocol change. Typecheck + build green; app chunk ~72.9 KB gzip.
+
+- New `ui/Nameplates.ts` — one billboarded `THREE.Sprite` per bot, drawn from a
+  pooled canvas (team-tinted callsign on top, green→amber→red rounded HP bar
+  under it). **`depthTest: true`** so walls naturally occlude plates — you can't
+  read enemies through geometry (fair, no wallhack). Perspective gives distance
+  shrink for free; plates fade out 60→75 m and hide past 75 m or when the bot is
+  dead/inactive. In TDM the callsign is team-coloured (allies blue, enemies red).
+- Cheap: the canvas only redraws when a bot's HP bucket / team / name changes;
+  per-frame cost is just repositioning visible sprites. Ticked from
+  `Game.onFrame`.
+- Solo only (reads `game.bots` HP directly; MP remotes don't broadcast HP — a
+  future protocol-touching item). Toggle in Settings → General (`ilc.nameplates`,
+  default on).
+
+### Status log
+- ✅ Phase 17 — Enemy nameplates. DONE (client tsc + build green). `Nameplates`
+  class (sprite-per-bot, canvas callsign + HP bar, depthTest occlusion, distance
+  fade, TDM team tint), wired into main.ts (`update()` in onFrame) + a
+  General-tab toggle. Bumped to v0.17.0 (+ menu subtitle/footer).
+
+### Phase 17 COMPLETE — pure client, no protocol change, solo + MP intact.

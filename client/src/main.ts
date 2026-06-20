@@ -21,6 +21,7 @@ import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
+import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -103,6 +104,9 @@ void progression;
 // Tactical minimap / radar (top-right).
 const minimap = new Minimap(game, document.getElementById('minimap') as HTMLCanvasElement);
 void minimap;
+
+// Floating enemy nameplates (callsign + HP bar) over solo bots.
+const nameplates = new Nameplates(game);
 
 // Floating "+10 XP" toast on each local frag (visible progression). The kill
 // effect / announcer handle the splashier feedback; this is the running tally.
@@ -189,6 +193,15 @@ minimap.setEnabled(savedMinimap);
 optMinimap.addEventListener('change', () => {
   minimap.setEnabled(optMinimap.checked);
   localStorage.setItem('ilc.minimap', String(optMinimap.checked));
+});
+
+const optNameplates = document.getElementById('opt-nameplates') as HTMLInputElement;
+const savedNameplates = (localStorage.getItem('ilc.nameplates') ?? 'true') === 'true';
+optNameplates.checked = savedNameplates;
+nameplates.setEnabled(savedNameplates);
+optNameplates.addEventListener('change', () => {
+  nameplates.setEnabled(optNameplates.checked);
+  localStorage.setItem('ilc.nameplates', String(optNameplates.checked));
 });
 
 let speedLinesEnabled = (localStorage.getItem('ilc.speedlines') ?? 'true') === 'true';
@@ -928,6 +941,7 @@ let lastHudUpdate = 0;
 game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
   minimap.tick();
+  nameplates.update();
   updateSpeedLines(speed);
   if (game.mode === 'tdm') updateTdmTicker();
   const now = performance.now();
