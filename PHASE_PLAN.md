@@ -512,3 +512,25 @@ A thrown explosive on **G** — the other classic arena throw, adding area-denia
   to v0.21.0 (+ menu subtitle/footer).
 
 ### Phase 21 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 22 — LMG weapon (autonomous build, v0.22.0)
+
+A seventh weapon adds loadout variety (the thing every player touches). The
+**LMG** is a belt-fed suppressor — a distinct sustained-fire archetype that wins
+by volume + area denial rather than precision.
+
+- `LMG_CONFIG` (60-round mag, 11 RPS, 20 dmg, heavy bloom + 3.2 s reload) added
+  to `WEAPON_LIBRARY`; a chunky `buildLMG` viewmodel; a `SERVER_WEAPONS['lmg']`
+  damage profile + `VALID_WEAPONS` entry so it's authoritative in MP too; a
+  loadout button. Added `lmg` to the exhaustive `WEAPON_LABEL` map.
+- Not on the Gun Game ladder (kept at its fixed six rungs); mastery skins simply
+  don't list it yet (`weaponSkinsFor('lmg')` → []), which is safe.
+
+### Status log
+- ✅ Phase 22 — LMG. DONE (client + server tsc + client build green). Weapon
+  config + viewmodel builder + server damage/valid-weapon + loadout button +
+  WEAPON_LABEL. Bumped to v0.22.0 (+ menu subtitle/footer).
+
+### Phase 22 COMPLETE — additive weapon, no protocol change, solo + MP intact.

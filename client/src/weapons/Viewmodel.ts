@@ -254,8 +254,22 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   sniper: buildSniper,
   shotgun: buildShotgun,
   marksman: buildMarksman,
+  lmg: buildLMG,
   pistol: buildPistol,
 };
+
+function buildLMG(p: THREE.Group): number {
+  p.add(box(0.18, 0.14, 0.50, 0x2a2f36, 0, 0, 0));            // bulky body
+  p.add(box(0.11, 0.11, 0.24, 0x3a434d, 0, -0.02, 0.32));     // stock
+  p.add(box(0.06, 0.06, 0.62, 0x141821, 0, 0.02, -0.46));     // heavy barrel
+  p.add(box(0.05, 0.05, 0.30, 0x0e1116, 0, 0.02, -0.74));     // barrel shroud tip
+  p.add(box(0.16, 0.20, 0.14, 0x232931, 0, -0.15, 0.06));     // box magazine (drum-ish)
+  p.add(box(0.08, 0.14, 0.10, 0x232931, 0, -0.12, 0.20));     // grip
+  p.add(box(0.10, 0.05, 0.18, 0x18181d, 0, 0.10, -0.10));     // top rail
+  p.add(box(0.02, 0.06, 0.02, 0xf5d442, 0, 0.14, -0.24));     // front sight
+  p.add(box(0.16, 0.03, 0.10, 0x2a2f36, 0, -0.09, -0.30));    // bipod folded
+  return -0.78;
+}
 
 function buildAR(p: THREE.Group): number {
   p.add(box(0.16, 0.12, 0.42, 0x2c333d, 0, 0, 0));            // body

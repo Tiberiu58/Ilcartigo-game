@@ -195,6 +195,33 @@ export const MARKSMAN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// LMG — belt-fed suppressor. Huge mag + high RPS for sustained fire, but heavy
+// bloom + recoil and a long reload punish careless spray. Lower per-shot damage
+// than the AR; wins through volume + area denial, not precision.
+export const LMG_CONFIG: WeaponConfig = {
+  id: 'lmg',
+  displayName: 'LMG',
+  fireRate: 11,
+  automatic: true,
+  magSize: 60,
+  reloadTime: 3.2,
+  reserveAmmo: -1,
+  baseDamage: 20,
+  headshotMultiplier: 1.6,
+  maxRange: 180,
+  falloffStart: 30,
+  falloffEnd: 90,
+  falloffMinMultiplier: 0.5,
+  baseSpread: 0.010,
+  maxSpread: 0.11,
+  spreadPerShot: 0.010,
+  spreadDecay: 0.22,
+  recoilPitch: 0.013,
+  recoilYaw: 0.010,
+  recoilDecay: 0.7,
+  slot: 'primary',
+};
+
 // Pistol — semi-auto sidearm. Always equipped, decent damage, no reserve cap.
 export const PISTOL_CONFIG: WeaponConfig = {
   id: 'pistol',
@@ -226,6 +253,7 @@ export const WEAPON_LIBRARY = {
   sniper: SNIPER_CONFIG,
   shotgun: SHOTGUN_CONFIG,
   marksman: MARKSMAN_CONFIG,
+  lmg: LMG_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;
