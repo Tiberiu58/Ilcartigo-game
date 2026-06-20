@@ -234,3 +234,31 @@ per-weapon damage) already arrived via FuwnK.
 
 ### Result: Gun Game · Aim Lab · rank ladder · weapon mastery · minimap · impact FX ·
 ### score popups · health pickups · weapon finishes — all on main, tsc + build green.
+
+---
+
+## Publication & Monetization round (manual, by Claude)
+
+Shifted from feature-building to **going live**. No gameplay change in this
+round — pure deploy/monetization infrastructure.
+
+- **Combined Vercel deploy.** `vite.config.ts` gained a configurable `base`
+  (`/play/` in prod, `/` in dev). New `build-static.sh` assembles `public/`
+  (site at root + game at `/play/`); new `vercel.json` runs it, serves `public/`,
+  long-caches `/play/assets/*`. `public/` gitignored. Local combined build
+  verified (asset paths rewritten to `/play/assets/…`; fixed a Git-Bash
+  `MSYS_NO_PATHCONV` leading-slash mangle).
+- **Site + game deployed to Vercel** (preview URL; `ilcartigo.com` canonical kept
+  for later cutover). MP server NOT auto-deployable here (needs the user's Fly
+  login) → documented instead.
+- **AdSense approval-ready.** New `website/ads.txt` (comment-only until a real
+  `pub-` id). New `ADSENSE.md` — 3-edit switch-on checklist. Placeholders stay
+  policy-safe (no real script loads pre-approval). Privacy policy + consent
+  banner already satisfy Google's requirements.
+- **`DEPLOY.md`** — full 3-piece runbook: Vercel (wired), Fly.io MP server
+  (exact `flyctl` sequence + `CLIENT_ORIGIN`/`VITE_SERVER_URL` wiring), domain
+  cutover, ops/rollback cheatsheet.
+- README + this file updated for accounting.
+
+### Pending on the user: `vercel login` (to run the deploy), `fly` steps for the
+### MP server, an approved `ca-pub` id, and registering `ilcartigo.com`.

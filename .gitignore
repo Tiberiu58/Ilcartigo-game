@@ -5,6 +5,8 @@ node_modules/
 # Build output
 client/dist/
 server/dist/
+# Combined static deploy output (assembled by build-static.sh)
+/public/
 
 # Vite / TS caches
 **/.vite/
@@ -33,3 +35,5 @@ Thumbs.db
 
 # Local Claude tooling
 .claude/
+
+.vercel

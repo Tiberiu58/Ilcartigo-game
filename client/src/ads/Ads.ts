@@ -26,9 +26,14 @@ interface AdSlotDef {
 }
 
 export const AD_CONFIG = {
-  /** Replace with your real publisher id after AdSense approval. */
-  publisherId: PLACEHOLDER_PUB,
-  /** Per-named-slot ad-unit ids. Fill these in from your AdSense dashboard. */
+  /** Real AdSense publisher id (set after verification). */
+  publisherId: 'ca-pub-8134911671778438',
+  /**
+   * Per-named-slot ad-unit ids. Still placeholders — create these ad units in
+   * the AdSense dashboard once the account is APPROVED (verification ≠ approval),
+   * then paste each unit's numeric slot id here. Until they're real, AdSense
+   * serves blank for these slots, which is fine for a verified-but-pending site.
+   */
   slots: {
     'menu-top':  { adUnitId: '0000000000', label: 'Top Banner · 728×90' },
     'menu-side': { adUnitId: '0000000000', label: 'Sidebar · 300×600' },

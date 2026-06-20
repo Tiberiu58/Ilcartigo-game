@@ -1,0 +1,6 @@
+# ILCARTIGO — authorized digital sellers (ads.txt)
+# https://iabtechlab.com/ads-txt/
+#
+# AdSense requires this file at the domain root to verify ad inventory
+# ownership. The line below authorizes Google to sell this site's ad space.
+google.com, pub-8134911671778438, DIRECT, f08c47fec0942fa0

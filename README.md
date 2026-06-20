@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 13–14 — v0.14.0. **New modes + progression depth**: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). Deploy groundwork (Fly.io + Vercel) laid.
+> **Status:** Phase 13–14 — v0.14.0. **New modes + progression depth**: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
 
 ## Repo layout
 
@@ -446,9 +446,69 @@ result, all live on `main`:
 Production client: **~196 KB gzipped** total (engine ~122 + app ~70 + CSS ~9 + HTML ~8).
 No new dependencies.
 
+## Publication & Monetization (this round)
+
+The first round focused on **going live** rather than gameplay. Code-side deploy
+plumbing existed since Phase 11; this round assembled it into a one-command
+deploy, deployed the site + game to Vercel, and made the AdSense switch-on a
+documented three-edit checklist.
+
+**Combined Vercel deploy (site + game in one project):**
+- `vite.config.ts` now takes a configurable **`base`** — `/play/` for production
+  (so the game's asset URLs resolve under the sub-path) and `/` in dev. Override
+  with `BASE=/ npm run build` for a root-hosted build.
+- New **`build-static.sh`** (repo root) assembles the deploy output dir
+  `public/`: the marketing site at the root + the game built with `base=/play/`
+  copied to `public/play/`. (Handles the Git-Bash `MSYS_NO_PATHCONV` leading-
+  slash gotcha so it builds correctly on Windows too.)
+- New **`vercel.json`** wires Vercel to run `build-static.sh`, serve `public/`,
+  `cleanUrls`, and long-cache the immutable hashed `/play/assets/*`.
+- `public/` added to `.gitignore` (build artifact).
+- **Result:** one Vercel project serves the marketing site at `/` and the full
+  game at `/play/` — matching the site's existing `/play/` links. Verified the
+  combined build locally (asset paths correctly rewritten to `/play/assets/…`).
+
+**AdSense — approval-ready, one-switch activation:**
+- New **`website/ads.txt`** (comment-only until you hold a `pub-` id — 200s
+  correctly during AdSense review).
+- New **`ADSENSE.md`** — the complete switch-on checklist: exactly three edits
+  (`client/src/ads/Ads.ts` publisher id + unit ids, `website/index.html` loader
+  + `<ins>` units, `website/ads.txt` line) once Google approves. Until then the
+  game shows in-house placeholders and **no real AdSense script loads anywhere**
+  (the policy-safe state — Google rejects sites showing empty live units).
+- The privacy policy already discloses AdSense cookies (`privacy.html` §4) and
+  the consent banner gates personalized ads — both approval requirements met.
+
+**Multiplayer server deploy — documented runbook:**
+- New **`DEPLOY.md`** — the full three-piece runbook. Part 1 (Vercel) is wired
+  and deployable; Part 2 is the exact `flyctl` sequence for the MP server
+  (`fly auth login` → `fly apps create` → `fly deploy` → `fly secrets set
+  CLIENT_ORIGIN=<vercel url>`), the `VITE_SERVER_URL` rebuild step that points
+  the client at Fly, a `ilcartigo.com` cutover section, and an ops/rollback
+  cheatsheet.
+
+**Live URLs (deployed this round):**
+- Site + game → **<https://velocity-two-chi.vercel.app>** (stable alias).
+  Site at `/`, game at `/play`, `ads.txt` at `/ads.txt` — all verified 200,
+  asset paths correctly under `/play/assets/…`. Vercel project:
+  `tiberiu58s-projects/velocity` (GitHub-connected → pushes auto-deploy).
+- A custom domain (`ilcartigo.com`) can be added in the Vercel dashboard later;
+  canonical URLs already point there.
+
+**What's live vs. pending:**
+- ✅ Site + game client → Vercel (single-player, Gun Game, Aim Lab, and the
+  whole site work immediately; no server needed for those).
+- ▶ MP server → Fly.io: config ready, runbook written; you run the `flyctl`
+  steps (needs your Fly login). Online FFA works once that's deployed and
+  `CLIENT_ORIGIN` / `VITE_SERVER_URL` are set.
+- ⏸ AdSense → placeholders held until you have an approved `ca-pub` id
+  (`ADSENSE.md` is the activation checklist).
+- ⏸ Domain → using the free `*.vercel.app` URL for now; canonical URLs already
+  point at `ilcartigo.com` for the eventual cutover.
+
 ## Project status
 
-14 phases complete. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+14 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
