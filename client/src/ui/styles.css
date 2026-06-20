@@ -918,6 +918,9 @@ body.no-speedlines #speed-lines { display: none; }
 .loadout-grid.map-grid {
   grid-template-columns: 1fr 1fr;
 }
+.loadout-grid.diff-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+}
 .loadout-btn {
   background: var(--panel);
   color: var(--text);

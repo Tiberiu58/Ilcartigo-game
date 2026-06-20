@@ -21,7 +21,7 @@ import { World } from './World';
 import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
-import { Bot, type BotTarget } from '../entities/Bot';
+import { Bot, type BotTarget, type GameDifficulty } from '../entities/Bot';
 import { PickupManager } from '../entities/PickupManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
@@ -78,6 +78,15 @@ const TDM_BOT_TEAM: Record<string, number> = {
 /** Bots that exist ONLY for TDM — hidden/unregistered in Combat + Gun Game so
  *  those modes keep their original 3-bot roster. */
 const TDM_ONLY_BOTS = new Set(['sentinel', 'raider']);
+
+/** Humanized bot callsigns (killfeed/scoreboard). Keyed by the stable bot id. */
+const BOT_CALLSIGN: Record<string, string> = {
+  wanderer: 'Drifter',
+  engager: 'Viper',
+  predictor: 'Specter',
+  sentinel: 'Bishop',
+  raider: 'Havoc',
+};
 
 export interface FrameInfo {
   fps: number;
@@ -158,6 +167,22 @@ export class Game {
     const bot = this.bots.find((b) => b.id === id);
     if (bot) return bot.team;
     return 1;
+  }
+
+  /** Apply a bot difficulty (Easy/Normal/Hard) to the whole roster. Persisted by
+   *  main.ts; set on boot + whenever the player changes it in the menu. */
+  setDifficulty(level: GameDifficulty) {
+    this.difficulty = level;
+    for (const b of this.bots) b.setDifficulty(level);
+  }
+
+  /** Friendly display name for any actor id: the local player's handle, a bot's
+   *  callsign, or a shortened MP socket id. Used by killfeed/scoreboard/recap. */
+  displayNameFor(id: string): string {
+    if (this.isLocalPlayer(id)) return this.account.name;
+    const bot = this.bots.find((b) => b.id === id);
+    if (bot) return bot.name;
+    return id.length <= 8 ? id.toUpperCase() : id.slice(0, 6).toUpperCase();
   }
 
   /**
@@ -275,6 +300,9 @@ export class Game {
     // keep their original 3-bot feel; syncBotState turns them on for TDM.
     this.bots.push(new Bot('sentinel', new THREE.Vector3( 10, 0.5,  10), this.world, this.bus, 'engager'));
     this.bots.push(new Bot('raider',   new THREE.Vector3(-10, 0.5, -10), this.world, this.bus, 'predictor'));
+    // Humanized callsigns for the killfeed/scoreboard (the id stays the stable
+    // scoring key). Mapped by id so it's stable across matches.
+    for (const b of this.bots) b.name = BOT_CALLSIGN[b.id] ?? b.id;
     for (const b of this.bots) {
       if (TDM_ONLY_BOTS.has(b.id)) {
         b.active = false;
@@ -441,6 +469,8 @@ export class Game {
   private combatMapId: MapId = 'sandstone';
   /** Current graphics quality — re-applied after any map change. */
   private graphicsQuality: 'low' | 'medium' | 'high' = 'medium';
+  /** Player-chosen bot difficulty — applied to every bot. */
+  private difficulty: GameDifficulty = 'normal';
 
   setCombatMap(id: MapId) {
     this.combatMapId = id;
@@ -526,6 +556,7 @@ export class Game {
           b.homeSpawn = null;
           b.weapon.ownerTeam = undefined;
         }
+        b.setDifficulty(this.difficulty);
         b.active = true;
         b.group.visible = true;
         this.world.registerDamageable(b);

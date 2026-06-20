@@ -332,3 +332,37 @@ build green, never break solo / MP / the audit fixes.
 
 ### Phase 15 COMPLETE — solo TDM mode + bots-fight-bots AI, no protocol change,
 ### solo + MP + Gun Game + Aim Lab all intact.
+
+---
+
+## Phase 16 — Bot identity + difficulty selector (autonomous build, v0.16.0)
+
+A pure-client, zero-protocol round that **broadens the audience** (Easy for new
+players, Hard for veterans → longer sessions → more ad breakpoints) and makes
+bots read like real opponents — both amplify every solo mode (FFA / TDM / Gun
+Game). Typecheck (client + server) + client build green; app chunk ~72 KB gzip.
+
+- **Bot difficulty (Easy / Normal / Hard).** A menu selector (persisted to
+  `ilc.difficulty`) scales the whole roster's **AI feel** — reaction window, aim
+  jitter cone, predictive lead, and fire cadence — via a `SKILL` table layered on
+  each bot's per-tier preset. Deliberately scales the *feel*, not weapon stats, so
+  there's no weapon rebuild and it applies live. `Bot.setDifficulty` +
+  `Game.setDifficulty` (re-applied in `syncBotState` so freshly-activated TDM
+  bots inherit it). Easy = slow + sloppy + barely leads; Hard = snappy, accurate,
+  leads hard.
+- **Humanized bot callsigns.** Each bot gets a stable callsign (Drifter / Viper /
+  Specter / Bishop / Havoc) shown in the killfeed, scoreboard, and death recap —
+  the *id* stays the scoring key. New `Game.displayNameFor(id)` unifies naming
+  (local handle / bot callsign / short MP id); HUD killfeed + recap + main.ts
+  scoreboard all route through it (replacing the old "Engager Bot" difficulty
+  labels and raw short-ids for bots).
+
+### Status log
+- ✅ Phase 16 — Bot identity + difficulty. DONE (client + server tsc + client
+  build green). `GameDifficulty` + `SKILL` modifier table in Bot; `setDifficulty`
+  on Bot + Game; menu Easy/Normal/Hard selector (`data-diff`, excluded from the
+  weapon-selector query) persisted + applied live + on boot. Bot callsigns via
+  `BOT_CALLSIGN` + `Game.displayNameFor`, wired into HUD killfeed/recap +
+  scoreboard `participantName`. Version bumped to v0.16.0 (+ menu subtitle/footer).
+
+### Phase 16 COMPLETE — pure client, no protocol change, solo + MP intact.

@@ -36,6 +36,18 @@ const RESPAWN_DELAY = 3.0;
  * predict>0 means aim at their position + velocity * predict seconds.
  */
 export type BotDifficulty = 'wanderer' | 'engager' | 'predictor';
+
+/** Player-chosen global skill level. Layered on top of each bot's per-tier
+ *  preset so the whole roster scales together without rebuilding weapons. */
+export type GameDifficulty = 'easy' | 'normal' | 'hard';
+/** Multipliers applied to the AI feel (NOT weapon stats): reaction window, aim
+ *  jitter cone, predictive lead, and fire-cadence gap. Easy = slow + sloppy;
+ *  Hard = fast, accurate, leads its shots. */
+const SKILL: Record<GameDifficulty, { reaction: number; jitter: number; predict: number; fireGap: number }> = {
+  easy:   { reaction: 1.7, jitter: 2.4, predict: 0.3, fireGap: 1.40 },
+  normal: { reaction: 1.0, jitter: 1.0, predict: 1.0, fireGap: 1.00 },
+  hard:   { reaction: 0.6, jitter: 0.45, predict: 1.5, fireGap: 0.78 },
+};
 const DIFFICULTY: Record<BotDifficulty, {
   reactionTime: number; aimJitter: number; predictSeconds: number; fireRate: number; damageMul: number;
 }> = {
@@ -106,6 +118,11 @@ export class Bot implements Damageable {
   private sidestepPhase = 0;
   private tier: typeof DIFFICULTY[BotDifficulty];
   readonly difficulty: BotDifficulty;
+  /** Humanized callsign shown in the killfeed + scoreboard. Defaults to the id;
+   *  Game assigns a real one. The id stays the stable key for scoring. */
+  name: string;
+  /** Active global skill modifier (Easy/Normal/Hard). */
+  private skill = SKILL.normal;
 
   // Mesh refs + base colours so TDM can re-tint to team colours and restore.
   private bodyMesh!: THREE.Mesh;
@@ -130,6 +147,7 @@ export class Bot implements Damageable {
     this.bus = bus;
     this.difficulty = difficulty;
     this.tier = DIFFICULTY[difficulty];
+    this.name = id;
 
     // Bots share the AR config but each tier modulates fire rate + damage.
     // damageMul is applied to baseDamage — easier bots hit softer.
@@ -266,11 +284,16 @@ export class Bot implements Damageable {
       const sideDir = _SIDE.set(Math.cos(this.yaw + Math.PI / 2), 0, -Math.sin(this.yaw + Math.PI / 2));
       this.tryStep(sideDir.multiplyScalar(sideAmount * dt));
 
-      // Fire after reaction window. Predictor-tier leads the target.
-      if (this.engageTime > this.tier.reactionTime && this.timeSinceLastShot > 1 / this.weapon.config.fireRate) {
+      // Fire after the reaction window. Both gates scale with the chosen
+      // difficulty (slower + rarer on Easy, snappier on Hard). Predictor-tier
+      // leads the target; Hard widens the lead.
+      const reaction = this.tier.reactionTime * this.skill.reaction;
+      const fireGap = (1 / this.weapon.config.fireRate) * this.skill.fireGap;
+      if (this.engageTime > reaction && this.timeSinceLastShot > fireGap) {
         const aimPoint = _AIM_POINT.copy(best.eye);
-        if (this.tier.predictSeconds > 0) {
-          aimPoint.addScaledVector(best.vel, this.tier.predictSeconds);
+        const predict = this.tier.predictSeconds * this.skill.predict;
+        if (predict > 0) {
+          aimPoint.addScaledVector(best.vel, predict);
         }
         this.fireAt(botEye, aimPoint);
       }
@@ -280,6 +303,11 @@ export class Bot implements Damageable {
     }
 
     this.syncMesh();
+  }
+
+  /** Apply the player-chosen global skill level (Easy/Normal/Hard). */
+  setDifficulty(level: GameDifficulty) {
+    this.skill = SKILL[level];
   }
 
   /** Eye position (mid-head) in world space — for Game's target list + LoS. */
@@ -308,8 +336,8 @@ export class Bot implements Damageable {
 
   private fireAt(origin: THREE.Vector3, target: THREE.Vector3) {
     this._aim.subVectors(target, origin).normalize();
-    // Aim jitter — uniform in a cone of half-angle this.tier.aimJitter.
-    const r = this.tier.aimJitter;
+    // Aim jitter — uniform in a cone whose half-angle scales with difficulty.
+    const r = this.tier.aimJitter * this.skill.jitter;
     const ax = (Math.random() - 0.5) * 2 * r;
     const ay = (Math.random() - 0.5) * 2 * r;
     this._aim.x += ax;

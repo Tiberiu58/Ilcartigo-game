@@ -10,7 +10,7 @@
  *      to whichever called it.
  *
  * Persistent settings (all under the `ilc.*` localStorage prefix):
- *   ilc.fov ilc.sens ilc.class ilc.primary ilc.map ilc.gfx
+ *   ilc.fov ilc.sens ilc.class ilc.primary ilc.map ilc.gfx ilc.difficulty
  *   ilc.ch.color ilc.ch.size ilc.ch.thickness ilc.ch.gap ilc.ch.outline ilc.ch.dot
  */
 
@@ -516,9 +516,26 @@ if (savedMap !== 'sandstone' && savedMap !== 'industrial') {
 }
 game.setCombatMap(savedMap === 'sandstone' || savedMap === 'industrial' ? savedMap : 'sandstone');
 
+// Bot difficulty selector — Easy / Normal / Hard. Scales the whole bot roster's
+// AI feel (reaction, aim, lead, fire cadence). Persisted; applies live.
+const diffBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn[data-diff]');
+const savedDiff = (localStorage.getItem('ilc.difficulty') ?? 'normal') as 'easy' | 'normal' | 'hard';
+diffBtns.forEach((btn) => {
+  const lvl = (btn.dataset.diff ?? 'normal') as 'easy' | 'normal' | 'hard';
+  btn.classList.toggle('selected', lvl === savedDiff);
+  btn.addEventListener('click', () => {
+    diffBtns.forEach((b) => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    game.setDifficulty(lvl);
+    localStorage.setItem('ilc.difficulty', lvl);
+    game.audio.play('ui_click');
+  });
+});
+game.setDifficulty(savedDiff === 'easy' || savedDiff === 'hard' ? savedDiff : 'normal');
+
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.
-const loadoutBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn:not([data-map])');
+const loadoutBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn:not([data-map]):not([data-diff])');
 const savedPrimary = (localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId;
 loadoutBtns.forEach((btn) => {
   const id = (btn.dataset.weapon ?? 'ar') as WeaponId;
@@ -739,7 +756,7 @@ window.addEventListener('keyup', (e) => {
 function participantName(id: string): string {
   if (game.isLocalPlayer(id)) return playerName();
   const bot = game.bots.find((b) => b.id === id);
-  if (bot) return bot.difficulty.charAt(0).toUpperCase() + bot.difficulty.slice(1) + ' Bot';
+  if (bot) return bot.name;
   // MP remote: short socket id.
   return id.length <= 8 ? id.toUpperCase() : id.slice(0, 6).toUpperCase();
 }

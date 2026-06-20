@@ -123,8 +123,8 @@ export class HUD {
 
     // Kills → killfeed. Shortens MP socket ids to a 6-char tag for readability.
     bus.on('kill', (e) => {
-      const killer = this.game.isLocalPlayer(e.attackerId) ? 'YOU' : shortId(e.attackerId);
-      const victim = this.game.isLocalPlayer(e.targetId)   ? 'YOU' : shortId(e.targetId);
+      const killer = this.game.isLocalPlayer(e.attackerId) ? 'YOU' : this.game.displayNameFor(e.attackerId);
+      const victim = this.game.isLocalPlayer(e.targetId)   ? 'YOU' : this.game.displayNameFor(e.targetId);
       this.pushKill(killer, victim, e.weaponId, e.isHeadshot);
 
       // Kill-confirm marker when YOU got the kill (not a suicide/fall).
@@ -412,12 +412,10 @@ export class HUD {
     this.rcRecap.classList.remove('hidden');
   }
 
-  /** Friendly name for whoever killed us: a bot's difficulty label, or a short
-   *  MP id. (Never the local player — guarded by the caller.) */
+  /** Friendly name for whoever killed us: a bot's callsign, or a short MP id.
+   *  (Never the local player — guarded by the caller.) */
   private killerName(id: string): string {
-    const bot = this.game.bots.find((b) => b.id === id);
-    if (bot) return bot.difficulty.charAt(0).toUpperCase() + bot.difficulty.slice(1) + ' Bot';
-    return shortId(id);
+    return this.game.displayNameFor(id);
   }
 
   private pushKill(killer: string, victim: string, weaponId: string, isHeadshot: boolean) {
