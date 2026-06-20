@@ -241,6 +241,11 @@ export const WEAPON_SKINS: ReadonlyArray<WeaponSkinConfig> = [
     { displayName: 'Forest',   color: 0x35502f },
     { displayName: 'Brass',    color: 0xc8a850 },
   ]),
+  ...makeWeaponSkins('lmg', 'Standard', [
+    { displayName: 'Gunner',   color: 0x47525e },
+    { displayName: 'Verdant',  color: 0x3f6b3a },
+    { displayName: 'Molten',   color: 0xd8632a },
+  ]),
   ...makeWeaponSkins('pistol', 'Standard', [
     { displayName: 'Slate',    color: 0x556070 },
     { displayName: 'Ivory',    color: 0xe8e2d0 },
@@ -249,7 +254,7 @@ export const WEAPON_SKINS: ReadonlyArray<WeaponSkinConfig> = [
 ];
 
 /** Weapon ids in the order the UI should present them. */
-export const WEAPON_SKIN_ORDER = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'pistol'] as const;
+export const WEAPON_SKIN_ORDER = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'lmg', 'pistol'] as const;
 
 export function weaponSkinsFor(weaponId: string): WeaponSkinConfig[] {
   return WEAPON_SKINS.filter((s) => s.weaponId === weaponId);
