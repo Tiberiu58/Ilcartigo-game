@@ -1239,8 +1239,27 @@ const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
+const pmScAccolade = document.getElementById('pm-sc-accolade')!;
+const pmScRank = document.getElementById('pm-sc-rank')!;
+const pmScKills = document.getElementById('pm-sc-kills')!;
+const pmScDeaths = document.getElementById('pm-sc-deaths')!;
+const pmScKd = document.getElementById('pm-sc-kd')!;
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
+
+/** Pick a punchy accolade for the player's match performance — pure flavour
+ *  that makes the post-match scorecard feel earned. Ordered most → least
+ *  impressive so the best-fitting title wins. */
+function accoladeFor(youWon: boolean, rank: number, kills: number, deaths: number, kd: number): string {
+  if (deaths === 0 && kills >= 5) return 'FLAWLESS';
+  if (kd >= 3 && kills >= 6) return 'DOMINATING';
+  if (youWon || rank === 1) return 'MVP';
+  if (kills >= 15) return 'ON A TEAR';
+  if (kd >= 2) return 'SHARPSHOOTER';
+  if (rank > 0 && rank <= 3) return 'PODIUM FINISH';
+  if (kills >= 8) return 'SOLID RUN';
+  return 'GOOD FIGHT';
+}
 
 function showPostMatch(winnerId: string) {
   game.audio.play('match_end');
@@ -1291,6 +1310,17 @@ function showPostMatch(winnerId: string) {
   } else {
     pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : game.displayNameFor(winnerId)}</b>`;
   }
+
+  // Personal scorecard — your placement + K/D + a dynamic accolade. Makes the
+  // result feel personal (and keeps eyes on the ad-bearing screen a beat longer).
+  const myRow = rows.find((r) => r.isYou);
+  const myDeaths = myRow?.deaths ?? 0;
+  const myKdNum = myDeaths === 0 ? myKills : myKills / myDeaths;
+  pmScRank.textContent = myRank > 0 ? `#${myRank}` : '—';
+  pmScKills.textContent = String(myKills);
+  pmScDeaths.textContent = String(myDeaths);
+  pmScKd.textContent = myRow?.kd ?? '0.0';
+  pmScAccolade.textContent = accoladeFor(youWon, myRank, myKills, myDeaths, myKdNum);
 
   // Build scoreboard rows.
   pmScoreboardBody.innerHTML = rows.map((r, i) => {

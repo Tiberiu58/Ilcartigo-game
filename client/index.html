@@ -284,7 +284,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.27</p>
+          <p class="subtitle">Browser arena shooter · v0.28</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -368,7 +368,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.27.0 — Kill banner · Weapon cards · Hit-juice · Duel · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
+          <div>v0.28.0 — Match scorecard · Kill banner · Weapon cards · Hit-juice · Duel · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -400,6 +400,18 @@
         <div class="postmatch-card">
           <h2 id="pm-title">MATCH OVER</h2>
           <p id="pm-winner-line" class="pm-winner">winner: —</p>
+
+          <!-- Personal scorecard — your placement + K/D + a dynamic accolade.
+               Populated by main.ts (showPostMatch) from this match's tallies. -->
+          <div id="pm-scorecard" class="pm-scorecard">
+            <div class="pm-sc-accolade" id="pm-sc-accolade">GOOD FIGHT</div>
+            <div class="pm-sc-stats">
+              <div class="pm-sc-stat"><span id="pm-sc-rank">#1</span><label>Placement</label></div>
+              <div class="pm-sc-stat"><span id="pm-sc-kills">0</span><label>Kills</label></div>
+              <div class="pm-sc-stat"><span id="pm-sc-deaths">0</span><label>Deaths</label></div>
+              <div class="pm-sc-stat"><span id="pm-sc-kd">0.0</span><label>K/D</label></div>
+            </div>
+          </div>
 
           <div class="pm-scoreboard">
             <div class="pm-row pm-row-head">

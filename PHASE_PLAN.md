@@ -825,3 +825,29 @@ dopamine hit that makes each kill land. Pure client, no protocol change.
   (+ menu subtitle/footer). App chunk ~79.8 KB gzip.
 
 ### Phase 27 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 28 — Post-match personal scorecard (autonomous build, v0.28.0)
+
+The post-match overlay is the game's main natural ad breakpoint, but it only
+showed the scoreboard + raw XP — nothing that made *your* result feel earned.
+Phase 28 adds a personal **scorecard** above the scoreboard: a dynamic accolade
+(FLAWLESS / DOMINATING / MVP / ON A TEAR / SHARPSHOOTER / PODIUM FINISH / SOLID
+RUN / GOOD FIGHT) + your four key numbers (placement, kills, deaths, K/D). It
+makes the win/loss personal *and* keeps eyes on the ad-bearing screen a beat
+longer (retention → ad value). Pure UI off the existing match tallies — works in
+solo FFA, TDM, Gun Game, and MP (the modes that use the post-match overlay).
+
+- New `#pm-scorecard` block + `accoladeFor()` helper (ordered most → least
+  impressive so the best-fitting title wins, computed from youWon/rank/kills/
+  deaths/kd). Populated in `showPostMatch` from `game.matchKills`/`matchDeaths`
+  (same source as the scoreboard) — no new state, no protocol change.
+
+### Status log
+- ✅ Phase 28 — Post-match scorecard. DONE (client + server tsc + client build
+  green). `#pm-scorecard` HTML + CSS (gold accolade + 4-stat grid), `accoladeFor`
+  + population wired into `showPostMatch`. Bumped to v0.28.0 (+ menu
+  subtitle/footer). App chunk ~80 KB gzip.
+
+### Phase 28 COMPLETE — pure client, no protocol change, solo + MP intact.
