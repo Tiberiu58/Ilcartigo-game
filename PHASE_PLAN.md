@@ -715,3 +715,55 @@ two Bot type sets — `GameDifficulty` global skill + `BotDifficulty` per-tier +
 app chunk ~78 KB gzip, 89 modules. Versions unified to **v0.24.0**. The
 deliberately-unmerged t2Opo power-up branch from the prior round remains
 unmerged (still conflicts with the health-pickup system).
+
+---
+
+## Phase 25 — Duel (1v1 gauntlet) mode (autonomous build, v0.25.0)
+
+The most direct expression of the core competitive loop — *the constant desire
+to win the next duel*. ILCARTIGO had team/free-for-all/survival/trainer modes but
+no pure **1v1**, the format that most rewards aim + movement mastery and gives
+players a clean, personal skill ladder to climb. **Duel** is a solo gauntlet: you
+face a single opponent in a fair fight, and each win advances you to a tougher
+rival. Lose one duel and the run ends on a results card (a natural ad breakpoint)
+showing your win streak vs your persistent personal best — beat-your-best chase,
+infinitely replayable. Pure client, **no protocol/server change**; solo + MP +
+every prior mode intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **The Onslaught pattern, reused.** Duel owns the bot roster only while it runs
+  (`setSurvivalActive` parks the base bots; `clearSurvivalBots` disposes the
+  opponent between duels). Each rival is an ordinary `Bot` that doesn't
+  auto-respawn, so its death IS a player frag — XP / lifetime stats / killfeed /
+  announcer / weapon mastery all "just work" with no special-casing. New `'duel'`
+  GameMode (combat-class; `isCombatMode` includes it); auto-respawn is gated off
+  for it (single elimination — death ends the run, so the mode owns respawn).
+- **Escalating opponents.** Per-duel ramp on three axes: brain tier
+  (wanderer → engager → predictor), AI-feel skill (EASY → NORMAL → HARD,
+  independent of the menu difficulty so Duel is its own challenge), and HP
+  (100 → 180). Late-gauntlet rivals (duel 6+) glow crimson so the danger reads at
+  a glance. Each opponent gets a distinct cycled callsign (Rookie → Maverick →
+  Blaze → … → Omega) shown in the banner + killfeed.
+- **Minimal, safe surface.** `BotOptions` gained `name?` + `skill?` (a single
+  opponent's callsign + AI feel, set at construction) — additive, every other
+  spawner passes neither → identical behaviour. New `modes/Duel.ts` (Game-coupled
+  controller like Onslaught/AimLab), `game.duel` field + tick.
+- **UI / feel.** `#duel-ticker` (DUEL n · streak · best), a gold "VS {RIVAL}"
+  banner on each duel start + a green "DUEL WON" flash on each win, a "DEFEATED"
+  results card (duels won / opponents faced / best / bonus XP / NEW-BEST, with a
+  `duel` ad slot), a `🎯 Duel` main-menu button surfacing the best streak, and a
+  Duel-streak cell in Profile → Bests. New `duel` ad slot in `Ads.ts`.
+- **XP economy.** A scaling per-win bonus (`30 + duelNum·20`) on top of the normal
+  10-XP-per-kill, banked + shown on the results card.
+
+### Status log
+- ✅ Phase 25 — Duel mode. DONE (client + server tsc + client build green;
+  headless state-machine test confirmed escalating tiers, win-streak tracking,
+  XP bonuses 50+70=120, single-elimination loss, and persistent best across
+  runs). New `modes/Duel.ts`, `'duel'` GameMode + tick + respawn gate, `BotOptions`
+  `name`/`skill`, full UI (ticker/banner/results/menu/profile) + `duel` ad slot.
+  Bumped to v0.25.0 (+ menu subtitle/footer). App chunk ~79 KB gzip, 90 modules.
+
+### Phase 25 COMPLETE — solo 1v1 gauntlet, no protocol change, solo + MP intact.

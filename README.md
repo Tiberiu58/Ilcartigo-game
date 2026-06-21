@@ -682,14 +682,29 @@ documented three-edit checklist.
 - ⏸ Domain → using the free `*.vercel.app` URL for now; canonical URLs already
   point at `ilcartigo.com` for the eventual cutover.
 
+## Phase 25 — Duel (1v1 gauntlet) mode (this round, v0.25.0)
+
+The first pure **1v1** mode — the most direct expression of the core loop, *the
+constant desire to win the next duel*. **Duel** is a solo gauntlet: you face one
+opponent in a fair fight, and each win advances you to a tougher rival
+(escalating brain tier + AI skill + HP, distinct cycled callsigns, late rivals
+glowing crimson). Lose a single duel and the run ends on a **DEFEATED** results
+card (a natural ad breakpoint) showing your win streak vs your persistent
+personal best — infinitely replayable beat-your-best chase. Reuses the Onslaught
+roster pattern (parks base bots; each rival is an ordinary non-respawning `Bot`
+so XP / stats / killfeed / announcer / mastery all just work). New `'duel'` mode
+(single elimination, owns its respawn), `modes/Duel.ts`, a gold "VS {RIVAL}" /
+green "DUEL WON" banner, a `🎯 Duel` menu button + a Duel-streak cell in Profile.
+Pure client, no protocol change — solo + MP both intact.
+
 ## Project status
 
-v0.24.0 — **deployed and live**, two routine branches integrated. Movement, combat, 6 classes, **7 weapons** (incl. Marksman + LMG), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.25.0 — **deployed and live**, two routine branches integrated + Duel mode. Movement, combat, 6 classes, **7 weapons** (incl. Marksman + LMG), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~205 KB gzipped` (app ~78 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.24.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.24.0.
+- `/client` — Vite + TS + Three.js game client. `~206 KB gzipped` (app ~79 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 5 maps, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.25.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.25.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 
 ## What you'd want to do next (post-v1)

@@ -1207,6 +1207,88 @@ body.no-speedlines #speed-lines { display: none; }
 .onslaught-card h2 { color: #ff5a5a; letter-spacing: 8px; }
 .onslaught-card .alr-score { color: #ff7a7a; }
 
+/* ── Duel (1v1 gauntlet) HUD ─────────────────────────────────────────────── */
+.menu-btn.duel { border-left: 3px solid #ffb454; }
+.menu-btn.duel:hover { border-left-color: #ffb454; color: #ffca7a; }
+
+#duel-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(28, 24, 16, 0.84);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #ffb454;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#duel-ticker.hidden { display: none; }
+.duel-no {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ffca7a;
+}
+.duel-no #duel-no-n { color: #fff; }
+.duel-streak {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.duel-streak #duel-streak-n { color: #ffd98a; }
+.duel-best {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-left: 1px solid rgba(255,255,255,0.14);
+  padding-left: 12px;
+}
+
+#duel-banner {
+  position: absolute;
+  left: 50%; top: 30%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 14;
+  pointer-events: none;
+  animation: onb-pop 0.5s ease-out;
+}
+#duel-banner.hidden { display: none; }
+.dub-main {
+  font: 900 60px/1 'Segoe UI', sans-serif;
+  letter-spacing: 6px;
+  color: #ffb454;
+  text-shadow: 0 4px 30px rgba(255, 160, 40, 0.5), 0 2px 6px rgba(0,0,0,0.6);
+}
+.dub-sub {
+  margin-top: 6px;
+  font: 700 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255, 220, 170, 0.85);
+}
+/* Win flash — green accent so a WON banner reads instantly vs the gold VS. */
+#duel-banner.won .dub-main { color: #5ce08a; text-shadow: 0 0 30px rgba(60, 220, 120, 0.7), 0 2px 6px rgba(0,0,0,0.6); }
+#duel-banner.won .dub-sub { color: rgba(180, 255, 200, 0.9); }
+
+#duel-results {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 26;
+}
+#duel-results.hidden { display: none; }
+.duel-card { border-top-color: #ffb454 !important; }
+.duel-card h2 { color: #ffb454; letter-spacing: 8px; }
+.duel-card .alr-score { color: #ffca7a; }
+
 .menu-footer {
   grid-area: footer;
   display: flex;

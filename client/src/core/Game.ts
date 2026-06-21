@@ -45,6 +45,7 @@ import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 import type { AimLab } from '../modes/AimLab';
 import type { Onslaught } from '../modes/Onslaught';
+import type { Duel } from '../modes/Duel';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -58,13 +59,14 @@ const MAPS: Record<MapId, GameMap> = {
   overpass: OVERPASS_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game + TDM play like Combat with extra
- *  rules layered on top; Onslaught is wave survival vs escalating bot packs. */
+ *  rules layered on top; Onslaught is wave survival vs escalating bot packs;
+ *  Duel is a 1v1 gauntlet vs a single escalating opponent. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught';
+  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel';
 }
 
 /** TDM team identity colours (figures + HUD). Blue = the player's team. */
@@ -141,6 +143,9 @@ export class Game {
   /** Optional Onslaught (wave survival) controller — null unless launched from
    *  the menu. Created + wired by main.ts; ticked here for wave/respawn pacing. */
   onslaught: Onslaught | null = null;
+  /** Optional Duel (1v1 gauntlet) controller — null unless launched from the
+   *  menu. Created + wired by main.ts; ticked here for intro/intermission pacing. */
+  duel: Duel | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
 
@@ -462,7 +467,8 @@ export class Game {
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
         // Onslaught owns respawn timing (lives system) — it decides whether to
         // bring the player back or end the run, so skip the auto-loop there.
-        if (!this.mp && this.mode !== 'onslaught') {
+        // Duel is single-elimination — death ends the run, so it owns respawn too.
+        if (!this.mp && this.mode !== 'onslaught' && this.mode !== 'duel') {
           setTimeout(() => this.respawnPlayer(), 1800);
         }
       }
@@ -1202,6 +1208,7 @@ export class Game {
     this.world.update();        // expires Engineer barrier solids when their TTL is up
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
     if (this.onslaught) this.onslaught.update(dt);  // wave pacing + respawn timing
+    if (this.duel) this.duel.update(dt);            // duel intro/intermission pacing
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

@@ -20,6 +20,7 @@ import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
+import { Duel, type DuelResult } from './modes/Duel';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
@@ -66,6 +67,7 @@ const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
 const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
+const menuDuel = document.getElementById('menu-duel') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -96,6 +98,7 @@ let scoreboardOpen = false;
 const game = new Game(canvas);
 game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
+game.duel = new Duel(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
@@ -236,6 +239,94 @@ onrRetry.addEventListener('click', () => {
 });
 onrQuit.addEventListener('click', () => {
   onsResults.classList.add('hidden');
+  quitToMenu();
+});
+
+// ─── Duel (1v1 gauntlet) mode ──────────────────────────────────────────────
+const duelTicker = document.getElementById('duel-ticker')!;
+const duelNoN = document.getElementById('duel-no-n')!;
+const duelStreakN = document.getElementById('duel-streak-n')!;
+const duelBestN = document.getElementById('duel-best-n')!;
+const duelBanner = document.getElementById('duel-banner')!;
+const duelBannerMain = document.getElementById('dub-main')!;
+const duelBannerSub = document.getElementById('dub-sub')!;
+const duelResults = document.getElementById('duel-results')!;
+const durWins = document.getElementById('dur-wins')!;
+const durFaced = document.getElementById('dur-faced')!;
+const durBest = document.getElementById('dur-best')!;
+const durXp = document.getElementById('dur-xp')!;
+const durSub = document.getElementById('dur-sub')!;
+const durNewBest = document.getElementById('dur-newbest')!;
+const durRetry = document.getElementById('dur-retry') as HTMLButtonElement;
+const durQuit = document.getElementById('dur-quit') as HTMLButtonElement;
+let duelBannerTimer = 0;
+
+function flashDuelBanner(main: string, sub: string, won: boolean, hold: number) {
+  duelBannerMain.textContent = main;
+  duelBannerSub.textContent = sub;
+  duelBanner.classList.toggle('won', won);
+  duelBanner.classList.remove('hidden');
+  duelBanner.style.animation = 'none';
+  void duelBanner.offsetWidth;   // reflow so the pop animation restarts
+  duelBanner.style.animation = '';
+  window.clearTimeout(duelBannerTimer);
+  duelBannerTimer = window.setTimeout(() => duelBanner.classList.add('hidden'), hold);
+}
+
+game.duel!.onState = (duelNum, wins, best) => {
+  duelNoN.textContent = String(duelNum);
+  duelStreakN.textContent = String(wins);
+  duelBestN.textContent = String(best);
+};
+game.duel!.onDuelStart = (_duelNum, rival, tier) => {
+  flashDuelBanner(`VS ${rival.toUpperCase()}`, tier, false, 1500);
+  game.audio.play('spawn_protect');
+};
+game.duel!.onDuelWon = (wins) => {
+  flashDuelBanner('DUEL WON', `streak ${wins}`, true, 1400);
+  game.audio.play('match_end');
+};
+game.duel!.onEnd = (r: DuelResult) => {
+  duelTicker.classList.add('hidden');
+  duelBanner.classList.add('hidden');
+  showDuelResults(r);
+};
+
+function showDuelResults(r: DuelResult) {
+  game.audio.play('match_end');
+  game.input.exitPointerLock();
+  durWins.textContent = String(r.wins);
+  durFaced.textContent = String(r.duelsFaced);
+  durBest.textContent = String(r.best);
+  durXp.textContent = `+${r.xpEarned}`;
+  durSub.textContent = r.wins > 0
+    ? `${r.lastRival.toUpperCase()} ended your run`
+    : `${r.lastRival.toUpperCase()} got the better of you`;
+  durNewBest.classList.toggle('hidden', !r.isNewBest);
+  duelResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  Ads.refreshSlot('duel');
+}
+
+function stopDuel() {
+  if (game.duel?.active) game.duel.stop();
+  window.clearTimeout(duelBannerTimer);
+  duelTicker.classList.add('hidden');
+  duelBanner.classList.add('hidden');
+  duelResults.classList.add('hidden');
+}
+
+durRetry.addEventListener('click', () => {
+  duelResults.classList.add('hidden');
+  hud.classList.remove('hidden');
+  duelTicker.classList.remove('hidden');
+  game.resetMatchScore();
+  announcer.reset();
+  game.duel!.start();
+  game.input.requestPointerLock();
+});
+durQuit.addEventListener('click', () => {
+  duelResults.classList.add('hidden');
   quitToMenu();
 });
 
@@ -458,9 +549,10 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' = 'combat') {
   stopAimLab();
   stopOnslaught();
+  stopDuel();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -499,6 +591,14 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
     onsTicker.classList.add('hidden');
   }
 
+  // Duel: hand the roster to the gauntlet controller + show its ticker.
+  if (mode === 'duel') {
+    game.duel!.start();
+    duelTicker.classList.remove('hidden');
+  } else {
+    duelTicker.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -512,6 +612,8 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
  */
 function startOnline() {
   stopAimLab();
+  stopOnslaught();
+  stopDuel();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -560,6 +662,7 @@ function startOnline() {
 function quitToMenu() {
   stopAimLab();
   stopOnslaught();
+  stopDuel();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -575,7 +678,9 @@ function quitToMenu() {
   ggTicker.classList.add('hidden');
   tdmTicker.classList.add('hidden');
   onsTicker.classList.add('hidden');
+  duelTicker.classList.add('hidden');
   refreshOnslaughtButton();
+  refreshDuelButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -668,6 +773,7 @@ menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
 menuTdm.addEventListener('click', () => startGame('tdm'));
 menuOnslaught.addEventListener('click', () => startGame('onslaught'));
+menuDuel.addEventListener('click', () => startGame('duel'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -706,6 +812,13 @@ function refreshOnslaughtButton() {
   menuOnslaught.textContent = best > 0 ? `☠ Onslaught · best wave ${best}` : '☠ Onslaught (Survival)';
 }
 refreshOnslaughtButton();
+
+/** Surface the duel win-streak personal best on the Duel menu button. */
+function refreshDuelButton() {
+  const best = Duel.personalBest();
+  menuDuel.textContent = best > 0 ? `🎯 Duel · best streak ${best}` : '🎯 Duel (1v1 Gauntlet)';
+}
+refreshDuelButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {
