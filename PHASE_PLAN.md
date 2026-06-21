@@ -799,3 +799,29 @@ landing shots. Both reinforce Krunker's instant-feedback + weapon-variety loops
   subtitle/footer). App chunk ~79.7 KB gzip.
 
 ### Phase 26 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 27 — Kill banner (autonomous build, v0.27.0)
+
+The one prominent kill-feedback piece still missing vs Krunker: a flashy
+"ELIMINATED {name}" prompt right under the crosshair the instant you frag
+someone. The killfeed (top-right) and the kill-X marker exist, but neither
+puts the *victim's name* center-screen as a punchy "you got 'em" beat — the
+dopamine hit that makes each kill land. Pure client, no protocol change.
+
+- New `#kill-banner` element + `HUD.showKillBanner(name, isHeadshot)` fired on
+  the local-kill path (alongside the existing kill-X + crosshair flash). Shows
+  "ELIMINATED {NAME}", or a hotter gold "HEADSHOT {NAME}" on a headshot frag.
+  Pop animation restarts each kill so rapid frags re-trigger cleanly; auto-hides
+  after 1.2 s. Positioned at 57vh so it never collides with the announcer
+  (multi-kill, ~19vh) or the death recap (center). Routes the victim name
+  through `Game.displayNameFor` so bot callsigns / MP ids read right.
+
+### Status log
+- ✅ Phase 27 — Kill banner. DONE (client + server tsc + client build green).
+  `#kill-banner` + `kb-pop` CSS (red default / gold headshot), HUD field refs +
+  `showKillBanner`, wired into the local-kill branch. Bumped to v0.27.0
+  (+ menu subtitle/footer). App chunk ~79.8 KB gzip.
+
+### Phase 27 COMPLETE — pure client, no protocol change, solo + MP intact.

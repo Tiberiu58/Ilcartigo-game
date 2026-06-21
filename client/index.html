@@ -130,6 +130,13 @@
           <div id="announcer-sub"></div>
         </div>
 
+        <!-- Kill banner — flashy "ELIMINATED {name}" prompt below the crosshair
+             on each local kill. Populated + animated by HUD.showKillBanner. -->
+        <div id="kill-banner" class="hidden">
+          <span class="kb-tag" id="kb-tag">ELIMINATED</span>
+          <span class="kb-name" id="kb-name">RIVAL</span>
+        </div>
+
         <!-- Level-up celebration banner — pops when XP crosses a level boundary.
              Driven by ProgressionFX.ts. -->
         <div id="levelup-banner" class="hidden">
@@ -277,7 +284,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.26</p>
+          <p class="subtitle">Browser arena shooter · v0.27</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -361,7 +368,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.26.0 — Weapon cards · Hit-juice · Duel · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
+          <div>v0.27.0 — Kill banner · Weapon cards · Hit-juice · Duel · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
