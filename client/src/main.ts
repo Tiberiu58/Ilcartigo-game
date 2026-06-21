@@ -573,11 +573,13 @@ mapBtns.forEach((btn) => {
     localStorage.setItem('ilc.map', id);
   });
 });
-// Recover from a corrupt localStorage value.
-if (savedMap !== 'sandstone' && savedMap !== 'industrial') {
+// Recover from a corrupt localStorage value. Practice is reached via its own
+// button, so it isn't a valid *combat* map selection.
+const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'overpass'];
+if (!COMBAT_MAPS.includes(savedMap)) {
   localStorage.setItem('ilc.map', 'sandstone');
 }
-game.setCombatMap(savedMap === 'sandstone' || savedMap === 'industrial' ? savedMap : 'sandstone');
+game.setCombatMap(COMBAT_MAPS.includes(savedMap) ? savedMap : 'sandstone');
 
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.

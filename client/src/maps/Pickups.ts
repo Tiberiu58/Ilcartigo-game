@@ -48,4 +48,10 @@ export const PICKUPS_BY_MAP: Record<string, readonly PickupDef[]> = {
     { id: 3, type: 'health', pos: [  0, 0.6,  28] },   // north floor
     { id: 4, type: 'health', pos: [  0, 0.6, -28] },   // south floor
   ],
+  overpass: [
+    { id: 1, type: 'health', pos: [  0, 0.6,  24] },   // north lane
+    { id: 2, type: 'health', pos: [  0, 0.6, -24] },   // south lane
+    { id: 3, type: 'health', pos: [ 30, 0.6,   0] },   // east flank
+    { id: 4, type: 'health', pos: [-30, 0.6,   0] },   // west flank
+  ],
 };

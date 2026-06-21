@@ -39,4 +39,10 @@ export const PICKUPS_BY_MAP: Record<string, readonly PickupDef[]> = {
     { id: 3, type: 'health', pos: [  0, 0.6,  28] },
     { id: 4, type: 'health', pos: [  0, 0.6, -28] },
   ],
+  overpass: [
+    { id: 1, type: 'health', pos: [  0, 0.6,  24] },
+    { id: 2, type: 'health', pos: [  0, 0.6, -24] },
+    { id: 3, type: 'health', pos: [ 30, 0.6,   0] },
+    { id: 4, type: 'health', pos: [-30, 0.6,   0] },
+  ],
 };

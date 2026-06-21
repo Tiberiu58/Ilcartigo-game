@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 15 — v0.15.0. **Onslaught (wave survival):** a new solo mode — endless waves of bots that escalate in size + difficulty, a 3-life pool, full-heal + scaling-XP bonus on each cleared wave, a "beat your best wave" high-score chase, and an OVERRUN results card (a natural ad breakpoint). Reuses the existing bot AI verbatim (zero protocol/server change), parks the base roster while it runs, and persists a personal best surfaced on the menu + Profile. Built on Phase 13–14: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
+> **Status:** Phase 16 — v0.16.0. **Overpass:** a third combat map — an urban-dusk arena built around a raised E-W **bridge deck** (sniper sightline) over two ground-level **container lanes** with four mid-height **corner decks**; reliable vertical access via end staircases + corner jump pads, fully enclosed (no void). Solo-selectable across Combat / Gun Game / Onslaught with zero protocol/server change. Built on Phase 15 — **Onslaught (wave survival):** a new solo mode — endless waves of bots that escalate in size + difficulty, a 3-life pool, full-heal + scaling-XP bonus on each cleared wave, a "beat your best wave" high-score chase, and an OVERRUN results card (a natural ad breakpoint). Reuses the existing bot AI verbatim (zero protocol/server change), parks the base roster while it runs, and persists a personal best surfaced on the menu + Profile. Built on Phase 13–14: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
 
 ## Repo layout
 
@@ -475,6 +475,27 @@ New `modes/Onslaught.ts` + `'onslaught'` GameMode + Bot lifecycle additions
 (`autoRespawn`/`ephemeral`/`dispose`) + HUD ticker, wave banner, results card,
 and menu button. App chunk ~71.8 KB gzip (+1.6 KB this phase). No new deps.
 
+## Phase 16 — Overpass (new combat map) (this round, v0.16.0)
+
+A third combat map — the highest-leverage *content* lever in an arena shooter,
+and it deepens **every** solo mode at once (Combat, Gun Game, Onslaught + the
+map selector). Distinct identity: **verticality**.
+
+- **Overpass** — an urban-dusk arena around a raised **E-W bridge deck** (the
+  dominant sniper sightline, y=5) over two ground-level **container lanes**
+  (close-quarters cover) and four mid-height **corner decks** (y=3). Cool
+  concrete/steel palette, teal accents, sodium pads, deep-blue dusk fog.
+- **Reliable vertical access:** a **staircase on-ramp at each bridge end** (treads
+  under the controller's auto-step, so you climb smoothly) + corner-deck jump
+  pads placed outside their footprint. Falling off just drops you to ground
+  level (fully enclosed — no void), so the high ground stays inviting.
+- **Solo-selectable, zero MP risk.** New `maps/OverpassMap.ts` (the proven
+  Sandstone/Industrial box + stair pattern) registered in `MapId`/`MAPS` + a
+  loadout button; the MP server still defaults to Sandstone and clients adopt the
+  server's map, so no protocol/server change. Health-pack placements added to
+  both client + server `Pickups.ts`. Geometry verified headlessly (all spawns
+  clear of solids). App chunk ~72.9 KB gzip (+1.1 KB). No new deps.
+
 ## Publication & Monetization (this round)
 
 The first round focused on **going live** rather than gameplay. Code-side deploy
@@ -544,12 +565,12 @@ documented three-edit checklist.
 
 ## Project status
 
-15 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + Onslaught (wave survival) + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+16 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 4 maps (incl. **Overpass**), HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + Onslaught (wave survival) + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~196 KB gzipped`. Single-player, Practice Range, online FFA, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups. v0.15.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.15.0.
+- `/client` — Vite + TS + Three.js game client. `~197 KB gzipped`. Single-player, Practice Range, online FFA, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 4 maps (Sandstone · Industrial · **Overpass** · Practice), scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups. v0.16.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.16.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

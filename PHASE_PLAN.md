@@ -316,3 +316,45 @@ game-over, and PB persistence.
   Profile best. Versions bumped to v0.15.0. App chunk ~71.8 KB gzip (+1.6 KB).
 
 ### Phase 15 COMPLETE — solo wave-survival mode, no protocol change, solo + MP intact.
+
+---
+
+## Phase 16 — Overpass (new combat map) (autonomous build, v0.16.0)
+
+Maps are the highest-leverage *content* in arena shooters — Krunker's pull is
+dozens of them — and a new map immediately deepens **every** solo mode at once
+(Combat, Gun Game, Onslaught, and the map selector). ILCARTIGO had only two
+combat maps (Sandstone, Industrial); Phase 16 adds a third with a distinct
+identity: **verticality**.
+
+- **Overpass** — an urban-dusk arena built around a raised **E-W bridge deck**
+  (the dominant sniper sightline, y=5) over two ground-level **container lanes**
+  (close-quarters cover) with four mid-height **corner decks** (y=3). Cool
+  concrete + steel palette, teal accents, sodium-orange pads, deep-blue dusk fog.
+- **Reliable vertical access.** The bridge is reached by a **staircase on-ramp at
+  each end** (treads < the controller's 0.55 m auto-step, so you climb smoothly —
+  no air-control RNG). Corner decks are reached by jump pads placed *outside*
+  their footprint (open sky above, run-up momentum carries you on). Falling off
+  the bridge just drops you to ground level — fully enclosed, no void/death pit,
+  so the high ground stays inviting.
+- **Solo-selectable, zero-risk to MP.** New `maps/OverpassMap.ts` (proven
+  Sandstone/Industrial `addBox`/`addJumpPad`/`buildStairs` pattern) + `'overpass'`
+  in the `MapId` union + `MAPS` registry + a loadout map button. The MP server
+  still runs Sandstone by default and clients adopt the server's map, so Overpass
+  needs no protocol/server change; online support later just wants its AABBs in
+  `server/src/MapCollision.ts`. Health-pack placements added to **both**
+  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in sync).
+- **Verified geometry headlessly.** A mock-World harness ran the real `build()`
+  and asserted **all FFA + TDM spawns sit clear of every solid** (caught + fixed
+  an initial bug where corner spawns were embedded inside the corner-deck boxes),
+  61 solids / 4 pads built, deck surface walkable.
+
+### Status log
+- ✅ Phase 16 — Overpass map. DONE (client+server tsc + client build green;
+  headless spawn-clearance + build smoke test passed). New `maps/OverpassMap.ts`
+  (bridge deck + end staircases + corner decks + container lanes + perimeter +
+  dusk lighting/fog), registered in `MapId`/`MAPS`, loadout button, corrupt-value
+  guard generalised to a `COMBAT_MAPS` list, Overpass pickups mirrored client +
+  server. Versions bumped to v0.16.0. App chunk ~72.9 KB gzip (+1.1 KB geometry).
+
+### Phase 16 COMPLETE — third combat map, solo-selectable, no protocol change, solo + MP intact.
