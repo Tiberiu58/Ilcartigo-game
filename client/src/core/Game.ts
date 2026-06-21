@@ -233,6 +233,10 @@ export class Game {
   /** Local player's current consecutive-kill streak (resets on death). Feeds
    *  the lifetime best-streak stat. */
   localStreak = 0;
+  /** Rising-hitmarker chain: consecutive landed hits + the timestamp of the
+   *  last one, used to escalate the hit-confirm SFX pitch. */
+  private _hitChain = 0;
+  private _lastHitMs = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
   /** TDM per-team frag totals. Index = team (0 = BLUE/player, 1 = RED). */
@@ -400,8 +404,15 @@ export class Game {
     });
 
     // Hit confirm SFX. Plays unspatialized so it always reads as feedback.
+    // Consecutive landed hits ramp the pitch up (the satisfying Krunker "rising
+    // hitmarker" feel) — the chain resets after a short gap with no hits.
     this.bus.on('hitConfirm', ({ isHeadshot }) => {
-      this.audio.play(isHeadshot ? 'hit_headshot' : 'hit_confirm');
+      const now = performance.now();
+      this._hitChain = (now - this._lastHitMs < 1100) ? this._hitChain + 1 : 1;
+      this._lastHitMs = now;
+      // +4% per link, capped at +52% — stays musical, never chipmunk.
+      const rate = Math.min(1 + (this._hitChain - 1) * 0.04, 1.52);
+      this.audio.play(isHeadshot ? 'hit_headshot' : 'hit_confirm', 1.0, rate);
     });
 
     this.bus.on('kill', (e) => {

@@ -277,7 +277,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.25</p>
+          <p class="subtitle">Browser arena shooter · v0.26</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -330,6 +330,21 @@
               <button class="loadout-btn" data-weapon="shotgun">Shotgun</button>
               <button class="loadout-btn" data-weapon="lmg">LMG</button>
             </div>
+            <!-- Weapon identity card — archetype + stat bars for the selected
+                 weapon. Populated by main.ts (renderWeaponStats) from the
+                 WEAPON_LIBRARY config. Pure UI; makes the 7 guns feel distinct. -->
+            <div id="weapon-stats" class="weapon-stats">
+              <div class="ws-head">
+                <span id="ws-name">Assault Rifle</span>
+                <span id="ws-arch" class="ws-arch">Versatile</span>
+              </div>
+              <div class="ws-bars">
+                <div class="ws-row"><label>Damage</label><div class="ws-bar"><i id="ws-dmg"></i></div></div>
+                <div class="ws-row"><label>Fire Rate</label><div class="ws-bar"><i id="ws-rof"></i></div></div>
+                <div class="ws-row"><label>Range</label><div class="ws-bar"><i id="ws-range"></i></div></div>
+                <div class="ws-row"><label>Magazine</label><div class="ws-bar"><i id="ws-mag"></i></div></div>
+              </div>
+            </div>
           </div>
           <div class="menu-buttons">
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
@@ -346,7 +361,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.25.0 — Duel · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
+          <div>v0.26.0 — Weapon cards · Hit-juice · Duel · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

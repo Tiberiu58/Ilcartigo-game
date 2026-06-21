@@ -767,3 +767,35 @@ build green, never break solo / MP / the audit fixes.
   Bumped to v0.25.0 (+ menu subtitle/footer). App chunk ~79 KB gzip, 90 modules.
 
 ### Phase 25 COMPLETE — solo 1v1 gauntlet, no protocol change, solo + MP intact.
+
+---
+
+## Phase 26 — Weapon identity + hit juice (autonomous build, v0.26.0)
+
+A deliberately small, **pure-client, zero-protocol** round on the two things that
+make a shooter feel *good* moment-to-moment: knowing your gun, and the sound of
+landing shots. Both reinforce Krunker's instant-feedback + weapon-variety loops
+(retention → ad impressions). Solo + MP both intact.
+
+- **26A — Rising hitmarker.** Consecutive landed hits now ramp the hit-confirm
+  SFX pitch up (+4% per link, capped +52%, the chain resetting after an ~1.1 s
+  gap with no hits) — the deeply satisfying "I'm shredding them" audio escalation
+  Krunker/UT are loved for. `AudioManager.play` gained an optional `rate` arg
+  (only touched when it differs, so the common path is unchanged); Game's
+  `hitConfirm` handler tracks the chain. Works in every mode (local hits only).
+- **26B — Weapon identity card.** The loadout now shows the selected weapon's
+  **archetype** (Versatile Rifle / Run & Gun / One-Shot Sniper / Close-Range
+  Brawler / Precision DMR / Suppressive Fire / Sidearm) plus normalized stat bars
+  (Damage [per trigger-pull, so the shotgun's 9-pellet burst reads big] · Fire
+  Rate · Range · Magazine) read straight from `WEAPON_LIBRARY`. Pure UI — makes
+  the 7 guns read as meaningfully distinct picks, the way Krunker's loadout
+  screen sells its arsenal. Re-renders on every weapon button click + on boot.
+
+### Status log
+- ✅ Phase 26 — Weapon identity + hit juice. DONE (client + server tsc + client
+  build green). `AudioManager.play(id, vol, rate)`; Game rising-hitmarker chain
+  (`_hitChain`/`_lastHitMs`); `#weapon-stats` card + `renderWeaponStats` off
+  `WEAPON_LIBRARY` + `WEAPON_ARCHETYPE`, CSS bars. Bumped to v0.26.0 (+ menu
+  subtitle/footer). App chunk ~79.7 KB gzip.
+
+### Phase 26 COMPLETE — pure client, no protocol change, solo + MP intact.

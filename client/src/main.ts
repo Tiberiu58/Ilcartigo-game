@@ -30,7 +30,7 @@ import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
-import type { WeaponId } from './weapons/Weapon';
+import { WEAPON_LIBRARY, type WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
 // FPS games are unplayable without a mouse. Show a friendly notice instead of
@@ -746,6 +746,36 @@ diffBtns.forEach((btn) => {
 });
 game.setDifficulty(savedDiff === 'easy' || savedDiff === 'hard' ? savedDiff : 'normal');
 
+// Weapon identity card — archetype + normalized stat bars, so the 7 guns read
+// as distinct picks (a Krunker loadout staple). Pure UI off WEAPON_LIBRARY.
+const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
+  ar: 'Versatile Rifle',
+  smg: 'Run & Gun',
+  sniper: 'One-Shot Sniper',
+  shotgun: 'Close-Range Brawler',
+  marksman: 'Precision DMR',
+  lmg: 'Suppressive Fire',
+  pistol: 'Sidearm',
+};
+const wsName = document.getElementById('ws-name')!;
+const wsArch = document.getElementById('ws-arch')!;
+const wsDmg = document.getElementById('ws-dmg') as HTMLElement;
+const wsRof = document.getElementById('ws-rof') as HTMLElement;
+const wsRange = document.getElementById('ws-range') as HTMLElement;
+const wsMag = document.getElementById('ws-mag') as HTMLElement;
+function renderWeaponStats(id: WeaponId) {
+  const c = WEAPON_LIBRARY[id];
+  // Per-trigger-pull damage (shotgun fires multiple pellets at once).
+  const dmg = c.baseDamage * (c.pellets ?? 1);
+  const pct = (v: number, max: number) => `${Math.max(6, Math.min(100, Math.round((v / max) * 100)))}%`;
+  wsName.textContent = c.displayName;
+  wsArch.textContent = WEAPON_ARCHETYPE[id];
+  wsDmg.style.width = pct(dmg, 95);            // shotgun ~90 maxes it
+  wsRof.style.width = pct(c.fireRate, 15);     // SMG 14 near max
+  wsRange.style.width = pct(c.falloffEnd, 150); // sniper saturates
+  wsMag.style.width = pct(c.magSize, 60);      // LMG 60 maxes it
+}
+
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.
 const loadoutBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn:not([data-map]):not([data-diff])');
@@ -759,6 +789,7 @@ loadoutBtns.forEach((btn) => {
     const newId = game.inventory.setPrimary(id);
     game.viewmodel.swapTo(newId);
     localStorage.setItem('ilc.primary', newId);
+    renderWeaponStats(newId);
     game.mp?.sendHello();
   });
 });
@@ -767,6 +798,7 @@ if (savedPrimary !== 'ar') {
   game.inventory.setPrimary(savedPrimary);
   game.viewmodel.swapTo(savedPrimary);
 }
+renderWeaponStats(savedPrimary);
 
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());

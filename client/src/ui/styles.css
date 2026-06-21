@@ -943,6 +943,61 @@ body.no-speedlines #speed-lines { display: none; }
   border-color: #b6961f;
 }
 
+/* Weapon identity card — archetype label + normalized stat bars. */
+.weapon-stats {
+  margin-top: 10px;
+  min-width: 380px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+.weapon-stats .ws-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.weapon-stats #ws-name {
+  font: 800 14px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: var(--text);
+  text-transform: uppercase;
+}
+.weapon-stats .ws-arch {
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.weapon-stats .ws-bars { display: flex; flex-direction: column; gap: 7px; }
+.weapon-stats .ws-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.weapon-stats .ws-row label {
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-align: left;
+}
+.weapon-stats .ws-bar {
+  height: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.weapon-stats .ws-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #b6961f, var(--accent));
+  border-radius: 4px;
+  transition: width 0.22s ease-out;
+}
+
 /* Class selector — six color-coded cards in two rows. */
 .class-grid {
   display: grid;
