@@ -26,6 +26,9 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+# Exception: the production server URL is public (browser connects to it), not a
+# secret — committed so Vercel's build bakes it into the client bundle.
+!client/.env.production
 
 # Fly / deploy local state
 .fly/

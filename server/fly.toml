@@ -9,7 +9,7 @@
 #
 # To switch the map, set the MAP env (sandstone | industrial) and redeploy.
 app = "ilcartigo-server"
-primary_region = "iad"          # change to the region nearest your players
+primary_region = "fra"          # Frankfurt — nearest the player base (EU)
 
 [build]
   dockerfile = "Dockerfile"
