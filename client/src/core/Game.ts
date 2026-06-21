@@ -40,6 +40,7 @@ import { SANDSTONE_MAP } from '../maps/SandstoneMap';
 import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
 import { COBALT_MAP } from '../maps/CobaltMap';
 import { OVERPASS_MAP } from '../maps/OverpassMap';
+import { FROSTLINE_MAP } from '../maps/FrostlineMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
@@ -57,6 +58,7 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
   cobalt: COBALT_MAP,
   overpass: OVERPASS_MAP,
+  frostline: FROSTLINE_MAP,
 };
 
 export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';

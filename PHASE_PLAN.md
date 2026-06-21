@@ -851,3 +851,42 @@ solo FFA, TDM, Gun Game, and MP (the modes that use the post-match overlay).
   subtitle/footer). App chunk ~80 KB gzip.
 
 ### Phase 28 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 29 — Frostline (new combat map) (autonomous build, v0.29.0)
+
+Fresh content is the highest-leverage "one more game" lever in an arena shooter,
+and a new map deepens **every** solo combat mode at once (FFA / TDM / Gun Game /
+Onslaught / Duel + the map selector). ILCARTIGO had four combat maps; Phase 29
+adds a fifth with a distinct identity: **a frozen tundra**.
+
+- **Frostline** — packed-snow ground, frosted pale-ice structures, translucent
+  ice-block cover, aurora-cyan neon, bright cold lighting + an icy-haze fog. The
+  coolest-looking map, for instant contrast with warm Sandstone, rusty
+  Industrial, steel Cobalt and dusk Overpass.
+- **Built on the proven symmetric Cobalt skeleton** (mirrored about both axes →
+  TDM-fair, and the spawn corners are known-clear), then fully re-themed +
+  re-covered with its own identity: a raised frozen central platform (jump-pad
+  ring + ice pillar + corner cover), two symmetric N/S team decks with parapets,
+  diagonal ice-block cover, E/W flank walls, low steppable snow mounds near
+  spawns. Verticality is entirely jump-pad-driven (no step-up-snagging ledges).
+  Translucent `addIceBlock` cover (solid for collision/hitscan, visually airy).
+- **Solo-selectable, zero MP risk.** New `maps/FrostlineMap.ts` registered in
+  `MapId`/`MAPS` + a loadout button + the `COMBAT_MAPS` validation list; health
+  pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in
+  sync). The MP server still defaults to Sandstone and clients adopt the server's
+  map, so Frostline needs no protocol/server change.
+- **Verified geometry headlessly** — a mock-World harness ran the real `build()`
+  and asserted **all 6 FFA + TDM spawns sit clear of every solid** (27 solids,
+  8 pads).
+
+### Status log
+- ✅ Phase 29 — Frostline map. DONE (client + server tsc + client build green;
+  headless spawn-clearance test passed — all spawns clear, 27 solids). New
+  `maps/FrostlineMap.ts` (snow/ice palette, ice-block cover, aurora accents),
+  full wiring (MapId/MAPS/menu/COMBAT_MAPS), Frostline pickups mirrored
+  client+server. Bumped to v0.29.0 (+ menu subtitle/footer). App chunk ~80.7 KB
+  gzip.
+
+### Phase 29 COMPLETE — additive map, no protocol change, solo + MP intact.
