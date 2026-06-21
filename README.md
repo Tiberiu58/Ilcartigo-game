@@ -485,13 +485,21 @@ documented three-edit checklist.
 - The privacy policy already discloses AdSense cookies (`privacy.html` §4) and
   the consent banner gates personalized ads — both approval requirements met.
 
-**Multiplayer server deploy — documented runbook:**
-- New **`DEPLOY.md`** — the full three-piece runbook. Part 1 (Vercel) is wired
-  and deployable; Part 2 is the exact `flyctl` sequence for the MP server
-  (`fly auth login` → `fly apps create` → `fly deploy` → `fly secrets set
-  CLIENT_ORIGIN=<vercel url>`), the `VITE_SERVER_URL` rebuild step that points
-  the client at Fly, a `ilcartigo.com` cutover section, and an ops/rollback
-  cheatsheet.
+**Multiplayer server deploy — done (Fly.io):**
+- Server **live at <https://ilcartigo-game.fly.dev>** — launched via Fly's
+  GitHub integration (Working directory `server`, config `fly.toml`), region
+  Frankfurt (`fra`), one always-on `shared-cpu-1x`/256 MB stateful machine.
+  `CLIENT_ORIGIN` env set to the Vercel origin at launch. `fly.toml` app name
+  synced to `ilcartigo-game` on `main` (Fly named it after the repo).
+- Client wired: **`client/.env.production`** sets `VITE_SERVER_URL` →
+  `https://ilcartigo-game.fly.dev`, baked into the Vercel build, so the live
+  game's "Play Online (FFA)" connects to Fly (was the `localhost:3001` dev
+  fallback). Verified: server health, socket.io handshake, and CORS from the
+  game origin all 200.
+- New **`DEPLOY.md`** — the full three-piece runbook (now all three live): the
+  Vercel build, the Fly server (CLI + GitHub-integration paths), `CLIENT_ORIGIN`
+  / `VITE_SERVER_URL` wiring, an `ilcartigo.com` cutover section, and an
+  ops/rollback cheatsheet.
 
 **Live URLs (deployed this round):**
 - Site + game → **<https://velocity-two-chi.vercel.app>** (stable alias).
@@ -504,9 +512,12 @@ documented three-edit checklist.
 **What's live vs. pending:**
 - ✅ Site + game client → Vercel (single-player, Gun Game, Aim Lab, and the
   whole site work immediately; no server needed for those).
-- ▶ MP server → Fly.io: config ready, runbook written; you run the `flyctl`
-  steps (needs your Fly login). Online FFA works once that's deployed and
-  `CLIENT_ORIGIN` / `VITE_SERVER_URL` are set.
+- ✅ MP server → Fly.io: **deployed and live** at **<https://ilcartigo-game.fly.dev>**
+  (app `ilcartigo-game`, region `fra`/Frankfurt, single always-on stateful
+  machine, protocol v3). Launched via Fly's GitHub integration. `CLIENT_ORIGIN`
+  set to the Vercel origin (CORS verified). The client's `VITE_SERVER_URL`
+  (`client/.env.production`) points at it, so **Play Online (FFA) now connects to
+  the live server** — verified end-to-end (health + socket.io handshake + CORS).
 - ✅ AdSense → real publisher id `ca-pub-8134911671778438` live on all pages +
   in-game; site ownership verified. ⏸ Pending Google **approval** + creating the
   per-slot ad units (then paste their ids into `Ads.ts` / the site `<ins>` tags).
