@@ -165,16 +165,18 @@ game.onslaught!.onState = (wave, lives, enemies) => {
   onsEnemiesN.textContent = String(enemies);
   onsLives.textContent = '♥'.repeat(Math.max(0, lives));
 };
-game.onslaught!.onWaveStart = (wave, count) => {
+game.onslaught!.onWaveStart = (wave, count, isBoss) => {
   onsBannerN.textContent = String(wave);
-  onsBannerSub.textContent = `${count} incoming`;
+  onsBannerSub.textContent = isBoss ? '☠ BOSS WAVE ☠' : `${count} incoming`;
+  onsBanner.classList.toggle('boss', isBoss);
   // Re-trigger the pop animation by toggling the class off→on.
   onsBanner.classList.remove('hidden');
   onsBanner.style.animation = 'none';
   void onsBanner.offsetWidth;        // reflow so the animation restarts
   onsBanner.style.animation = '';
+  game.audio.play(isBoss ? 'match_end' : 'spawn_protect');
   window.clearTimeout(onsBannerTimer);
-  onsBannerTimer = window.setTimeout(() => onsBanner.classList.add('hidden'), 1500);
+  onsBannerTimer = window.setTimeout(() => onsBanner.classList.add('hidden'), isBoss ? 2200 : 1500);
 };
 game.onslaught!.onEnd = (r: OnslaughtResult) => {
   onsTicker.classList.add('hidden');

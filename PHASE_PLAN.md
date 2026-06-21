@@ -358,3 +358,33 @@ identity: **verticality**.
   server. Versions bumped to v0.16.0. App chunk ~72.9 KB gzip (+1.1 KB geometry).
 
 ### Phase 16 COMPLETE — third combat map, solo-selectable, no protocol change, solo + MP intact.
+
+---
+
+## Phase 17 — Onslaught boss waves + HP scaling (autonomous build, v0.17.0)
+
+A focused depth pass on the freshly-shipped survival mode — the cheapest way to
+make an endless-wave loop *memorable* is a recurring escalation beat. Pure
+client, builds straight on Phase 15.
+
+- **Boss waves every 5th wave.** A tanky emissive **elite** (predictor brain,
+  `220 + wave·12` HP, dark-crimson body with a pulsing red glow) leads a smaller
+  add pack. A boss-styled "WAVE n · ☠ BOSS WAVE ☠" banner (deeper red, glowing,
+  longer dwell) + a stinger announce it; clearing it pays **double** the wave
+  bonus.
+- **Per-wave HP creep.** Regular wave bots scale `100 + (wave−1)·8` HP (capped
+  180) so late waves stay threatening even before the next boss.
+- **Minimal, safe surface.** New `BotOptions` (`maxHp` / colour / `emissive` /
+  `elite`) threaded through `Bot` + `Game.spawnSurvivalBot` — the default 3-bot
+  roster and every other mode are untouched (all pass no opts → identical
+  behaviour). No size/AABB change (elites are normal-sized → hitboxes stay
+  correct), no protocol change.
+
+### Status log
+- ✅ Phase 17 — Onslaught boss waves. DONE (client+server tsc + client build
+  green; headless state-machine test confirmed wave 5 = boss elite @ 280 HP /
+  count 6, regular HP creep +8/wave, boss XP doubled). `Bot.BotOptions` +
+  `elite` flag + emissive glow, `Onslaught.beginWave` boss/HP logic, boss banner
+  variant (CSS + main.ts). Versions bumped to v0.17.0. App chunk ~73.1 KB gzip.
+
+### Phase 17 COMPLETE — boss-wave escalation, pure client, no protocol change, solo + MP intact.

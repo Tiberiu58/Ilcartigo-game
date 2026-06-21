@@ -28,6 +28,7 @@ const START_LIVES = 3;
 const BREATHER_SEC = 3.0;       // pause between waves (banner + heal + reload)
 const RESPAWN_SEC = 1.6;        // delay before a life is spent and you drop back in
 const MAX_WAVE_BOTS = 8;        // hard cap so the arena never floods
+const BOSS_EVERY = 5;          // every Nth wave is a boss wave
 const PB_KEY = 'ilc.onslaught.best';
 
 export interface OnslaughtResult {
@@ -54,8 +55,9 @@ export class Onslaught {
 
   /** HUD ticker update: current wave, lives left, enemies remaining. */
   onState?: (wave: number, lives: number, enemiesLeft: number) => void;
-  /** Fired at the START of each wave — drives a center-screen "WAVE n" banner. */
-  onWaveStart?: (wave: number, enemyCount: number) => void;
+  /** Fired at the START of each wave — drives a center-screen "WAVE n" banner.
+   *  `isBoss` lets the banner shout "BOSS WAVE". */
+  onWaveStart?: (wave: number, enemyCount: number, isBoss: boolean) => void;
   /** Fired when the run ends (lives exhausted) — drives the results card. */
   onEnd?: (result: OnslaughtResult) => void;
 
@@ -111,17 +113,34 @@ export class Onslaught {
     }
   }
 
-  /** Spawn the next wave. Count + difficulty mix escalate with the wave number. */
+  /** Spawn the next wave. Count + difficulty + HP all escalate with the wave
+   *  number; every 5th wave is a BOSS WAVE — a tanky emissive elite leading a
+   *  smaller pack. */
   private beginWave() {
     this.wave++;
-    const count = Math.min(MAX_WAVE_BOTS, 2 + Math.floor(this.wave * 1.2));
+    const isBoss = this.wave % BOSS_EVERY === 0;
+    // Regular-bot HP creeps up so late waves stay threatening (capped).
+    const hp = Math.min(100 + (this.wave - 1) * 8, 180);
+
+    const count = isBoss
+      ? Math.min(MAX_WAVE_BOTS, 3 + Math.floor(this.wave * 0.6))   // fewer adds on boss waves
+      : Math.min(MAX_WAVE_BOTS, 2 + Math.floor(this.wave * 1.2));
     const spawns = this.game.survivalSpawns(count);
+
     for (let i = 0; i < count; i++) {
       const pos = spawns[i] ?? new THREE.Vector3(0, 0.5, 0);
-      this.game.spawnSurvivalBot(this.waveDifficulty(i), pos);
+      if (isBoss && i === 0) {
+        // The boss: high HP, predictor brain, dark-crimson emissive glow.
+        this.game.spawnSurvivalBot('predictor', pos, {
+          maxHp: 220 + this.wave * 12,
+          bodyColor: 0x7a0f1a, headColor: 0x4a0a12, emissive: 0xff2030, elite: true,
+        });
+      } else {
+        this.game.spawnSurvivalBot(this.waveDifficulty(i), pos, { maxHp: hp });
+      }
     }
     this.phase = 'fighting';
-    this.onWaveStart?.(this.wave, count);
+    this.onWaveStart?.(this.wave, count, isBoss);
     this.emitState();
   }
 
@@ -165,10 +184,12 @@ export class Onslaught {
     this.emitState();
   }
 
-  /** Wave fully eliminated: heal, bank a scaling bonus, breather → next wave. */
+  /** Wave fully eliminated: heal, bank a scaling bonus, breather → next wave.
+   *  Boss waves pay double. */
   private clearWave() {
     this.game.healPlayerFull();
-    const bonus = 25 + this.wave * 15;
+    const isBoss = this.wave % BOSS_EVERY === 0;
+    const bonus = (25 + this.wave * 15) * (isBoss ? 2 : 1);
     this.game.account.awardXP(bonus);
     this.runXp += bonus;
     this.phase = 'breather';

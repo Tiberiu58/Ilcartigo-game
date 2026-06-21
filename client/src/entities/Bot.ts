@@ -36,6 +36,16 @@ const RESPAWN_DELAY = 3.0;
  * predict>0 means aim at their position + velocity * predict seconds.
  */
 export type BotDifficulty = 'wanderer' | 'engager' | 'predictor';
+
+/** Optional per-bot overrides — used by Onslaught to spawn HP-scaled regulars
+ *  and emissive "boss" elites without touching the default 3-bot roster. */
+export interface BotOptions {
+  maxHp?: number;
+  bodyColor?: number;
+  headColor?: number;
+  emissive?: number;
+  elite?: boolean;
+}
 const DIFFICULTY: Record<BotDifficulty, {
   reactionTime: number; aimJitter: number; predictSeconds: number; fireRate: number; damageMul: number;
 }> = {
@@ -102,13 +112,21 @@ export class Bot implements Damageable {
   private _toTarget = new THREE.Vector3();
   private _aim = new THREE.Vector3();
 
-  constructor(id: string, spawn: THREE.Vector3, world: World, bus: GameEventBus, difficulty: BotDifficulty = 'engager') {
+  /** True for Onslaught "boss"/elite bots — used by HUD/feedback to read them
+   *  as a special kill. Cosmetic + tracked only; no gameplay branch here. */
+  readonly elite: boolean;
+
+  constructor(
+    id: string, spawn: THREE.Vector3, world: World, bus: GameEventBus,
+    difficulty: BotDifficulty = 'engager', opts: BotOptions = {},
+  ) {
     this.id = id;
-    this.health = new Health(100);
+    this.health = new Health(opts.maxHp ?? 100);
     this.world = world;
     this.bus = bus;
     this.difficulty = difficulty;
     this.tier = DIFFICULTY[difficulty];
+    this.elite = opts.elite ?? false;
 
     // Bots share the AR config but each tier modulates fire rate + damage.
     // damageMul is applied to baseDamage — easier bots hit softer.
@@ -126,23 +144,26 @@ export class Bot implements Damageable {
 
     this.group = new THREE.Group();
     // Color by difficulty: orange (wanderer) → red (engager) → magenta (predictor).
-    const bodyColor = difficulty === 'wanderer' ? 0xe88c3a
+    // Elites override to a menacing dark crimson with an emissive glow so they
+    // read instantly as the wave's threat.
+    const bodyColor = opts.bodyColor ?? (difficulty === 'wanderer' ? 0xe88c3a
       : difficulty === 'predictor' ? 0xb43a8a
-      : 0xd84a4a;
-    const headColor = difficulty === 'wanderer' ? 0x955020
+      : 0xd84a4a);
+    const headColor = opts.headColor ?? (difficulty === 'wanderer' ? 0x955020
       : difficulty === 'predictor' ? 0x6a1f4f
-      : 0x8a2c2c;
+      : 0x8a2c2c);
+    const emissive = opts.emissive ?? 0x000000;
 
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(BODY_HALF.x * 2, BODY_HALF.y * 2, BODY_HALF.z * 2),
-      new THREE.MeshLambertMaterial({ color: bodyColor, flatShading: true }),
+      new THREE.MeshLambertMaterial({ color: bodyColor, emissive, emissiveIntensity: 0.6, flatShading: true }),
     );
     body.position.y = BODY_HALF.y;
     this.group.add(body);
 
     const head = new THREE.Mesh(
       new THREE.BoxGeometry(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE),
-      new THREE.MeshLambertMaterial({ color: headColor, flatShading: true }),
+      new THREE.MeshLambertMaterial({ color: headColor, emissive, emissiveIntensity: 0.6, flatShading: true }),
     );
     head.position.y = HEAD_OFFSET + HEAD_SIZE / 2;
     this.group.add(head);

@@ -21,7 +21,7 @@ import { World } from './World';
 import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
-import { Bot, type BotDifficulty } from '../entities/Bot';
+import { Bot, type BotDifficulty, type BotOptions } from '../entities/Bot';
 import { PickupManager } from '../entities/PickupManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
@@ -507,9 +507,9 @@ export class Game {
 
   /** Spawn one wave bot at `spawn`. It does NOT auto-respawn (finite wave) and
    *  is tagged ephemeral so clearSurvivalBots can dispose it. Returns its id. */
-  spawnSurvivalBot(difficulty: BotDifficulty, spawn: THREE.Vector3): string {
+  spawnSurvivalBot(difficulty: BotDifficulty, spawn: THREE.Vector3, opts: BotOptions = {}): string {
     const id = `wave-${this._waveBotSeq++}`;
-    const bot = new Bot(id, spawn, this.world, this.bus, difficulty);
+    const bot = new Bot(id, spawn, this.world, this.bus, difficulty, opts);
     bot.autoRespawn = false;
     bot.ephemeral = true;
     bot.health.grantInvulnerability(0.6);   // brief teleport-in grace, then fair game
