@@ -8,7 +8,10 @@
 #     players on different machines wouldn't see each other)
 #
 # To switch the map, set the MAP env (sandstone | industrial) and redeploy.
-app = "ilcartigo-server"
+#
+# App name is "ilcartigo-game" (Fly derived it from the GitHub repo at launch);
+# the live server is https://ilcartigo-game.fly.dev.
+app = "ilcartigo-game"
 primary_region = "fra"          # Frankfurt — nearest the player base (EU)
 
 [build]
