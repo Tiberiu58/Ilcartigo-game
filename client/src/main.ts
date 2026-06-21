@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { MultiplayerSession } from './networking/MultiplayerSession';
@@ -62,6 +63,7 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -91,6 +93,7 @@ let scoreboardOpen = false;
 
 const game = new Game(canvas);
 game.aimLab = new AimLab(game);
+game.onslaught = new Onslaught(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
@@ -138,6 +141,81 @@ gunGame.onWin = (winnerId) => {
   game.matchEnded = true;
   game.onMatchEnded?.(winnerId);
 };
+
+// ─── Onslaught (wave survival) mode ────────────────────────────────────────
+const onsTicker = document.getElementById('onslaught-ticker')!;
+const onsWaveN = document.getElementById('ons-wave-n')!;
+const onsEnemiesN = document.getElementById('ons-enemies-n')!;
+const onsLives = document.getElementById('ons-lives')!;
+const onsBanner = document.getElementById('onslaught-banner')!;
+const onsBannerN = document.getElementById('onb-wave-n')!;
+const onsBannerSub = document.getElementById('onb-sub')!;
+const onsResults = document.getElementById('onslaught-results')!;
+const onrWave = document.getElementById('onr-wave')!;
+const onrKills = document.getElementById('onr-kills')!;
+const onrBest = document.getElementById('onr-best')!;
+const onrXp = document.getElementById('onr-xp')!;
+const onrNewBest = document.getElementById('onr-newbest')!;
+const onrRetry = document.getElementById('onr-retry') as HTMLButtonElement;
+const onrQuit = document.getElementById('onr-quit') as HTMLButtonElement;
+let onsBannerTimer = 0;
+
+game.onslaught!.onState = (wave, lives, enemies) => {
+  onsWaveN.textContent = String(wave);
+  onsEnemiesN.textContent = String(enemies);
+  onsLives.textContent = '♥'.repeat(Math.max(0, lives));
+};
+game.onslaught!.onWaveStart = (wave, count) => {
+  onsBannerN.textContent = String(wave);
+  onsBannerSub.textContent = `${count} incoming`;
+  // Re-trigger the pop animation by toggling the class off→on.
+  onsBanner.classList.remove('hidden');
+  onsBanner.style.animation = 'none';
+  void onsBanner.offsetWidth;        // reflow so the animation restarts
+  onsBanner.style.animation = '';
+  window.clearTimeout(onsBannerTimer);
+  onsBannerTimer = window.setTimeout(() => onsBanner.classList.add('hidden'), 1500);
+};
+game.onslaught!.onEnd = (r: OnslaughtResult) => {
+  onsTicker.classList.add('hidden');
+  onsBanner.classList.add('hidden');
+  showOnslaughtResults(r);
+};
+
+function showOnslaughtResults(r: OnslaughtResult) {
+  game.audio.play('match_end');
+  game.input.exitPointerLock();
+  onrWave.textContent = String(r.wave);
+  onrKills.textContent = String(r.kills);
+  onrBest.textContent = String(r.best);
+  onrXp.textContent = `+${r.xpEarned}`;
+  onrNewBest.classList.toggle('hidden', !r.isNewBest);
+  onsResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  Ads.refreshSlot('onslaught');
+}
+
+function stopOnslaught() {
+  if (game.onslaught?.active) game.onslaught.stop();
+  window.clearTimeout(onsBannerTimer);
+  onsTicker.classList.add('hidden');
+  onsBanner.classList.add('hidden');
+  onsResults.classList.add('hidden');
+}
+
+onrRetry.addEventListener('click', () => {
+  onsResults.classList.add('hidden');
+  hud.classList.remove('hidden');
+  onsTicker.classList.remove('hidden');
+  game.resetMatchScore();
+  announcer.reset();
+  game.onslaught!.start();
+  game.input.requestPointerLock();
+});
+onrQuit.addEventListener('click', () => {
+  onsResults.classList.add('hidden');
+  quitToMenu();
+});
 
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
@@ -349,8 +427,9 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'onslaught' = 'combat') {
   stopAimLab();
+  stopOnslaught();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -369,6 +448,15 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
     ggTicker.classList.remove('hidden');
   } else {
     ggTicker.classList.add('hidden');
+  }
+
+  // Onslaught: hand the bot roster to the survival controller + show its ticker.
+  // Started AFTER setMode so the base bots are parked on the live map.
+  if (mode === 'onslaught') {
+    game.onslaught!.start();
+    onsTicker.classList.remove('hidden');
+  } else {
+    onsTicker.classList.add('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -429,6 +517,7 @@ function startOnline() {
 
 function quitToMenu() {
   stopAimLab();
+  stopOnslaught();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -442,6 +531,8 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
+  onsTicker.classList.add('hidden');
+  refreshOnslaughtButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -513,6 +604,7 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuOnslaught.addEventListener('click', () => startGame('onslaught'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -544,6 +636,13 @@ function refreshAimlabButton() {
   menuAimlab.textContent = best > 0 ? `✦ Aim Lab · best ${best}` : '✦ Aim Lab (Target Rush)';
 }
 refreshAimlabButton();
+
+/** Surface the survival personal best on the Onslaught menu button. */
+function refreshOnslaughtButton() {
+  const best = Onslaught.personalBest();
+  menuOnslaught.textContent = best > 0 ? `☠ Onslaught · best wave ${best}` : '☠ Onslaught (Survival)';
+}
+refreshOnslaughtButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {

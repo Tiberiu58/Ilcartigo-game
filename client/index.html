@@ -73,6 +73,21 @@
           <div class="gg-pips" id="gg-pips"></div>
         </div>
 
+        <!-- Onslaught (survival) ticker — top-center. Wave · enemies left · lives.
+             Populated by main.ts via Onslaught.onState. -->
+        <div id="onslaught-ticker" class="hidden">
+          <span class="ons-wave">WAVE <span id="ons-wave-n">1</span></span>
+          <span class="ons-enemies"><span id="ons-enemies-n">0</span> left</span>
+          <span class="ons-lives" id="ons-lives"></span>
+        </div>
+
+        <!-- Onslaught wave-start banner — big center-screen "WAVE n" flash.
+             Toggled + animated by main.ts on each new wave. -->
+        <div id="onslaught-banner" class="hidden">
+          <div class="onb-wave">WAVE <span id="onb-wave-n">1</span></div>
+          <div class="onb-sub" id="onb-sub">2 incoming</div>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -229,7 +244,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.14</p>
+          <p class="subtitle">Browser arena shooter · v0.15</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -276,6 +291,7 @@
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
+            <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
@@ -284,7 +300,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.14.0 — Gun Game · Aim Lab · rank ladder · mastery · minimap</div>
+          <div>v0.15.0 — Onslaught · Gun Game · Aim Lab · rank ladder · minimap</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -390,6 +406,35 @@
           <div class="alr-buttons">
             <button class="menu-btn primary" id="alr-retry">▸ Retry</button>
             <button class="menu-btn" id="alr-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Onslaught (survival) results card. Shown when lives run out. Natural
+           ad breakpoint (player paused, deciding whether to retry). -->
+      <div id="onslaught-results" class="hidden">
+        <div class="aimlab-card onslaught-card">
+          <h2>OVERRUN</h2>
+          <p class="alr-sub">you held the line</p>
+
+          <div class="alr-score-wrap">
+            <div class="alr-score" id="onr-wave">0</div>
+            <div class="alr-score-label">waves survived</div>
+            <div class="alr-newbest hidden" id="onr-newbest">★ NEW PERSONAL BEST ★</div>
+          </div>
+
+          <div class="alr-stats">
+            <div class="alr-stat"><span id="onr-kills">0</span><label>Eliminations</label></div>
+            <div class="alr-stat"><span id="onr-best">0</span><label>Best Wave</label></div>
+            <div class="alr-stat"><span id="onr-xp">+0</span><label>Bonus XP</label></div>
+          </div>
+
+          <!-- Ad slot — end-of-run is a natural breakpoint. -->
+          <div class="ad-slot" id="ad-onslaught" data-ad-slot="onslaught"></div>
+
+          <div class="alr-buttons">
+            <button class="menu-btn primary" id="onr-retry">▸ Play Again</button>
+            <button class="menu-btn" id="onr-quit">Quit to Menu</button>
           </div>
         </div>
       </div>

@@ -73,6 +73,12 @@ export class Bot implements Damageable {
   readonly group: THREE.Group;
   /** Soft on/off switch — Practice Range deactivates bots without destroying them. */
   active = true;
+  /** When false, a killed bot stays a corpse instead of respawning. Onslaught
+   *  (wave survival) sets this false so each wave is a finite set of enemies. */
+  autoRespawn = true;
+  /** Tags bots spawned by a transient mode (Onslaught waves) so they can be
+   *  disposed wholesale without touching the persistent base roster. */
+  ephemeral = false;
 
   private position = new THREE.Vector3();
   private yaw = 0;
@@ -189,7 +195,7 @@ export class Bot implements Damageable {
         this.position.y - this.deathFallOffset,
         this.position.z,
       );
-      if (this.deathTime >= RESPAWN_DELAY) this.respawn();
+      if (this.autoRespawn && this.deathTime >= RESPAWN_DELAY) this.respawn();
       return;
     }
     this.group.rotation.z = 0;
@@ -325,6 +331,25 @@ export class Bot implements Damageable {
     this.group.rotation.set(0, this.yaw, 0);
     this.syncMesh();
     void this.bus;
+  }
+
+  /**
+   * Permanently remove this bot from the world: unregister it as a damage
+   * target, pull its mesh from the scene, and free GPU resources. Used by
+   * transient modes (Onslaught) that spawn fresh bots each wave. Safe to call
+   * once — the instance must be dropped from any roster afterwards.
+   */
+  dispose() {
+    this.active = false;
+    this.world.unregisterDamageable(this.id);
+    this.world.scene.remove(this.group);
+    this.group.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+      else if (mat) mat.dispose();
+    });
   }
 }
 

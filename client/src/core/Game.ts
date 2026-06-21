@@ -21,7 +21,7 @@ import { World } from './World';
 import { EventBus, type GameEvents } from './events';
 import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
-import { Bot } from '../entities/Bot';
+import { Bot, type BotDifficulty } from '../entities/Bot';
 import { PickupManager } from '../entities/PickupManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
@@ -41,6 +41,7 @@ import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 import type { AimLab } from '../modes/AimLab';
+import type { Onslaught } from '../modes/Onslaught';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -52,13 +53,13 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'onslaught';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game plays like Combat with a weapon
- *  ladder layered on top. */
+ *  ladder layered on top; Onslaught is wave survival vs escalating bot packs. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame';
+  return m === 'combat' || m === 'gungame' || m === 'onslaught';
 }
 
 export interface FrameInfo {
@@ -90,6 +91,10 @@ export class Game {
   readonly audio = new AudioManager();
   readonly bus = new EventBus<GameEvents>();
   readonly bots: Bot[] = [];
+  /** When true, the Onslaught mode owns the bot roster: the persistent base
+   *  bots are parked and only wave-spawned ephemeral bots are live. Keeps
+   *  syncBotState from re-activating the base roster mid-survival. */
+  private survivalActive = false;
   /** Current game mode. Practice = no bots, lab spawn, peaceful. */
   mode: GameMode = 'combat';
   /** Currently loaded map. Set via setMap(). */
@@ -99,6 +104,9 @@ export class Game {
   /** Optional Aim Lab (Target Rush) trainer — null unless the player launched
    *  it from the menu. Created + driven by main.ts; ticked here. */
   aimLab: AimLab | null = null;
+  /** Optional Onslaught (wave survival) controller — null unless launched from
+   *  the menu. Created + wired by main.ts; ticked here for wave/respawn pacing. */
+  onslaught: Onslaught | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
 
@@ -343,7 +351,9 @@ export class Game {
         this.localStreak = 0;
         this.audio.play('death');
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
-        if (!this.mp) {
+        // Onslaught owns respawn timing (lives system) — it decides whether to
+        // bring the player back or end the run, so skip the auto-loop there.
+        if (!this.mp && this.mode !== 'onslaught') {
           setTimeout(() => this.respawnPlayer(), 1800);
         }
       }
@@ -451,6 +461,9 @@ export class Game {
    * bots running?" predicate in one place.
    */
   private syncBotState() {
+    // Onslaught owns the roster entirely (it spawns/disposes wave bots itself),
+    // so don't touch bots while survival is active.
+    if (this.survivalActive) return;
     const botsLive = isCombatMode(this.mode) && !this.mp;
     for (const b of this.bots) {
       if (botsLive) {
@@ -464,6 +477,85 @@ export class Game {
         this.world.unregisterDamageable(b.id);
       }
     }
+  }
+
+  // ─── Onslaught (wave survival) bot roster ─────────────────────────────────
+  // The persistent base roster (this.bots[0..2]) is parked while survival runs;
+  // each wave spawns a fresh set of ephemeral bots that stay dead when killed.
+
+  /**
+   * Enter/leave survival ownership of the bot roster. On enter: park every base
+   * bot (deactivate, hide, unregister). On leave: dispose any leftover wave bots
+   * and hand the roster back to the normal syncBotState path.
+   */
+  setSurvivalActive(on: boolean) {
+    if (on === this.survivalActive) return;
+    this.survivalActive = on;
+    if (on) {
+      for (const b of this.bots) {
+        b.active = false;
+        b.group.visible = false;
+        this.world.unregisterDamageable(b.id);
+      }
+    } else {
+      this.clearSurvivalBots();
+      this.syncBotState();
+    }
+  }
+
+  /** Spawn one wave bot at `spawn`. It does NOT auto-respawn (finite wave) and
+   *  is tagged ephemeral so clearSurvivalBots can dispose it. Returns its id. */
+  spawnSurvivalBot(difficulty: BotDifficulty, spawn: THREE.Vector3): string {
+    const id = `wave-${this._waveBotSeq++}`;
+    const bot = new Bot(id, spawn, this.world, this.bus, difficulty);
+    bot.autoRespawn = false;
+    bot.ephemeral = true;
+    bot.health.grantInvulnerability(0.6);   // brief teleport-in grace, then fair game
+    this.bots.push(bot);
+    return id;
+  }
+  private _waveBotSeq = 0;
+
+  /** Dispose + drop every ephemeral (wave) bot, leaving the base roster intact. */
+  clearSurvivalBots() {
+    for (let i = this.bots.length - 1; i >= 0; i--) {
+      const b = this.bots[i];
+      if (b.ephemeral) {
+        b.dispose();
+        this.bots.splice(i, 1);
+      }
+    }
+  }
+
+  /** Count of living wave bots — Onslaught polls this to detect a cleared wave. */
+  livingSurvivalBots(): number {
+    let n = 0;
+    for (const b of this.bots) if (b.ephemeral && !b.health.dead) n++;
+    return n;
+  }
+
+  /** Restore the player to full HP (wave-clear reward). */
+  healPlayerFull() {
+    this.playerActor.health.reset();
+  }
+
+  /** Spawn points for wave bots — the map's FFA spawns, shuffled, avoiding the
+   *  one nearest the player so nobody materialises in your face. */
+  survivalSpawns(count: number): THREE.Vector3[] {
+    const spawns = this.currentMap.meta.ffaSpawns;
+    if (spawns.length === 0) return [];
+    this.player.eyePos(this._eyePos);
+    const px = this._eyePos.x, pz = this._eyePos.z;
+    // Sort spawns by distance from the player, descending, then take a rotating
+    // window so successive waves don't all use the same far corner.
+    const sorted = [...spawns].sort((a, b) =>
+      Math.hypot(b.x - px, b.z - pz) - Math.hypot(a.x - px, a.z - pz));
+    const out: THREE.Vector3[] = [];
+    for (let i = 0; i < count; i++) {
+      const s = sorted[(i + this._waveBotSeq) % sorted.length];
+      out.push(new THREE.Vector3(s.x, 0.5, s.z));
+    }
+    return out;
   }
 
   /**
@@ -875,6 +967,7 @@ export class Game {
     this.pickups.update(dt);    // animate + (solo) run map health pickups
     this.world.update();        // expires Engineer barrier solids when their TTL is up
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
+    if (this.onslaught) this.onslaught.update(dt);  // wave pacing + respawn timing
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

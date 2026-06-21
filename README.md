@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 13–14 — v0.14.0. **New modes + progression depth**: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
+> **Status:** Phase 15 — v0.15.0. **Onslaught (wave survival):** a new solo mode — endless waves of bots that escalate in size + difficulty, a 3-life pool, full-heal + scaling-XP bonus on each cleared wave, a "beat your best wave" high-score chase, and an OVERRUN results card (a natural ad breakpoint). Reuses the existing bot AI verbatim (zero protocol/server change), parks the base roster while it runs, and persists a personal best surfaced on the menu + Profile. Built on Phase 13–14: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
 
 ## Repo layout
 
@@ -446,6 +446,35 @@ result, all live on `main`:
 Production client: **~196 KB gzipped** total (engine ~122 + app ~70 + CSS ~9 + HTML ~8).
 No new dependencies.
 
+## Phase 15 — Onslaught (wave survival) mode (this round, v0.15.0)
+
+The strongest solo hook the game was missing: a **high-score survival loop**.
+ILCARTIGO plays single-player without a deployed server, so a mode that's
+inherently fun offline — and ends on a results card (a natural ad breakpoint) —
+is the most valuable next addition. Self-contained, **zero protocol/server
+change**, solo + MP both intact.
+
+- **Endless escalating waves.** Each wave spawns `min(8, 2 + ⌊wave·1.2⌋)` bots;
+  the difficulty mix climbs (early waves are wanderers, wave 3+ adds engagers,
+  wave 6+ sprinkles in predictors). A big center-screen **"WAVE n"** banner + a
+  3 s breather open each round.
+- **Lives + reward loop.** You get **3 lives**; clearing a wave **fully heals**
+  you and banks a scaling **+XP bonus** (`25 + wave·15`). Run ends when lives
+  run out → an **OVERRUN** results card: waves survived, eliminations, best wave,
+  bonus XP, NEW-BEST flag, Play Again / Quit. Personal best persists
+  (`ilc.onslaught.best`) and shows on the menu button (`☠ Onslaught · best wave
+  N`) + Profile → Bests.
+- **Reuses the bot AI verbatim.** Wave bots are ordinary `Bot`s that just don't
+  auto-respawn, so every wave-bot death is a normal player frag — XP, lifetime
+  stats, killfeed, announcer (multi-kills/streaks), and weapon mastery all work
+  with no special-casing. The mode owns the roster only while it runs
+  (`Game.setSurvivalActive` parks the base bots; `Bot.dispose` cleans up wave
+  bots between runs).
+
+New `modes/Onslaught.ts` + `'onslaught'` GameMode + Bot lifecycle additions
+(`autoRespawn`/`ephemeral`/`dispose`) + HUD ticker, wave banner, results card,
+and menu button. App chunk ~71.8 KB gzip (+1.6 KB this phase). No new deps.
+
 ## Publication & Monetization (this round)
 
 The first round focused on **going live** rather than gameplay. Code-side deploy
@@ -515,12 +544,12 @@ documented three-edit checklist.
 
 ## Project status
 
-14 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+15 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + Onslaught (wave survival) + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~196 KB gzipped`. Single-player, Practice Range, online FFA, **Gun Game**, **Aim Lab**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.14.0.
+- `/client` — Vite + TS + Three.js game client. `~196 KB gzipped`. Single-player, Practice Range, online FFA, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups. v0.15.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.15.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
 
 ## What you'd want to do next (post-v1)

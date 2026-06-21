@@ -262,3 +262,57 @@ round — pure deploy/monetization infrastructure.
 
 ### Pending on the user: `vercel login` (to run the deploy), `fly` steps for the
 ### MP server, an approved `ca-pub` id, and registering `ilcartigo.com`.
+
+---
+
+## Phase 15 — Onslaught (wave survival) mode (autonomous build, v0.15.0)
+
+Back to gameplay. Mode variety is the #1 replay driver in arena shooters, and
+the strongest **solo** hook we were missing is a high-score chase: ILCARTIGO
+runs single-player without a deployed server, so the most valuable next mode is
+one that's *inherently* fun offline and ends on a results card (a natural ad
+breakpoint → revenue). **Onslaught** is exactly that — endless waves of bots,
+escalating in size + difficulty, a small pool of lives, "beat your best wave".
+
+Guiding constraint (kept): **no protocol changes, no new deps, typecheck + build
+green each step, solo + MP both keep working.**
+
+Design (why it's low-risk + self-contained):
+- **SOLO only. Zero protocol / server / controller changes.** It reuses the
+  existing bot-vs-player AI verbatim — wave bots are ordinary `Bot`s that simply
+  don't auto-respawn (`Bot.autoRespawn = false`), so every wave-bot death IS a
+  player frag and the kill bus → XP / stats / killfeed / announcer / mastery all
+  "just work" with no special-casing.
+- **The mode owns the roster only while it runs.** `Game.setSurvivalActive(true)`
+  parks the persistent base bots (deactivate + unregister); each wave spawns its
+  own *ephemeral* bots via `Game.spawnSurvivalBot`, disposed wholesale between
+  runs by `Game.clearSurvivalBots` (new `Bot.dispose` frees mesh + damageable
+  registration). `syncBotState` early-outs while survival is active so it can't
+  re-activate the base roster mid-run.
+- **Lives + waves.** 3 lives. Each wave spawns `min(8, 2 + ⌊wave·1.2⌋)` bots; the
+  difficulty mix climbs (early = wanderers; wave 3+ adds engagers; wave 6+
+  sprinkles predictors). Clearing a wave **fully heals** you + banks a scaling
+  bonus (`25 + wave·15` XP) and a 3 s breather with a big "WAVE n" banner. Player
+  death spends a life (Onslaught owns respawn timing — `Game`'s solo auto-respawn
+  is gated off for `mode === 'onslaught'`). Lives exhausted → results card.
+- **Results card + PB.** "OVERRUN" card shows waves survived, eliminations, best
+  wave, bonus XP, NEW-BEST flag; personal best persists to `localStorage`
+  (`ilc.onslaught.best`), surfaced on the menu button (`☠ Onslaught · best wave N`)
+  and in the Profile → Bests grid. Card carries an `onslaught` ad slot.
+
+New `modes/Onslaught.ts` (Game-coupled controller, like AimLab) + `'onslaught'`
+GameMode + Bot lifecycle additions + HUD ticker (`WAVE n · k left · ♥♥♥`) +
+wave banner + results card + menu button. Headless logic test (mock Game/bus)
+confirmed wave scaling (3→4→…), heal-on-clear, +XP bonus, 3-lives→2-respawns→
+game-over, and PB persistence.
+
+### Status log
+- ✅ Phase 15 — Onslaught. DONE (client+server tsc + client build green; headless
+  state-machine test passed). New `modes/Onslaught.ts`; `Bot.autoRespawn`/
+  `ephemeral`/`dispose()`; `Game.setSurvivalActive`/`spawnSurvivalBot`/
+  `clearSurvivalBots`/`livingSurvivalBots`/`healPlayerFull`/`survivalSpawns` +
+  `'onslaught'` mode (combat-class, auto-respawn gated to the controller). UI:
+  menu button, HUD ticker, "WAVE n" banner, OVERRUN results card (+ ad slot),
+  Profile best. Versions bumped to v0.15.0. App chunk ~71.8 KB gzip (+1.6 KB).
+
+### Phase 15 COMPLETE — solo wave-survival mode, no protocol change, solo + MP intact.
