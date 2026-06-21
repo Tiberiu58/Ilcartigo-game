@@ -48,4 +48,20 @@ export const PICKUPS_BY_MAP: Record<string, readonly PickupDef[]> = {
     { id: 3, type: 'health', pos: [  0, 0.6,  28] },   // north floor
     { id: 4, type: 'health', pos: [  0, 0.6, -28] },   // south floor
   ],
+  // Cobalt is a solo-only map (the MP server never loads it), but we keep its
+  // pads here so the solo PickupManager finds them; mirrored in server/Pickups
+  // for parity even though the server won't use them.
+  cobalt: [
+    { id: 1, type: 'health', pos: [ 14, 0.6,   0] },   // E mid
+    { id: 2, type: 'health', pos: [-14, 0.6,   0] },   // W mid
+    { id: 3, type: 'health', pos: [  0, 0.6,  16] },   // N mid (toward deck)
+    { id: 4, type: 'health', pos: [  0, 0.6, -16] },   // S mid (toward deck)
+  ],
+  // Overpass — solo-only map; pads mirrored in server/Pickups for parity.
+  overpass: [
+    { id: 1, type: 'health', pos: [  0, 0.6,  24] },   // north lane
+    { id: 2, type: 'health', pos: [  0, 0.6, -24] },   // south lane
+    { id: 3, type: 'health', pos: [ 30, 0.6,   0] },   // east flank
+    { id: 4, type: 'health', pos: [-30, 0.6,   0] },   // west flank
+  ],
 };

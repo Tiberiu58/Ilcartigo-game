@@ -10,7 +10,7 @@
  *      to whichever called it.
  *
  * Persistent settings (all under the `ilc.*` localStorage prefix):
- *   ilc.fov ilc.sens ilc.class ilc.primary ilc.map ilc.gfx
+ *   ilc.fov ilc.sens ilc.class ilc.primary ilc.map ilc.gfx ilc.difficulty
  *   ilc.ch.color ilc.ch.size ilc.ch.thickness ilc.ch.gap ilc.ch.outline ilc.ch.dot
  */
 
@@ -19,8 +19,10 @@ import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
+import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
+import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
@@ -62,6 +64,8 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
+const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -91,6 +95,7 @@ let scoreboardOpen = false;
 
 const game = new Game(canvas);
 game.aimLab = new AimLab(game);
+game.onslaught = new Onslaught(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 const damageDir = new DamageDirection(game);
@@ -102,6 +107,9 @@ void progression;
 // Tactical minimap / radar (top-right).
 const minimap = new Minimap(game, document.getElementById('minimap') as HTMLCanvasElement);
 void minimap;
+
+// Floating enemy nameplates (callsign + HP bar) over solo bots.
+const nameplates = new Nameplates(game);
 
 // Floating "+10 XP" toast on each local frag (visible progression). The kill
 // effect / announcer handle the splashier feedback; this is the running tally.
@@ -139,6 +147,98 @@ gunGame.onWin = (winnerId) => {
   game.onMatchEnded?.(winnerId);
 };
 
+// ─── Team Deathmatch ticker ────────────────────────────────────────────────
+const tdmTicker = document.getElementById('tdm-ticker')!;
+const tdmBlueEl = document.getElementById('tdm-blue-score')!;
+const tdmRedEl = document.getElementById('tdm-red-score')!;
+const tdmGoalEl = document.getElementById('tdm-goal')!;
+tdmGoalEl.textContent = String(Game.TDM_GOAL);
+let lastTdmScore = '';
+function updateTdmTicker() {
+  const s = `${game.teamScore[0]}-${game.teamScore[1]}`;
+  if (s === lastTdmScore) return;
+  lastTdmScore = s;
+  tdmBlueEl.textContent = String(game.teamScore[0]);
+  tdmRedEl.textContent = String(game.teamScore[1]);
+}
+
+// ─── Onslaught (wave survival) mode ────────────────────────────────────────
+const onsTicker = document.getElementById('onslaught-ticker')!;
+const onsWaveN = document.getElementById('ons-wave-n')!;
+const onsEnemiesN = document.getElementById('ons-enemies-n')!;
+const onsLives = document.getElementById('ons-lives')!;
+const onsBanner = document.getElementById('onslaught-banner')!;
+const onsBannerN = document.getElementById('onb-wave-n')!;
+const onsBannerSub = document.getElementById('onb-sub')!;
+const onsResults = document.getElementById('onslaught-results')!;
+const onrWave = document.getElementById('onr-wave')!;
+const onrKills = document.getElementById('onr-kills')!;
+const onrBest = document.getElementById('onr-best')!;
+const onrXp = document.getElementById('onr-xp')!;
+const onrNewBest = document.getElementById('onr-newbest')!;
+const onrRetry = document.getElementById('onr-retry') as HTMLButtonElement;
+const onrQuit = document.getElementById('onr-quit') as HTMLButtonElement;
+let onsBannerTimer = 0;
+
+game.onslaught!.onState = (wave, lives, enemies) => {
+  onsWaveN.textContent = String(wave);
+  onsEnemiesN.textContent = String(enemies);
+  onsLives.textContent = '♥'.repeat(Math.max(0, lives));
+};
+game.onslaught!.onWaveStart = (wave, count, isBoss) => {
+  onsBannerN.textContent = String(wave);
+  onsBannerSub.textContent = isBoss ? '☠ BOSS WAVE ☠' : `${count} incoming`;
+  onsBanner.classList.toggle('boss', isBoss);
+  // Re-trigger the pop animation by toggling the class off→on.
+  onsBanner.classList.remove('hidden');
+  onsBanner.style.animation = 'none';
+  void onsBanner.offsetWidth;        // reflow so the animation restarts
+  onsBanner.style.animation = '';
+  game.audio.play(isBoss ? 'match_end' : 'spawn_protect');
+  window.clearTimeout(onsBannerTimer);
+  onsBannerTimer = window.setTimeout(() => onsBanner.classList.add('hidden'), isBoss ? 2200 : 1500);
+};
+game.onslaught!.onEnd = (r: OnslaughtResult) => {
+  onsTicker.classList.add('hidden');
+  onsBanner.classList.add('hidden');
+  showOnslaughtResults(r);
+};
+
+function showOnslaughtResults(r: OnslaughtResult) {
+  game.audio.play('match_end');
+  game.input.exitPointerLock();
+  onrWave.textContent = String(r.wave);
+  onrKills.textContent = String(r.kills);
+  onrBest.textContent = String(r.best);
+  onrXp.textContent = `+${r.xpEarned}`;
+  onrNewBest.classList.toggle('hidden', !r.isNewBest);
+  onsResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  Ads.refreshSlot('onslaught');
+}
+
+function stopOnslaught() {
+  if (game.onslaught?.active) game.onslaught.stop();
+  window.clearTimeout(onsBannerTimer);
+  onsTicker.classList.add('hidden');
+  onsBanner.classList.add('hidden');
+  onsResults.classList.add('hidden');
+}
+
+onrRetry.addEventListener('click', () => {
+  onsResults.classList.add('hidden');
+  hud.classList.remove('hidden');
+  onsTicker.classList.remove('hidden');
+  game.resetMatchScore();
+  announcer.reset();
+  game.onslaught!.start();
+  game.input.requestPointerLock();
+});
+onrQuit.addEventListener('click', () => {
+  onsResults.classList.add('hidden');
+  quitToMenu();
+});
+
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
 const savedSens = Number(localStorage.getItem('ilc.sens') ?? 0.5);
@@ -173,6 +273,15 @@ minimap.setEnabled(savedMinimap);
 optMinimap.addEventListener('change', () => {
   minimap.setEnabled(optMinimap.checked);
   localStorage.setItem('ilc.minimap', String(optMinimap.checked));
+});
+
+const optNameplates = document.getElementById('opt-nameplates') as HTMLInputElement;
+const savedNameplates = (localStorage.getItem('ilc.nameplates') ?? 'true') === 'true';
+optNameplates.checked = savedNameplates;
+nameplates.setEnabled(savedNameplates);
+optNameplates.addEventListener('change', () => {
+  nameplates.setEnabled(optNameplates.checked);
+  localStorage.setItem('ilc.nameplates', String(optNameplates.checked));
 });
 
 let speedLinesEnabled = (localStorage.getItem('ilc.speedlines') ?? 'true') === 'true';
@@ -349,8 +458,9 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' = 'combat') {
   stopAimLab();
+  stopOnslaught();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -364,11 +474,29 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' = 'combat') {
   // the tier ticker. Other modes hide it. (Started AFTER setMode so the player
   // weapon swap lands on the live inventory.)
   if (mode === 'gungame') {
-    const participants = [game.localPlayerId(), ...game.bots.map((b) => b.id)];
+    const participants = [game.localPlayerId(), ...game.bots.filter((b) => b.active).map((b) => b.id)];
     gunGame.start(participants);
     ggTicker.classList.remove('hidden');
   } else {
     ggTicker.classList.add('hidden');
+  }
+
+  // Team Deathmatch: show the BLUE-vs-RED ticker; reset its cached display.
+  if (mode === 'tdm') {
+    lastTdmScore = '';
+    updateTdmTicker();
+    tdmTicker.classList.remove('hidden');
+  } else {
+    tdmTicker.classList.add('hidden');
+  }
+
+  // Onslaught: hand the bot roster to the survival controller + show its ticker.
+  // Started AFTER setMode so the base bots are parked on the live map.
+  if (mode === 'onslaught') {
+    game.onslaught!.start();
+    onsTicker.classList.remove('hidden');
+  } else {
+    onsTicker.classList.add('hidden');
   }
 
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
@@ -422,6 +550,8 @@ function startOnline() {
   // Poll-update the player count off the remotes map (cheap; runs at the
   // game's frame rate via game.onFrame).
   practiceBadge.classList.add('hidden');
+  ggTicker.classList.add('hidden');
+  tdmTicker.classList.add('hidden');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
   game.input.requestPointerLock();
@@ -429,6 +559,7 @@ function startOnline() {
 
 function quitToMenu() {
   stopAimLab();
+  stopOnslaught();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -442,6 +573,9 @@ function quitToMenu() {
   practiceBadge.classList.add('hidden');
   onlineBadge.classList.add('hidden');
   ggTicker.classList.add('hidden');
+  tdmTicker.classList.add('hidden');
+  onsTicker.classList.add('hidden');
+  refreshOnslaughtButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
@@ -482,15 +616,34 @@ mapBtns.forEach((btn) => {
     localStorage.setItem('ilc.map', id);
   });
 });
-// Recover from a corrupt localStorage value.
-if (savedMap !== 'sandstone' && savedMap !== 'industrial') {
+// Recover from a corrupt localStorage value. Practice is reached via its own
+// button, so it isn't a valid *combat* map selection.
+const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt', 'overpass'];
+if (!COMBAT_MAPS.includes(savedMap)) {
   localStorage.setItem('ilc.map', 'sandstone');
 }
-game.setCombatMap(savedMap === 'sandstone' || savedMap === 'industrial' ? savedMap : 'sandstone');
+game.setCombatMap(COMBAT_MAPS.includes(savedMap) ? savedMap : 'sandstone');
+
+// Bot difficulty selector — Easy / Normal / Hard. Scales the whole bot roster's
+// AI feel (reaction, aim, lead, fire cadence). Persisted; applies live.
+const diffBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn[data-diff]');
+const savedDiff = (localStorage.getItem('ilc.difficulty') ?? 'normal') as 'easy' | 'normal' | 'hard';
+diffBtns.forEach((btn) => {
+  const lvl = (btn.dataset.diff ?? 'normal') as 'easy' | 'normal' | 'hard';
+  btn.classList.toggle('selected', lvl === savedDiff);
+  btn.addEventListener('click', () => {
+    diffBtns.forEach((b) => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    game.setDifficulty(lvl);
+    localStorage.setItem('ilc.difficulty', lvl);
+    game.audio.play('ui_click');
+  });
+});
+game.setDifficulty(savedDiff === 'easy' || savedDiff === 'hard' ? savedDiff : 'normal');
 
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.
-const loadoutBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn:not([data-map])');
+const loadoutBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn:not([data-map]):not([data-diff])');
 const savedPrimary = (localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId;
 loadoutBtns.forEach((btn) => {
   const id = (btn.dataset.weapon ?? 'ar') as WeaponId;
@@ -513,6 +666,8 @@ if (savedPrimary !== 'ar') {
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuTdm.addEventListener('click', () => startGame('tdm'));
+menuOnslaught.addEventListener('click', () => startGame('onslaught'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -544,6 +699,13 @@ function refreshAimlabButton() {
   menuAimlab.textContent = best > 0 ? `✦ Aim Lab · best ${best}` : '✦ Aim Lab (Target Rush)';
 }
 refreshAimlabButton();
+
+/** Surface the survival personal best on the Onslaught menu button. */
+function refreshOnslaughtButton() {
+  const best = Onslaught.personalBest();
+  menuOnslaught.textContent = best > 0 ? `☠ Onslaught · best wave ${best}` : '☠ Onslaught (Survival)';
+}
+refreshOnslaughtButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {
@@ -710,7 +872,7 @@ window.addEventListener('keyup', (e) => {
 function participantName(id: string): string {
   if (game.isLocalPlayer(id)) return playerName();
   const bot = game.bots.find((b) => b.id === id);
-  if (bot) return bot.difficulty.charAt(0).toUpperCase() + bot.difficulty.slice(1) + ' Bot';
+  if (bot) return bot.name;
   // MP remote: short socket id.
   return id.length <= 8 ? id.toUpperCase() : id.slice(0, 6).toUpperCase();
 }
@@ -728,14 +890,18 @@ function playerName(): string {
  * MP are kept authoritative by the server (snapshot kills + MatchOver).
  */
 function renderScoreboard() {
+  if (game.mode === 'tdm' && !game.mp) {
+    renderTdmScoreboard();
+    return;
+  }
   sbMode.textContent = game.mp ? 'Free-for-All · Online' : (game.mode === 'practice' ? 'Practice' : 'Free-for-All · Bots');
   sbGoal.textContent = String(Game.MATCH_KILL_GOAL);
 
   const ids = new Set<string>();
   // Always include the local player.
   ids.add(game.localPlayerId());
-  // Solo bots.
-  if (!game.mp) for (const b of game.bots) ids.add(b.id);
+  // Solo bots (only active ones — TDM-only bots are dormant in FFA/Gun Game).
+  if (!game.mp) for (const b of game.bots) if (b.active) ids.add(b.id);
   // MP remotes.
   if (game.mp) for (const id of game.mp.remoteIds) ids.add(id);
   // Anyone who already has a tally.
@@ -761,6 +927,49 @@ function renderScoreboard() {
       <span class="sb-kd">${kd}</span>
     </div>`;
   }).join('');
+}
+
+/**
+ * Team Deathmatch scoreboard — two team blocks (BLUE then RED), each with a
+ * team-frag header and its members sorted by kills, the local player
+ * highlighted. Reads game.teamScore + per-player matchKills/matchDeaths.
+ */
+function renderTdmScoreboard() {
+  sbMode.textContent = 'Team Deathmatch · Bots';
+  sbGoal.textContent = String(Game.TDM_GOAL);
+
+  type Row = { id: string; kills: number; deaths: number };
+  const teams: [Row[], Row[]] = [[], []];
+  const ids = new Set<string>();
+  ids.add(game.localPlayerId());
+  for (const b of game.bots) if (b.active) ids.add(b.id);
+  game.matchKills.forEach((_, k) => ids.add(k));
+  game.matchDeaths.forEach((_, k) => ids.add(k));
+  for (const id of ids) {
+    const row = { id, kills: game.matchKills.get(id) ?? 0, deaths: game.matchDeaths.get(id) ?? 0 };
+    teams[game.teamOf(id)].push(row);
+  }
+  for (const t of teams) t.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
+
+  const block = (team: 0 | 1) => {
+    const label = team === 0 ? 'BLUE' : 'RED';
+    const cls = team === 0 ? 'sb-team-blue' : 'sb-team-red';
+    const head = `<div class="sb-team-head ${cls}"><span>${label} TEAM</span><span class="sb-team-score">${game.teamScore[team]}</span></div>`;
+    const rows = teams[team].map((r) => {
+      const me = game.isLocalPlayer(r.id);
+      const kd = r.deaths === 0 ? r.kills.toFixed(1) : (r.kills / r.deaths).toFixed(2);
+      return `<div class="sb-row${me ? ' sb-me' : ''}">
+        <span class="sb-rank ${cls}">●</span>
+        <span class="sb-name">${participantName(r.id)}</span>
+        <span class="sb-k">${r.kills}</span>
+        <span class="sb-d">${r.deaths}</span>
+        <span class="sb-kd">${kd}</span>
+      </div>`;
+    }).join('');
+    return head + rows;
+  };
+
+  sbBody.innerHTML = block(0) + block(1);
 }
 
 // Tab nav inside the settings page.
@@ -835,7 +1044,9 @@ let lastHudUpdate = 0;
 game.onFrame = ({ fps, speed, state, pos }) => {
   ui.tick();
   minimap.tick();
+  nameplates.update();
   updateSpeedLines(speed);
+  if (game.mode === 'tdm') updateTdmTicker();
   const now = performance.now();
   if (now - lastHudUpdate < 100) return;
   lastHudUpdate = now;
@@ -911,26 +1122,34 @@ function showPostMatch(winnerId: string) {
 
   const myRank = rows.findIndex((r) => r.isYou) + 1;
   const myKills = rows.find((r) => r.isYou)?.kills ?? 0;
-  const youWon = myRank === 1;
+
+  // TDM result: winnerId is "team:N". Win is your team winning, not your rank.
+  const tdmTeam = winnerId.startsWith('team:') ? Number(winnerId.slice(5)) : null;
+  const youWon = tdmTeam !== null ? tdmTeam === game.playerActor.team : myRank === 1;
 
   // Lifetime career: count this finished match + win.
   game.account.recordMatchEnd(youWon);
 
-  // Award end-of-match XP per spec: 50 for win, 25 for top-3 (else 0).
+  // Award end-of-match XP: 50 for a win. FFA also grants 25 for a top-3 finish.
   const xpBefore = game.account.xp;
   if (youWon) game.account.awardXP(50);
-  else if (myRank > 0 && myRank <= 3) game.account.awardXP(25);
+  else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardXP(25);
   const xpDelta = game.account.xp - xpBefore;
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
 
-  pmTitle.textContent = youWon ? 'VICTORY' : 'MATCH OVER';
-  pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : winnerId.slice(0, 6)}</b>`;
+  pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null ? 'DEFEAT' : 'MATCH OVER');
+  if (tdmTeam !== null) {
+    const label = tdmTeam === 0 ? 'BLUE' : 'RED';
+    pmWinnerLine.innerHTML = `<b>${label} TEAM WINS</b> · ${game.teamScore[0]}–${game.teamScore[1]}`;
+  } else {
+    pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : game.displayNameFor(winnerId)}</b>`;
+  }
 
   // Build scoreboard rows.
   pmScoreboardBody.innerHTML = rows.map((r, i) => {
-    const name = r.isYou ? 'YOU' : r.id.slice(0, 6);
+    const name = r.isYou ? 'YOU' : game.displayNameFor(r.id);
     return `<div class="pm-row ${r.isYou ? 'you' : ''}">
       <span>#${i + 1}</span>
       <span>${name}</span>
@@ -971,7 +1190,7 @@ pmPlayAgain.addEventListener('click', () => {
     announcer.reset();
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
-      gunGame.start([game.localPlayerId(), ...game.bots.map((b) => b.id)]);
+      gunGame.start([game.localPlayerId(), ...game.bots.filter((b) => b.active).map((b) => b.id)]);
     }
     game.input.requestPointerLock();
   }

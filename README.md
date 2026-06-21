@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** Phase 13–14 — v0.14.0. **New modes + progression depth**: a **Gun Game** mode (weapon ladder), an **Aim Lab** solo trainer, a **rank ladder** with level-up celebration, **weapon mastery** (kills unlock viewmodel skins), the **Marksman** DMR weapon, and **server-authoritative per-weapon damage** (real MP combat-feel fix) — integrated from four parallel build branches and merged onto `main`. Also: **minimap/radar**, speed lines, bullet-impact FX, **map health pickups** (protocol v3), crosshair hit feedback, score/heal popups, weapon-finish cosmetics, and a **main-menu scroll fix**. Built on Phase 12 (directional damage, low-HP vignette + heartbeat, death recap, tracer cosmetics, announcer specials, kill-confirm marker) and Phase 11 (Tab scoreboard, killstreak announcer, lifetime stats + daily challenges, footsteps, authoritative match-end, server-side class passives, AdSense layer, first-run onboarding). **Now publishing**: one-command combined Vercel deploy (site at `/`, game at `/play/`), site + client deployed, AdSense activation reduced to a documented 3-edit switch, and a full Fly.io MP-server runbook (`DEPLOY.md`).
+> **Status:** v0.24.0 — **routine-integration round.** Two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -79,6 +79,8 @@ For multiplayer testing, open the client URL in **two browser windows** and clic
 | `LMB` | Fire |
 | `RMB` | Sniper scope (hold) |
 | `E` | Class ability |
+| `V` / `F` | Quick melee (knife) |
+| `G` | Throw frag grenade |
 | `R` | Reload |
 | `1`/`2`/`Q` | Primary / Pistol / quick-swap |
 | `Esc` | Pause |
@@ -299,6 +301,8 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | Filename | What it is | Suggested freesound.org search |
 | --- | --- | --- |
 | `pickup_health.wav` | Health-pack grab chime | "health pickup", "heal collect", "powerup grab" |
+| `melee.wav` | Knife swing whoosh / slash | "knife swing", "whoosh swipe", "melee slash" |
+| `grenade_explode.wav` | Frag grenade detonation | "grenade explosion", "frag boom", "explosion" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -446,6 +450,160 @@ result, all live on `main`:
 Production client: **~196 KB gzipped** total (engine ~122 + app ~70 + CSS ~9 + HTML ~8).
 No new dependencies.
 
+## Routine integration (v0.24.0)
+
+> The phase sections below come from **two parallel autonomous build branches**
+> that each independently numbered their work "Phase 15+". They were hand-merged
+> onto `main` together (see `PHASE_PLAN.md` for the integration log). The
+> original per-branch phase numbers are kept as-written for traceability; the
+> unified release is **v0.24.0**. Branch A (TDM line) sections come first, then
+> Branch B (Onslaught line).
+
+### Branch A — TDM / weapons / content line
+
+## Phase 15 — Team Deathmatch (this round, v0.15.0)
+
+The first **team** mode — the most-played format in Krunker/CS and the headline
+gap in the roster. **Team Deathmatch** is solo-vs-bots: **BLUE** (you + 2 ally
+bots) vs **RED** (3 enemy bots), first team to **50 frags** wins. It also doubles
+as a big **bot-AI upgrade** — bots now hunt across team lines, so the arena feels
+alive even when you hang back. No protocol change (MP stays FFA); solo, MP, Gun
+Game and Aim Lab all keep working.
+
+- **Unified bot targeting.** `Bot.update(dt, targets)` engages the nearest
+  visible enemy (different team, alive, not cloaked, LoS). FFA/Gun Game pass only
+  the player (behaviour unchanged); TDM passes player + all bots so bots fight
+  the other team.
+- **Team-aware friendly fire.** `World.raycast` skips same-team damageables
+  (bullets pass through teammates), plumbed via `Weapon.ownerTeam` /
+  `WeaponInventory.setOwnerTeam`. FFA semantics unchanged when unset.
+- **3-v-3 roster.** Two extra bots (`sentinel`/`raider`) stay dormant in
+  Combat/Gun Game (those modes keep their original 3 bots) and activate only for
+  TDM. Team colours (blue/red figures + minimap dots), home spawns on each map's
+  existing `teamSpawns`, team scoring + 50-frag win, a BLUE-vs-RED HUD ticker, a
+  team-grouped Tab scoreboard, and a VICTORY/DEFEAT post-match by *your team's*
+  result. New "⚔ Team Deathmatch" main-menu button.
+
+## Phase 22 — LMG weapon (this round, v0.22.0)
+
+A seventh weapon — the **LMG**, a belt-fed suppressor: 60-round mag, 11 RPS,
+lower per-shot damage than the AR, heavy bloom + a long 3.2 s reload. Wins through
+volume and area denial, not precision — a distinct sustained-fire archetype. Full
+client config + a chunky viewmodel + a server damage profile (so it's
+authoritative in MP), selectable in the loadout. (Not on the Gun Game ladder,
+which stays its fixed six rungs.)
+
+## Phase 21 — Frag grenade (this round, v0.21.0)
+
+A thrown frag on **G** — arcs under gravity, settles on the first surface, and
+detonates on a short fuse for a line-of-sight-gated area burst (radius 6.5, up to
+95 dmg with linear falloff), with a bright flash + expanding shockwave + proximity
+shake. ~6 s cooldown. Reuses the damage/kill bus (`weaponId 'grenade'`), respects
+TDM friendly fire, and omits self-damage (PvE-friendly). **Solo only** (no
+protocol; MP damage is server-authoritative). New `grenade_explode.wav` sound id.
+
+## Phase 20 — Quick melee (this round, v0.20.0)
+
+A fast knife strike on **V** / **F** — the universal close-range "panic button"
+every arena shooter has, and a satisfying way to finish a rush. Short-range
+forward raycast (3.2 m, 55 dmg, ×1.3 on a head), ~0.6 s cooldown, with a viewmodel
+swing, impact spark, hitmarker, and full killfeed/XP integration (`weaponId
+'knife'`). Friendly-fire-aware in TDM. **Solo only** (MP damage is
+server-authoritative and there's no melee in the protocol). New `melee.wav` sound
+id (silent until the asset lands).
+
+## Phase 19 — Solo FFA matches (this round, v0.19.0)
+
+The default "Play vs Bots" mode was the only combat mode with no win condition —
+it ran forever and never reached the post-match screen (the main natural ad
+breakpoint). Now solo FFA is a real match: first to 30 kills (you or a bot) wins
+→ post-match → Play Again. The FFA score ticker also shows in solo, and bot
+callsigns appear in the ticker + post-match. Pure client, no protocol change.
+
+## Phase 18 — Cobalt arena (this round, v0.18.0)
+
+The third combat map. **Cobalt** is the first built for pure competitive symmetry
+(mirrored about both axes) with a cool steel-blue + teal-neon palette for instant
+contrast with warm Sandstone / rusty Industrial. A raised central platform
+(jump-pad ring + cover), two symmetric raised team decks for TDM, diagonal crate
+cover, flank walls, and health pickups. Selectable for all solo combat modes;
+MP keeps serving its authoritative map, so Cobalt is solo-only and changes
+nothing online.
+
+## Phase 17 — Enemy nameplates (this round, v0.17.0)
+
+Floating **callsign + health bar** over bots — a Krunker staple that makes combat
+instantly readable and surfaces the new callsigns mid-fight. Billboarded sprites
+with `depthTest` so walls occlude them (fair — no wallhack), distance fade, and
+team-coloured names in TDM. Solo only (bots); toggle in Settings → General. Pure
+client, no protocol change.
+
+## Phase 16 — Bot difficulty + callsigns (this round, v0.16.0)
+
+A pure-client, zero-protocol round that widens the audience and makes bots feel
+like real opponents (both amplify every solo mode → longer sessions → more ad
+breakpoints).
+
+- **Bot difficulty selector (Easy / Normal / Hard)** in the menu, persisted and
+  applied live. Scales the whole roster's *AI feel* — reaction time, aim jitter,
+  predictive lead, fire cadence — without touching weapon stats (no rebuild). New
+  players can win; veterans get punished on Hard (snappy, accurate, leads shots).
+- **Humanized bot callsigns** (Drifter / Viper / Specter / Bishop / Havoc) in the
+  killfeed, scoreboard, and death recap, via a unified `Game.displayNameFor(id)`
+  resolver. The stable bot id remains the scoring key.
+
+### Branch B — Onslaught / Overpass line
+
+## Phase 15 — Onslaught (wave survival) mode (this round, v0.15.0)
+
+The strongest solo hook the game was missing: a **high-score survival loop**.
+ILCARTIGO plays single-player without a deployed server, so a mode that's
+inherently fun offline — and ends on a results card (a natural ad breakpoint) —
+is the most valuable next addition. Self-contained, **zero protocol/server
+change**, solo + MP both intact.
+
+- **Endless escalating waves.** Each wave spawns `min(8, 2 + ⌊wave·1.2⌋)` bots;
+  the difficulty mix climbs (early waves are wanderers, wave 3+ adds engagers,
+  wave 6+ sprinkles in predictors). A big center-screen **"WAVE n"** banner + a
+  3 s breather open each round.
+- **Lives + reward loop.** You get **3 lives**; clearing a wave **fully heals**
+  you and banks a scaling **+XP bonus** (`25 + wave·15`). Run ends when lives
+  run out → an **OVERRUN** results card: waves survived, eliminations, best wave,
+  bonus XP, NEW-BEST flag, Play Again / Quit. Personal best persists
+  (`ilc.onslaught.best`) and shows on the menu button (`☠ Onslaught · best wave
+  N`) + Profile → Bests.
+- **Reuses the bot AI verbatim.** Wave bots are ordinary `Bot`s that just don't
+  auto-respawn, so every wave-bot death is a normal player frag — XP, lifetime
+  stats, killfeed, announcer (multi-kills/streaks), and weapon mastery all work
+  with no special-casing. The mode owns the roster only while it runs
+  (`Game.setSurvivalActive` parks the base bots; `Bot.dispose` cleans up wave
+  bots between runs).
+
+New `modes/Onslaught.ts` + `'onslaught'` GameMode + Bot lifecycle additions
+(`autoRespawn`/`ephemeral`/`dispose`) + HUD ticker, wave banner, results card,
+and menu button. App chunk ~71.8 KB gzip (+1.6 KB this phase). No new deps.
+
+## Phase 16 — Overpass (new combat map) (this round, v0.16.0)
+
+A third combat map — the highest-leverage *content* lever in an arena shooter,
+and it deepens **every** solo mode at once (Combat, Gun Game, Onslaught + the
+map selector). Distinct identity: **verticality**.
+
+- **Overpass** — an urban-dusk arena around a raised **E-W bridge deck** (the
+  dominant sniper sightline, y=5) over two ground-level **container lanes**
+  (close-quarters cover) and four mid-height **corner decks** (y=3). Cool
+  concrete/steel palette, teal accents, sodium pads, deep-blue dusk fog.
+- **Reliable vertical access:** a **staircase on-ramp at each bridge end** (treads
+  under the controller's auto-step, so you climb smoothly) + corner-deck jump
+  pads placed outside their footprint. Falling off just drops you to ground
+  level (fully enclosed — no void), so the high ground stays inviting.
+- **Solo-selectable, zero MP risk.** New `maps/OverpassMap.ts` (the proven
+  Sandstone/Industrial box + stair pattern) registered in `MapId`/`MAPS` + a
+  loadout button; the MP server still defaults to Sandstone and clients adopt the
+  server's map, so no protocol/server change. Health-pack placements added to
+  both client + server `Pickups.ts`. Geometry verified headlessly (all spawns
+  clear of solids). App chunk ~72.9 KB gzip (+1.1 KB). No new deps.
+
 ## Publication & Monetization (this round)
 
 The first round focused on **going live** rather than gameplay. Code-side deploy
@@ -526,13 +684,13 @@ documented three-edit checklist.
 
 ## Project status
 
-14 phases complete + a publication round. Movement, combat, 6 classes, 6 weapons (incl. Marksman), 3 maps, HUD, multiplayer, landing site, progression, audio, polish — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; **Gun Game mode + Aim Lab trainer + rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage**; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups — all shipped. Deploy groundwork laid (Fly.io + Vercel), awaiting account setup.
+v0.24.0 — **deployed and live**, two routine branches integrated. Movement, combat, 6 classes, **7 weapons** (incl. Marksman + LMG), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~196 KB gzipped`. Single-player, Practice Range, online FFA, **Gun Game**, **Aim Lab**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups. v0.14.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. v0.14.0.
-- `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense slots reserved (uncomment to activate).
+- `/client` — Vite + TS + Three.js game client. `~205 KB gzipped` (app ~78 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.24.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.24.0.
+- `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 
 ## What you'd want to do next (post-v1)
 

@@ -262,3 +262,456 @@ round — pure deploy/monetization infrastructure.
 
 ### Pending on the user: `vercel login` (to run the deploy), `fly` steps for the
 ### MP server, an approved `ca-pub` id, and registering `ilcartigo.com`.
+
+---
+
+## Routine integration round (v0.24.0) — two branches merged
+
+Two autonomous branches built in parallel off the same base, each numbering its
+work "Phase 15+". Both were hand-merged onto `main` together (resolving the
+overlap in `Game.ts`/`Bot.ts`/`main.ts`/`index.html`/`Pickups.ts` — both added a
+3rd map + a new mode + new bot fields). All additive, nothing dropped; unified
+release **v0.24.0**, typecheck + build green. Branch A (TDM line) log first, then
+Branch B (Onslaught line).
+
+### Branch A — TDM / weapons / content (Phases 15–23)
+
+## Phase 15 — Team Deathmatch mode (autonomous build, v0.15.0)
+
+The headline gap in the mode roster was a **team** mode — the most-played format
+in Krunker/CS. Phase 15 ships **Team Deathmatch (TDM)** as a self-contained
+**solo-vs-bots** mode: BLUE (you + 2 ally bots) vs RED (3 enemy bots), first team
+to **50 frags** wins. It doubles as a big **bot-AI upgrade** — bots now fight
+each other across team lines, so the arena finally feels alive even when you hang
+back. **No protocol change** (MP stays FFA); solo + MP + Gun Game + Aim Lab all
+keep working. Typecheck (client + server) + client build green; app chunk
+~71.8 KB gzip.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+**Core systems (low-level, behaviour-preserving for FFA):**
+- **Unified bot targeting.** `Bot.update(dt, targets)` now takes a `BotTarget[]`
+  and engages the nearest visible **enemy** (different team, alive, not cloaked,
+  in range, with LoS). Game builds the list each tick: just the player in
+  FFA/Gun Game (so behaviour is *identical* — the only enemy is you), player +
+  all bots in TDM (so bots hunt the other team). Vectors are pooled in a cache to
+  avoid per-frame allocation.
+- **Team-aware friendly fire.** `World.raycast` gained an optional `friendlyTeam`
+  param that skips same-team damageables — bullets pass through teammates
+  (Krunker convention). Plumbed through `Weapon.ownerTeam` +
+  `WeaponInventory.setOwnerTeam` (persisted across `setPrimary`). Set per-match by
+  Game; `undefined` everywhere else = FFA (hit anyone but self).
+- **`registerDamageable` is now idempotent** — TDM re-runs `syncBotState`, which
+  could otherwise double-register a live bot and double its incoming damage.
+
+**TDM mode (`'tdm'` GameMode, `isCombatMode` includes it):**
+- **Roster.** Two extra bots (`sentinel`/`raider`) are created up front but stay
+  dormant (hidden + unregistered) in Combat / Gun Game so those modes keep their
+  original 3-bot feel; `syncBotState` activates the full 5 for a real **3-v-3**.
+- **Teams.** `TDM_BOT_TEAM` maps each bot to BLUE/RED; player is always BLUE.
+  Bots get a **team colour** (blue/red figure tint, restored to difficulty colour
+  in FFA), a **home spawn** anchored on the map's existing `teamSpawns` (scatter +
+  solid-nudge on respawn), and their weapon's friendly-fire team.
+- **Scoring + win.** `Game.teamScore[2]`; the killer's team scores on every
+  cross-team frag (`teamOf(id)` resolves player→0 / bot→team); first to
+  `TDM_GOAL` (50) fires `onMatchEnded('team:N')`. `pickSafeSpawn` ignores allies
+  in TDM (spawn near friends, away from enemies).
+
+**UI / feel:**
+- **HUD ticker** — `#tdm-ticker` "BLUE n vs m RED · first to 50", updated each
+  frame, themed blue/red.
+- **Scoreboard (Tab)** — TDM renders two team blocks (BLUE then RED) with a
+  team-frag header each, members sorted by kills, you highlighted, dotted rank
+  markers tinted by team.
+- **Post-match** — winner line reads "BLUE/RED TEAM WINS · score–score";
+  VICTORY/DEFEAT by *your team's* result (not your rank); win grants +50 XP.
+- **Minimap** — allies draw blue, enemies red in TDM (all red in FFA).
+- **Menu** — new "⚔ Team Deathmatch (vs Bots)" button (blue accent); ticker
+  shown on start, hidden on quit / online / other modes; Play Again resets team
+  scores and resumes.
+
+### Status log
+- ✅ Phase 15 — Team Deathmatch. DONE (client + server tsc + client build green).
+  Low-level: unified `BotTarget` targeting (FFA behaviour preserved), team-aware
+  `raycast`/`Weapon.ownerTeam`/`WeaponInventory.setOwnerTeam`, idempotent
+  `registerDamageable`. Mode: `'tdm'` 3-v-3 with team colours, home spawns,
+  friendly-fire, team scoring + 50-frag win, TDM scoreboard/ticker/post-match,
+  team-coloured minimap. Two dormant TDM-only bots (sentinel/raider) keep
+  FFA/Gun Game at their original 3-bot roster (filtered out of FFA scoreboard +
+  Gun Game ladder). Version bumped to v0.15.0 (+ menu subtitle/footer).
+
+### Phase 15 COMPLETE — solo TDM mode + bots-fight-bots AI, no protocol change,
+### solo + MP + Gun Game + Aim Lab all intact.
+
+---
+
+## Phase 16 — Bot identity + difficulty selector (autonomous build, v0.16.0)
+
+A pure-client, zero-protocol round that **broadens the audience** (Easy for new
+players, Hard for veterans → longer sessions → more ad breakpoints) and makes
+bots read like real opponents — both amplify every solo mode (FFA / TDM / Gun
+Game). Typecheck (client + server) + client build green; app chunk ~72 KB gzip.
+
+- **Bot difficulty (Easy / Normal / Hard).** A menu selector (persisted to
+  `ilc.difficulty`) scales the whole roster's **AI feel** — reaction window, aim
+  jitter cone, predictive lead, and fire cadence — via a `SKILL` table layered on
+  each bot's per-tier preset. Deliberately scales the *feel*, not weapon stats, so
+  there's no weapon rebuild and it applies live. `Bot.setDifficulty` +
+  `Game.setDifficulty` (re-applied in `syncBotState` so freshly-activated TDM
+  bots inherit it). Easy = slow + sloppy + barely leads; Hard = snappy, accurate,
+  leads hard.
+- **Humanized bot callsigns.** Each bot gets a stable callsign (Drifter / Viper /
+  Specter / Bishop / Havoc) shown in the killfeed, scoreboard, and death recap —
+  the *id* stays the scoring key. New `Game.displayNameFor(id)` unifies naming
+  (local handle / bot callsign / short MP id); HUD killfeed + recap + main.ts
+  scoreboard all route through it (replacing the old "Engager Bot" difficulty
+  labels and raw short-ids for bots).
+
+### Status log
+- ✅ Phase 16 — Bot identity + difficulty. DONE (client + server tsc + client
+  build green). `GameDifficulty` + `SKILL` modifier table in Bot; `setDifficulty`
+  on Bot + Game; menu Easy/Normal/Hard selector (`data-diff`, excluded from the
+  weapon-selector query) persisted + applied live + on boot. Bot callsigns via
+  `BOT_CALLSIGN` + `Game.displayNameFor`, wired into HUD killfeed/recap +
+  scoreboard `participantName`. Version bumped to v0.16.0 (+ menu subtitle/footer).
+
+### Phase 16 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 17 — Enemy nameplates + health bars (autonomous build, v0.17.0)
+
+Pairs with Phase 16's callsigns: floating **callsign + HP bar** over bots — a
+Krunker staple that makes combat instantly readable + juicy, and surfaces the
+new names where they matter (mid-fight, not just the killfeed). Pure client, no
+protocol change. Typecheck + build green; app chunk ~72.9 KB gzip.
+
+- New `ui/Nameplates.ts` — one billboarded `THREE.Sprite` per bot, drawn from a
+  pooled canvas (team-tinted callsign on top, green→amber→red rounded HP bar
+  under it). **`depthTest: true`** so walls naturally occlude plates — you can't
+  read enemies through geometry (fair, no wallhack). Perspective gives distance
+  shrink for free; plates fade out 60→75 m and hide past 75 m or when the bot is
+  dead/inactive. In TDM the callsign is team-coloured (allies blue, enemies red).
+- Cheap: the canvas only redraws when a bot's HP bucket / team / name changes;
+  per-frame cost is just repositioning visible sprites. Ticked from
+  `Game.onFrame`.
+- Solo only (reads `game.bots` HP directly; MP remotes don't broadcast HP — a
+  future protocol-touching item). Toggle in Settings → General (`ilc.nameplates`,
+  default on).
+
+### Status log
+- ✅ Phase 17 — Enemy nameplates. DONE (client tsc + build green). `Nameplates`
+  class (sprite-per-bot, canvas callsign + HP bar, depthTest occlusion, distance
+  fade, TDM team tint), wired into main.ts (`update()` in onFrame) + a
+  General-tab toggle. Bumped to v0.17.0 (+ menu subtitle/footer).
+
+### Phase 17 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 18 — Cobalt arena (autonomous build, v0.18.0)
+
+The third combat map — fresh content is the biggest single driver of "one more
+game." **Cobalt** is the first map built for pure **competitive symmetry**
+(mirrored about both axes, so no TDM side has an edge) and a cool steel-blue +
+teal-neon palette for instant visual contrast with warm Sandstone and rusty
+Industrial. Selectable for all solo combat modes (FFA / TDM / Gun Game).
+
+- New `maps/CobaltMap.ts` — 84×84 arena: perimeter walls, a raised central
+  platform (jump-pad ring, pillar + corner cover), two symmetric raised team
+  decks (N/S, with front parapets) for TDM identity + high ground, diagonal
+  crate cover, E/W flank walls to break cross-map sightlines, and low steppable
+  spawn bumps. Verticality is entirely jump-pad-driven (no mid-height ledges that
+  snag the 0.55 m step-up). Emissive teal trim for flair (non-colliding).
+- Wired everywhere a map id flows: `MapId` union, `Game.MAPS`, the menu map grid
+  (now 3-wide) + selector validation, and **health pickups** added for Cobalt in
+  both `maps/Pickups.ts` and `server/Pickups.ts` (kept in sync, though the MP
+  server never loads Cobalt — it's solo-only; MP still serves Sandstone/
+  Industrial via the server's authoritative `Welcome.mapId`).
+
+### Status log
+- ✅ Phase 18 — Cobalt arena. DONE (client + server tsc + client build green).
+  New symmetric map + full wiring (MapId/MAPS/menu/validation), Cobalt health
+  pickups mirrored client+server, 3-column map grid. Solo-only (MP unaffected —
+  server map stays authoritative). Bumped to v0.18.0 (+ menu subtitle/footer).
+
+### Phase 18 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 19 — Solo FFA match objective + post-match (autonomous build, v0.19.0)
+
+The default mode ("Play vs Bots" / solo combat) was the only combat mode with
+**no win condition** — it ran forever, so it never hit the post-match overlay
+(the game's main natural ad breakpoint). Phase 19 gives it a real match: first
+participant (you OR a bot) to the kill goal (30) wins → post-match → Play Again.
+Directly increases ad impressions on the most-played mode + adds a sense of
+completion. Pure client, no protocol change.
+
+- **Solo FFA match end** in `Game`'s kill handler (combat mode, no server; MP's
+  end stays server-authoritative, TDM/Gun Game own theirs). Reuses the existing
+  post-match overlay + Play Again reset.
+- **FFA match ticker now shows in solo** too (was MP-only) — your kills / goal +
+  the current leader, so you can see the race.
+- **Callsign polish everywhere** — the match ticker leader, post-match winner
+  line, and post-match scoreboard rows now show bot callsigns (via
+  `Game.displayNameFor`) instead of raw ids; removed the now-dead `shortId`
+  helper in HUD.
+
+### Status log
+- ✅ Phase 19 — Solo FFA match + post-match. DONE (client + server tsc + client
+  build green). Solo combat ends at MATCH_KILL_GOAL via the kill handler; match
+  ticker un-gated to solo; displayNameFor used in ticker/post-match. Bumped to
+  v0.19.0 (+ menu subtitle/footer).
+
+### Phase 19 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 20 — Quick melee (autonomous build, v0.20.0)
+
+The universal close-range "panic button" every arena shooter has — a fast knife
+strike on **V** / **F** that doesn't require a weapon swap. Satisfying way to
+finish a rush; high skill-expression in a bhop fight. Pure client, no protocol
+change.
+
+- New `melee` input action (bound to KeyV + KeyF). `Game.doMelee()` — a short
+  forward raycast (3.2 m, 55 dmg, ×1.3 on a head), ~0.6 s cooldown, reusing the
+  damage/kill bus so killfeed, XP, hitmarker, impact spark, screen-shake and
+  announcer all "just work" (`weaponId 'knife'`, harmless to mastery). Friendly-
+  fire-aware in TDM (passes the player's team to `raycast`).
+- `Viewmodel.meleeSwing()` — a quick down-left arc (rotation + offset) that
+  returns to rest; idle is a no-op so it never disturbs the normal pose.
+- **Solo only** — MP damage is server-authoritative and there's no melee in the
+  protocol, so a client-only hit would mislead; gated at the call site. New
+  `melee` SoundId + audio-catalog entry (silent until the asset lands). How-to
+  card + README controls updated.
+
+### Status log
+- ✅ Phase 20 — Quick melee. DONE (client + server tsc + client build green).
+  Input action + bindings, Game.doMelee (raycast + bus reuse + TDM friendly
+  fire + cooldown), Viewmodel swing, melee sound id, howto/README/controls.
+  Bumped to v0.20.0 (+ menu subtitle/footer).
+
+### Phase 20 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 21 — Frag grenade (autonomous build, v0.21.0)
+
+A thrown explosive on **G** — the other classic arena throw, adding area-denial
++ a high-skill arc lob to the solo sandbox. Pure client, no protocol change.
+
+- New `entities/GrenadeManager.ts` — pooled grenades that arc under gravity,
+  settle on the first solid/ground contact, and detonate on a ~1.4 s fuse: a
+  bright `CastFX.flash` + expanding `CastFX.wave` shockwave + impact spark +
+  proximity screen-shake, and a LoS-gated area burst (radius 6.5, up to 95 dmg,
+  linear falloff) against bots. Reuses the damage/kill bus (`weaponId
+  'grenade'`); TDM teammates are skipped; self-damage omitted (PvE-friendly).
+- New `grenade` input action (KeyG); `Game.throwGrenade()` with a ~6 s cooldown,
+  solo-only + pointer-lock-gated (same safety as melee). `applyShake` promoted to
+  public for the manager. New `grenade_explode` sound id + catalog entry; how-to
+  card + README controls updated.
+- Melee hardening from this round: gated on pointer-lock so a stray V/F in a menu
+  can't damage bots.
+
+### Status log
+- ✅ Phase 21 — Frag grenade. DONE (client + server tsc + client build green).
+  GrenadeManager (arc + settle + fuse + AoE/LoS/falloff + FX), input action +
+  cooldown + solo/lock gating, public applyShake, grenade sound id, docs. Bumped
+  to v0.21.0 (+ menu subtitle/footer).
+
+### Phase 21 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 22 — LMG weapon (autonomous build, v0.22.0)
+
+A seventh weapon adds loadout variety (the thing every player touches). The
+**LMG** is a belt-fed suppressor — a distinct sustained-fire archetype that wins
+by volume + area denial rather than precision.
+
+- `LMG_CONFIG` (60-round mag, 11 RPS, 20 dmg, heavy bloom + 3.2 s reload) added
+  to `WEAPON_LIBRARY`; a chunky `buildLMG` viewmodel; a `SERVER_WEAPONS['lmg']`
+  damage profile + `VALID_WEAPONS` entry so it's authoritative in MP too; a
+  loadout button. Added `lmg` to the exhaustive `WEAPON_LABEL` map.
+- Not on the Gun Game ladder (kept at its fixed six rungs); mastery skins simply
+  don't list it yet (`weaponSkinsFor('lmg')` → []), which is safe.
+
+### Status log
+- ✅ Phase 22 — LMG. DONE (client + server tsc + client build green). Weapon
+  config + viewmodel builder + server damage/valid-weapon + loadout button +
+  WEAPON_LABEL. Bumped to v0.22.0 (+ menu subtitle/footer).
+
+### Phase 22 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 23 — Grenade HUD indicator + LMG mastery (autonomous build, v0.23.0)
+
+Polish that closes the loop on the two prior phases.
+
+- **Grenade readiness pill** (`#utility-pill`, bottom-centre by the ability pill)
+  — a "G · FRAG" chip whose bar empties on throw and refills over the 6 s
+  cooldown, glowing gold when ready. Solo-only (hidden in MP, where grenades are
+  disabled). New `Game.grenadeReadyFraction` getter + `HUD.tickUtilityPill`.
+- **LMG mastery skins** — three (Gunner/Verdant/Molten) + `lmg` added to
+  `WEAPON_SKIN_ORDER`, so the new weapon participates in the use-to-unlock
+  cosmetics loop like every other gun (was the only weapon without one).
+
+### Status log
+- ✅ Phase 23 — Grenade HUD + LMG mastery. DONE (client + server tsc + client
+  build green). Utility pill (HTML + CSS + HUD tick + readiness getter), LMG
+  mastery skins + order. Bumped to v0.23.0 (+ menu subtitle/footer).
+
+### Phase 23 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Run summary (phases 15–23, this autonomous session)
+
+A nine-phase solo-expansion arc, each typecheck + build green, no protocol
+changes, MP + every prior mode left intact:
+
+15 Team Deathmatch · 16 bot difficulty + callsigns · 17 enemy nameplates ·
+18 Cobalt arena (3rd map) · 19 solo FFA matches (post-match ad breakpoint) ·
+20 quick melee · 21 frag grenade · 22 LMG weapon · 23 grenade HUD + LMG mastery.
+
+### Branch B — Onslaught / Overpass (Phases 15–17)
+
+## Phase 15 — Onslaught (wave survival) mode (autonomous build, v0.15.0)
+
+Back to gameplay. Mode variety is the #1 replay driver in arena shooters, and
+the strongest **solo** hook we were missing is a high-score chase: ILCARTIGO
+runs single-player without a deployed server, so the most valuable next mode is
+one that's *inherently* fun offline and ends on a results card (a natural ad
+breakpoint → revenue). **Onslaught** is exactly that — endless waves of bots,
+escalating in size + difficulty, a small pool of lives, "beat your best wave".
+
+Guiding constraint (kept): **no protocol changes, no new deps, typecheck + build
+green each step, solo + MP both keep working.**
+
+Design (why it's low-risk + self-contained):
+- **SOLO only. Zero protocol / server / controller changes.** It reuses the
+  existing bot-vs-player AI verbatim — wave bots are ordinary `Bot`s that simply
+  don't auto-respawn (`Bot.autoRespawn = false`), so every wave-bot death IS a
+  player frag and the kill bus → XP / stats / killfeed / announcer / mastery all
+  "just work" with no special-casing.
+- **The mode owns the roster only while it runs.** `Game.setSurvivalActive(true)`
+  parks the persistent base bots (deactivate + unregister); each wave spawns its
+  own *ephemeral* bots via `Game.spawnSurvivalBot`, disposed wholesale between
+  runs by `Game.clearSurvivalBots` (new `Bot.dispose` frees mesh + damageable
+  registration). `syncBotState` early-outs while survival is active so it can't
+  re-activate the base roster mid-run.
+- **Lives + waves.** 3 lives. Each wave spawns `min(8, 2 + ⌊wave·1.2⌋)` bots; the
+  difficulty mix climbs (early = wanderers; wave 3+ adds engagers; wave 6+
+  sprinkles predictors). Clearing a wave **fully heals** you + banks a scaling
+  bonus (`25 + wave·15` XP) and a 3 s breather with a big "WAVE n" banner. Player
+  death spends a life (Onslaught owns respawn timing — `Game`'s solo auto-respawn
+  is gated off for `mode === 'onslaught'`). Lives exhausted → results card.
+- **Results card + PB.** "OVERRUN" card shows waves survived, eliminations, best
+  wave, bonus XP, NEW-BEST flag; personal best persists to `localStorage`
+  (`ilc.onslaught.best`), surfaced on the menu button (`☠ Onslaught · best wave N`)
+  and in the Profile → Bests grid. Card carries an `onslaught` ad slot.
+
+New `modes/Onslaught.ts` (Game-coupled controller, like AimLab) + `'onslaught'`
+GameMode + Bot lifecycle additions + HUD ticker (`WAVE n · k left · ♥♥♥`) +
+wave banner + results card + menu button. Headless logic test (mock Game/bus)
+confirmed wave scaling (3→4→…), heal-on-clear, +XP bonus, 3-lives→2-respawns→
+game-over, and PB persistence.
+
+### Status log
+- ✅ Phase 15 — Onslaught. DONE (client+server tsc + client build green; headless
+  state-machine test passed). New `modes/Onslaught.ts`; `Bot.autoRespawn`/
+  `ephemeral`/`dispose()`; `Game.setSurvivalActive`/`spawnSurvivalBot`/
+  `clearSurvivalBots`/`livingSurvivalBots`/`healPlayerFull`/`survivalSpawns` +
+  `'onslaught'` mode (combat-class, auto-respawn gated to the controller). UI:
+  menu button, HUD ticker, "WAVE n" banner, OVERRUN results card (+ ad slot),
+  Profile best. Versions bumped to v0.15.0. App chunk ~71.8 KB gzip (+1.6 KB).
+
+### Phase 15 COMPLETE — solo wave-survival mode, no protocol change, solo + MP intact.
+
+---
+
+## Phase 16 — Overpass (new combat map) (autonomous build, v0.16.0)
+
+Maps are the highest-leverage *content* in arena shooters — Krunker's pull is
+dozens of them — and a new map immediately deepens **every** solo mode at once
+(Combat, Gun Game, Onslaught, and the map selector). ILCARTIGO had only two
+combat maps (Sandstone, Industrial); Phase 16 adds a third with a distinct
+identity: **verticality**.
+
+- **Overpass** — an urban-dusk arena built around a raised **E-W bridge deck**
+  (the dominant sniper sightline, y=5) over two ground-level **container lanes**
+  (close-quarters cover) with four mid-height **corner decks** (y=3). Cool
+  concrete + steel palette, teal accents, sodium-orange pads, deep-blue dusk fog.
+- **Reliable vertical access.** The bridge is reached by a **staircase on-ramp at
+  each end** (treads < the controller's 0.55 m auto-step, so you climb smoothly —
+  no air-control RNG). Corner decks are reached by jump pads placed *outside*
+  their footprint (open sky above, run-up momentum carries you on). Falling off
+  the bridge just drops you to ground level — fully enclosed, no void/death pit,
+  so the high ground stays inviting.
+- **Solo-selectable, zero-risk to MP.** New `maps/OverpassMap.ts` (proven
+  Sandstone/Industrial `addBox`/`addJumpPad`/`buildStairs` pattern) + `'overpass'`
+  in the `MapId` union + `MAPS` registry + a loadout map button. The MP server
+  still runs Sandstone by default and clients adopt the server's map, so Overpass
+  needs no protocol/server change; online support later just wants its AABBs in
+  `server/src/MapCollision.ts`. Health-pack placements added to **both**
+  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in sync).
+- **Verified geometry headlessly.** A mock-World harness ran the real `build()`
+  and asserted **all FFA + TDM spawns sit clear of every solid** (caught + fixed
+  an initial bug where corner spawns were embedded inside the corner-deck boxes),
+  61 solids / 4 pads built, deck surface walkable.
+
+### Status log
+- ✅ Phase 16 — Overpass map. DONE (client+server tsc + client build green;
+  headless spawn-clearance + build smoke test passed). New `maps/OverpassMap.ts`
+  (bridge deck + end staircases + corner decks + container lanes + perimeter +
+  dusk lighting/fog), registered in `MapId`/`MAPS`, loadout button, corrupt-value
+  guard generalised to a `COMBAT_MAPS` list, Overpass pickups mirrored client +
+  server. Versions bumped to v0.16.0. App chunk ~72.9 KB gzip (+1.1 KB geometry).
+
+### Phase 16 COMPLETE — third combat map, solo-selectable, no protocol change, solo + MP intact.
+
+---
+
+## Phase 17 — Onslaught boss waves + HP scaling (autonomous build, v0.17.0)
+
+A focused depth pass on the freshly-shipped survival mode — the cheapest way to
+make an endless-wave loop *memorable* is a recurring escalation beat. Pure
+client, builds straight on Phase 15.
+
+- **Boss waves every 5th wave.** A tanky emissive **elite** (predictor brain,
+  `220 + wave·12` HP, dark-crimson body with a pulsing red glow) leads a smaller
+  add pack. A boss-styled "WAVE n · ☠ BOSS WAVE ☠" banner (deeper red, glowing,
+  longer dwell) + a stinger announce it; clearing it pays **double** the wave
+  bonus.
+- **Per-wave HP creep.** Regular wave bots scale `100 + (wave−1)·8` HP (capped
+  180) so late waves stay threatening even before the next boss.
+- **Minimal, safe surface.** New `BotOptions` (`maxHp` / colour / `emissive` /
+  `elite`) threaded through `Bot` + `Game.spawnSurvivalBot` — the default 3-bot
+  roster and every other mode are untouched (all pass no opts → identical
+  behaviour). No size/AABB change (elites are normal-sized → hitboxes stay
+  correct), no protocol change.
+
+### Status log
+- ✅ Phase 17 — Onslaught boss waves. DONE (client+server tsc + client build
+  green; headless state-machine test confirmed wave 5 = boss elite @ 280 HP /
+  count 6, regular HP creep +8/wave, boss XP doubled). `Bot.BotOptions` +
+  `elite` flag + emissive glow, `Onslaught.beginWave` boss/HP logic, boss banner
+  variant (CSS + main.ts). Versions bumped to v0.17.0. App chunk ~73.1 KB gzip.
+
+### Phase 17 COMPLETE — boss-wave escalation, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Integration result (v0.24.0, by Claude)
+
+Both branches above merged onto `main` feature-by-feature, conflicts resolved by
+hand (kept both maps Cobalt + Overpass, both modes TDM + Onslaught, unified the
+two Bot type sets — `GameDifficulty` global skill + `BotDifficulty` per-tier +
+`BotOptions` wave overrides). Client + server typecheck + client build all green;
+app chunk ~78 KB gzip, 89 modules. Versions unified to **v0.24.0**. The
+deliberately-unmerged t2Opo power-up branch from the prior round remains
+unmerged (still conflicts with the health-pickup system).

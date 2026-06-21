@@ -52,6 +52,8 @@ export class HUD {
   private apFill: HTMLElement;
   private apCharges: HTMLElement;
   private apDots: HTMLElement[];
+  private utilityPill: HTMLElement;
+  private upFill: HTMLElement;
 
   private lastHp = -1;
   private lastAmmo = -1;
@@ -109,6 +111,8 @@ export class HUD {
     this.apFill = this.abilityPill.querySelector('.ap-cd-fill') as HTMLElement;
     this.apCharges = this.abilityPill.querySelector('.ap-charges') as HTMLElement;
     this.apDots = Array.from(this.abilityPill.querySelectorAll<HTMLElement>('.ap-dot'));
+    this.utilityPill = document.getElementById('utility-pill')!;
+    this.upFill = this.utilityPill.querySelector('.up-fill') as HTMLElement;
 
     // Player-shot hits → hitmarker (local-only event).
     bus.on('hitConfirm', ({ isHeadshot }) => {
@@ -123,8 +127,8 @@ export class HUD {
 
     // Kills → killfeed. Shortens MP socket ids to a 6-char tag for readability.
     bus.on('kill', (e) => {
-      const killer = this.game.isLocalPlayer(e.attackerId) ? 'YOU' : shortId(e.attackerId);
-      const victim = this.game.isLocalPlayer(e.targetId)   ? 'YOU' : shortId(e.targetId);
+      const killer = this.game.isLocalPlayer(e.attackerId) ? 'YOU' : this.game.displayNameFor(e.attackerId);
+      const victim = this.game.isLocalPlayer(e.targetId)   ? 'YOU' : this.game.displayNameFor(e.targetId);
       this.pushKill(killer, victim, e.weaponId, e.isHeadshot);
 
       // Kill-confirm marker when YOU got the kill (not a suicide/fall).
@@ -190,10 +194,25 @@ export class HUD {
     }
 
     this.tickAbilityPill();
+    this.tickUtilityPill();
     this.tickCrosshairSpread();
     this.tickLowHp();
     this.tickMatchScore();
     this.tickRespawnCountdown();
+  }
+
+  /** Grenade readiness pill — solo only (grenades are disabled in MP). The fill
+   *  empties on throw and refills over the cooldown; 'ready' class when full. */
+  private tickUtilityPill() {
+    const show = this.game.mp === null;
+    if (!show) {
+      if (!this.utilityPill.classList.contains('hidden')) this.utilityPill.classList.add('hidden');
+      return;
+    }
+    this.utilityPill.classList.remove('hidden');
+    const f = this.game.grenadeReadyFraction;
+    this.upFill.style.transform = `scaleX(${f.toFixed(3)})`;
+    this.utilityPill.classList.toggle('ready', f >= 1);
   }
 
   /**
@@ -290,7 +309,9 @@ export class HUD {
    * kill count from game.matchKills and the current leader's count.
    */
   private tickMatchScore() {
-    const showIt = this.game.mp !== null && this.game.mode === 'combat';
+    // FFA match ticker — shown in both solo and online combat (TDM/Gun Game
+    // have their own tickers; practice has none).
+    const showIt = this.game.mode === 'combat';
     if (!showIt) {
       if (!this.matchScore.classList.contains('hidden')) {
         this.matchScore.classList.add('hidden');
@@ -312,7 +333,7 @@ export class HUD {
     if (leaderId === myId) {
       this.msLeader.textContent = 'you lead';
     } else {
-      this.msLeader.textContent = `leader: ${shortId(leaderId)} (${leaderKills})`;
+      this.msLeader.textContent = `leader: ${this.game.displayNameFor(leaderId)} (${leaderKills})`;
     }
   }
 
@@ -412,12 +433,10 @@ export class HUD {
     this.rcRecap.classList.remove('hidden');
   }
 
-  /** Friendly name for whoever killed us: a bot's difficulty label, or a short
-   *  MP id. (Never the local player — guarded by the caller.) */
+  /** Friendly name for whoever killed us: a bot's callsign, or a short MP id.
+   *  (Never the local player — guarded by the caller.) */
   private killerName(id: string): string {
-    const bot = this.game.bots.find((b) => b.id === id);
-    if (bot) return bot.difficulty.charAt(0).toUpperCase() + bot.difficulty.slice(1) + ' Bot';
-    return shortId(id);
+    return this.game.displayNameFor(id);
   }
 
   private pushKill(killer: string, victim: string, weaponId: string, isHeadshot: boolean) {
@@ -437,10 +456,5 @@ export class HUD {
       if (e.parentElement) e.parentElement.removeChild(e);
     }, KILLFEED_TTL);
   }
-}
-
-/** Truncate long ids (socket ids in MP) to a readable 6-char tag. */
-function shortId(id: string): string {
-  return id.length <= 8 ? id.toUpperCase() : id.slice(0, 6).toUpperCase();
 }
 
