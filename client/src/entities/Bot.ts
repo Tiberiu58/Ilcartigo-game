@@ -36,6 +36,18 @@ const RESPAWN_DELAY = 3.0;
  * predict>0 means aim at their position + velocity * predict seconds.
  */
 export type BotDifficulty = 'wanderer' | 'engager' | 'predictor';
+
+/** Player-chosen global skill level. Layered on top of each bot's per-tier
+ *  preset so the whole roster scales together without rebuilding weapons. */
+export type GameDifficulty = 'easy' | 'normal' | 'hard';
+/** Multipliers applied to the AI feel (NOT weapon stats): reaction window, aim
+ *  jitter cone, predictive lead, and fire-cadence gap. Easy = slow + sloppy;
+ *  Hard = fast, accurate, leads its shots. */
+const SKILL: Record<GameDifficulty, { reaction: number; jitter: number; predict: number; fireGap: number }> = {
+  easy:   { reaction: 1.7, jitter: 2.4, predict: 0.3, fireGap: 1.40 },
+  normal: { reaction: 1.0, jitter: 1.0, predict: 1.0, fireGap: 1.00 },
+  hard:   { reaction: 0.6, jitter: 0.45, predict: 1.5, fireGap: 0.78 },
+};
 const DIFFICULTY: Record<BotDifficulty, {
   reactionTime: number; aimJitter: number; predictSeconds: number; fireRate: number; damageMul: number;
 }> = {
@@ -49,6 +61,23 @@ const HEAD_SIZE = 0.28;
 const ENGAGE_RANGE = 60;
 
 type BotState = 'idle' | 'engage' | 'reposition' | 'dead';
+
+/**
+ * A potential combat target a bot can engage, built by Game each tick. Unifies
+ * the player and other bots so one targeting path serves both FFA (the bot only
+ * ever sees the player as an enemy) and TDM (bots fight whichever team isn't
+ * theirs). Vectors are owned by the caller — the bot only reads them.
+ */
+export interface BotTarget {
+  id: string;
+  team: number;
+  /** Eye position (for aim + line-of-sight). */
+  eye: THREE.Vector3;
+  /** Velocity (predictor-tier lead). Zero for bots — they move slowly. */
+  vel: THREE.Vector3;
+  cloaked: boolean;
+  dead: boolean;
+}
 
 // Generic patrol points — chosen to avoid Sandstone's buildings and the
 // TestMap's central pillar. Per-map waypoint sets come in Phase 5b polish.
@@ -64,7 +93,9 @@ const WAYPOINTS: THREE.Vector3[] = [
 export class Bot implements Damageable {
   readonly id: string;
   readonly health: Health;
-  readonly team = 1;
+  /** Team — 1 by default (enemy of the team-0 player) in FFA. Reassigned per
+   *  match by Game in Team Deathmatch. */
+  team = 1;
   readonly weapon: Weapon;
 
   private world: World;
@@ -87,6 +118,19 @@ export class Bot implements Damageable {
   private sidestepPhase = 0;
   private tier: typeof DIFFICULTY[BotDifficulty];
   readonly difficulty: BotDifficulty;
+  /** Humanized callsign shown in the killfeed + scoreboard. Defaults to the id;
+   *  Game assigns a real one. The id stays the stable key for scoring. */
+  name: string;
+  /** Active global skill modifier (Easy/Normal/Hard). */
+  private skill = SKILL.normal;
+
+  // Mesh refs + base colours so TDM can re-tint to team colours and restore.
+  private bodyMesh!: THREE.Mesh;
+  private headMesh!: THREE.Mesh;
+  private baseBodyColor: number;
+  private baseHeadColor: number;
+  /** TDM respawn anchor (team's spawn area). null = FFA waypoint respawn. */
+  homeSpawn: THREE.Vector3 | null = null;
 
   // Re-used vectors.
   private _bodyMin = new THREE.Vector3();
@@ -103,6 +147,7 @@ export class Bot implements Damageable {
     this.bus = bus;
     this.difficulty = difficulty;
     this.tier = DIFFICULTY[difficulty];
+    this.name = id;
 
     // Bots share the AR config but each tier modulates fire rate + damage.
     // damageMul is applied to baseDamage — easier bots hit softer.
@@ -126,6 +171,8 @@ export class Bot implements Damageable {
     const headColor = difficulty === 'wanderer' ? 0x955020
       : difficulty === 'predictor' ? 0x6a1f4f
       : 0x8a2c2c;
+    this.baseBodyColor = bodyColor;
+    this.baseHeadColor = headColor;
 
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(BODY_HALF.x * 2, BODY_HALF.y * 2, BODY_HALF.z * 2),
@@ -133,6 +180,7 @@ export class Bot implements Damageable {
     );
     body.position.y = BODY_HALF.y;
     this.group.add(body);
+    this.bodyMesh = body;
 
     const head = new THREE.Mesh(
       new THREE.BoxGeometry(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE),
@@ -140,6 +188,7 @@ export class Bot implements Damageable {
     );
     head.position.y = HEAD_OFFSET + HEAD_SIZE / 2;
     this.group.add(head);
+    this.headMesh = head;
 
     // Eye band so you can tell facing direction.
     const eye = new THREE.Mesh(
@@ -169,11 +218,13 @@ export class Bot implements Damageable {
   }
 
   /**
-   * Called every frame; needs the player's eye position, velocity, and cloak
-   * state. Predictor-tier bots lead their shots using velocity; cloaked
-   * players are never engaged (Ghost passive).
+   * Called every frame with the list of potential targets (built by Game). The
+   * bot engages the nearest visible ENEMY (different team, alive, not cloaked).
+   * In FFA the list is just the player, so behaviour is unchanged; in TDM it's
+   * the player + every bot, so allies are ignored and enemies are hunted.
+   * Predictor-tier bots lead their shots using the target's velocity.
    */
-  update(dt: number, playerEye: THREE.Vector3, playerVel: THREE.Vector3, playerCloaked: boolean) {
+  update(dt: number, targets: BotTarget[]) {
     this.weapon.update(dt);
     this.timeSinceLastShot += dt;
 
@@ -196,9 +247,20 @@ export class Bot implements Damageable {
 
     // Eye position of bot (mid-head).
     const botEye = _SCRATCH.set(this.position.x, this.position.y + HEAD_OFFSET + HEAD_SIZE / 2, this.position.z);
-    const distToPlayer = botEye.distanceTo(playerEye);
-    // Cloaked players are invisible to bot LoS — Ghost passive.
-    const hasLoS = !playerCloaked && distToPlayer < ENGAGE_RANGE && this.world.hasLineOfSight(botEye, playerEye);
+
+    // Pick the nearest visible enemy: different team, alive, not cloaked, within
+    // engage range, with line of sight. (Cloaked = invisible — Ghost passive.)
+    let best: BotTarget | null = null;
+    let bestDist = ENGAGE_RANGE;
+    for (const t of targets) {
+      if (t.id === this.id || t.dead || t.cloaked || t.team === this.team) continue;
+      const d = botEye.distanceTo(t.eye);
+      if (d < bestDist && this.world.hasLineOfSight(botEye, t.eye)) {
+        best = t;
+        bestDist = d;
+      }
+    }
+    const hasLoS = best !== null;
 
     // Transition logic.
     if (hasLoS) {
@@ -212,9 +274,9 @@ export class Bot implements Damageable {
       if (this.position.distanceTo(target) < 1.0) this.state = 'idle';
     }
 
-    if (this.state === 'engage') {
+    if (this.state === 'engage' && best) {
       this.engageTime += dt;
-      this.faceTarget(playerEye, dt);
+      this.faceTarget(best.eye, dt);
 
       // Sidestep so we don't stand still — sinusoidal lateral motion at ~1Hz.
       this.sidestepPhase += dt * 1.4;
@@ -222,11 +284,16 @@ export class Bot implements Damageable {
       const sideDir = _SIDE.set(Math.cos(this.yaw + Math.PI / 2), 0, -Math.sin(this.yaw + Math.PI / 2));
       this.tryStep(sideDir.multiplyScalar(sideAmount * dt));
 
-      // Fire after reaction window. Predictor-tier leads the target.
-      if (this.engageTime > this.tier.reactionTime && this.timeSinceLastShot > 1 / this.weapon.config.fireRate) {
-        const aimPoint = _AIM_POINT.copy(playerEye);
-        if (this.tier.predictSeconds > 0) {
-          aimPoint.addScaledVector(playerVel, this.tier.predictSeconds);
+      // Fire after the reaction window. Both gates scale with the chosen
+      // difficulty (slower + rarer on Easy, snappier on Hard). Predictor-tier
+      // leads the target; Hard widens the lead.
+      const reaction = this.tier.reactionTime * this.skill.reaction;
+      const fireGap = (1 / this.weapon.config.fireRate) * this.skill.fireGap;
+      if (this.engageTime > reaction && this.timeSinceLastShot > fireGap) {
+        const aimPoint = _AIM_POINT.copy(best.eye);
+        const predict = this.tier.predictSeconds * this.skill.predict;
+        if (predict > 0) {
+          aimPoint.addScaledVector(best.vel, predict);
         }
         this.fireAt(botEye, aimPoint);
       }
@@ -236,6 +303,25 @@ export class Bot implements Damageable {
     }
 
     this.syncMesh();
+  }
+
+  /** Apply the player-chosen global skill level (Easy/Normal/Hard). */
+  setDifficulty(level: GameDifficulty) {
+    this.skill = SKILL[level];
+  }
+
+  /** Eye position (mid-head) in world space — for Game's target list + LoS. */
+  getEye(out: THREE.Vector3): THREE.Vector3 {
+    return out.set(this.position.x, this.position.y + HEAD_OFFSET + HEAD_SIZE / 2, this.position.z);
+  }
+
+  /** Override the figure's colour for team identity in TDM. null restores the
+   *  difficulty-based colour (FFA). */
+  setTeamColor(color: number | null) {
+    (this.bodyMesh.material as THREE.MeshLambertMaterial).color.setHex(color ?? this.baseBodyColor);
+    // Head a touch darker than the body so the silhouette still reads.
+    const head = color === null ? this.baseHeadColor : (color & 0xfefefe) >> 1;
+    (this.headMesh.material as THREE.MeshLambertMaterial).color.setHex(head);
   }
 
   private faceTarget(target: THREE.Vector3, dt: number) {
@@ -250,8 +336,8 @@ export class Bot implements Damageable {
 
   private fireAt(origin: THREE.Vector3, target: THREE.Vector3) {
     this._aim.subVectors(target, origin).normalize();
-    // Aim jitter — uniform in a cone of half-angle this.tier.aimJitter.
-    const r = this.tier.aimJitter;
+    // Aim jitter — uniform in a cone whose half-angle scales with difficulty.
+    const r = this.tier.aimJitter * this.skill.jitter;
     const ax = (Math.random() - 0.5) * 2 * r;
     const ay = (Math.random() - 0.5) * 2 * r;
     this._aim.x += ax;
@@ -319,9 +405,20 @@ export class Bot implements Damageable {
     this.deathFallOffset = 0;
     this.state = 'idle';
     this.engageTime = 0;
-    this.currentWaypoint = Math.floor(Math.random() * WAYPOINTS.length);
-    const wp = WAYPOINTS[this.currentWaypoint];
-    this.position.set(wp.x, 0.5, wp.z);
+    if (this.homeSpawn) {
+      // TDM: respawn near the team's spawn anchor with a little scatter, nudged
+      // back to the anchor if the jittered point lands inside a solid.
+      const jx = (Math.random() - 0.5) * 6;
+      const jz = (Math.random() - 0.5) * 6;
+      this.position.set(this.homeSpawn.x + jx, 0.5, this.homeSpawn.z + jz);
+      if (this.world.firstOverlap(this.position, BODY_HALF) !== null) {
+        this.position.set(this.homeSpawn.x, 0.5, this.homeSpawn.z);
+      }
+    } else {
+      this.currentWaypoint = Math.floor(Math.random() * WAYPOINTS.length);
+      const wp = WAYPOINTS[this.currentWaypoint];
+      this.position.set(wp.x, 0.5, wp.z);
+    }
     this.group.rotation.set(0, this.yaw, 0);
     this.syncMesh();
     void this.bus;

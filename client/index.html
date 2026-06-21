@@ -73,6 +73,15 @@
           <div class="gg-pips" id="gg-pips"></div>
         </div>
 
+        <!-- Team Deathmatch ticker — top-center. BLUE vs RED team frags + goal.
+             Populated by main.ts from game.teamScore each frame in TDM. -->
+        <div id="tdm-ticker" class="hidden">
+          <span class="tdm-team tdm-blue">BLUE <b id="tdm-blue-score">0</b></span>
+          <span class="tdm-vs">vs</span>
+          <span class="tdm-team tdm-red"><b id="tdm-red-score">0</b> RED</span>
+          <span class="tdm-goal">first to <span id="tdm-goal">50</span></span>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -194,6 +203,16 @@
         </div>
         <div id="reload-indicator" class="hidden">RELOADING</div>
 
+        <!-- Utility readiness — grenade cooldown (G). Solo only; HUD shows/hides
+             it. Fill bar empties on throw and refills over the cooldown. -->
+        <div id="utility-pill" class="hidden">
+          <div class="up-key">G</div>
+          <div class="up-body">
+            <div class="up-name">FRAG</div>
+            <div class="up-bar"><div class="up-fill"></div></div>
+          </div>
+        </div>
+
         <div id="killfeed"></div>
 
         <!-- Scoreboard overlay — hold TAB. Populated by main.ts each frame
@@ -229,7 +248,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.14</p>
+          <p class="subtitle">Browser arena shooter · v0.23</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -260,6 +279,15 @@
             <div class="loadout-grid map-grid">
               <button class="loadout-btn selected" data-map="sandstone">Sandstone</button>
               <button class="loadout-btn" data-map="industrial">Industrial</button>
+              <button class="loadout-btn" data-map="cobalt">Cobalt</button>
+            </div>
+          </div>
+          <div class="loadout">
+            <div class="loadout-label">Bot Difficulty</div>
+            <div class="loadout-grid diff-grid">
+              <button class="loadout-btn" data-diff="easy">Easy</button>
+              <button class="loadout-btn selected" data-diff="normal">Normal</button>
+              <button class="loadout-btn" data-diff="hard">Hard</button>
             </div>
           </div>
           <div class="loadout">
@@ -270,12 +298,14 @@
               <button class="loadout-btn" data-weapon="marksman">Marksman</button>
               <button class="loadout-btn" data-weapon="sniper">Sniper</button>
               <button class="loadout-btn" data-weapon="shotgun">Shotgun</button>
+              <button class="loadout-btn" data-weapon="lmg">LMG</button>
             </div>
           </div>
           <div class="menu-buttons">
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
+            <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
@@ -284,7 +314,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.14.0 — Gun Game · Aim Lab · rank ladder · mastery · minimap</div>
+          <div>v0.23.0 — Grenade HUD · LMG · Frag grenades · Quick melee · Cobalt · TDM</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -407,6 +437,8 @@
             <div class="howto-item"><kbd>LMB</kbd><span>Shoot. <kbd>RMB</kbd> scopes the sniper.</span></div>
             <div class="howto-item"><kbd>R</kbd><span>Reload. <kbd>1</kbd>/<kbd>2</kbd>/<kbd>Q</kbd> swap weapons.</span></div>
             <div class="howto-item"><kbd>E</kbd><span>Class ability — Blink, Dash, Cloak and more.</span></div>
+            <div class="howto-item"><kbd>V</kbd><span>Quick melee — a fast knife strike up close (<kbd>F</kbd> too).</span></div>
+            <div class="howto-item"><kbd>G</kbd><span>Throw a frag grenade — arcs, then bursts for area damage.</span></div>
             <div class="howto-item"><kbd>Tab</kbd><span>Hold to see the live scoreboard.</span></div>
             <div class="howto-item"><kbd>Esc</kbd><span>Pause. First to 30 kills wins the match.</span></div>
           </div>
@@ -494,6 +526,11 @@
                 <span class="set-label">Speed lines</span>
               </label>
               <p class="set-note">Radial motion streaks at the screen edges when you build up bhop / slide speed.</p>
+              <label class="set-row checkbox-row">
+                <input id="opt-nameplates" type="checkbox" checked />
+                <span class="set-label">Enemy nameplates</span>
+              </label>
+              <p class="set-note">Floating callsign + health bar over bots you can see (hidden through walls).</p>
             </section>
 
             <section class="settings-pane" data-pane="crosshair">

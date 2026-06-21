@@ -262,3 +262,307 @@ round — pure deploy/monetization infrastructure.
 
 ### Pending on the user: `vercel login` (to run the deploy), `fly` steps for the
 ### MP server, an approved `ca-pub` id, and registering `ilcartigo.com`.
+
+---
+
+## Phase 15 — Team Deathmatch mode (autonomous build, v0.15.0)
+
+The headline gap in the mode roster was a **team** mode — the most-played format
+in Krunker/CS. Phase 15 ships **Team Deathmatch (TDM)** as a self-contained
+**solo-vs-bots** mode: BLUE (you + 2 ally bots) vs RED (3 enemy bots), first team
+to **50 frags** wins. It doubles as a big **bot-AI upgrade** — bots now fight
+each other across team lines, so the arena finally feels alive even when you hang
+back. **No protocol change** (MP stays FFA); solo + MP + Gun Game + Aim Lab all
+keep working. Typecheck (client + server) + client build green; app chunk
+~71.8 KB gzip.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+**Core systems (low-level, behaviour-preserving for FFA):**
+- **Unified bot targeting.** `Bot.update(dt, targets)` now takes a `BotTarget[]`
+  and engages the nearest visible **enemy** (different team, alive, not cloaked,
+  in range, with LoS). Game builds the list each tick: just the player in
+  FFA/Gun Game (so behaviour is *identical* — the only enemy is you), player +
+  all bots in TDM (so bots hunt the other team). Vectors are pooled in a cache to
+  avoid per-frame allocation.
+- **Team-aware friendly fire.** `World.raycast` gained an optional `friendlyTeam`
+  param that skips same-team damageables — bullets pass through teammates
+  (Krunker convention). Plumbed through `Weapon.ownerTeam` +
+  `WeaponInventory.setOwnerTeam` (persisted across `setPrimary`). Set per-match by
+  Game; `undefined` everywhere else = FFA (hit anyone but self).
+- **`registerDamageable` is now idempotent** — TDM re-runs `syncBotState`, which
+  could otherwise double-register a live bot and double its incoming damage.
+
+**TDM mode (`'tdm'` GameMode, `isCombatMode` includes it):**
+- **Roster.** Two extra bots (`sentinel`/`raider`) are created up front but stay
+  dormant (hidden + unregistered) in Combat / Gun Game so those modes keep their
+  original 3-bot feel; `syncBotState` activates the full 5 for a real **3-v-3**.
+- **Teams.** `TDM_BOT_TEAM` maps each bot to BLUE/RED; player is always BLUE.
+  Bots get a **team colour** (blue/red figure tint, restored to difficulty colour
+  in FFA), a **home spawn** anchored on the map's existing `teamSpawns` (scatter +
+  solid-nudge on respawn), and their weapon's friendly-fire team.
+- **Scoring + win.** `Game.teamScore[2]`; the killer's team scores on every
+  cross-team frag (`teamOf(id)` resolves player→0 / bot→team); first to
+  `TDM_GOAL` (50) fires `onMatchEnded('team:N')`. `pickSafeSpawn` ignores allies
+  in TDM (spawn near friends, away from enemies).
+
+**UI / feel:**
+- **HUD ticker** — `#tdm-ticker` "BLUE n vs m RED · first to 50", updated each
+  frame, themed blue/red.
+- **Scoreboard (Tab)** — TDM renders two team blocks (BLUE then RED) with a
+  team-frag header each, members sorted by kills, you highlighted, dotted rank
+  markers tinted by team.
+- **Post-match** — winner line reads "BLUE/RED TEAM WINS · score–score";
+  VICTORY/DEFEAT by *your team's* result (not your rank); win grants +50 XP.
+- **Minimap** — allies draw blue, enemies red in TDM (all red in FFA).
+- **Menu** — new "⚔ Team Deathmatch (vs Bots)" button (blue accent); ticker
+  shown on start, hidden on quit / online / other modes; Play Again resets team
+  scores and resumes.
+
+### Status log
+- ✅ Phase 15 — Team Deathmatch. DONE (client + server tsc + client build green).
+  Low-level: unified `BotTarget` targeting (FFA behaviour preserved), team-aware
+  `raycast`/`Weapon.ownerTeam`/`WeaponInventory.setOwnerTeam`, idempotent
+  `registerDamageable`. Mode: `'tdm'` 3-v-3 with team colours, home spawns,
+  friendly-fire, team scoring + 50-frag win, TDM scoreboard/ticker/post-match,
+  team-coloured minimap. Two dormant TDM-only bots (sentinel/raider) keep
+  FFA/Gun Game at their original 3-bot roster (filtered out of FFA scoreboard +
+  Gun Game ladder). Version bumped to v0.15.0 (+ menu subtitle/footer).
+
+### Phase 15 COMPLETE — solo TDM mode + bots-fight-bots AI, no protocol change,
+### solo + MP + Gun Game + Aim Lab all intact.
+
+---
+
+## Phase 16 — Bot identity + difficulty selector (autonomous build, v0.16.0)
+
+A pure-client, zero-protocol round that **broadens the audience** (Easy for new
+players, Hard for veterans → longer sessions → more ad breakpoints) and makes
+bots read like real opponents — both amplify every solo mode (FFA / TDM / Gun
+Game). Typecheck (client + server) + client build green; app chunk ~72 KB gzip.
+
+- **Bot difficulty (Easy / Normal / Hard).** A menu selector (persisted to
+  `ilc.difficulty`) scales the whole roster's **AI feel** — reaction window, aim
+  jitter cone, predictive lead, and fire cadence — via a `SKILL` table layered on
+  each bot's per-tier preset. Deliberately scales the *feel*, not weapon stats, so
+  there's no weapon rebuild and it applies live. `Bot.setDifficulty` +
+  `Game.setDifficulty` (re-applied in `syncBotState` so freshly-activated TDM
+  bots inherit it). Easy = slow + sloppy + barely leads; Hard = snappy, accurate,
+  leads hard.
+- **Humanized bot callsigns.** Each bot gets a stable callsign (Drifter / Viper /
+  Specter / Bishop / Havoc) shown in the killfeed, scoreboard, and death recap —
+  the *id* stays the scoring key. New `Game.displayNameFor(id)` unifies naming
+  (local handle / bot callsign / short MP id); HUD killfeed + recap + main.ts
+  scoreboard all route through it (replacing the old "Engager Bot" difficulty
+  labels and raw short-ids for bots).
+
+### Status log
+- ✅ Phase 16 — Bot identity + difficulty. DONE (client + server tsc + client
+  build green). `GameDifficulty` + `SKILL` modifier table in Bot; `setDifficulty`
+  on Bot + Game; menu Easy/Normal/Hard selector (`data-diff`, excluded from the
+  weapon-selector query) persisted + applied live + on boot. Bot callsigns via
+  `BOT_CALLSIGN` + `Game.displayNameFor`, wired into HUD killfeed/recap +
+  scoreboard `participantName`. Version bumped to v0.16.0 (+ menu subtitle/footer).
+
+### Phase 16 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 17 — Enemy nameplates + health bars (autonomous build, v0.17.0)
+
+Pairs with Phase 16's callsigns: floating **callsign + HP bar** over bots — a
+Krunker staple that makes combat instantly readable + juicy, and surfaces the
+new names where they matter (mid-fight, not just the killfeed). Pure client, no
+protocol change. Typecheck + build green; app chunk ~72.9 KB gzip.
+
+- New `ui/Nameplates.ts` — one billboarded `THREE.Sprite` per bot, drawn from a
+  pooled canvas (team-tinted callsign on top, green→amber→red rounded HP bar
+  under it). **`depthTest: true`** so walls naturally occlude plates — you can't
+  read enemies through geometry (fair, no wallhack). Perspective gives distance
+  shrink for free; plates fade out 60→75 m and hide past 75 m or when the bot is
+  dead/inactive. In TDM the callsign is team-coloured (allies blue, enemies red).
+- Cheap: the canvas only redraws when a bot's HP bucket / team / name changes;
+  per-frame cost is just repositioning visible sprites. Ticked from
+  `Game.onFrame`.
+- Solo only (reads `game.bots` HP directly; MP remotes don't broadcast HP — a
+  future protocol-touching item). Toggle in Settings → General (`ilc.nameplates`,
+  default on).
+
+### Status log
+- ✅ Phase 17 — Enemy nameplates. DONE (client tsc + build green). `Nameplates`
+  class (sprite-per-bot, canvas callsign + HP bar, depthTest occlusion, distance
+  fade, TDM team tint), wired into main.ts (`update()` in onFrame) + a
+  General-tab toggle. Bumped to v0.17.0 (+ menu subtitle/footer).
+
+### Phase 17 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 18 — Cobalt arena (autonomous build, v0.18.0)
+
+The third combat map — fresh content is the biggest single driver of "one more
+game." **Cobalt** is the first map built for pure **competitive symmetry**
+(mirrored about both axes, so no TDM side has an edge) and a cool steel-blue +
+teal-neon palette for instant visual contrast with warm Sandstone and rusty
+Industrial. Selectable for all solo combat modes (FFA / TDM / Gun Game).
+
+- New `maps/CobaltMap.ts` — 84×84 arena: perimeter walls, a raised central
+  platform (jump-pad ring, pillar + corner cover), two symmetric raised team
+  decks (N/S, with front parapets) for TDM identity + high ground, diagonal
+  crate cover, E/W flank walls to break cross-map sightlines, and low steppable
+  spawn bumps. Verticality is entirely jump-pad-driven (no mid-height ledges that
+  snag the 0.55 m step-up). Emissive teal trim for flair (non-colliding).
+- Wired everywhere a map id flows: `MapId` union, `Game.MAPS`, the menu map grid
+  (now 3-wide) + selector validation, and **health pickups** added for Cobalt in
+  both `maps/Pickups.ts` and `server/Pickups.ts` (kept in sync, though the MP
+  server never loads Cobalt — it's solo-only; MP still serves Sandstone/
+  Industrial via the server's authoritative `Welcome.mapId`).
+
+### Status log
+- ✅ Phase 18 — Cobalt arena. DONE (client + server tsc + client build green).
+  New symmetric map + full wiring (MapId/MAPS/menu/validation), Cobalt health
+  pickups mirrored client+server, 3-column map grid. Solo-only (MP unaffected —
+  server map stays authoritative). Bumped to v0.18.0 (+ menu subtitle/footer).
+
+### Phase 18 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 19 — Solo FFA match objective + post-match (autonomous build, v0.19.0)
+
+The default mode ("Play vs Bots" / solo combat) was the only combat mode with
+**no win condition** — it ran forever, so it never hit the post-match overlay
+(the game's main natural ad breakpoint). Phase 19 gives it a real match: first
+participant (you OR a bot) to the kill goal (30) wins → post-match → Play Again.
+Directly increases ad impressions on the most-played mode + adds a sense of
+completion. Pure client, no protocol change.
+
+- **Solo FFA match end** in `Game`'s kill handler (combat mode, no server; MP's
+  end stays server-authoritative, TDM/Gun Game own theirs). Reuses the existing
+  post-match overlay + Play Again reset.
+- **FFA match ticker now shows in solo** too (was MP-only) — your kills / goal +
+  the current leader, so you can see the race.
+- **Callsign polish everywhere** — the match ticker leader, post-match winner
+  line, and post-match scoreboard rows now show bot callsigns (via
+  `Game.displayNameFor`) instead of raw ids; removed the now-dead `shortId`
+  helper in HUD.
+
+### Status log
+- ✅ Phase 19 — Solo FFA match + post-match. DONE (client + server tsc + client
+  build green). Solo combat ends at MATCH_KILL_GOAL via the kill handler; match
+  ticker un-gated to solo; displayNameFor used in ticker/post-match. Bumped to
+  v0.19.0 (+ menu subtitle/footer).
+
+### Phase 19 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 20 — Quick melee (autonomous build, v0.20.0)
+
+The universal close-range "panic button" every arena shooter has — a fast knife
+strike on **V** / **F** that doesn't require a weapon swap. Satisfying way to
+finish a rush; high skill-expression in a bhop fight. Pure client, no protocol
+change.
+
+- New `melee` input action (bound to KeyV + KeyF). `Game.doMelee()` — a short
+  forward raycast (3.2 m, 55 dmg, ×1.3 on a head), ~0.6 s cooldown, reusing the
+  damage/kill bus so killfeed, XP, hitmarker, impact spark, screen-shake and
+  announcer all "just work" (`weaponId 'knife'`, harmless to mastery). Friendly-
+  fire-aware in TDM (passes the player's team to `raycast`).
+- `Viewmodel.meleeSwing()` — a quick down-left arc (rotation + offset) that
+  returns to rest; idle is a no-op so it never disturbs the normal pose.
+- **Solo only** — MP damage is server-authoritative and there's no melee in the
+  protocol, so a client-only hit would mislead; gated at the call site. New
+  `melee` SoundId + audio-catalog entry (silent until the asset lands). How-to
+  card + README controls updated.
+
+### Status log
+- ✅ Phase 20 — Quick melee. DONE (client + server tsc + client build green).
+  Input action + bindings, Game.doMelee (raycast + bus reuse + TDM friendly
+  fire + cooldown), Viewmodel swing, melee sound id, howto/README/controls.
+  Bumped to v0.20.0 (+ menu subtitle/footer).
+
+### Phase 20 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 21 — Frag grenade (autonomous build, v0.21.0)
+
+A thrown explosive on **G** — the other classic arena throw, adding area-denial
++ a high-skill arc lob to the solo sandbox. Pure client, no protocol change.
+
+- New `entities/GrenadeManager.ts` — pooled grenades that arc under gravity,
+  settle on the first solid/ground contact, and detonate on a ~1.4 s fuse: a
+  bright `CastFX.flash` + expanding `CastFX.wave` shockwave + impact spark +
+  proximity screen-shake, and a LoS-gated area burst (radius 6.5, up to 95 dmg,
+  linear falloff) against bots. Reuses the damage/kill bus (`weaponId
+  'grenade'`); TDM teammates are skipped; self-damage omitted (PvE-friendly).
+- New `grenade` input action (KeyG); `Game.throwGrenade()` with a ~6 s cooldown,
+  solo-only + pointer-lock-gated (same safety as melee). `applyShake` promoted to
+  public for the manager. New `grenade_explode` sound id + catalog entry; how-to
+  card + README controls updated.
+- Melee hardening from this round: gated on pointer-lock so a stray V/F in a menu
+  can't damage bots.
+
+### Status log
+- ✅ Phase 21 — Frag grenade. DONE (client + server tsc + client build green).
+  GrenadeManager (arc + settle + fuse + AoE/LoS/falloff + FX), input action +
+  cooldown + solo/lock gating, public applyShake, grenade sound id, docs. Bumped
+  to v0.21.0 (+ menu subtitle/footer).
+
+### Phase 21 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 22 — LMG weapon (autonomous build, v0.22.0)
+
+A seventh weapon adds loadout variety (the thing every player touches). The
+**LMG** is a belt-fed suppressor — a distinct sustained-fire archetype that wins
+by volume + area denial rather than precision.
+
+- `LMG_CONFIG` (60-round mag, 11 RPS, 20 dmg, heavy bloom + 3.2 s reload) added
+  to `WEAPON_LIBRARY`; a chunky `buildLMG` viewmodel; a `SERVER_WEAPONS['lmg']`
+  damage profile + `VALID_WEAPONS` entry so it's authoritative in MP too; a
+  loadout button. Added `lmg` to the exhaustive `WEAPON_LABEL` map.
+- Not on the Gun Game ladder (kept at its fixed six rungs); mastery skins simply
+  don't list it yet (`weaponSkinsFor('lmg')` → []), which is safe.
+
+### Status log
+- ✅ Phase 22 — LMG. DONE (client + server tsc + client build green). Weapon
+  config + viewmodel builder + server damage/valid-weapon + loadout button +
+  WEAPON_LABEL. Bumped to v0.22.0 (+ menu subtitle/footer).
+
+### Phase 22 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 23 — Grenade HUD indicator + LMG mastery (autonomous build, v0.23.0)
+
+Polish that closes the loop on the two prior phases.
+
+- **Grenade readiness pill** (`#utility-pill`, bottom-centre by the ability pill)
+  — a "G · FRAG" chip whose bar empties on throw and refills over the 6 s
+  cooldown, glowing gold when ready. Solo-only (hidden in MP, where grenades are
+  disabled). New `Game.grenadeReadyFraction` getter + `HUD.tickUtilityPill`.
+- **LMG mastery skins** — three (Gunner/Verdant/Molten) + `lmg` added to
+  `WEAPON_SKIN_ORDER`, so the new weapon participates in the use-to-unlock
+  cosmetics loop like every other gun (was the only weapon without one).
+
+### Status log
+- ✅ Phase 23 — Grenade HUD + LMG mastery. DONE (client + server tsc + client
+  build green). Utility pill (HTML + CSS + HUD tick + readiness getter), LMG
+  mastery skins + order. Bumped to v0.23.0 (+ menu subtitle/footer).
+
+### Phase 23 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Run summary (phases 15–23, this autonomous session)
+
+A nine-phase solo-expansion arc, each typecheck + build green, no protocol
+changes, MP + every prior mode left intact:
+
+15 Team Deathmatch · 16 bot difficulty + callsigns · 17 enemy nameplates ·
+18 Cobalt arena (3rd map) · 19 solo FFA matches (post-match ad breakpoint) ·
+20 quick melee · 21 frag grenade · 22 LMG weapon · 23 grenade HUD + LMG mastery.
