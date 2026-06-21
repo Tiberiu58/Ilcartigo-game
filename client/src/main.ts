@@ -31,6 +31,7 @@ import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
 import { WEAPON_LIBRARY, type WeaponId } from './weapons/Weapon';
+import { weaponSkinsFor } from './account/Cosmetics';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
 // FPS games are unplayable without a mouse. Show a friendly notice instead of
@@ -683,6 +684,8 @@ function quitToMenu() {
   refreshDuelButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
+  // Refresh the loadout card so mastery progress earned this match shows.
+  renderWeaponStats((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
 
 // Class selector. Selection persists in localStorage; takes effect immediately
@@ -763,6 +766,9 @@ const wsDmg = document.getElementById('ws-dmg') as HTMLElement;
 const wsRof = document.getElementById('ws-rof') as HTMLElement;
 const wsRange = document.getElementById('ws-range') as HTMLElement;
 const wsMag = document.getElementById('ws-mag') as HTMLElement;
+const wsMasteryKills = document.getElementById('ws-mastery-kills')!;
+const wsMasteryNext = document.getElementById('ws-mastery-next')!;
+const wsMasteryFill = document.getElementById('ws-mastery-fill') as HTMLElement;
 function renderWeaponStats(id: WeaponId) {
   const c = WEAPON_LIBRARY[id];
   // Per-trigger-pull damage (shotgun fires multiple pellets at once).
@@ -774,6 +780,21 @@ function renderWeaponStats(id: WeaponId) {
   wsRof.style.width = pct(c.fireRate, 15);     // SMG 14 near max
   wsRange.style.width = pct(c.falloffEnd, 150); // sniper saturates
   wsMag.style.width = pct(c.magSize, 60);      // LMG 60 maxes it
+
+  // Mastery progress — lifetime kills toward the next mastery skin.
+  const kills = game.account.weaponKillsFor(id);
+  wsMasteryKills.textContent = String(kills);
+  const tiers = weaponSkinsFor(id).filter((s) => s.killReq > 0).sort((a, b) => a.killReq - b.killReq);
+  const next = tiers.find((s) => kills < s.killReq);
+  const prevReq = [...tiers].reverse().find((s) => kills >= s.killReq)?.killReq ?? 0;
+  if (next) {
+    wsMasteryNext.textContent = `${next.displayName} · ${kills}/${next.killReq}`;
+    const span = next.killReq - prevReq;
+    wsMasteryFill.style.width = `${Math.max(4, Math.min(100, Math.round(((kills - prevReq) / span) * 100)))}%`;
+  } else {
+    wsMasteryNext.textContent = tiers.length ? '★ all skins unlocked' : '—';
+    wsMasteryFill.style.width = tiers.length ? '100%' : '0%';
+  }
 }
 
 // Loadout selector — clicking a weapon button updates the primary slot and

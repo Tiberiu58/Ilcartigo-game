@@ -284,7 +284,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.29</p>
+          <p class="subtitle">Browser arena shooter · v0.30</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -352,6 +352,15 @@
                 <div class="ws-row"><label>Range</label><div class="ws-bar"><i id="ws-range"></i></div></div>
                 <div class="ws-row"><label>Magazine</label><div class="ws-bar"><i id="ws-mag"></i></div></div>
               </div>
+              <!-- Weapon mastery progress — lifetime kills toward the next
+                   mastery skin. Ties weapon use → cosmetic reward. -->
+              <div class="ws-mastery">
+                <div class="ws-mastery-head">
+                  <span>Mastery <b id="ws-mastery-kills">0</b></span>
+                  <span id="ws-mastery-next" class="ws-mastery-next">next skin · 25</span>
+                </div>
+                <div class="ws-bar ws-mastery-bar"><i id="ws-mastery-fill"></i></div>
+              </div>
             </div>
           </div>
           <div class="menu-buttons">
@@ -369,7 +378,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.29.0 — Frostline · Match scorecard · Kill banner · Weapon cards · Hit-juice · Duel · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
+          <div>v0.30.0 — Weapon mastery card · Frostline · Match scorecard · Kill banner · Duel · TDM · Onslaught · 5 maps</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

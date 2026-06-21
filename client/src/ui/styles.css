@@ -997,6 +997,26 @@ body.no-speedlines #speed-lines { display: none; }
   border-radius: 4px;
   transition: width 0.22s ease-out;
 }
+.weapon-stats .ws-mastery {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.weapon-stats .ws-mastery-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.weapon-stats .ws-mastery-head b { color: var(--text); }
+.weapon-stats .ws-mastery-next { color: var(--accent); }
+.weapon-stats .ws-mastery-bar i {
+  background: linear-gradient(90deg, #4a8f3a, #6ee04a);
+}
 
 /* Class selector — six color-coded cards in two rows. */
 .class-grid {

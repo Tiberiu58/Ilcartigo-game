@@ -890,3 +890,28 @@ adds a fifth with a distinct identity: **a frozen tundra**.
   gzip.
 
 ### Phase 29 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 30 — Weapon mastery on the loadout card (autonomous build, v0.30.0)
+
+A small follow-up that closes the loop between the Phase 26 weapon card and the
+existing weapon-mastery cosmetic track: the loadout card now shows the selected
+weapon's **mastery progress** — lifetime kills + a progress bar toward the next
+mastery skin (e.g. "Verdant · 23/50"). It surfaces the use-to-unlock reward right
+where you pick the gun, nudging "play this weapon to earn its skin" — exactly the
+improve/collect loop. Pure UI off `Account.weaponKillsFor` + `weaponSkinsFor`.
+
+- New mastery row in `#weapon-stats` (kills + next-skin label + a green progress
+  bar that fills from the previous tier's req to the next). `renderWeaponStats`
+  computes the next locked tier; shows "★ all skins unlocked" at max. Re-rendered
+  on weapon select, on boot, and on quit-to-menu (so kills earned in a match show
+  immediately).
+
+### Status log
+- ✅ Phase 30 — Weapon mastery card. DONE (client + server tsc + client build
+  green). Mastery row HTML + CSS, `renderWeaponStats` mastery logic
+  (`weaponKillsFor`/`weaponSkinsFor`, prev→next tier fill), quit-to-menu refresh.
+  Bumped to v0.30.0 (+ menu subtitle/footer). App chunk ~80.9 KB gzip.
+
+### Phase 30 COMPLETE — pure client, no protocol change, solo + MP intact.
