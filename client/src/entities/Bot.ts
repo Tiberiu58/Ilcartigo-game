@@ -48,6 +48,16 @@ const SKILL: Record<GameDifficulty, { reaction: number; jitter: number; predict:
   normal: { reaction: 1.0, jitter: 1.0, predict: 1.0, fireGap: 1.00 },
   hard:   { reaction: 0.6, jitter: 0.45, predict: 1.5, fireGap: 0.78 },
 };
+
+/** Optional per-bot overrides — used by Onslaught to spawn HP-scaled regulars
+ *  and emissive "boss" elites without touching the default 3-bot roster. */
+export interface BotOptions {
+  maxHp?: number;
+  bodyColor?: number;
+  headColor?: number;
+  emissive?: number;
+  elite?: boolean;
+}
 const DIFFICULTY: Record<BotDifficulty, {
   reactionTime: number; aimJitter: number; predictSeconds: number; fireRate: number; damageMul: number;
 }> = {
@@ -104,6 +114,12 @@ export class Bot implements Damageable {
   readonly group: THREE.Group;
   /** Soft on/off switch — Practice Range deactivates bots without destroying them. */
   active = true;
+  /** When false, a killed bot stays a corpse instead of respawning. Onslaught
+   *  (wave survival) sets this false so each wave is a finite set of enemies. */
+  autoRespawn = true;
+  /** Tags bots spawned by a transient mode (Onslaught waves) so they can be
+   *  disposed wholesale without touching the persistent base roster. */
+  ephemeral = false;
 
   private position = new THREE.Vector3();
   private yaw = 0;
@@ -140,14 +156,22 @@ export class Bot implements Damageable {
   private _toTarget = new THREE.Vector3();
   private _aim = new THREE.Vector3();
 
-  constructor(id: string, spawn: THREE.Vector3, world: World, bus: GameEventBus, difficulty: BotDifficulty = 'engager') {
+  /** True for Onslaught "boss"/elite bots — used by HUD/feedback to read them
+   *  as a special kill. Cosmetic + tracked only; no gameplay branch here. */
+  readonly elite: boolean;
+
+  constructor(
+    id: string, spawn: THREE.Vector3, world: World, bus: GameEventBus,
+    difficulty: BotDifficulty = 'engager', opts: BotOptions = {},
+  ) {
     this.id = id;
-    this.health = new Health(100);
+    this.health = new Health(opts.maxHp ?? 100);
     this.world = world;
     this.bus = bus;
     this.difficulty = difficulty;
     this.tier = DIFFICULTY[difficulty];
     this.name = id;
+    this.elite = opts.elite ?? false;
 
     // Bots share the AR config but each tier modulates fire rate + damage.
     // damageMul is applied to baseDamage — easier bots hit softer.
@@ -165,18 +189,21 @@ export class Bot implements Damageable {
 
     this.group = new THREE.Group();
     // Color by difficulty: orange (wanderer) → red (engager) → magenta (predictor).
-    const bodyColor = difficulty === 'wanderer' ? 0xe88c3a
+    // Elites override to a menacing dark crimson with an emissive glow so they
+    // read instantly as the wave's threat.
+    const bodyColor = opts.bodyColor ?? (difficulty === 'wanderer' ? 0xe88c3a
       : difficulty === 'predictor' ? 0xb43a8a
-      : 0xd84a4a;
-    const headColor = difficulty === 'wanderer' ? 0x955020
+      : 0xd84a4a);
+    const headColor = opts.headColor ?? (difficulty === 'wanderer' ? 0x955020
       : difficulty === 'predictor' ? 0x6a1f4f
-      : 0x8a2c2c;
+      : 0x8a2c2c);
     this.baseBodyColor = bodyColor;
     this.baseHeadColor = headColor;
+    const emissive = opts.emissive ?? 0x000000;
 
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(BODY_HALF.x * 2, BODY_HALF.y * 2, BODY_HALF.z * 2),
-      new THREE.MeshLambertMaterial({ color: bodyColor, flatShading: true }),
+      new THREE.MeshLambertMaterial({ color: bodyColor, emissive, emissiveIntensity: 0.6, flatShading: true }),
     );
     body.position.y = BODY_HALF.y;
     this.group.add(body);
@@ -184,7 +211,7 @@ export class Bot implements Damageable {
 
     const head = new THREE.Mesh(
       new THREE.BoxGeometry(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE),
-      new THREE.MeshLambertMaterial({ color: headColor, flatShading: true }),
+      new THREE.MeshLambertMaterial({ color: headColor, emissive, emissiveIntensity: 0.6, flatShading: true }),
     );
     head.position.y = HEAD_OFFSET + HEAD_SIZE / 2;
     this.group.add(head);
@@ -240,7 +267,7 @@ export class Bot implements Damageable {
         this.position.y - this.deathFallOffset,
         this.position.z,
       );
-      if (this.deathTime >= RESPAWN_DELAY) this.respawn();
+      if (this.autoRespawn && this.deathTime >= RESPAWN_DELAY) this.respawn();
       return;
     }
     this.group.rotation.z = 0;
@@ -422,6 +449,25 @@ export class Bot implements Damageable {
     this.group.rotation.set(0, this.yaw, 0);
     this.syncMesh();
     void this.bus;
+  }
+
+  /**
+   * Permanently remove this bot from the world: unregister it as a damage
+   * target, pull its mesh from the scene, and free GPU resources. Used by
+   * transient modes (Onslaught) that spawn fresh bots each wave. Safe to call
+   * once — the instance must be dropped from any roster afterwards.
+   */
+  dispose() {
+    this.active = false;
+    this.world.unregisterDamageable(this.id);
+    this.world.scene.remove(this.group);
+    this.group.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+      else if (mat) mat.dispose();
+    });
   }
 }
 

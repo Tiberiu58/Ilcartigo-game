@@ -57,4 +57,11 @@ export const PICKUPS_BY_MAP: Record<string, readonly PickupDef[]> = {
     { id: 3, type: 'health', pos: [  0, 0.6,  16] },   // N mid (toward deck)
     { id: 4, type: 'health', pos: [  0, 0.6, -16] },   // S mid (toward deck)
   ],
+  // Overpass — solo-only map; pads mirrored in server/Pickups for parity.
+  overpass: [
+    { id: 1, type: 'health', pos: [  0, 0.6,  24] },   // north lane
+    { id: 2, type: 'health', pos: [  0, 0.6, -24] },   // south lane
+    { id: 3, type: 'health', pos: [ 30, 0.6,   0] },   // east flank
+    { id: 4, type: 'health', pos: [-30, 0.6,   0] },   // west flank
+  ],
 };

@@ -76,6 +76,13 @@ export class ProfileUI {
           <span class="stat-label">${DRILLS[id].name}</span>
         </div>`;
     });
+    // Onslaught (survival) best wave shares this "Bests" grid.
+    const onsBest = Number(localStorage.getItem('ilc.onslaught.best')) || 0;
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${onsBest}</span>
+          <span class="stat-label">Onslaught Wave</span>
+        </div>`);
     this.aimlabBests.innerHTML = cells.join('');
   }
 

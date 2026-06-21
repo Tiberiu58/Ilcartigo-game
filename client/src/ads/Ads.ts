@@ -39,6 +39,7 @@ export const AD_CONFIG = {
     'menu-side': { adUnitId: '0000000000', label: 'Sidebar · 300×600' },
     'postmatch': { adUnitId: '0000000000', label: 'Sponsored' },
     'aimlab':    { adUnitId: '0000000000', label: 'Sponsored' },
+    'onslaught': { adUnitId: '0000000000', label: 'Sponsored' },
   } as Record<string, AdSlotDef>,
 };
 

@@ -1029,6 +1029,10 @@ body.no-speedlines #speed-lines { display: none; }
   border-left: 3px solid #4a8cff;
 }
 .menu-btn.tdm:hover { border-left-color: #4a8cff; color: #6ca0ff; }
+.menu-btn.onslaught {
+  border-left: 3px solid #ff4a4a;
+}
+.menu-btn.onslaught:hover { border-left-color: #ff4a4a; color: #ff6a6a; }
 
 /* ── Team Deathmatch ticker (top-center HUD) ────────────────────────────── */
 #tdm-ticker {
@@ -1105,6 +1109,103 @@ body.no-speedlines #speed-lines { display: none; }
   background: #ff8a3a;
   box-shadow: 0 0 6px rgba(255, 138, 58, 0.7);
 }
+
+/* ── Onslaught (survival) HUD ────────────────────────────────────────────── */
+#onslaught-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(28, 18, 20, 0.84);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #ff4a4a;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#onslaught-ticker.hidden { display: none; }
+.ons-wave {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ff6a6a;
+}
+.ons-wave #ons-wave-n { color: #fff; }
+.ons-enemies {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.ons-enemies #ons-enemies-n { color: var(--text); }
+.ons-lives {
+  font: 700 14px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ff4a4a;
+}
+
+#onslaught-banner {
+  position: absolute;
+  left: 50%; top: 30%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 14;
+  pointer-events: none;
+  animation: onb-pop 0.5s ease-out;
+}
+#onslaught-banner.hidden { display: none; }
+.onb-wave {
+  font: 900 64px/1 'Segoe UI', sans-serif;
+  letter-spacing: 6px;
+  color: #ff5a5a;
+  text-shadow: 0 4px 30px rgba(255, 40, 40, 0.5), 0 2px 6px rgba(0,0,0,0.6);
+}
+.onb-wave span { color: #fff; }
+.onb-sub {
+  margin-top: 6px;
+  font: 700 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255, 200, 200, 0.85);
+}
+@keyframes onb-pop {
+  0%   { opacity: 0; transform: translateX(-50%) scale(1.3); }
+  20%  { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+/* Boss wave — angrier banner: deeper red, pulsing glow, larger. */
+#onslaught-banner.boss .onb-wave {
+  color: #ff2a2a;
+  font-size: 76px;
+  text-shadow: 0 0 36px rgba(255, 30, 30, 0.85), 0 2px 8px rgba(0,0,0,0.7);
+  animation: onb-boss-glow 0.7s ease-in-out infinite alternate;
+}
+#onslaught-banner.boss .onb-sub {
+  color: #ff8080;
+  letter-spacing: 6px;
+}
+@keyframes onb-boss-glow {
+  from { text-shadow: 0 0 20px rgba(255, 30, 30, 0.6), 0 2px 8px rgba(0,0,0,0.7); }
+  to   { text-shadow: 0 0 46px rgba(255, 60, 60, 1), 0 2px 8px rgba(0,0,0,0.7); }
+}
+
+/* Results card reuses .aimlab-card; only the accent colour differs. */
+#onslaught-results {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 26;
+}
+#onslaught-results.hidden { display: none; }
+.onslaught-card {
+  border-top-color: #ff4a4a !important;
+}
+.onslaught-card h2 { color: #ff5a5a; letter-spacing: 8px; }
+.onslaught-card .alr-score { color: #ff7a7a; }
 
 .menu-footer {
   grid-area: footer;

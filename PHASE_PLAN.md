@@ -265,6 +265,17 @@ round — pure deploy/monetization infrastructure.
 
 ---
 
+## Routine integration round (v0.24.0) — two branches merged
+
+Two autonomous branches built in parallel off the same base, each numbering its
+work "Phase 15+". Both were hand-merged onto `main` together (resolving the
+overlap in `Game.ts`/`Bot.ts`/`main.ts`/`index.html`/`Pickups.ts` — both added a
+3rd map + a new mode + new bot fields). All additive, nothing dropped; unified
+release **v0.24.0**, typecheck + build green. Branch A (TDM line) log first, then
+Branch B (Onslaught line).
+
+### Branch A — TDM / weapons / content (Phases 15–23)
+
 ## Phase 15 — Team Deathmatch mode (autonomous build, v0.15.0)
 
 The headline gap in the mode roster was a **team** mode — the most-played format
@@ -566,3 +577,141 @@ changes, MP + every prior mode left intact:
 15 Team Deathmatch · 16 bot difficulty + callsigns · 17 enemy nameplates ·
 18 Cobalt arena (3rd map) · 19 solo FFA matches (post-match ad breakpoint) ·
 20 quick melee · 21 frag grenade · 22 LMG weapon · 23 grenade HUD + LMG mastery.
+
+### Branch B — Onslaught / Overpass (Phases 15–17)
+
+## Phase 15 — Onslaught (wave survival) mode (autonomous build, v0.15.0)
+
+Back to gameplay. Mode variety is the #1 replay driver in arena shooters, and
+the strongest **solo** hook we were missing is a high-score chase: ILCARTIGO
+runs single-player without a deployed server, so the most valuable next mode is
+one that's *inherently* fun offline and ends on a results card (a natural ad
+breakpoint → revenue). **Onslaught** is exactly that — endless waves of bots,
+escalating in size + difficulty, a small pool of lives, "beat your best wave".
+
+Guiding constraint (kept): **no protocol changes, no new deps, typecheck + build
+green each step, solo + MP both keep working.**
+
+Design (why it's low-risk + self-contained):
+- **SOLO only. Zero protocol / server / controller changes.** It reuses the
+  existing bot-vs-player AI verbatim — wave bots are ordinary `Bot`s that simply
+  don't auto-respawn (`Bot.autoRespawn = false`), so every wave-bot death IS a
+  player frag and the kill bus → XP / stats / killfeed / announcer / mastery all
+  "just work" with no special-casing.
+- **The mode owns the roster only while it runs.** `Game.setSurvivalActive(true)`
+  parks the persistent base bots (deactivate + unregister); each wave spawns its
+  own *ephemeral* bots via `Game.spawnSurvivalBot`, disposed wholesale between
+  runs by `Game.clearSurvivalBots` (new `Bot.dispose` frees mesh + damageable
+  registration). `syncBotState` early-outs while survival is active so it can't
+  re-activate the base roster mid-run.
+- **Lives + waves.** 3 lives. Each wave spawns `min(8, 2 + ⌊wave·1.2⌋)` bots; the
+  difficulty mix climbs (early = wanderers; wave 3+ adds engagers; wave 6+
+  sprinkles predictors). Clearing a wave **fully heals** you + banks a scaling
+  bonus (`25 + wave·15` XP) and a 3 s breather with a big "WAVE n" banner. Player
+  death spends a life (Onslaught owns respawn timing — `Game`'s solo auto-respawn
+  is gated off for `mode === 'onslaught'`). Lives exhausted → results card.
+- **Results card + PB.** "OVERRUN" card shows waves survived, eliminations, best
+  wave, bonus XP, NEW-BEST flag; personal best persists to `localStorage`
+  (`ilc.onslaught.best`), surfaced on the menu button (`☠ Onslaught · best wave N`)
+  and in the Profile → Bests grid. Card carries an `onslaught` ad slot.
+
+New `modes/Onslaught.ts` (Game-coupled controller, like AimLab) + `'onslaught'`
+GameMode + Bot lifecycle additions + HUD ticker (`WAVE n · k left · ♥♥♥`) +
+wave banner + results card + menu button. Headless logic test (mock Game/bus)
+confirmed wave scaling (3→4→…), heal-on-clear, +XP bonus, 3-lives→2-respawns→
+game-over, and PB persistence.
+
+### Status log
+- ✅ Phase 15 — Onslaught. DONE (client+server tsc + client build green; headless
+  state-machine test passed). New `modes/Onslaught.ts`; `Bot.autoRespawn`/
+  `ephemeral`/`dispose()`; `Game.setSurvivalActive`/`spawnSurvivalBot`/
+  `clearSurvivalBots`/`livingSurvivalBots`/`healPlayerFull`/`survivalSpawns` +
+  `'onslaught'` mode (combat-class, auto-respawn gated to the controller). UI:
+  menu button, HUD ticker, "WAVE n" banner, OVERRUN results card (+ ad slot),
+  Profile best. Versions bumped to v0.15.0. App chunk ~71.8 KB gzip (+1.6 KB).
+
+### Phase 15 COMPLETE — solo wave-survival mode, no protocol change, solo + MP intact.
+
+---
+
+## Phase 16 — Overpass (new combat map) (autonomous build, v0.16.0)
+
+Maps are the highest-leverage *content* in arena shooters — Krunker's pull is
+dozens of them — and a new map immediately deepens **every** solo mode at once
+(Combat, Gun Game, Onslaught, and the map selector). ILCARTIGO had only two
+combat maps (Sandstone, Industrial); Phase 16 adds a third with a distinct
+identity: **verticality**.
+
+- **Overpass** — an urban-dusk arena built around a raised **E-W bridge deck**
+  (the dominant sniper sightline, y=5) over two ground-level **container lanes**
+  (close-quarters cover) with four mid-height **corner decks** (y=3). Cool
+  concrete + steel palette, teal accents, sodium-orange pads, deep-blue dusk fog.
+- **Reliable vertical access.** The bridge is reached by a **staircase on-ramp at
+  each end** (treads < the controller's 0.55 m auto-step, so you climb smoothly —
+  no air-control RNG). Corner decks are reached by jump pads placed *outside*
+  their footprint (open sky above, run-up momentum carries you on). Falling off
+  the bridge just drops you to ground level — fully enclosed, no void/death pit,
+  so the high ground stays inviting.
+- **Solo-selectable, zero-risk to MP.** New `maps/OverpassMap.ts` (proven
+  Sandstone/Industrial `addBox`/`addJumpPad`/`buildStairs` pattern) + `'overpass'`
+  in the `MapId` union + `MAPS` registry + a loadout map button. The MP server
+  still runs Sandstone by default and clients adopt the server's map, so Overpass
+  needs no protocol/server change; online support later just wants its AABBs in
+  `server/src/MapCollision.ts`. Health-pack placements added to **both**
+  `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in sync).
+- **Verified geometry headlessly.** A mock-World harness ran the real `build()`
+  and asserted **all FFA + TDM spawns sit clear of every solid** (caught + fixed
+  an initial bug where corner spawns were embedded inside the corner-deck boxes),
+  61 solids / 4 pads built, deck surface walkable.
+
+### Status log
+- ✅ Phase 16 — Overpass map. DONE (client+server tsc + client build green;
+  headless spawn-clearance + build smoke test passed). New `maps/OverpassMap.ts`
+  (bridge deck + end staircases + corner decks + container lanes + perimeter +
+  dusk lighting/fog), registered in `MapId`/`MAPS`, loadout button, corrupt-value
+  guard generalised to a `COMBAT_MAPS` list, Overpass pickups mirrored client +
+  server. Versions bumped to v0.16.0. App chunk ~72.9 KB gzip (+1.1 KB geometry).
+
+### Phase 16 COMPLETE — third combat map, solo-selectable, no protocol change, solo + MP intact.
+
+---
+
+## Phase 17 — Onslaught boss waves + HP scaling (autonomous build, v0.17.0)
+
+A focused depth pass on the freshly-shipped survival mode — the cheapest way to
+make an endless-wave loop *memorable* is a recurring escalation beat. Pure
+client, builds straight on Phase 15.
+
+- **Boss waves every 5th wave.** A tanky emissive **elite** (predictor brain,
+  `220 + wave·12` HP, dark-crimson body with a pulsing red glow) leads a smaller
+  add pack. A boss-styled "WAVE n · ☠ BOSS WAVE ☠" banner (deeper red, glowing,
+  longer dwell) + a stinger announce it; clearing it pays **double** the wave
+  bonus.
+- **Per-wave HP creep.** Regular wave bots scale `100 + (wave−1)·8` HP (capped
+  180) so late waves stay threatening even before the next boss.
+- **Minimal, safe surface.** New `BotOptions` (`maxHp` / colour / `emissive` /
+  `elite`) threaded through `Bot` + `Game.spawnSurvivalBot` — the default 3-bot
+  roster and every other mode are untouched (all pass no opts → identical
+  behaviour). No size/AABB change (elites are normal-sized → hitboxes stay
+  correct), no protocol change.
+
+### Status log
+- ✅ Phase 17 — Onslaught boss waves. DONE (client+server tsc + client build
+  green; headless state-machine test confirmed wave 5 = boss elite @ 280 HP /
+  count 6, regular HP creep +8/wave, boss XP doubled). `Bot.BotOptions` +
+  `elite` flag + emissive glow, `Onslaught.beginWave` boss/HP logic, boss banner
+  variant (CSS + main.ts). Versions bumped to v0.17.0. App chunk ~73.1 KB gzip.
+
+### Phase 17 COMPLETE — boss-wave escalation, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Integration result (v0.24.0, by Claude)
+
+Both branches above merged onto `main` feature-by-feature, conflicts resolved by
+hand (kept both maps Cobalt + Overpass, both modes TDM + Onslaught, unified the
+two Bot type sets — `GameDifficulty` global skill + `BotDifficulty` per-tier +
+`BotOptions` wave overrides). Client + server typecheck + client build all green;
+app chunk ~78 KB gzip, 89 modules. Versions unified to **v0.24.0**. The
+deliberately-unmerged t2Opo power-up branch from the prior round remains
+unmerged (still conflicts with the health-pickup system).
