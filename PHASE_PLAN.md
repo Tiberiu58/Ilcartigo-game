@@ -1345,3 +1345,35 @@ adds a sixth with a distinct identity: **a neon cyber arena**.
   Versions bumped to v0.36.0 (+ menu subtitle/footer). App chunk ~87.3 KB gzip.
 
 ### Phase 36 COMPLETE — sixth combat map, solo-selectable, no protocol change, solo + MP intact.
+
+---
+
+## Phase 37 — Lifesteal power-up (autonomous build, v0.37.0)
+
+Rounds the arena power-up set out to **four** — adding a *sustain* option so the
+buff pads pose a richer choice (damage vs speed vs survivability-via-armor vs
+survivability-via-healing). Built directly on the proven Phase-25/29 plumbing,
+**pure-client, solo-only, no protocol change**.
+
+- **LIFESTEAL** (green pad) → the local player **heals 35% of the damage they
+  deal** for 9 s. Implemented as a tiny `buffLifestealUntil` deadline + a
+  `Game.lifestealActive` getter read in the existing `damage` bus handler
+  (`health.heal(amount × frac)` on your own outgoing hits) — so nothing about the
+  damage flow, bots, or networking changes. Stacks with OVERCHARGE (more damage →
+  more healing) for a high-risk aggressive playstyle.
+- **Full reuse:** fourth `PowerupType` + colour, a fourth map pad (placement
+  generalised to spread *N* evenly-spaced spawn anchors, capped at the type
+  count), the green grab flash + `LIFESTEAL!` score-pop, a `🩸 LIFESTEAL`
+  buff-tray pill (label + CSS), and a green minimap diamond. Clears on death /
+  fresh match through the same `tickBuffs`/`clearBuffs` edges as the other buffs;
+  gated to solo combat / TDM / Onslaught (off in MP / Gun Game / Practice).
+
+### Status log
+- ✅ Phase 37 — Lifesteal power-up. DONE (client tsc + build green; server
+  unchanged; app chunk ~87.4 KB gzip). `PowerupType` 'lifesteal' + colour +
+  N-anchor placement spread, `Game` lifesteal buff (grant/tick/clear/powerupBuffs
+  + `lifestealActive` + damage-handler heal hook + `POWERUP_LIFESTEAL_FRAC`), HUD
+  pill label + CSS, minimap colour. Versions bumped to v0.37.0 (+ menu subtitle/
+  footer).
+
+### Phase 37 COMPLETE — fourth arena power-up, pure client, no protocol change, solo + MP intact.

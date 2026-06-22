@@ -273,10 +273,12 @@ export class Game {
   private buffDamageUntil = 0;
   private buffHasteUntil = 0;
   private buffShieldUntil = 0;
+  private buffLifestealUntil = 0;
   static readonly POWERUP_DURATION_MS = 9_000;
   static readonly POWERUP_DAMAGE_MULT = 1.7;
   static readonly POWERUP_HASTE_MULT = 1.55;
   static readonly POWERUP_SHIELD_REDUCTION = 0.5;   // OVERSHIELD: absorb 50% dmg
+  static readonly POWERUP_LIFESTEAL_FRAC = 0.35;    // LIFESTEAL: heal 35% of dmg dealt
 
   // Reload-edge tracker for the reload SFX. We poll inventory.current rather
   // than wiring an event bus into Weapon (Weapon stays pure-logic).
@@ -415,6 +417,10 @@ export class Game {
       const youTaking    = this.isLocalPlayer(e.targetId);
       if (youAttacking && !youTaking) {
         this.bus.emit('hitConfirm', { isHeadshot: e.isHeadshot });
+        // LIFESTEAL power-up — heal a fraction of the damage you deal (solo).
+        if (this.lifestealActive) {
+          this.playerActor.health.heal(e.amount * Game.POWERUP_LIFESTEAL_FRAC);
+        }
       }
       if (youTaking) {
         this.applyShake(0.06, 8);
@@ -1082,16 +1088,21 @@ export class Game {
     } else if (type === 'haste') {
       this.buffHasteUntil = until;
       this.inventory.setFireRateMultiplier(Game.POWERUP_HASTE_MULT);
-    } else {
+    } else if (type === 'shield') {
       this.buffShieldUntil = until;
       this.playerActor.health.damageReduction = Game.POWERUP_SHIELD_REDUCTION;
+    } else {
+      // LIFESTEAL — heals a fraction of damage dealt (applied in the damage bus).
+      this.buffLifestealUntil = until;
     }
     // Grab feedback: SFX + a burst at the player + a label + a screen flash.
     this.audio.play('pickup_powerup');
     this.player.eyePos(this._eyePos);
-    const color = type === 'damage' ? 0xff3b54 : type === 'haste' ? 0xffc23a : 0x3ad6ff;
+    const color = type === 'damage' ? 0xff3b54 : type === 'haste' ? 0xffc23a
+      : type === 'shield' ? 0x3ad6ff : 0x49f0a0;
     this.castFX.flash(this._eyePos, color, 0.5, 1.8, 0.4);
-    const label = type === 'damage' ? 'OVERCHARGE!' : type === 'haste' ? 'RAPID FIRE!' : 'OVERSHIELD!';
+    const label = type === 'damage' ? 'OVERCHARGE!' : type === 'haste' ? 'RAPID FIRE!'
+      : type === 'shield' ? 'OVERSHIELD!' : 'LIFESTEAL!';
     ScorePopup.pop(label, 'buff');
     this.applyShake(0.02, 12);
     const el = document.getElementById('powerup-flash');
@@ -1120,7 +1131,17 @@ export class Game {
       const rem = this.buffShieldUntil - now;
       out.push({ kind: 'shield', frac: rem / Game.POWERUP_DURATION_MS, seconds: rem / 1000 });
     }
+    if (this.buffLifestealUntil > now) {
+      const rem = this.buffLifestealUntil - now;
+      out.push({ kind: 'lifesteal', frac: rem / Game.POWERUP_DURATION_MS, seconds: rem / 1000 });
+    }
     return out;
+  }
+
+  /** True while the LIFESTEAL buff is active — read by the damage handler to
+   *  heal the local player a fraction of the damage they deal. */
+  get lifestealActive(): boolean {
+    return this.buffLifestealUntil > performance.now();
   }
 
   /** Expire power-up buffs whose timer elapsed (resets the weapon multiplier on
@@ -1139,6 +1160,9 @@ export class Game {
       this.buffShieldUntil = 0;
       this.playerActor.health.damageReduction = 0;
     }
+    if (this.buffLifestealUntil !== 0 && now >= this.buffLifestealUntil) {
+      this.buffLifestealUntil = 0;
+    }
   }
 
   /** Cancel any active power-up buffs immediately (death / mode swap / map). */
@@ -1146,6 +1170,7 @@ export class Game {
     if (this.buffDamageUntil !== 0) { this.buffDamageUntil = 0; this.inventory.setDamageMultiplier(1.0); }
     if (this.buffHasteUntil !== 0) { this.buffHasteUntil = 0; this.inventory.setFireRateMultiplier(1.0); }
     if (this.buffShieldUntil !== 0) { this.buffShieldUntil = 0; this.playerActor.health.damageReduction = 0; }
+    this.buffLifestealUntil = 0;
   }
 
   private onResize = () => {

@@ -2,7 +2,13 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.36.0 — **Voltage** (this round). A sixth combat map: a neon
+> **Status:** v0.37.0 — **Lifesteal power-up** (this round). A fourth arena buff
+> pad (green) → heal 35% of the damage you deal for 9 s; stacks with OVERCHARGE
+> for a high-risk aggressive playstyle. Built on the proven solo-only power-up
+> plumbing (weapon/health-layer, no protocol change), with a fourth contested
+> pad per combat map.
+>
+> **v0.36.0 — Voltage.** A sixth combat map: a neon
 > cyber arena — near-black ground lit by a glowing cyan grid, dual magenta/cyan
 > neon trim, translucent light-pylon cover. Built on the proven symmetric
 > Frostline skeleton (headless spawn-verified), solo-selectable across every

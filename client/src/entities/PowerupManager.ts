@@ -22,7 +22,7 @@
 import * as THREE from 'three';
 import type { Game } from '../core/Game';
 
-export type PowerupType = 'damage' | 'haste' | 'shield';
+export type PowerupType = 'damage' | 'haste' | 'shield' | 'lifesteal';
 
 interface PowerupDef {
   id: number;
@@ -42,11 +42,13 @@ const POWERUP_RESPAWN_MS = 20_000;
 const POWERUP_RADIUS = 1.5;
 const POWERUP_VERTICAL_TOLERANCE = 2.5;
 
-/** Crimson OVERCHARGE, gold RAPID, teal OVERSHIELD — readable on sight. */
+/** Crimson OVERCHARGE, gold RAPID, teal OVERSHIELD, green LIFESTEAL — readable
+ *  on sight. */
 const POWERUP_COLOR: Record<PowerupType, number> = {
   damage: 0xff3b54,
   haste: 0xffc23a,
   shield: 0x3ad6ff,
+  lifesteal: 0x49f0a0,
 };
 
 export class PowerupManager {
@@ -73,13 +75,14 @@ export class PowerupManager {
   private placements(): PowerupDef[] {
     const spawns = this.game.mapSpawns;
     if (spawns.length === 0) return [];
-    const types: PowerupType[] = ['haste', 'damage', 'shield'];
-    // Anchors spread across the spawn list so the pads aren't adjacent.
-    const idxs = spawns.length >= 3
-      ? [Math.floor(spawns.length * 0.15), Math.floor(spawns.length * 0.5), Math.floor(spawns.length * 0.8)]
-      : spawns.length >= 2
-        ? [Math.floor(spawns.length * 0.2), Math.floor(spawns.length * 0.7)]
-        : [0];
+    const types: PowerupType[] = ['haste', 'damage', 'shield', 'lifesteal'];
+    // One pad per type, but never more pads than we have (clear) anchors.
+    const count = Math.min(types.length, spawns.length);
+    // Spread the anchors evenly across the spawn list so pads aren't adjacent.
+    const idxs: number[] = [];
+    for (let i = 0; i < count; i++) {
+      idxs.push(Math.floor(((i + 0.5) / count) * spawns.length) % spawns.length);
+    }
     const out: PowerupDef[] = [];
     for (let i = 0; i < idxs.length; i++) {
       const s = spawns[idxs[i] % spawns.length];

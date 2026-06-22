@@ -533,6 +533,7 @@ body.kill-flash #app::after {
 }
 .buff-pill.buff-haste { border-left-color: #ffc23a; }
 .buff-pill.buff-shield { border-left-color: #3ad6ff; }
+.buff-pill.buff-lifesteal { border-left-color: #49f0a0; }
 .buff-pill .bp-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .buff-pill .bp-name {
   font: 800 11px/1 'Segoe UI', sans-serif;
@@ -541,6 +542,7 @@ body.kill-flash #app::after {
 }
 .buff-pill.buff-haste .bp-name { color: #ffd06a; }
 .buff-pill.buff-shield .bp-name { color: #7ae4ff; }
+.buff-pill.buff-lifesteal .bp-name { color: #7af0c0; }
 .buff-pill .bp-time {
   font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
   color: var(--text-dim, #9aa0ac);

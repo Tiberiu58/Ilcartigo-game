@@ -167,7 +167,8 @@ export class Minimap {
     this.game.powerups.forEachPad((wx, wz, type, available) => {
       const x = this.toX(wx);
       const y = this.toY(wz);
-      const base = type === 'damage' ? [255, 59, 84] : type === 'haste' ? [255, 194, 58] : [58, 214, 255];
+      const base = type === 'damage' ? [255, 59, 84] : type === 'haste' ? [255, 194, 58]
+        : type === 'shield' ? [58, 214, 255] : [73, 240, 160];
       ctx.fillStyle = available
         ? `rgb(${base[0]}, ${base[1]}, ${base[2]})`
         : `rgba(${base[0]}, ${base[1]}, ${base[2]}, 0.3)`;
