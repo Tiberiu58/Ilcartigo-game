@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.26.0 — **Daily Rewards round.** A retention/revenue layer: a **daily-login streak** with an escalating 7-day XP cycle (100→1200, day-7 jackpot, repeats), shown as a card that auto-greets you once per day and is replayable from the menu — a natural ad-adjacent menu moment. Pure-client, migration-safe `Account` extension, no protocol change. Built on the **Arena Power-Ups round (v0.25.0)**: two contested buff pads per combat map — **OVERCHARGE** (×1.7 damage) and **RAPID FIRE** (×1.55 fire rate), 9 s each, 20 s respawn — with a live buff tray, minimap markers, and full grab juice, weapon-layer only with zero protocol/server change. Both build on the routine-integration round (v0.24.0): two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
+> **Status:** v0.27.0 — **Railgun round.** An 8th weapon with a new mechanic: the **Railgun**, a heavy precision beam that **pierces every enemy in a line** until it hits a wall (one-shot heads, line multi-kills) — new `World.raycastPierce` + `Weapon.firePiercing`, full viewmodel/loadout/mastery integration, and an MP-safe single-target server profile (pierce is a solo bonus, no protocol change). Built on the **Daily Rewards round (v0.26.0)**: a retention/revenue layer — a **daily-login streak** with an escalating 7-day XP cycle (100→1200, day-7 jackpot, repeats), shown as a card that auto-greets you once per day and is replayable from the menu — a natural ad-adjacent menu moment. Pure-client, migration-safe `Account` extension, no protocol change. Built on the **Arena Power-Ups round (v0.25.0)**: two contested buff pads per combat map — **OVERCHARGE** (×1.7 damage) and **RAPID FIRE** (×1.55 fire rate), 9 s each, 20 s respawn — with a live buff tray, minimap markers, and full grab juice, weapon-layer only with zero protocol/server change. Both build on the routine-integration round (v0.24.0): two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -309,6 +309,8 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | Filename | What it is | Suggested freesound.org search |
 | --- | --- | --- |
 | `pickup_powerup.wav` | Arena power-up grab (overcharge / rapid) | "power up", "buff activate", "energy pickup" |
+| `fire_railgun.wav` | Railgun beam discharge (heavy electric crack) | "railgun", "energy beam shot", "sci-fi laser shot" |
+| `fire_lmg.wav` | LMG burst (deep rapid chug) | "machine gun", "lmg shot", "heavy mg" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -643,6 +645,30 @@ protocol/server change** and MP is untouched.
   toward map centre with a solid-overlap fallback — so a future map can never
   embed a pad in geometry. New `pickup_powerup` sound id.
 
+## Phase 27 — Railgun weapon (this round, v0.27.0)
+
+An **eighth weapon** with a genuinely new mechanic — the first non-config
+archetype since the base roster. The **Railgun** is a heavy precision beam that
+**pierces every enemy in a line** until it hits a wall: line up a row and delete
+it with one shot. Pinpoint (zero spread), no falloff, slow (0.85 RPS), a 4-round
+mag and a 3 s reload, 75 dmg (2-shot body, **1-shot headshot** at ×2.0). The
+flashiest multi-kill tool in the game.
+
+- **New `World.raycastPierce`** — finds the nearest wall along the ray, then
+  returns every damageable in front of it (sorted near→far, head/body), skipping
+  the shooter / dead / same-team. `Weapon.firePiercing` drives one beam tracer to
+  the wall via a single `shot` event and applies damage to each pierced enemy
+  with its own damage/kill event, so killfeed, damage numbers, XP, mastery and
+  the announcer (multi-kills!) all work for free.
+- **Full integration** — `RAILGUN_CONFIG` + `pierce` flag in `WeaponConfig`, a
+  cyan-coiled `buildRailgun` viewmodel, `WEAPON_LABEL`/`WEAPON_BUILDERS` entries,
+  a loadout button, three **mastery skins** (Ion / Plasma / Singularity), and
+  `fire_railgun` + `fire_lmg` sound ids.
+- **MP-safe.** Pierce is **solo-only** (it isn't in the protocol); online the
+  server applies the Railgun as a hard-hitting **single-target** weapon via a new
+  `SERVER_WEAPONS['railgun']` profile + `VALID_WEAPONS` entry — so weapon identity
+  still matters in MP, just without the line-pierce bonus. No protocol change.
+
 ## Phase 26 — Daily Login Rewards (this round, v0.26.0)
 
 A pure-client **retention + revenue** layer (different pillar from v0.25's
@@ -747,12 +773,12 @@ documented three-edit checklist.
 
 ## Project status
 
-v0.26.0 — **deployed and live**, two routine branches integrated + Arena Power-Ups + Daily Rewards. Movement, combat, 6 classes, **7 weapons** (incl. Marksman + LMG), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus **daily login rewards**, **arena power-ups (OVERCHARGE / RAPID FIRE, solo)**; scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.27.0 — **deployed and live**, two routine branches integrated + Arena Power-Ups + Daily Rewards + Railgun. Movement, combat, 6 classes, **8 weapons** (incl. Marksman + LMG + **Railgun**), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus the **piercing Railgun**, **daily login rewards**, **arena power-ups (OVERCHARGE / RAPID FIRE, solo)**; scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~206 KB gzipped` (app ~80 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, **arena power-ups**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG, arena power-ups, daily login rewards. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.26.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.26.0.
+- `/client` — Vite + TS + Three.js game client. `~206 KB gzipped` (app ~80 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, **arena power-ups**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG, **piercing Railgun**, arena power-ups, daily login rewards. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.27.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.27.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 
 ## What you'd want to do next (post-v1)

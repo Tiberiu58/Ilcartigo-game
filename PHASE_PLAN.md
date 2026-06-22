@@ -819,3 +819,44 @@ menu ad impressions).
   v0.26.0 (+ menu subtitle/footer).
 
 ### Phase 26 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 27 — Railgun weapon (autonomous build, v0.27.0)
+
+Back to the brief's first pillar (weapon variety / satisfying shooting). An
+**8th weapon** — and the first with a genuinely new mechanic since the base
+roster: the **Railgun**, a heavy precision beam that **pierces every enemy in a
+line** until it stops at a wall. Pinpoint, no falloff, slow (0.85 RPS), 4-round
+mag, 3 s reload, 75 dmg (2-shot body, 1-shot head at ×2.0). Identity = line a
+row up and delete it — the flashiest multi-kill tool in the game.
+
+- **New `World.raycastPierce`** (additive, doesn't touch the existing single-hit
+  `raycast`): nearest wall t, then every damageable in front of it sorted
+  near→far with head/body + headshot flag, skipping shooter/dead/same-team.
+- **`Weapon.firePiercing`** — gated by a new optional `WeaponConfig.pierce`
+  flag in `firePellet`. One beam to the wall (or max range) drives the tracer +
+  impact via a single `shot` event; damage is applied to every pierced enemy,
+  each emitting its own damage/kill event, so killfeed, damage numbers, XP,
+  weapon mastery and the multi-kill announcer all work with no special-casing.
+  `computeDamage` already folds in the OVERCHARGE multiplier, so power-ups stack.
+- **Full integration:** `RAILGUN_CONFIG` + `WEAPON_LIBRARY` entry, cyan-coiled
+  `buildRailgun` viewmodel + `WEAPON_BUILDERS`, `WEAPON_LABEL` (Gun Game),
+  loadout button, three mastery skins (Ion / Plasma / Singularity) +
+  `WEAPON_SKIN_ORDER`, and `fire_railgun` + the previously-missing `fire_lmg`
+  sound ids.
+- **MP-safe, no protocol change.** Pierce is solo-only (it isn't in the
+  protocol). Online, the server applies the Railgun as a hard single-target hit
+  via `SERVER_WEAPONS['railgun']` + a `VALID_WEAPONS` entry (mirrors the LMG
+  precedent), so weapon identity still matters in MP without the line-pierce
+  bonus. In MP the client's local `firePiercing` finds no networked damageables,
+  so it just draws the beam and lets the server own damage — no double-hits.
+
+### Status log
+- ✅ Phase 27 — Railgun. DONE (client + server tsc + client build green; app
+  chunk ~80.8 KB gzip). `World.raycastPierce`, `Weapon.pierce`/`RAILGUN_CONFIG`/
+  `firePiercing`, viewmodel + label + loadout + mastery skins + sound ids,
+  server `SERVER_WEAPONS`/`VALID_WEAPONS` railgun. Versions bumped to v0.27.0
+  (+ menu subtitle/footer).
+
+### Phase 27 COMPLETE — additive weapon + new pierce mechanic, no protocol change, solo + MP intact.

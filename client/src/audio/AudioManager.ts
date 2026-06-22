@@ -29,6 +29,8 @@ export const SOUND_FILES = {
   fire_sniper:   'fire_sniper.wav',
   fire_shotgun:  'fire_shotgun.wav',
   fire_marksman: 'fire_marksman.wav',
+  fire_lmg:      'fire_lmg.wav',
+  fire_railgun:  'fire_railgun.wav',
   fire_pistol:   'fire_pistol.wav',
   reload:        'reload.wav',
   empty_click:   'empty_click.wav',

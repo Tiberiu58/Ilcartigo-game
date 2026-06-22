@@ -30,7 +30,7 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'railgun', 'pistol']);
 
 /**
  * Server-authoritative per-weapon damage. MIRRORS the client's WeaponConfig
@@ -60,6 +60,9 @@ const SERVER_WEAPONS: Record<string, ServerWeapon> = {
   shotgun: { baseDamage: 52, headMul: 1.4,  falloffStart: 6,   falloffEnd: 22,  falloffMin: 0.18 },
   marksman:{ baseDamage: 40, headMul: 2.0,  falloffStart: 60,  falloffEnd: 140, falloffMin: 0.7  },
   lmg:     { baseDamage: 20, headMul: 1.6,  falloffStart: 30,  falloffEnd: 90,  falloffMin: 0.5  },
+  // Railgun online is single-target (no pierce in the protocol — that's a solo
+  // bonus); the per-shot damage profile still mirrors the client so it hits hard.
+  railgun: { baseDamage: 75, headMul: 2.0,  falloffStart: 240, falloffEnd: 260, falloffMin: 0.9  },
   pistol:  { baseDamage: 22, headMul: 1.7,  falloffStart: 18,  falloffEnd: 55,  falloffMin: 0.55 },
 };
 

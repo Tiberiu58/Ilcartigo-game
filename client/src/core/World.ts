@@ -299,6 +299,68 @@ export class World {
   }
 
   /**
+   * Piercing raycast — used by the Railgun. Finds the nearest static wall along
+   * the ray, then returns EVERY damageable in front of that wall (sorted near→
+   * far), each with its nearest-face distance + headshot flag. The shot passes
+   * through enemies but stops at world geometry, so a lined-up row can all be
+   * hit by one beam. Skips the shooter + dead + same-team (TDM) damageables.
+   */
+  raycastPierce(
+    origin: THREE.Vector3,
+    dir: THREE.Vector3,
+    maxDistance: number,
+    skipId: string | null,
+    friendlyTeam?: number,
+  ): { wallDistance: number; wallPoint: THREE.Vector3 | null; hits: Array<{ target: Damageable; distance: number; isHeadshot: boolean }> } {
+    const invX = 1 / (dir.x || 1e-12);
+    const invY = 1 / (dir.y || 1e-12);
+    const invZ = 1 / (dir.z || 1e-12);
+    const test = (b: AABB): number => {
+      const t1 = (b.min.x - origin.x) * invX;
+      const t2 = (b.max.x - origin.x) * invX;
+      const t3 = (b.min.y - origin.y) * invY;
+      const t4 = (b.max.y - origin.y) * invY;
+      const t5 = (b.min.z - origin.z) * invZ;
+      const t6 = (b.max.z - origin.z) * invZ;
+      const tEnter = Math.max(Math.min(t1, t2), Math.min(t3, t4), Math.min(t5, t6));
+      const tExit  = Math.min(Math.max(t1, t2), Math.max(t3, t4), Math.max(t5, t6));
+      if (tExit < 0 || tEnter > tExit) return Infinity;
+      return tEnter < 0 ? 0 : tEnter;
+    };
+
+    // Nearest wall = where the beam stops.
+    let wallT = maxDistance;
+    for (const b of this.solids) {
+      const t = test(b);
+      if (t < wallT) wallT = t;
+    }
+
+    const hits: Array<{ target: Damageable; distance: number; isHeadshot: boolean }> = [];
+    for (const d of this.damageables) {
+      if (d.id === skipId || d.health.dead) continue;
+      if (friendlyTeam !== undefined && d.team === friendlyTeam) continue;
+      let bestT = Infinity;
+      let isHead = false;
+      const head = d.headAABB();
+      if (head) {
+        const t = test(head);
+        if (t < bestT) { bestT = t; isHead = true; }
+      }
+      const bodyT = test(d.bodyAABB());
+      if (bodyT < bestT) { bestT = bodyT; isHead = false; }
+      if (bestT < wallT && bestT < maxDistance) {
+        hits.push({ target: d, distance: bestT, isHeadshot: isHead });
+      }
+    }
+    hits.sort((a, b) => a.distance - b.distance);
+
+    const wallPoint = wallT < maxDistance
+      ? new THREE.Vector3(origin.x + dir.x * wallT, origin.y + dir.y * wallT, origin.z + dir.z * wallT)
+      : null;
+    return { wallDistance: wallT, wallPoint, hits };
+  }
+
+  /**
    * Line-of-sight: does an unobstructed straight line exist between A and B,
    * ignoring damageables (we only care about static cover). Used by bot AI.
    *

@@ -60,6 +60,9 @@ export interface WeaponConfig {
   pellets?: number;
   /** If set, RMB toggles a scope that drops camera FOV to this value. */
   scopeFov?: number;
+  /** If true, shots pierce every enemy in a line until they hit a wall (Railgun).
+   *  Solo-only — MP damage is server-authoritative (single-target). */
+  pierce?: boolean;
   /** Display class shown in HUD (PRIMARY / SECONDARY). Pistol = SECONDARY. */
   slot: 'primary' | 'secondary';
 }
@@ -222,6 +225,35 @@ export const LMG_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Railgun — a heavy precision beam that PIERCES every enemy in a line until it
+// hits a wall. Slow, pinpoint (zero spread), no falloff, punishing mag/reload —
+// the payoff is deleting a whole lined-up row with one shot. 2-shot body,
+// 1-shot head. Solo-only pierce (MP is server-authoritative, single-target).
+export const RAILGUN_CONFIG: WeaponConfig = {
+  id: 'railgun',
+  displayName: 'Railgun',
+  fireRate: 0.85,
+  automatic: false,
+  magSize: 4,
+  reloadTime: 3.0,
+  reserveAmmo: -1,
+  baseDamage: 75,
+  headshotMultiplier: 2.0,
+  maxRange: 260,
+  falloffStart: 240,
+  falloffEnd: 260,
+  falloffMinMultiplier: 0.9,
+  baseSpread: 0.0,
+  maxSpread: 0.0,
+  spreadPerShot: 0.0,
+  spreadDecay: 0.0,
+  recoilPitch: 0.055,
+  recoilYaw: 0.0,
+  recoilDecay: 0.4,
+  pierce: true,
+  slot: 'primary',
+};
+
 // Pistol — semi-auto sidearm. Always equipped, decent damage, no reserve cap.
 export const PISTOL_CONFIG: WeaponConfig = {
   id: 'pistol',
@@ -254,6 +286,7 @@ export const WEAPON_LIBRARY = {
   shotgun: SHOTGUN_CONFIG,
   marksman: MARKSMAN_CONFIG,
   lmg: LMG_CONFIG,
+  railgun: RAILGUN_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;
@@ -418,6 +451,9 @@ export class Weapon {
       dir.normalize();
     }
 
+    // Railgun: a piercing beam — passes through every enemy until it hits a wall.
+    if (this.config.pierce) return this.firePiercing(origin, dir);
+
     const hit = this.world.raycast(origin, dir, this.config.maxRange, this.ownerId, this.ownerTeam);
 
     this.bus.emit('shot', {
@@ -453,6 +489,54 @@ export class Weapon {
     }
 
     return hit;
+  }
+
+  /**
+   * Piercing-beam fire (Railgun). One beam to the nearest wall (or max range)
+   * drives the tracer/impact via a single `shot` event; damage is applied to
+   * every enemy the beam passes through, each emitting its own damage/kill
+   * event so killfeed, damage numbers, XP, mastery + announcer all work.
+   */
+  private firePiercing(origin: THREE.Vector3, dir: THREE.Vector3): RayHit | null {
+    const res = this.world.raycastPierce(origin, dir, this.config.maxRange, this.ownerId, this.ownerTeam);
+
+    // Beam endpoint: the wall (so the tracer stops there) or null → max range.
+    const endHit = res.wallPoint
+      ? { point: res.wallPoint.clone(), targetId: null as string | null, isHeadshot: false }
+      : null;
+    this.bus.emit('shot', {
+      shooterId: this.ownerId,
+      weaponId: this.config.id,
+      origin: origin.clone(),
+      direction: dir.clone(),
+      hit: endHit,
+    });
+
+    let firstHit: RayHit | null = null;
+    for (const h of res.hits) {
+      const point = origin.clone().addScaledVector(dir, h.distance);
+      const damage = this.computeDamage(h.distance, h.isHeadshot);
+      const killed = h.target.health.takeDamage(damage);
+      this.bus.emit('damage', {
+        attackerId: this.ownerId,
+        targetId: h.target.id,
+        amount: damage,
+        isHeadshot: h.isHeadshot,
+        hitPoint: point.clone(),
+        weaponId: this.config.id,
+      });
+      if (killed) {
+        this.bus.emit('kill', {
+          attackerId: this.ownerId,
+          targetId: h.target.id,
+          weaponId: this.config.id,
+          isHeadshot: h.isHeadshot,
+          hitPoint: point.clone(),
+        });
+      }
+      if (!firstHit) firstHit = { point, distance: h.distance, target: h.target, isHeadshot: h.isHeadshot };
+    }
+    return firstHit;
   }
 
   private computeDamage(distance: number, isHeadshot: boolean): number {
