@@ -532,6 +532,7 @@ body.kill-flash #app::after {
   animation: buff-pill-in 0.25s ease-out;
 }
 .buff-pill.buff-haste { border-left-color: #ffc23a; }
+.buff-pill.buff-shield { border-left-color: #3ad6ff; }
 .buff-pill .bp-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .buff-pill .bp-name {
   font: 800 11px/1 'Segoe UI', sans-serif;
@@ -539,6 +540,7 @@ body.kill-flash #app::after {
   color: #ff7a90;
 }
 .buff-pill.buff-haste .bp-name { color: #ffd06a; }
+.buff-pill.buff-shield .bp-name { color: #7ae4ff; }
 .buff-pill .bp-time {
   font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
   color: var(--text-dim, #9aa0ac);
@@ -559,6 +561,7 @@ body.kill-flash #app::after {
   box-shadow: 0 0 6px rgba(255, 59, 84, 0.6);
 }
 .buff-pill.buff-haste .bp-fill { background: #ffc23a; box-shadow: 0 0 6px rgba(255, 194, 58, 0.6); }
+.buff-pill.buff-shield .bp-fill { background: #3ad6ff; box-shadow: 0 0 6px rgba(58, 214, 255, 0.6); }
 @keyframes buff-pill-in {
   0% { opacity: 0; transform: translateX(-14px); }
   100% { opacity: 1; transform: translateX(0); }

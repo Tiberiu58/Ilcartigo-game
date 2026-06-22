@@ -889,3 +889,31 @@ something you feel the whole time you're dominating, and dread losing.
   bumped to v0.28.0 (+ menu subtitle/footer).
 
 ### Phase 28 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 29 — Overshield power-up (autonomous build, v0.29.0)
+
+Rounds out the Phase-25 arena power-up triad with a **defensive** option so the
+buff pads pose a real choice (damage vs speed vs survivability) instead of two
+offensive variants. Pure-client, solo-only, no protocol change — built directly
+on the Phase-25 plumbing.
+
+- **OVERSHIELD** (teal pad) → absorb **50% of incoming damage** for 9 s. New
+  `Health.damageReduction` field (0..1) applied in `takeDamage` — 0 everywhere
+  but the buffed local player, so the damage flow / bots / networking are
+  untouched. Set by `Game.grantPowerup('shield')`, cleared by the same
+  `tickBuffs`/`clearBuffs` edges (death / fresh match) as the other buffs.
+- **Full reuse:** third `PowerupType`, a third map pad (placement now picks 3
+  spread spawn anchors), teal grab flash + `OVERSHIELD!` score-pop, a
+  `🛡 OVERSHIELD` buff-tray pill (`HUD.tickBuffs` label/CSS), and a teal minimap
+  diamond.
+
+### Status log
+- ✅ Phase 29 — Overshield. DONE (client + server tsc + client build green; app
+  chunk ~81.4 KB gzip). `Health.damageReduction`, `PowerupType` 'shield' +
+  colour + 3rd pad, `Game` shield buff (grant/tick/clear/powerupBuffs), HUD pill
+  label + CSS, minimap colour. Versions bumped to v0.29.0 (+ menu subtitle/
+  footer).
+
+### Phase 29 COMPLETE — pure client, no protocol change, solo + MP intact.

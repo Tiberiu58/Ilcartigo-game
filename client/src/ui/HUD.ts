@@ -232,7 +232,9 @@ export class HUD {
       if (!pill) {
         const el = document.createElement('div');
         el.className = `buff-pill buff-${b.kind}`;
-        const label = b.kind === 'damage' ? '🔥 OVERCHARGE' : '⚡ RAPID FIRE';
+        const label = b.kind === 'damage' ? '🔥 OVERCHARGE'
+          : b.kind === 'haste' ? '⚡ RAPID FIRE'
+          : '🛡 OVERSHIELD';
         el.innerHTML =
           `<div class="bp-row"><span class="bp-name">${label}</span>` +
           `<span class="bp-time"></span></div><div class="bp-bar"><div class="bp-fill"></div></div>`;

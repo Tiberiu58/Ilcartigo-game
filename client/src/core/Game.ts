@@ -259,9 +259,11 @@ export class Game {
   // Arena power-ups (solo-only). performance.now() ms each buff expires at.
   private buffDamageUntil = 0;
   private buffHasteUntil = 0;
+  private buffShieldUntil = 0;
   static readonly POWERUP_DURATION_MS = 9_000;
   static readonly POWERUP_DAMAGE_MULT = 1.7;
   static readonly POWERUP_HASTE_MULT = 1.55;
+  static readonly POWERUP_SHIELD_REDUCTION = 0.5;   // OVERSHIELD: absorb 50% dmg
 
   // Reload-edge tracker for the reload SFX. We poll inventory.current rather
   // than wiring an event bus into Weapon (Weapon stays pure-logic).
@@ -1048,16 +1050,20 @@ export class Game {
     if (type === 'damage') {
       this.buffDamageUntil = until;
       this.inventory.setDamageMultiplier(Game.POWERUP_DAMAGE_MULT);
-    } else {
+    } else if (type === 'haste') {
       this.buffHasteUntil = until;
       this.inventory.setFireRateMultiplier(Game.POWERUP_HASTE_MULT);
+    } else {
+      this.buffShieldUntil = until;
+      this.playerActor.health.damageReduction = Game.POWERUP_SHIELD_REDUCTION;
     }
     // Grab feedback: SFX + a burst at the player + a label + a screen flash.
     this.audio.play('pickup_powerup');
     this.player.eyePos(this._eyePos);
-    const color = type === 'damage' ? 0xff3b54 : 0xffc23a;
+    const color = type === 'damage' ? 0xff3b54 : type === 'haste' ? 0xffc23a : 0x3ad6ff;
     this.castFX.flash(this._eyePos, color, 0.5, 1.8, 0.4);
-    ScorePopup.pop(type === 'damage' ? 'OVERCHARGE!' : 'RAPID FIRE!', 'buff');
+    const label = type === 'damage' ? 'OVERCHARGE!' : type === 'haste' ? 'RAPID FIRE!' : 'OVERSHIELD!';
+    ScorePopup.pop(label, 'buff');
     this.applyShake(0.02, 12);
     const el = document.getElementById('powerup-flash');
     if (el) {
@@ -1081,6 +1087,10 @@ export class Game {
       const rem = this.buffHasteUntil - now;
       out.push({ kind: 'haste', frac: rem / Game.POWERUP_DURATION_MS, seconds: rem / 1000 });
     }
+    if (this.buffShieldUntil > now) {
+      const rem = this.buffShieldUntil - now;
+      out.push({ kind: 'shield', frac: rem / Game.POWERUP_DURATION_MS, seconds: rem / 1000 });
+    }
     return out;
   }
 
@@ -1096,12 +1106,17 @@ export class Game {
       this.buffHasteUntil = 0;
       this.inventory.setFireRateMultiplier(1.0);
     }
+    if (this.buffShieldUntil !== 0 && now >= this.buffShieldUntil) {
+      this.buffShieldUntil = 0;
+      this.playerActor.health.damageReduction = 0;
+    }
   }
 
   /** Cancel any active power-up buffs immediately (death / mode swap / map). */
   private clearBuffs() {
     if (this.buffDamageUntil !== 0) { this.buffDamageUntil = 0; this.inventory.setDamageMultiplier(1.0); }
     if (this.buffHasteUntil !== 0) { this.buffHasteUntil = 0; this.inventory.setFireRateMultiplier(1.0); }
+    if (this.buffShieldUntil !== 0) { this.buffShieldUntil = 0; this.playerActor.health.damageReduction = 0; }
   }
 
   private onResize = () => {
