@@ -941,3 +941,27 @@ time on the ad screen. Pure-client, no protocol change.
   footer).
 
 ### Phase 30 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 31 — Cosmetics expansion (autonomous build, v0.31.0)
+
+A content drop deepening the unlock chase (the roadmap's "More cosmetics" item)
+— more to grind for → longer engagement → more ad impressions. Pure data: the
+Cosmetics UI already auto-iterates `KILL_EFFECTS` / `TRACERS` / `FINISHES`, so the
+new items appear, unlock and equip with no logic change, and `Account`'s
+default-unlock + migration logic is untouched.
+
+- **+4 kill effects** (Emerald Shock / Amber Burst / Violet Rift / Inferno,
+  1200–4500 XP) → 8 total — seen on every kill.
+- **+4 tracers** (Emerald / Violet / Amber / Ice Blue, 1500–3400 XP) → 10 total —
+  seen on every shot.
+- **+2 finishes** (Verdant / Solar Flare, 3200/4000 XP) → 8 total — seen on the
+  viewmodel constantly.
+
+### Status log
+- ✅ Phase 31 — Cosmetics expansion. DONE (client + server tsc + client build
+  green). Data-only additions to `Cosmetics.ts`. Versions bumped to v0.31.0
+  (+ menu subtitle/footer).
+
+### Phase 31 COMPLETE — pure client, no protocol change, solo + MP intact.
