@@ -917,3 +917,27 @@ on the Phase-25 plumbing.
   footer).
 
 ### Phase 29 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 30 — Match Summary (autonomous build, v0.30.0)
+
+Upgrades the post-match overlay (the main natural ad breakpoint) from a bare
+scoreboard into a personal **match summary** — more satisfaction + more dwell
+time on the ad screen. Pure-client, no protocol change.
+
+- **Your-stats strip** above the scoreboard: KILLS · DEATHS · K/D · BEST STREAK ·
+  PLACE (rank, or WON/LOST in TDM). Best streak from a new `Announcer.bestStreak`
+  (match-max tracked next to the live streak, reset in `reset()`).
+- **NEW PERSONAL BEST badge** — pulsing gold banner when you beat your record for
+  most kills in a single match (`ilc.bestMatchKills`, persisted). A "beat your
+  record" hook for one-more-game retention.
+
+### Status log
+- ✅ Phase 30 — Match Summary. DONE (client + server tsc + client build green;
+  app chunk ~81.6 KB gzip). `Announcer.maxStreak`/`bestStreak`, `#pm-summary`
+  stat strip + `#pm-newbest` badge (HTML + CSS), `showPostMatch` population +
+  best-match-kills PB persistence. Versions bumped to v0.30.0 (+ menu subtitle/
+  footer).
+
+### Phase 30 COMPLETE — pure client, no protocol change, solo + MP intact.

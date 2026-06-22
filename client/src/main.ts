@@ -1153,6 +1153,13 @@ const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
+const pmSKills = document.getElementById('pm-s-kills')!;
+const pmSDeaths = document.getElementById('pm-s-deaths')!;
+const pmSKd = document.getElementById('pm-s-kd')!;
+const pmSStreak = document.getElementById('pm-s-streak')!;
+const pmSPlace = document.getElementById('pm-s-place')!;
+const pmNewBest = document.getElementById('pm-newbest')!;
+const BEST_MATCH_KILLS_KEY = 'ilc.bestMatchKills';
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
 
@@ -1219,6 +1226,23 @@ function showPostMatch(winnerId: string) {
   }).join('');
 
   pmUnlocks.textContent = '';   // future: list newly-unlocked skins this match
+
+  // Your match summary strip — personal kills/deaths/KD/best-streak/place.
+  const myDeaths = rows.find((r) => r.isYou)?.deaths ?? 0;
+  const myKd = myDeaths === 0 ? myKills.toFixed(1) : (myKills / myDeaths).toFixed(2);
+  pmSKills.textContent = String(myKills);
+  pmSDeaths.textContent = String(myDeaths);
+  pmSKd.textContent = myKd;
+  pmSStreak.textContent = String(announcer.bestStreak);
+  pmSPlace.textContent = tdmTeam !== null ? (youWon ? 'WON' : 'LOST') : (myRank > 0 ? `#${myRank}` : '—');
+
+  // NEW-BEST badge — most kills in a single match (FFA-style modes only; TDM is
+  // team-scored, so a personal-kills record there is less meaningful but still
+  // tracked). Persisted across sessions.
+  const prevBest = Number(localStorage.getItem(BEST_MATCH_KILLS_KEY) ?? 0);
+  const isNewBest = myKills > prevBest && myKills > 0;
+  if (isNewBest) localStorage.setItem(BEST_MATCH_KILLS_KEY, String(myKills));
+  pmNewBest.classList.toggle('hidden', !isNewBest);
 
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');

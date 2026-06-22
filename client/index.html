@@ -281,7 +281,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.29</p>
+          <p class="subtitle">Browser arena shooter · v0.30</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -351,7 +351,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.29.0 — Overshield · ON FIRE rampage · Railgun · Daily Rewards · Power-Ups · TDM</div>
+          <div>v0.30.0 — Match Summary · Overshield · ON FIRE rampage · Railgun · Daily Rewards</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -383,6 +383,17 @@
         <div class="postmatch-card">
           <h2 id="pm-title">MATCH OVER</h2>
           <p id="pm-winner-line" class="pm-winner">winner: —</p>
+
+          <!-- Your match summary — personal stat strip + a NEW BEST badge for a
+               record kill count. Populated by main.ts showPostMatch. -->
+          <div id="pm-summary" class="pm-summary">
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-kills">0</span><label>KILLS</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-deaths">0</span><label>DEATHS</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-kd">0.0</span><label>K/D</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-streak">0</span><label>BEST STREAK</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-place">—</span><label>PLACE</label></div>
+          </div>
+          <div id="pm-newbest" class="pm-newbest hidden">★ NEW PERSONAL BEST · most kills in a match!</div>
 
           <div class="pm-scoreboard">
             <div class="pm-row pm-row-head">

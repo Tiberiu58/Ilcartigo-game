@@ -1561,6 +1561,47 @@ body.no-speedlines #speed-lines { display: none; }
   margin-bottom: 24px;
 }
 .pm-winner b { color: var(--text); }
+
+/* Your match summary — a row of stat tiles above the full scoreboard. */
+.pm-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pm-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  padding: 10px 4px;
+  text-align: center;
+}
+.pm-stat .pm-stat-v {
+  display: block;
+  font: 800 22px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent);
+}
+.pm-stat label {
+  display: block;
+  margin-top: 5px;
+  font: 700 8.5px/1.1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.pm-newbest {
+  text-align: center;
+  font: 800 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1.5px;
+  color: #ffd23f;
+  background: rgba(255, 210, 63, 0.1);
+  border: 1px solid rgba(255, 210, 63, 0.35);
+  border-radius: 6px;
+  padding: 9px;
+  margin-bottom: 20px;
+  animation: daily-today-pulse 1.6s ease-in-out infinite;
+}
+.pm-newbest.hidden { display: none; }
+
 .pm-scoreboard {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 6px;

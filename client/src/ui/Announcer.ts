@@ -86,6 +86,8 @@ export class Announcer {
   onStreakChange?: (streak: number) => void;
 
   private streak = 0;
+  /** Highest streak reached this match — surfaced on the post-match summary. */
+  private maxStreak = 0;
   private multiCount = 0;
   private lastKillAt = 0;       // performance.now() of the last local kill
   private hideTimer: number | null = null;
@@ -119,8 +121,12 @@ export class Announcer {
 
   /** Reset all state — call on match reset / mode switch so stale streaks
    *  don't carry across matches. */
+  /** Highest killstreak reached since the last reset (this match). */
+  get bestStreak(): number { return this.maxStreak; }
+
   reset() {
     this.streak = 0;
+    this.maxStreak = 0;
     this.multiCount = 0;
     this.lastKillAt = 0;
     this.matchHadKill = false;
@@ -140,6 +146,7 @@ export class Announcer {
     }
     this.lastKillAt = now;
     this.streak++;
+    if (this.streak > this.maxStreak) this.maxStreak = this.streak;
     this.onStreakChange?.(this.streak);
 
     // ── Specials (take headline priority over multi/streak) ──────────────────
