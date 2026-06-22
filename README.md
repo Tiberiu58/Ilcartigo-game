@@ -2,7 +2,12 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.38.0 — **Cosmetics expansion II** (this round). A pure-data
+> **Status:** v0.39.0 — **Killfeed weapon icons** (this round). The killfeed now
+> shows a distinct icon + name for signature kills (🔪 KNIFE / 💣 NADE / ⚡
+> RAILGUN / 🎯 SNIPER / 💥 SHOTGUN) and clean uppercase labels for the rest —
+> reads at a glance, the Krunker/CoD killfeed staple. Pure UI, no protocol change.
+>
+> **v0.38.0 — Cosmetics expansion II.** A pure-data
 > unlock-chase drop: +1 prestige skin per class (→ 42 skins), +2 kill effects
 > (→ 10), +2 tracers (→ 12), +2 weapon finishes (→ 10). The Cosmetics UI
 > auto-iterates the registries, so it's zero-logic-risk.

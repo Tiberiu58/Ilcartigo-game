@@ -1405,3 +1405,21 @@ change, and `Account`'s default-unlock + migration logic is untouched.
   effects/tracers/finishes). Versions bumped to v0.38.0 (+ menu subtitle/footer).
 
 ### Phase 38 COMPLETE — pure data, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — Killfeed weapon icons (autonomous build, v0.39.0)
+
+A small combat-readability polish (the Krunker/CoD killfeed staple): the
+killfeed now shows a distinct **icon + name** for the "signature" kills players
+brag about — 🔪 KNIFE, 💣 NADE, ⚡ RAILGUN, 🎯 SNIPER, 💥 SHOTGUN — and a clean
+uppercase label for the rest (with `marksman → DMR`), replacing the old
+`[weaponid]` bracket text. The headshot tag gains a `⊕` glyph. Pure UI in
+`HUD.pushKill` via a new `killfeedWeapon()` helper; no protocol change.
+
+### Status log
+- ✅ Phase 39 — Killfeed icons. DONE (client tsc + build green; server
+  unchanged). `killfeedWeapon()` helper + `kf-head` glyph. Versions bumped to
+  v0.39.0 (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — pure-UI polish, no protocol change, solo + MP intact.
