@@ -45,7 +45,7 @@ export interface TracerConfig {
   cost: number;
 }
 
-const SKIN_COSTS = [0, 200, 500, 1000, 2000, 4000];
+const SKIN_COSTS = [0, 200, 500, 1000, 2000, 4000, 6000];
 
 /**
  * Skin authoring helper — builds the 6 entries for one class. The default
@@ -92,6 +92,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Ash Phantom',  bodyColor: 0x6a6080, headColor: 0x3d3650 },
       { displayName: 'Plasma',       bodyColor: 0xd060ff, headColor: 0x8a30b8 },
       { displayName: 'Void Rift',    bodyColor: 0x2a0a5c, headColor: 0x110530 },
+      { displayName: 'Stardust',     bodyColor: 0xc8a0ff, headColor: 0x7050b0 },
     ],
   ),
   ...makeClassSkins('rush',
@@ -102,6 +103,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Crimson Run',  bodyColor: 0xd4291a, headColor: 0x7a120a },
       { displayName: 'Copper Wire',  bodyColor: 0xc66c2a, headColor: 0x6d3414 },
       { displayName: 'Solar Flare',  bodyColor: 0xff3000, headColor: 0xb01800 },
+      { displayName: 'Phoenix',      bodyColor: 0xffae3a, headColor: 0xc05010 },
     ],
   ),
   ...makeClassSkins('vanguard',
@@ -112,6 +114,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Glacier',      bodyColor: 0xa0e8d8, headColor: 0x4a8478 },
       { displayName: 'Forest',       bodyColor: 0x2f6e3a, headColor: 0x143820 },
       { displayName: 'Emerald Edge', bodyColor: 0x00c884, headColor: 0x006840 },
+      { displayName: 'Jade Titan',   bodyColor: 0x0fd0a0, headColor: 0x086050 },
     ],
   ),
   ...makeClassSkins('ghost',
@@ -122,6 +125,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Frostbite',    bodyColor: 0xb8d0e0, headColor: 0x5a7080 },
       { displayName: 'Obsidian',     bodyColor: 0x202428, headColor: 0x0a0c10 },
       { displayName: 'Spectre',      bodyColor: 0xe8e8f0, headColor: 0x8888a0 },
+      { displayName: 'Chrome',       bodyColor: 0xc8d0dc, headColor: 0x6a7280 },
     ],
   ),
   ...makeClassSkins('engineer',
@@ -132,6 +136,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Hi-Vis',       bodyColor: 0xeeff00, headColor: 0x9a9c00 },
       { displayName: 'Brass',        bodyColor: 0xc8a850, headColor: 0x705c1c },
       { displayName: 'Welder',       bodyColor: 0xff7028, headColor: 0x963810 },
+      { displayName: 'Goldsmith',    bodyColor: 0xffd700, headColor: 0xb08000 },
     ],
   ),
   ...makeClassSkins('hunter',
@@ -142,6 +147,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Wraith',       bodyColor: 0x5a2030, headColor: 0x2a0a18 },
       { displayName: 'Magenta',      bodyColor: 0xff20c8, headColor: 0xa00080 },
       { displayName: 'Blood Moon',   bodyColor: 0x8a0020, headColor: 0x400010 },
+      { displayName: 'Venom',        bodyColor: 0xff0a6a, headColor: 0x800030 },
     ],
   ),
 ];
@@ -159,6 +165,8 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
   { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
   { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
+  { id: 'storm-azure',   displayName: 'Azure Storm',    particleColor: 0x3aa8ff, tintColor: 0x081830, cost: 6000 },
+  { id: 'nova-gold',     displayName: 'Gold Royale',    particleColor: 0xffd24a, tintColor: 0x302200, cost: 8000 },
 ];
 
 /**
@@ -177,6 +185,8 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
   { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
   { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
+  { id: 'tracer-rose',    displayName: 'Rose',         color: 0xff8ab0, cost: 4200 },
+  { id: 'tracer-plasma',  displayName: 'Plasma',       color: 0x9a5cff, cost: 5500 },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -305,6 +315,8 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
   { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
   { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
+  { id: 'finish-azure',    displayName: 'Azuresteel', emissive: 0x08283a, swatch: 0x3aa8ff, cost: 5500 },
+  { id: 'finish-royale',   displayName: 'Gold Royale',emissive: 0x4a3a00, swatch: 0xffd24a, cost: 7000 },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';

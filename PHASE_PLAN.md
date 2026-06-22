@@ -1377,3 +1377,31 @@ survivability-via-healing). Built directly on the proven Phase-25/29 plumbing,
   footer).
 
 ### Phase 37 COMPLETE — fourth arena power-up, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Cosmetics expansion II (autonomous build, v0.38.0)
+
+A pure-data content drop deepening the unlock chase for high-level players (more
+to grind for → longer engagement → more ad impressions) — the roadmap's "more
+cosmetics" lever, and the safest possible change: the Cosmetics UI already
+auto-iterates every registry (`skinsForClass` per class, `KILL_EFFECTS` /
+`TRACERS` / `FINISHES`), so the new items appear, unlock and equip with no logic
+change, and `Account`'s default-unlock + migration logic is untouched.
+
+- **+1 prestige player skin per class** (6000 XP tier — Stardust / Phoenix /
+  Jade Titan / Chrome / Goldsmith / Venom) → **7 per class, 42 total**. Extended
+  `SKIN_COSTS` with a 7th tier; the `makeClassSkins` cost ramp picks it up
+  automatically.
+- **+2 kill effects** (Azure Storm 6000, Gold Royale 8000) → **10 total** — seen
+  on every kill.
+- **+2 tracers** (Rose 4200, Plasma 5500) → **12 total** — seen on every shot.
+- **+2 weapon finishes** (Azuresteel 5500, Gold Royale 7000) → **10 total** —
+  seen on the viewmodel constantly.
+
+### Status log
+- ✅ Phase 38 — Cosmetics expansion II. DONE (client tsc + build green; server
+  unchanged). Data-only additions to `Cosmetics.ts` (7th skin tier + 2 each
+  effects/tracers/finishes). Versions bumped to v0.38.0 (+ menu subtitle/footer).
+
+### Phase 38 COMPLETE — pure data, no protocol change, solo + MP intact.

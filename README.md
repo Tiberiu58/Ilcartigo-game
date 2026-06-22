@@ -2,7 +2,12 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.37.0 — **Lifesteal power-up** (this round). A fourth arena buff
+> **Status:** v0.38.0 — **Cosmetics expansion II** (this round). A pure-data
+> unlock-chase drop: +1 prestige skin per class (→ 42 skins), +2 kill effects
+> (→ 10), +2 tracers (→ 12), +2 weapon finishes (→ 10). The Cosmetics UI
+> auto-iterates the registries, so it's zero-logic-risk.
+>
+> **v0.37.0 — Lifesteal power-up.** A fourth arena buff
 > pad (green) → heal 35% of the damage you deal for 9 s; stacks with OVERCHARGE
 > for a high-risk aggressive playstyle. Built on the proven solo-only power-up
 > plumbing (weapon/health-layer, no protocol change), with a fourth contested
