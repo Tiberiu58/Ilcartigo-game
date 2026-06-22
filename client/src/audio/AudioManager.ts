@@ -177,13 +177,16 @@ export class AudioManager {
    * file 404s, `onloaderror` (constructed in getHowl) catches it and the
    * play call no-ops harmlessly.
    */
-  play(id: SoundId, volumeMul = 1.0) {
+  play(id: SoundId, volumeMul = 1.0, rate = 1.0) {
     if (this.muted) return;
     const h = this.getHowl(id);
     const baseVol = this.masterVolume * this.sfxVolume * volumeMul;
     if (baseVol <= 0.001) return;
     const playId = h.play();
     h.volume(baseVol, playId);
+    // Optional pitch shift (e.g. the rising hitmarker chain). Only touch the
+    // rate when it actually differs so the common path stays allocation-free.
+    if (rate !== 1.0) h.rate(rate, playId);
   }
 
   /**

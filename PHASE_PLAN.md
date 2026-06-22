@@ -718,6 +718,16 @@ unmerged (still conflicts with the health-pickup system).
 
 ---
 
+## Second routine-integration round (v0.33.0) — two more branches merged
+
+Two more autonomous branches built in parallel off v0.24.0 `main`, each numbering
+its work "Phase 25+". Both hand-merged onto `main` together; their overlapping
+post-match scorecard work was reconciled into one card (accolade + stat strip +
+NEW PERSONAL BEST). Branch A (power-ups/progression) log first, then Branch B
+(content/feel). Versions unified to **v0.33.0**, typecheck + build green.
+
+### Branch A — power-ups / Railgun / progression (Phases 25–32)
+
 ## Phase 25 — Arena Power-Ups (autonomous build, v0.25.0)
 
 The first new *gameplay-loop* addition since map health pickups, and the
@@ -818,6 +828,88 @@ menu ad impressions).
   track, main.ts render/claim/auto-show (How-to-gated). Versions bumped to
   v0.26.0 (+ menu subtitle/footer).
 
+### Branch B — Duel / Frostline / content (Phases 25–30)
+
+## Phase 25 — Duel (1v1 gauntlet) mode (autonomous build, v0.25.0)
+
+The most direct expression of the core competitive loop — *the constant desire
+to win the next duel*. ILCARTIGO had team/free-for-all/survival/trainer modes but
+no pure **1v1**, the format that most rewards aim + movement mastery and gives
+players a clean, personal skill ladder to climb. **Duel** is a solo gauntlet: you
+face a single opponent in a fair fight, and each win advances you to a tougher
+rival. Lose one duel and the run ends on a results card (a natural ad breakpoint)
+showing your win streak vs your persistent personal best — beat-your-best chase,
+infinitely replayable. Pure client, **no protocol/server change**; solo + MP +
+every prior mode intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **The Onslaught pattern, reused.** Duel owns the bot roster only while it runs
+  (`setSurvivalActive` parks the base bots; `clearSurvivalBots` disposes the
+  opponent between duels). Each rival is an ordinary `Bot` that doesn't
+  auto-respawn, so its death IS a player frag — XP / lifetime stats / killfeed /
+  announcer / weapon mastery all "just work" with no special-casing. New `'duel'`
+  GameMode (combat-class; `isCombatMode` includes it); auto-respawn is gated off
+  for it (single elimination — death ends the run, so the mode owns respawn).
+- **Escalating opponents.** Per-duel ramp on three axes: brain tier
+  (wanderer → engager → predictor), AI-feel skill (EASY → NORMAL → HARD,
+  independent of the menu difficulty so Duel is its own challenge), and HP
+  (100 → 180). Late-gauntlet rivals (duel 6+) glow crimson so the danger reads at
+  a glance. Each opponent gets a distinct cycled callsign (Rookie → Maverick →
+  Blaze → … → Omega) shown in the banner + killfeed.
+- **Minimal, safe surface.** `BotOptions` gained `name?` + `skill?` (a single
+  opponent's callsign + AI feel, set at construction) — additive, every other
+  spawner passes neither → identical behaviour. New `modes/Duel.ts` (Game-coupled
+  controller like Onslaught/AimLab), `game.duel` field + tick.
+- **UI / feel.** `#duel-ticker` (DUEL n · streak · best), a gold "VS {RIVAL}"
+  banner on each duel start + a green "DUEL WON" flash on each win, a "DEFEATED"
+  results card (duels won / opponents faced / best / bonus XP / NEW-BEST, with a
+  `duel` ad slot), a `🎯 Duel` main-menu button surfacing the best streak, and a
+  Duel-streak cell in Profile → Bests. New `duel` ad slot in `Ads.ts`.
+- **XP economy.** A scaling per-win bonus (`30 + duelNum·20`) on top of the normal
+  10-XP-per-kill, banked + shown on the results card.
+
+### Status log
+- ✅ Phase 25 — Duel mode. DONE (client + server tsc + client build green;
+  headless state-machine test confirmed escalating tiers, win-streak tracking,
+  XP bonuses 50+70=120, single-elimination loss, and persistent best across
+  runs). New `modes/Duel.ts`, `'duel'` GameMode + tick + respawn gate, `BotOptions`
+  `name`/`skill`, full UI (ticker/banner/results/menu/profile) + `duel` ad slot.
+  Bumped to v0.25.0 (+ menu subtitle/footer). App chunk ~79 KB gzip, 90 modules.
+
+### Phase 25 COMPLETE — solo 1v1 gauntlet, no protocol change, solo + MP intact.
+
+---
+
+## Phase 26 — Weapon identity + hit juice (autonomous build, v0.26.0)
+
+A deliberately small, **pure-client, zero-protocol** round on the two things that
+make a shooter feel *good* moment-to-moment: knowing your gun, and the sound of
+landing shots. Both reinforce Krunker's instant-feedback + weapon-variety loops
+(retention → ad impressions). Solo + MP both intact.
+
+- **26A — Rising hitmarker.** Consecutive landed hits now ramp the hit-confirm
+  SFX pitch up (+4% per link, capped +52%, the chain resetting after an ~1.1 s
+  gap with no hits) — the deeply satisfying "I'm shredding them" audio escalation
+  Krunker/UT are loved for. `AudioManager.play` gained an optional `rate` arg
+  (only touched when it differs, so the common path is unchanged); Game's
+  `hitConfirm` handler tracks the chain. Works in every mode (local hits only).
+- **26B — Weapon identity card.** The loadout now shows the selected weapon's
+  **archetype** (Versatile Rifle / Run & Gun / One-Shot Sniper / Close-Range
+  Brawler / Precision DMR / Suppressive Fire / Sidearm) plus normalized stat bars
+  (Damage [per trigger-pull, so the shotgun's 9-pellet burst reads big] · Fire
+  Rate · Range · Magazine) read straight from `WEAPON_LIBRARY`. Pure UI — makes
+  the 7 guns read as meaningfully distinct picks, the way Krunker's loadout
+  screen sells its arsenal. Re-renders on every weapon button click + on boot.
+
+### Status log
+- ✅ Phase 26 — Weapon identity + hit juice. DONE (client + server tsc + client
+  build green). `AudioManager.play(id, vol, rate)`; Game rising-hitmarker chain
+  (`_hitChain`/`_lastHitMs`); `#weapon-stats` card + `renderWeaponStats` off
+  `WEAPON_LIBRARY` + `WEAPON_ARCHETYPE`, CSS bars. Bumped to v0.26.0 (+ menu
+  subtitle/footer). App chunk ~79.7 KB gzip.
+
 ### Phase 26 COMPLETE — pure client, no protocol change, solo + MP intact.
 
 ---
@@ -887,6 +979,58 @@ something you feel the whole time you're dominating, and dread losing.
   reset), `ui/RampageFX.ts` (tier classes + badge), `#rampage-aura`/
   `#rampage-badge` DOM + CSS (3 escalating tiers), main.ts wiring. Versions
   bumped to v0.28.0 (+ menu subtitle/footer).
+
+---
+
+### Branch B status log (continued)
+
+## Phase 27 — Kill banner (autonomous build, v0.27.0)
+
+The one prominent kill-feedback piece still missing vs Krunker: a flashy
+"ELIMINATED {name}" prompt right under the crosshair the instant you frag
+someone. The killfeed (top-right) and the kill-X marker exist, but neither
+puts the *victim's name* center-screen as a punchy "you got 'em" beat — the
+dopamine hit that makes each kill land. Pure client, no protocol change.
+
+- New `#kill-banner` element + `HUD.showKillBanner(name, isHeadshot)` fired on
+  the local-kill path (alongside the existing kill-X + crosshair flash). Shows
+  "ELIMINATED {NAME}", or a hotter gold "HEADSHOT {NAME}" on a headshot frag.
+  Pop animation restarts each kill so rapid frags re-trigger cleanly; auto-hides
+  after 1.2 s. Positioned at 57vh so it never collides with the announcer
+  (multi-kill, ~19vh) or the death recap (center). Routes the victim name
+  through `Game.displayNameFor` so bot callsigns / MP ids read right.
+
+### Status log
+- ✅ Phase 27 — Kill banner. DONE (client + server tsc + client build green).
+  `#kill-banner` + `kb-pop` CSS (red default / gold headshot), HUD field refs +
+  `showKillBanner`, wired into the local-kill branch. Bumped to v0.27.0
+  (+ menu subtitle/footer). App chunk ~79.8 KB gzip.
+
+### Phase 27 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 28 — Post-match personal scorecard (autonomous build, v0.28.0)
+
+The post-match overlay is the game's main natural ad breakpoint, but it only
+showed the scoreboard + raw XP — nothing that made *your* result feel earned.
+Phase 28 adds a personal **scorecard** above the scoreboard: a dynamic accolade
+(FLAWLESS / DOMINATING / MVP / ON A TEAR / SHARPSHOOTER / PODIUM FINISH / SOLID
+RUN / GOOD FIGHT) + your four key numbers (placement, kills, deaths, K/D). It
+makes the win/loss personal *and* keeps eyes on the ad-bearing screen a beat
+longer (retention → ad value). Pure UI off the existing match tallies — works in
+solo FFA, TDM, Gun Game, and MP (the modes that use the post-match overlay).
+
+- New `#pm-scorecard` block + `accoladeFor()` helper (ordered most → least
+  impressive so the best-fitting title wins, computed from youWon/rank/kills/
+  deaths/kd). Populated in `showPostMatch` from `game.matchKills`/`matchDeaths`
+  (same source as the scoreboard) — no new state, no protocol change.
+
+### Status log
+- ✅ Phase 28 — Post-match scorecard. DONE (client + server tsc + client build
+  green). `#pm-scorecard` HTML + CSS (gold accolade + 4-stat grid), `accoladeFor`
+  + population wired into `showPostMatch`. Bumped to v0.28.0 (+ menu
+  subtitle/footer). App chunk ~80 KB gzip.
 
 ### Phase 28 COMPLETE — pure client, no protocol change, solo + MP intact.
 
@@ -990,3 +1134,82 @@ Pure-client, no protocol change.
   resolver. Versions bumped to v0.32.0 (+ menu subtitle/footer).
 
 ### Phase 32 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+### Branch B status log (continued)
+
+## Phase 29 — Frostline (new combat map) (autonomous build, v0.29.0)
+
+Fresh content is the highest-leverage "one more game" lever in an arena shooter,
+and a new map deepens **every** solo combat mode at once (FFA / TDM / Gun Game /
+Onslaught / Duel + the map selector). ILCARTIGO had four combat maps; Phase 29
+adds a fifth with a distinct identity: **a frozen tundra**.
+
+- **Frostline** — packed-snow ground, frosted pale-ice structures, translucent
+  ice-block cover, aurora-cyan neon, bright cold lighting + an icy-haze fog. The
+  coolest-looking map, for instant contrast with warm Sandstone, rusty
+  Industrial, steel Cobalt and dusk Overpass.
+- **Built on the proven symmetric Cobalt skeleton** (mirrored about both axes →
+  TDM-fair, and the spawn corners are known-clear), then fully re-themed +
+  re-covered with its own identity: a raised frozen central platform (jump-pad
+  ring + ice pillar + corner cover), two symmetric N/S team decks with parapets,
+  diagonal ice-block cover, E/W flank walls, low steppable snow mounds near
+  spawns. Verticality is entirely jump-pad-driven (no step-up-snagging ledges).
+  Translucent `addIceBlock` cover (solid for collision/hitscan, visually airy).
+- **Solo-selectable, zero MP risk.** New `maps/FrostlineMap.ts` registered in
+  `MapId`/`MAPS` + a loadout button + the `COMBAT_MAPS` validation list; health
+  pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in
+  sync). The MP server still defaults to Sandstone and clients adopt the server's
+  map, so Frostline needs no protocol/server change.
+- **Verified geometry headlessly** — a mock-World harness ran the real `build()`
+  and asserted **all 6 FFA + TDM spawns sit clear of every solid** (27 solids,
+  8 pads).
+
+### Status log
+- ✅ Phase 29 — Frostline map. DONE (client + server tsc + client build green;
+  headless spawn-clearance test passed — all spawns clear, 27 solids). New
+  `maps/FrostlineMap.ts` (snow/ice palette, ice-block cover, aurora accents),
+  full wiring (MapId/MAPS/menu/COMBAT_MAPS), Frostline pickups mirrored
+  client+server. Bumped to v0.29.0 (+ menu subtitle/footer). App chunk ~80.7 KB
+  gzip.
+
+### Phase 29 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 30 — Weapon mastery on the loadout card (autonomous build, v0.30.0)
+
+A small follow-up that closes the loop between the Phase 26 weapon card and the
+existing weapon-mastery cosmetic track: the loadout card now shows the selected
+weapon's **mastery progress** — lifetime kills + a progress bar toward the next
+mastery skin (e.g. "Verdant · 23/50"). It surfaces the use-to-unlock reward right
+where you pick the gun, nudging "play this weapon to earn its skin" — exactly the
+improve/collect loop. Pure UI off `Account.weaponKillsFor` + `weaponSkinsFor`.
+
+- New mastery row in `#weapon-stats` (kills + next-skin label + a green progress
+  bar that fills from the previous tier's req to the next). `renderWeaponStats`
+  computes the next locked tier; shows "★ all skins unlocked" at max. Re-rendered
+  on weapon select, on boot, and on quit-to-menu (so kills earned in a match show
+  immediately).
+
+### Status log
+- ✅ Phase 30 — Weapon mastery card. DONE (client + server tsc + client build
+  green). Mastery row HTML + CSS, `renderWeaponStats` mastery logic
+  (`weaponKillsFor`/`weaponSkinsFor`, prev→next tier fill), quit-to-menu refresh.
+  Bumped to v0.30.0 (+ menu subtitle/footer). App chunk ~80.9 KB gzip.
+
+### Phase 30 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Integration result (v0.33.0, by Claude)
+
+Both branches above merged onto `main`. The one real overlap — both added a
+post-match scorecard — was reconciled by hand into a single card: p4aum5's
+dynamic accolade (FLAWLESS / MVP / …) over tyoq4q's kills·deaths·K/D·best-streak·
+place stat strip + NEW PERSONAL BEST badge (dropped the duplicate `pm-sc-*` DOM +
+the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
+type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
+weapon). Client + server typecheck + client build all green; app chunk ~85 KB
+gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.

@@ -115,6 +115,20 @@
           <div class="onb-sub" id="onb-sub">2 incoming</div>
         </div>
 
+        <!-- Duel (1v1 gauntlet) ticker — top-center. Duel n · win streak · best.
+             Populated by main.ts via Duel.onState. -->
+        <div id="duel-ticker" class="hidden">
+          <span class="duel-no">DUEL <span id="duel-no-n">1</span></span>
+          <span class="duel-streak">streak <span id="duel-streak-n">0</span></span>
+          <span class="duel-best">best <span id="duel-best-n">0</span></span>
+        </div>
+
+        <!-- Duel banner — big center-screen "VS {rival}" / "DUEL WON" flash. -->
+        <div id="duel-banner" class="hidden">
+          <div class="dub-main" id="dub-main">VS RIVAL</div>
+          <div class="dub-sub" id="dub-sub">ROOKIE</div>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -132,6 +146,13 @@
         <div id="announcer" class="hidden">
           <div id="announcer-main"></div>
           <div id="announcer-sub"></div>
+        </div>
+
+        <!-- Kill banner — flashy "ELIMINATED {name}" prompt below the crosshair
+             on each local kill. Populated + animated by HUD.showKillBanner. -->
+        <div id="kill-banner" class="hidden">
+          <span class="kb-tag" id="kb-tag">ELIMINATED</span>
+          <span class="kb-name" id="kb-name">RIVAL</span>
         </div>
 
         <!-- Level-up celebration banner — pops when XP crosses a level boundary.
@@ -281,7 +302,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.32</p>
+          <p class="subtitle">Browser arena shooter · v0.33</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -314,6 +335,7 @@
               <button class="loadout-btn" data-map="industrial">Industrial</button>
               <button class="loadout-btn" data-map="cobalt">Cobalt</button>
               <button class="loadout-btn" data-map="overpass">Overpass</button>
+              <button class="loadout-btn" data-map="frostline">Frostline</button>
             </div>
           </div>
           <div class="loadout">
@@ -335,6 +357,30 @@
               <button class="loadout-btn" data-weapon="lmg">LMG</button>
               <button class="loadout-btn" data-weapon="railgun">Railgun</button>
             </div>
+            <!-- Weapon identity card — archetype + stat bars for the selected
+                 weapon. Populated by main.ts (renderWeaponStats) from the
+                 WEAPON_LIBRARY config. Pure UI; makes the 7 guns feel distinct. -->
+            <div id="weapon-stats" class="weapon-stats">
+              <div class="ws-head">
+                <span id="ws-name">Assault Rifle</span>
+                <span id="ws-arch" class="ws-arch">Versatile</span>
+              </div>
+              <div class="ws-bars">
+                <div class="ws-row"><label>Damage</label><div class="ws-bar"><i id="ws-dmg"></i></div></div>
+                <div class="ws-row"><label>Fire Rate</label><div class="ws-bar"><i id="ws-rof"></i></div></div>
+                <div class="ws-row"><label>Range</label><div class="ws-bar"><i id="ws-range"></i></div></div>
+                <div class="ws-row"><label>Magazine</label><div class="ws-bar"><i id="ws-mag"></i></div></div>
+              </div>
+              <!-- Weapon mastery progress — lifetime kills toward the next
+                   mastery skin. Ties weapon use → cosmetic reward. -->
+              <div class="ws-mastery">
+                <div class="ws-mastery-head">
+                  <span>Mastery <b id="ws-mastery-kills">0</b></span>
+                  <span id="ws-mastery-next" class="ws-mastery-next">next skin · 25</span>
+                </div>
+                <div class="ws-bar ws-mastery-bar"><i id="ws-mastery-fill"></i></div>
+              </div>
+            </div>
           </div>
           <div class="menu-buttons">
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
@@ -342,6 +388,7 @@
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
             <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
             <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
+            <button class="menu-btn duel" id="menu-duel">🎯 Duel (1v1 Gauntlet)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
@@ -351,7 +398,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.32.0 — Skill-shots · Cosmetics · Match Summary · Overshield · ON FIRE rampage</div>
+          <div>v0.33.0 — Duel · Railgun · Power-ups · Daily rewards · Skill-shots · Frostline · Rampage · 6 maps · 8 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -384,8 +431,10 @@
           <h2 id="pm-title">MATCH OVER</h2>
           <p id="pm-winner-line" class="pm-winner">winner: —</p>
 
-          <!-- Your match summary — personal stat strip + a NEW BEST badge for a
-               record kill count. Populated by main.ts showPostMatch. -->
+          <!-- Your match summary — a dynamic accolade (p4aum5) over a personal
+               stat strip (tyoq4q) + a NEW BEST badge. Populated by main.ts
+               showPostMatch. The two routine branches' post-match work, merged. -->
+          <div class="pm-sc-accolade" id="pm-sc-accolade">GOOD FIGHT</div>
           <div id="pm-summary" class="pm-summary">
             <div class="pm-stat"><span class="pm-stat-v" id="pm-s-kills">0</span><label>KILLS</label></div>
             <div class="pm-stat"><span class="pm-stat-v" id="pm-s-deaths">0</span><label>DEATHS</label></div>
@@ -497,6 +546,34 @@
           <div class="alr-buttons">
             <button class="menu-btn primary" id="onr-retry">▸ Play Again</button>
             <button class="menu-btn" id="onr-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Duel (1v1 gauntlet) results card. Shown when you lose a duel. -->
+      <div id="duel-results" class="hidden">
+        <div class="aimlab-card duel-card">
+          <h2>DEFEATED</h2>
+          <p class="alr-sub" id="dur-sub">your run ends here</p>
+
+          <div class="alr-score-wrap">
+            <div class="alr-score" id="dur-wins">0</div>
+            <div class="alr-score-label">duels won</div>
+            <div class="alr-newbest hidden" id="dur-newbest">★ NEW PERSONAL BEST ★</div>
+          </div>
+
+          <div class="alr-stats">
+            <div class="alr-stat"><span id="dur-faced">0</span><label>Opponents Faced</label></div>
+            <div class="alr-stat"><span id="dur-best">0</span><label>Best Streak</label></div>
+            <div class="alr-stat"><span id="dur-xp">+0</span><label>Bonus XP</label></div>
+          </div>
+
+          <!-- Ad slot — end-of-run is a natural breakpoint. -->
+          <div class="ad-slot" id="ad-duel" data-ad-slot="duel"></div>
+
+          <div class="alr-buttons">
+            <button class="menu-btn primary" id="dur-retry">▸ Play Again</button>
+            <button class="menu-btn" id="dur-quit">Quit to Menu</button>
           </div>
         </div>
       </div>

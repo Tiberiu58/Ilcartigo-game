@@ -57,6 +57,11 @@ export interface BotOptions {
   headColor?: number;
   emissive?: number;
   elite?: boolean;
+  /** Pre-set callsign (shown in killfeed/scoreboard). Defaults to the id. */
+  name?: string;
+  /** Per-bot global skill (Easy/Normal/Hard) applied at construction. Used by
+   *  Duel to escalate a single opponent's AI feel without touching the roster. */
+  skill?: GameDifficulty;
 }
 const DIFFICULTY: Record<BotDifficulty, {
   reactionTime: number; aimJitter: number; predictSeconds: number; fireRate: number; damageMul: number;
@@ -170,8 +175,9 @@ export class Bot implements Damageable {
     this.bus = bus;
     this.difficulty = difficulty;
     this.tier = DIFFICULTY[difficulty];
-    this.name = id;
+    this.name = opts.name ?? id;
     this.elite = opts.elite ?? false;
+    if (opts.skill) this.skill = SKILL[opts.skill];
 
     // Bots share the AR config but each tier modulates fire rate + damage.
     // damageMul is applied to baseDamage — easier bots hit softer.

@@ -42,11 +42,13 @@ import { SANDSTONE_MAP } from '../maps/SandstoneMap';
 import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
 import { COBALT_MAP } from '../maps/CobaltMap';
 import { OVERPASS_MAP } from '../maps/OverpassMap';
+import { FROSTLINE_MAP } from '../maps/FrostlineMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 import type { AimLab } from '../modes/AimLab';
 import type { Onslaught } from '../modes/Onslaught';
+import type { Duel } from '../modes/Duel';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -58,15 +60,17 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
   cobalt: COBALT_MAP,
   overpass: OVERPASS_MAP,
+  frostline: FROSTLINE_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game + TDM play like Combat with extra
- *  rules layered on top; Onslaught is wave survival vs escalating bot packs. */
+ *  rules layered on top; Onslaught is wave survival vs escalating bot packs;
+ *  Duel is a 1v1 gauntlet vs a single escalating opponent. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught';
+  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel';
 }
 
 /** TDM team identity colours (figures + HUD). Blue = the player's team. */
@@ -145,6 +149,9 @@ export class Game {
   /** Optional Onslaught (wave survival) controller — null unless launched from
    *  the menu. Created + wired by main.ts; ticked here for wave/respawn pacing. */
   onslaught: Onslaught | null = null;
+  /** Optional Duel (1v1 gauntlet) controller — null unless launched from the
+   *  menu. Created + wired by main.ts; ticked here for intro/intermission pacing. */
+  duel: Duel | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
 
@@ -232,6 +239,10 @@ export class Game {
   /** Local player's current consecutive-kill streak (resets on death). Feeds
    *  the lifetime best-streak stat. */
   localStreak = 0;
+  /** Rising-hitmarker chain: consecutive landed hits + the timestamp of the
+   *  last one, used to escalate the hit-confirm SFX pitch. */
+  private _hitChain = 0;
+  private _lastHitMs = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
   /** TDM per-team frag totals. Index = team (0 = BLUE/player, 1 = RED). */
@@ -409,8 +420,15 @@ export class Game {
     });
 
     // Hit confirm SFX. Plays unspatialized so it always reads as feedback.
+    // Consecutive landed hits ramp the pitch up (the satisfying Krunker "rising
+    // hitmarker" feel) — the chain resets after a short gap with no hits.
     this.bus.on('hitConfirm', ({ isHeadshot }) => {
-      this.audio.play(isHeadshot ? 'hit_headshot' : 'hit_confirm');
+      const now = performance.now();
+      this._hitChain = (now - this._lastHitMs < 1100) ? this._hitChain + 1 : 1;
+      this._lastHitMs = now;
+      // +4% per link, capped at +52% — stays musical, never chipmunk.
+      const rate = Math.min(1 + (this._hitChain - 1) * 0.04, 1.52);
+      this.audio.play(isHeadshot ? 'hit_headshot' : 'hit_confirm', 1.0, rate);
     });
 
     this.bus.on('kill', (e) => {
@@ -476,7 +494,8 @@ export class Game {
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
         // Onslaught owns respawn timing (lives system) — it decides whether to
         // bring the player back or end the run, so skip the auto-loop there.
-        if (!this.mp && this.mode !== 'onslaught') {
+        // Duel is single-elimination — death ends the run, so it owns respawn too.
+        if (!this.mp && this.mode !== 'onslaught' && this.mode !== 'duel') {
           setTimeout(() => this.respawnPlayer(), 1800);
         }
       }
@@ -1307,6 +1326,7 @@ export class Game {
     this.world.update();        // expires Engineer barrier solids when their TTL is up
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
     if (this.onslaught) this.onslaught.update(dt);  // wave pacing + respawn timing
+    if (this.duel) this.duel.update(dt);            // duel intro/intermission pacing
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

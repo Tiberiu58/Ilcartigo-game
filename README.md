@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.32.0 — **Skill-shot round.** Flashy callouts for *how* you frag — NO SCOPE (un-scoped sniper), AIRBORNE (mid-air), LONGSHOT (≥45 m) — via a new `Announcer.resolveKillStyle` resolver that slots cleanly into the existing callout priority. Pure-client, no protocol change. Built on the **Cosmetics expansion round (v0.31.0)**: A content drop deepening the unlock chase: +4 kill effects (→8), +4 tracers (→10), +2 weapon finishes (→8), all self-visible and auto-surfaced by the existing Cosmetics UI (pure data, no logic change). Built on the **Match Summary round (v0.30.0)**: The post-match overlay (main ad breakpoint) gains a personal stat strip — kills · deaths · K/D · best streak · place — plus a pulsing **NEW PERSONAL BEST** badge for a record kill count, lifting satisfaction + ad dwell. Pure-client, no protocol change. Built on the **Overshield round (v0.29.0)**: Rounds out the arena power-up triad with a defensive **OVERSHIELD** (absorb 50% incoming damage, 9 s) — a tiny `Health.damageReduction` field, solo-only, no protocol change — so buff pads now pose a real damage/speed/survivability choice. Built on the **ON FIRE Rampage round (v0.28.0)**: A persistent killstreak state: at 5+ kills a heat aura rises from the screen edges + a streak badge escalates (ON FIRE → INFERNO → BLAZING), snapping off when you die — driven by a new `Announcer.onStreakChange` hook + `ui/RampageFX.ts`, pure-client, no protocol change. Built on the **Railgun round (v0.27.0)**: An 8th weapon with a new mechanic: the **Railgun**, a heavy precision beam that **pierces every enemy in a line** until it hits a wall (one-shot heads, line multi-kills) — new `World.raycastPierce` + `Weapon.firePiercing`, full viewmodel/loadout/mastery integration, and an MP-safe single-target server profile (pierce is a solo bonus, no protocol change). Built on the **Daily Rewards round (v0.26.0)**: a retention/revenue layer — a **daily-login streak** with an escalating 7-day XP cycle (100→1200, day-7 jackpot, repeats), shown as a card that auto-greets you once per day and is replayable from the menu — a natural ad-adjacent menu moment. Pure-client, migration-safe `Account` extension, no protocol change. Built on the **Arena Power-Ups round (v0.25.0)**: two contested buff pads per combat map — **OVERCHARGE** (×1.7 damage) and **RAPID FIRE** (×1.55 fire rate), 9 s each, 20 s respawn — with a live buff tray, minimap markers, and full grab juice, weapon-layer only with zero protocol/server change. Both build on the routine-integration round (v0.24.0): two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
+> **Status:** v0.33.0 — **second routine-integration round.** Two more autonomous build branches merged onto `main`, combining everything they each built. **From the power-ups/progression branch:** **Arena Power-Ups** (OVERCHARGE ×1.7 dmg, RAPID FIRE ×1.55 RoF, OVERSHIELD 50%-absorb — contested buff pads, solo-only), the **Railgun** (8th weapon — piercing beam, one-shot heads, line multi-kills), **Daily Login Rewards** (7-day escalating XP streak), **"ON FIRE" rampage** (persistent killstreak aura), **cosmetics expansion** (kill effects →8, tracers →10, finishes →8), and **skill-shot callouts** (NO SCOPE / AIRBORNE / LONGSHOT). **From the content/feel branch:** **Duel** (solo 1v1 gauntlet — single-elimination ladder vs escalating rivals), **Frostline** (6th combat map, frozen tundra), **weapon identity cards** (archetype + stat bars in the loadout), a **rising hitmarker**, and a **kill banner** ("ELIMINATED {name}"). Their overlapping post-match work was reconciled into one card (accolade + stat strip + NEW PERSONAL BEST). All pure-client / zero-protocol — solo + live MP both intact. Built on the v0.24.0 routine-integration round (Team Deathmatch, Onslaught, Cobalt + Overpass maps, LMG, melee, grenade, nameplates, bot difficulty), the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified), and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -848,14 +848,76 @@ documented three-edit checklist.
 - ⏸ Domain → using the free `*.vercel.app` URL for now; canonical URLs already
   point at `ilcartigo.com` for the eventual cutover.
 
+## Phase 25 — Duel (1v1 gauntlet) mode (this round, v0.25.0)
+
+The first pure **1v1** mode — the most direct expression of the core loop, *the
+constant desire to win the next duel*. **Duel** is a solo gauntlet: you face one
+opponent in a fair fight, and each win advances you to a tougher rival
+(escalating brain tier + AI skill + HP, distinct cycled callsigns, late rivals
+glowing crimson). Lose a single duel and the run ends on a **DEFEATED** results
+card (a natural ad breakpoint) showing your win streak vs your persistent
+personal best — infinitely replayable beat-your-best chase. Reuses the Onslaught
+roster pattern (parks base bots; each rival is an ordinary non-respawning `Bot`
+so XP / stats / killfeed / announcer / mastery all just work). New `'duel'` mode
+(single elimination, owns its respawn), `modes/Duel.ts`, a gold "VS {RIVAL}" /
+green "DUEL WON" banner, a `🎯 Duel` menu button + a Duel-streak cell in Profile.
+Pure client, no protocol change — solo + MP both intact.
+
+## Phase 26 — Weapon identity + hit juice (this round, v0.26.0)
+
+Two small, high-feel touches. **Rising hitmarker:** consecutive landed hits ramp
+the hit-confirm SFX pitch up (+4% per link, capped, resetting after a short gap)
+— the satisfying "I'm shredding them" audio escalation arena shooters are loved
+for (`AudioManager.play` gained an optional playback `rate`). **Weapon identity
+card:** the loadout now shows the selected weapon's archetype + normalized stat
+bars (Damage · Fire Rate · Range · Magazine) read from `WEAPON_LIBRARY`, so the 7
+guns read as meaningfully distinct picks. Pure client, no protocol change.
+
+## Phase 27 — Kill banner (this round, v0.27.0)
+
+The one prominent kill-feedback piece still missing vs Krunker: a flashy
+"ELIMINATED {name}" prompt right under the crosshair the instant you frag
+someone (a hotter gold "HEADSHOT {name}" on a headshot). The killfeed + kill-X
+marker existed, but neither put the victim's name center-screen as a punchy "you
+got 'em" beat. New `#kill-banner` + `HUD.showKillBanner`, positioned clear of the
+announcer + death recap, routed through `displayNameFor`. Pure client, no
+protocol change.
+
+## Phase 28 — Post-match personal scorecard (this round, v0.28.0)
+
+The post-match overlay (the game's main ad breakpoint) now opens with a personal
+**scorecard**: a dynamic accolade (FLAWLESS / DOMINATING / MVP / ON A TEAR /
+SHARPSHOOTER / PODIUM FINISH / …) + your placement, kills, deaths, K/D. Makes the
+result feel earned and keeps eyes on the ad-bearing screen a beat longer. Pure UI
+off the existing match tallies (solo FFA · TDM · Gun Game · MP); no protocol change.
+
+## Phase 29 — Frostline (new combat map) (this round, v0.29.0)
+
+The fifth combat map — **Frostline**, a frozen tundra: packed-snow ground,
+frosted pale-ice structures, translucent ice-block cover, aurora-cyan neon and an
+icy-haze fog, for instant contrast with the four existing maps. Built on the
+proven symmetric Cobalt skeleton (TDM-fair, spawns verified clear) then fully
+re-themed + re-covered. Solo-selectable across FFA / TDM / Gun Game / Onslaught /
+Duel; health pads mirrored client+server; MP keeps serving its authoritative map,
+so Frostline is solo-only and changes nothing online. New `maps/FrostlineMap.ts`,
+geometry verified headlessly (all spawns clear of solids).
+
+## Phase 30 — Weapon mastery on the loadout card (this round, v0.30.0)
+
+The loadout weapon card (Phase 26) now also shows the selected weapon's **mastery
+progress** — lifetime kills + a bar toward the next mastery skin ("Verdant ·
+23/50", "★ all skins unlocked" at max). Surfaces the use-to-unlock cosmetic reward
+right where you pick the gun. Pure UI off `Account.weaponKillsFor` +
+`weaponSkinsFor`; re-rendered on weapon select / boot / quit-to-menu.
+
 ## Project status
 
-v0.32.0 — **deployed and live**, two routine branches integrated + Arena Power-Ups (×3) + Daily Rewards + Railgun + ON FIRE rampage + Match Summary + expanded cosmetics + skill-shot callouts. Movement, combat, 6 classes, **8 weapons** (incl. Marksman + LMG + **Railgun**), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus the **post-match Match Summary**, **OVERSHIELD power-up**, **"ON FIRE" rampage aura**, **piercing Railgun**, **daily login rewards**, **arena power-ups (OVERCHARGE / RAPID FIRE, solo)**; scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.33.0 — **deployed and live**, two more routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~206 KB gzipped` (app ~80 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, **arena power-ups**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG, **piercing Railgun**, arena power-ups (×3 incl. overshield), daily login rewards, **ON FIRE rampage**, **post-match match summary**, **expanded cosmetics (8 kill effects · 10 tracers · 8 finishes)**, **skill-shot callouts**. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.32.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.32.0.
+- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~85 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 6 maps, 8 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.33.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff** (incl. Railgun). Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.33.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 
 ## What you'd want to do next (post-v1)

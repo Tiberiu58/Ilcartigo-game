@@ -57,6 +57,10 @@ export class HUD {
   private buffTray: HTMLElement;
   /** Live buff pills keyed by kind, so we only build DOM on activation. */
   private buffPills = new Map<string, { el: HTMLElement; bar: HTMLElement }>();
+  private killBanner: HTMLElement;
+  private kbTag: HTMLElement;
+  private kbName: HTMLElement;
+  private killBannerTimer: number | null = null;
 
   private lastHp = -1;
   private lastAmmo = -1;
@@ -117,6 +121,9 @@ export class HUD {
     this.utilityPill = document.getElementById('utility-pill')!;
     this.upFill = this.utilityPill.querySelector('.up-fill') as HTMLElement;
     this.buffTray = document.getElementById('buff-tray')!;
+    this.killBanner = document.getElementById('kill-banner')!;
+    this.kbTag = document.getElementById('kb-tag')!;
+    this.kbName = document.getElementById('kb-name')!;
 
     // Player-shot hits → hitmarker (local-only event).
     bus.on('hitConfirm', ({ isHeadshot }) => {
@@ -135,10 +142,12 @@ export class HUD {
       const victim = this.game.isLocalPlayer(e.targetId)   ? 'YOU' : this.game.displayNameFor(e.targetId);
       this.pushKill(killer, victim, e.weaponId, e.isHeadshot);
 
-      // Kill-confirm marker when YOU got the kill (not a suicide/fall).
+      // Kill-confirm marker + "ELIMINATED {name}" banner when YOU got the kill
+      // (not a suicide/fall).
       if (this.game.isLocalPlayer(e.attackerId) && !this.game.isLocalPlayer(e.targetId)) {
         this.flashKillMarker();
         this.crosshairFeedback('kill');
+        this.showKillBanner(this.game.displayNameFor(e.targetId), e.isHeadshot);
       }
 
       // Death → start respawn countdown. Cleared when HP comes back.
@@ -429,6 +438,23 @@ export class HUD {
       this.hitmarker.classList.remove('show');
       this.hitmarker.classList.add('fade');
     }, 140);
+  }
+
+  /**
+   * Flashy "ELIMINATED {name}" prompt below the crosshair on each local kill —
+   * the Krunker "you got 'em" readout. Headshots stamp a hotter accent. The
+   * pop animation restarts on each kill so rapid frags re-trigger cleanly.
+   */
+  private showKillBanner(victimName: string, isHeadshot: boolean) {
+    this.kbTag.textContent = isHeadshot ? 'HEADSHOT' : 'ELIMINATED';
+    this.kbName.textContent = victimName.toUpperCase();
+    this.killBanner.classList.toggle('headshot', isHeadshot);
+    this.killBanner.classList.remove('hidden');
+    this.killBanner.style.animation = 'none';
+    void this.killBanner.offsetWidth;   // reflow so the pop restarts
+    this.killBanner.style.animation = '';
+    if (this.killBannerTimer !== null) window.clearTimeout(this.killBannerTimer);
+    this.killBannerTimer = window.setTimeout(() => this.killBanner.classList.add('hidden'), 1200);
   }
 
   /**
