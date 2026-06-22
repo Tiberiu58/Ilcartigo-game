@@ -83,6 +83,13 @@ export class ProfileUI {
           <span class="stat-val">${onsBest}</span>
           <span class="stat-label">Onslaught Wave</span>
         </div>`);
+    // Duel (1v1 gauntlet) best win streak shares this "Bests" grid too.
+    const duelBest = Number(localStorage.getItem('ilc.duel.best')) || 0;
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${duelBest}</span>
+          <span class="stat-label">Duel Streak</span>
+        </div>`);
     this.aimlabBests.innerHTML = cells.join('');
   }
 

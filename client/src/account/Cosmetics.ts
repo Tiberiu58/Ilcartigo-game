@@ -151,10 +151,14 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
  * weapon tracer). Unlockables: cyan shock, magenta burst, white nova.
  */
 export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
-  { id: 'puff-yellow',   displayName: 'Default Puff',  particleColor: 0xfff0a0, tintColor: 0x000000, cost: 0    },
-  { id: 'shock-cyan',    displayName: 'Cyan Shock',    particleColor: 0x6cc6ff, tintColor: 0x102030, cost: 300  },
-  { id: 'burst-magenta', displayName: 'Magenta Burst', particleColor: 0xff5a7e, tintColor: 0x301020, cost: 800  },
-  { id: 'nova-white',    displayName: 'Pure Nova',     particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
+  { id: 'puff-yellow',   displayName: 'Default Puff',   particleColor: 0xfff0a0, tintColor: 0x000000, cost: 0    },
+  { id: 'shock-cyan',    displayName: 'Cyan Shock',     particleColor: 0x6cc6ff, tintColor: 0x102030, cost: 300  },
+  { id: 'burst-magenta', displayName: 'Magenta Burst',  particleColor: 0xff5a7e, tintColor: 0x301020, cost: 800  },
+  { id: 'shock-emerald', displayName: 'Emerald Shock',  particleColor: 0x36e08a, tintColor: 0x0a2a18, cost: 1200 },
+  { id: 'burst-amber',   displayName: 'Amber Burst',    particleColor: 0xffb020, tintColor: 0x2a1c00, cost: 1600 },
+  { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
+  { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
+  { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
 ];
 
 /**
@@ -168,7 +172,11 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-lime',    displayName: 'Toxic Lime',   color: 0xaaff3a, cost: 400  },
   { id: 'tracer-magenta', displayName: 'Hot Magenta',  color: 0xff4ad6, cost: 700  },
   { id: 'tracer-crimson', displayName: 'Crimson',      color: 0xff3b3b, cost: 1200 },
+  { id: 'tracer-emerald', displayName: 'Emerald',      color: 0x36e08a, cost: 1500 },
+  { id: 'tracer-violet',  displayName: 'Violet',       color: 0xb060ff, cost: 1800 },
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
+  { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
+  { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -246,6 +254,11 @@ export const WEAPON_SKINS: ReadonlyArray<WeaponSkinConfig> = [
     { displayName: 'Verdant',  color: 0x3f6b3a },
     { displayName: 'Molten',   color: 0xd8632a },
   ]),
+  ...makeWeaponSkins('railgun', 'Standard', [
+    { displayName: 'Ion',      color: 0x2bd0ff },
+    { displayName: 'Plasma',   color: 0xb060ff },
+    { displayName: 'Singularity', color: 0x1a2030 },
+  ]),
   ...makeWeaponSkins('pistol', 'Standard', [
     { displayName: 'Slate',    color: 0x556070 },
     { displayName: 'Ivory',    color: 0xe8e2d0 },
@@ -254,7 +267,7 @@ export const WEAPON_SKINS: ReadonlyArray<WeaponSkinConfig> = [
 ];
 
 /** Weapon ids in the order the UI should present them. */
-export const WEAPON_SKIN_ORDER = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'lmg', 'pistol'] as const;
+export const WEAPON_SKIN_ORDER = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'lmg', 'railgun', 'pistol'] as const;
 
 export function weaponSkinsFor(weaponId: string): WeaponSkinConfig[] {
   return WEAPON_SKINS.filter((s) => s.weaponId === weaponId);
@@ -290,6 +303,8 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-toxic',    displayName: 'Toxic',      emissive: 0x143a08, swatch: 0x9cff3a, cost: 1000 },
   { id: 'finish-crimson',  displayName: 'Crimson',    emissive: 0x3a0808, swatch: 0xff4040, cost: 1500 },
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
+  { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
+  { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';

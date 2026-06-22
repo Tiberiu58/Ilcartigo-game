@@ -64,4 +64,11 @@ export const PICKUPS_BY_MAP: Record<string, readonly PickupDef[]> = {
     { id: 3, type: 'health', pos: [ 30, 0.6,   0] },   // east flank
     { id: 4, type: 'health', pos: [-30, 0.6,   0] },   // west flank
   ],
+  // Frostline — solo-only map; pads mirrored in server/Pickups for parity.
+  frostline: [
+    { id: 1, type: 'health', pos: [ 14, 0.6,   0] },   // E mid
+    { id: 2, type: 'health', pos: [-14, 0.6,   0] },   // W mid
+    { id: 3, type: 'health', pos: [  0, 0.6,  16] },   // N mid (toward deck)
+    { id: 4, type: 'health', pos: [  0, 0.6, -16] },   // S mid (toward deck)
+  ],
 };

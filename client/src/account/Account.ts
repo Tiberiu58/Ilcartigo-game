@@ -80,6 +80,8 @@ interface AccountData {
   name: string;
   /** Today's daily challenges (regenerated when the date rolls over). */
   daily: DailyState;
+  /** Daily-login streak (show-up reward, separate from the in-match challenges). */
+  login: LoginState;
 }
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
@@ -103,8 +105,26 @@ interface DailyState {
 
 /** Local date key (YYYY-MM-DD) for daily-challenge rollover. */
 function todayKey(): string {
-  const d = new Date();
+  return dateKey(new Date());
+}
+function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+/** Local date key for yesterday — used to decide if a login streak continues. */
+function yesterdayKey(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return dateKey(d);
+}
+
+/** Escalating 7-day login-reward cycle (XP). Day 7 is the jackpot; it repeats. */
+export const LOGIN_REWARDS = [100, 150, 200, 300, 400, 600, 1200];
+
+/** Daily-login streak state. `last` = YYYY-MM-DD of the last claim, `streak` =
+ *  consecutive days claimed (the cycle day = ((streak - 1) % 7)). */
+interface LoginState {
+  last: string;
+  streak: number;
 }
 
 /** Deterministic small PRNG seeded from a string (so a given day's challenges
@@ -162,6 +182,7 @@ function freshData(): AccountData {
     stats: freshStats(),
     name: '',
     daily: freshDaily(freshStats()),
+    login: { last: '', streak: 0 },
   };
 }
 
@@ -220,6 +241,11 @@ export class Account {
         daily: (parsed.daily && typeof parsed.daily === 'object' && Array.isArray((parsed.daily as DailyState).challenges))
           ? parsed.daily as DailyState
           : fresh.daily,
+        login: (parsed.login && typeof parsed.login === 'object'
+          && typeof (parsed.login as LoginState).last === 'string'
+          && typeof (parsed.login as LoginState).streak === 'number')
+          ? parsed.login as LoginState
+          : fresh.login,
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
@@ -524,6 +550,43 @@ export class Account {
     this.data.xp += c.reward;
     this.save();
     return true;
+  }
+
+  // ── Daily-login streak ────────────────────────────────────────────────────
+
+  /**
+   * Today's login-reward status. `day` is the streak day claiming now would set
+   * (1-based), `cycleIndex` the 0..6 position in the 7-day cycle, `reward` the
+   * XP it grants. `available` is false once today's reward is already claimed.
+   */
+  dailyLoginStatus(): { available: boolean; day: number; cycleIndex: number; reward: number; streak: number } {
+    const today = todayKey();
+    const claimedToday = this.data.login.last === today;
+    // The day that a claim right now would land on: continue the streak if the
+    // last claim was yesterday, otherwise it resets to day 1.
+    const day = claimedToday
+      ? this.data.login.streak
+      : (this.data.login.last === yesterdayKey() ? this.data.login.streak + 1 : 1);
+    const cycleIndex = ((Math.max(1, day) - 1) % 7);
+    return {
+      available: !claimedToday,
+      day,
+      cycleIndex,
+      reward: LOGIN_REWARDS[cycleIndex],
+      streak: this.data.login.streak,
+    };
+  }
+
+  /** Claim today's login reward (once per day). Awards XP, advances the streak.
+   *  Returns the granted reward + day, or null if already claimed today. */
+  claimDailyLogin(): { day: number; reward: number } | null {
+    const st = this.dailyLoginStatus();
+    if (!st.available) return null;
+    this.data.login.last = todayKey();
+    this.data.login.streak = st.day;
+    this.data.xp += st.reward;
+    this.save();
+    return { day: st.day, reward: st.reward };
   }
 
   /** Reset to fresh state. Wipes XP, cosmetics, AND lifetime stats. */

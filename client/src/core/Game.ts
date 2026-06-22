@@ -23,6 +23,8 @@ import { PlayerController } from '../entities/PlayerController';
 import { PlayerActor } from '../entities/PlayerActor';
 import { Bot, type BotTarget, type GameDifficulty, type BotDifficulty, type BotOptions } from '../entities/Bot';
 import { PickupManager } from '../entities/PickupManager';
+import { PowerupManager, type PowerupType } from '../entities/PowerupManager';
+import { ScorePopup } from '../ui/ScorePopup';
 import { GrenadeManager } from '../entities/GrenadeManager';
 import { WeaponInventory } from '../weapons/WeaponInventory';
 import type { WeaponId } from '../weapons/Weapon';
@@ -40,11 +42,13 @@ import { SANDSTONE_MAP } from '../maps/SandstoneMap';
 import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
 import { COBALT_MAP } from '../maps/CobaltMap';
 import { OVERPASS_MAP } from '../maps/OverpassMap';
+import { FROSTLINE_MAP } from '../maps/FrostlineMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 import type { AimLab } from '../modes/AimLab';
 import type { Onslaught } from '../modes/Onslaught';
+import type { Duel } from '../modes/Duel';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -56,15 +60,17 @@ const MAPS: Record<MapId, GameMap> = {
   industrial: INDUSTRIAL_MAP,
   cobalt: COBALT_MAP,
   overpass: OVERPASS_MAP,
+  frostline: FROSTLINE_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game + TDM play like Combat with extra
- *  rules layered on top; Onslaught is wave survival vs escalating bot packs. */
+ *  rules layered on top; Onslaught is wave survival vs escalating bot packs;
+ *  Duel is a 1v1 gauntlet vs a single escalating opponent. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught';
+  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel';
 }
 
 /** TDM team identity colours (figures + HUD). Blue = the player's team. */
@@ -120,6 +126,8 @@ export class Game {
   readonly dmgNumbers: DamageNumbers;
   /** Map health pickups — authoritative in solo, server-driven in MP. */
   readonly pickups: PickupManager;
+  /** Arena power-up pads (damage / haste). Solo-only; never networked. */
+  readonly powerups: PowerupManager;
   /** Thrown frag grenades (solo only). */
   grenades!: GrenadeManager;
   readonly audio = new AudioManager();
@@ -141,6 +149,9 @@ export class Game {
   /** Optional Onslaught (wave survival) controller — null unless launched from
    *  the menu. Created + wired by main.ts; ticked here for wave/respawn pacing. */
   onslaught: Onslaught | null = null;
+  /** Optional Duel (1v1 gauntlet) controller — null unless launched from the
+   *  menu. Created + wired by main.ts; ticked here for intro/intermission pacing. */
+  duel: Duel | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
 
@@ -228,6 +239,10 @@ export class Game {
   /** Local player's current consecutive-kill streak (resets on death). Feeds
    *  the lifetime best-streak stat. */
   localStreak = 0;
+  /** Rising-hitmarker chain: consecutive landed hits + the timestamp of the
+   *  last one, used to escalate the hit-confirm SFX pitch. */
+  private _hitChain = 0;
+  private _lastHitMs = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
   /** TDM per-team frag totals. Index = team (0 = BLUE/player, 1 = RED). */
@@ -251,6 +266,15 @@ export class Game {
   // Frag-grenade throw cooldown (seconds). G, solo-only.
   private grenadeCooldown = 0;
   static readonly GRENADE_COOLDOWN = 6;
+
+  // Arena power-ups (solo-only). performance.now() ms each buff expires at.
+  private buffDamageUntil = 0;
+  private buffHasteUntil = 0;
+  private buffShieldUntil = 0;
+  static readonly POWERUP_DURATION_MS = 9_000;
+  static readonly POWERUP_DAMAGE_MULT = 1.7;
+  static readonly POWERUP_HASTE_MULT = 1.55;
+  static readonly POWERUP_SHIELD_REDUCTION = 0.5;   // OVERSHIELD: absorb 50% dmg
 
   // Reload-edge tracker for the reload SFX. We poll inventory.current rather
   // than wiring an event bus into Weapon (Weapon stays pure-logic).
@@ -311,6 +335,7 @@ export class Game {
     this.castFX = new CastFX(this.scene);
     this.dmgNumbers = new DamageNumbers(this.scene, this.camera, this);
     this.pickups = new PickupManager(this);
+    this.powerups = new PowerupManager(this);
     this.grenades = new GrenadeManager(this);
 
     // Three bots, escalating difficulty. Spawns are chosen to be clear of
@@ -395,8 +420,15 @@ export class Game {
     });
 
     // Hit confirm SFX. Plays unspatialized so it always reads as feedback.
+    // Consecutive landed hits ramp the pitch up (the satisfying Krunker "rising
+    // hitmarker" feel) — the chain resets after a short gap with no hits.
     this.bus.on('hitConfirm', ({ isHeadshot }) => {
-      this.audio.play(isHeadshot ? 'hit_headshot' : 'hit_confirm');
+      const now = performance.now();
+      this._hitChain = (now - this._lastHitMs < 1100) ? this._hitChain + 1 : 1;
+      this._lastHitMs = now;
+      // +4% per link, capped at +52% — stays musical, never chipmunk.
+      const rate = Math.min(1 + (this._hitChain - 1) * 0.04, 1.52);
+      this.audio.play(isHeadshot ? 'hit_headshot' : 'hit_confirm', 1.0, rate);
     });
 
     this.bus.on('kill', (e) => {
@@ -462,7 +494,8 @@ export class Game {
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
         // Onslaught owns respawn timing (lives system) — it decides whether to
         // bring the player back or end the run, so skip the auto-loop there.
-        if (!this.mp && this.mode !== 'onslaught') {
+        // Duel is single-elimination — death ends the run, so it owns respawn too.
+        if (!this.mp && this.mode !== 'onslaught' && this.mode !== 'duel') {
           setTimeout(() => this.respawnPlayer(), 1800);
         }
       }
@@ -730,6 +763,8 @@ export class Game {
     this.player.setPosition(spawn.x, spawn.y, spawn.z);
     this.player.speedMultiplier = 1.0;
     this.playerActor.isCloaked = false;
+    // Dying drops your power-ups — you don't keep a buff through death.
+    this.clearBuffs();
     // Local respawn SFX. In MP the server respawns us; the tick-level edge
     // detector picks that path up via the dead→alive transition.
     this.audio.play('respawn');
@@ -933,6 +968,9 @@ export class Game {
     this.matchEnded = false;
     this.teamScore[0] = 0;
     this.teamScore[1] = 0;
+    // Power-ups: restore all pads + drop any active buff on a fresh match.
+    this.powerups?.resetAll();
+    this.clearBuffs();
   }
 
   /**
@@ -1014,6 +1052,90 @@ export class Game {
     this.player.eyePos(this._eyePos);
     this.player.aimDir(this._aimDir);
     this.grenades.throw(this._eyePos, this._aimDir);
+  }
+
+  // ── Arena power-ups (solo-only) ─────────────────────────────────────────────
+
+  /** Spawn anchors for the current map — guaranteed clear of solids. Read by
+   *  PowerupManager to place pads safely without per-map curation. */
+  get mapSpawns(): ReadonlyArray<THREE.Vector3> {
+    return this.currentMap.meta.ffaSpawns;
+  }
+
+  /** Grant a power-up to the local player: starts/refreshes its timer, applies
+   *  the weapon-layer multiplier, and fires juicy grab feedback. Solo-only. */
+  grantPowerup(type: PowerupType) {
+    const until = performance.now() + Game.POWERUP_DURATION_MS;
+    if (type === 'damage') {
+      this.buffDamageUntil = until;
+      this.inventory.setDamageMultiplier(Game.POWERUP_DAMAGE_MULT);
+    } else if (type === 'haste') {
+      this.buffHasteUntil = until;
+      this.inventory.setFireRateMultiplier(Game.POWERUP_HASTE_MULT);
+    } else {
+      this.buffShieldUntil = until;
+      this.playerActor.health.damageReduction = Game.POWERUP_SHIELD_REDUCTION;
+    }
+    // Grab feedback: SFX + a burst at the player + a label + a screen flash.
+    this.audio.play('pickup_powerup');
+    this.player.eyePos(this._eyePos);
+    const color = type === 'damage' ? 0xff3b54 : type === 'haste' ? 0xffc23a : 0x3ad6ff;
+    this.castFX.flash(this._eyePos, color, 0.5, 1.8, 0.4);
+    const label = type === 'damage' ? 'OVERCHARGE!' : type === 'haste' ? 'RAPID FIRE!' : 'OVERSHIELD!';
+    ScorePopup.pop(label, 'buff');
+    this.applyShake(0.02, 12);
+    const el = document.getElementById('powerup-flash');
+    if (el) {
+      el.style.setProperty('--pu-flash', `#${color.toString(16).padStart(6, '0')}`);
+      el.classList.remove('show');
+      void el.offsetWidth;
+      el.classList.add('show');
+      window.setTimeout(() => el.classList.remove('show'), 420);
+    }
+  }
+
+  /** Active power-up buffs for the HUD tray (kind + remaining fraction 0..1). */
+  powerupBuffs(): Array<{ kind: PowerupType; frac: number; seconds: number }> {
+    const now = performance.now();
+    const out: Array<{ kind: PowerupType; frac: number; seconds: number }> = [];
+    if (this.buffDamageUntil > now) {
+      const rem = this.buffDamageUntil - now;
+      out.push({ kind: 'damage', frac: rem / Game.POWERUP_DURATION_MS, seconds: rem / 1000 });
+    }
+    if (this.buffHasteUntil > now) {
+      const rem = this.buffHasteUntil - now;
+      out.push({ kind: 'haste', frac: rem / Game.POWERUP_DURATION_MS, seconds: rem / 1000 });
+    }
+    if (this.buffShieldUntil > now) {
+      const rem = this.buffShieldUntil - now;
+      out.push({ kind: 'shield', frac: rem / Game.POWERUP_DURATION_MS, seconds: rem / 1000 });
+    }
+    return out;
+  }
+
+  /** Expire power-up buffs whose timer elapsed (resets the weapon multiplier on
+   *  the edge so we don't reset every frame). Called each tick. */
+  private tickBuffs() {
+    const now = performance.now();
+    if (this.buffDamageUntil !== 0 && now >= this.buffDamageUntil) {
+      this.buffDamageUntil = 0;
+      this.inventory.setDamageMultiplier(1.0);
+    }
+    if (this.buffHasteUntil !== 0 && now >= this.buffHasteUntil) {
+      this.buffHasteUntil = 0;
+      this.inventory.setFireRateMultiplier(1.0);
+    }
+    if (this.buffShieldUntil !== 0 && now >= this.buffShieldUntil) {
+      this.buffShieldUntil = 0;
+      this.playerActor.health.damageReduction = 0;
+    }
+  }
+
+  /** Cancel any active power-up buffs immediately (death / mode swap / map). */
+  private clearBuffs() {
+    if (this.buffDamageUntil !== 0) { this.buffDamageUntil = 0; this.inventory.setDamageMultiplier(1.0); }
+    if (this.buffHasteUntil !== 0) { this.buffHasteUntil = 0; this.inventory.setFireRateMultiplier(1.0); }
+    if (this.buffShieldUntil !== 0) { this.buffShieldUntil = 0; this.playerActor.health.damageReduction = 0; }
   }
 
   private onResize = () => {
@@ -1199,9 +1321,12 @@ export class Game {
     this.castFX.update(dt);     // tick ability cast effects (flashes, waves, trails)
     this.dmgNumbers.update(dt); // tick floating damage numbers
     this.pickups.update(dt);    // animate + (solo) run map health pickups
+    this.powerups.update(dt);   // animate + (solo) run arena power-up pads
+    this.tickBuffs();           // expire power-up buffs whose timer elapsed
     this.world.update();        // expires Engineer barrier solids when their TTL is up
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
     if (this.onslaught) this.onslaught.update(dt);  // wave pacing + respawn timing
+    if (this.duel) this.duel.update(dt);            // duel intro/intermission pacing
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

@@ -255,8 +255,24 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   shotgun: buildShotgun,
   marksman: buildMarksman,
   lmg: buildLMG,
+  railgun: buildRailgun,
   pistol: buildPistol,
 };
+
+function buildRailgun(p: THREE.Group): number {
+  p.add(box(0.15, 0.13, 0.46, 0x202a36, 0, 0, 0));            // sleek body (steel-blue)
+  p.add(box(0.10, 0.10, 0.26, 0x2c3a48, 0, -0.02, 0.30));     // stock
+  p.add(box(0.055, 0.055, 0.78, 0x0c1016, 0, 0.03, -0.52));   // long rail barrel
+  // Accelerator coils — bright cyan rings along the barrel (emissive accent).
+  p.add(box(0.10, 0.10, 0.04, 0x1ad0ff, 0, 0.03, -0.34));
+  p.add(box(0.10, 0.10, 0.04, 0x1ad0ff, 0, 0.03, -0.52));
+  p.add(box(0.10, 0.10, 0.04, 0x1ad0ff, 0, 0.03, -0.70));
+  p.add(box(0.10, 0.05, 0.20, 0x14181f, 0, 0.10, -0.04));     // top housing
+  p.add(box(0.07, 0.14, 0.09, 0x1c242c, 0, -0.12, 0.18));     // grip
+  p.add(box(0.08, 0.15, 0.10, 0x1c242c, 0, -0.13, 0.02));     // power cell
+  p.add(box(0.05, 0.05, 0.06, 0x1ad0ff, 0, 0.03, -0.92));     // muzzle emitter (cyan)
+  return -0.94;
+}
 
 function buildLMG(p: THREE.Group): number {
   p.add(box(0.18, 0.14, 0.50, 0x2a2f36, 0, 0, 0));            // bulky body

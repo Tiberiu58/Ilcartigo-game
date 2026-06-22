@@ -40,6 +40,7 @@ export const AD_CONFIG = {
     'postmatch': { adUnitId: '0000000000', label: 'Sponsored' },
     'aimlab':    { adUnitId: '0000000000', label: 'Sponsored' },
     'onslaught': { adUnitId: '0000000000', label: 'Sponsored' },
+    'duel':      { adUnitId: '0000000000', label: 'Sponsored' },
   } as Record<string, AdSlotDef>,
 };
 

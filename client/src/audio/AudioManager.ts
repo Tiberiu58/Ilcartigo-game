@@ -29,6 +29,8 @@ export const SOUND_FILES = {
   fire_sniper:   'fire_sniper.wav',
   fire_shotgun:  'fire_shotgun.wav',
   fire_marksman: 'fire_marksman.wav',
+  fire_lmg:      'fire_lmg.wav',
+  fire_railgun:  'fire_railgun.wav',
   fire_pistol:   'fire_pistol.wav',
   reload:        'reload.wav',
   empty_click:   'empty_click.wav',
@@ -70,6 +72,9 @@ export const SOUND_FILES = {
 
   // Pickups (Phase 13D) — health pack grabbed.
   pickup_health: 'pickup_health.wav',
+
+  // Arena power-up (Phase 25) — overcharge / rapid-fire pad grabbed.
+  pickup_powerup: 'pickup_powerup.wav',
 
   // Quick melee (Phase 20) — knife swing whoosh.
   melee:         'melee.wav',
@@ -172,13 +177,16 @@ export class AudioManager {
    * file 404s, `onloaderror` (constructed in getHowl) catches it and the
    * play call no-ops harmlessly.
    */
-  play(id: SoundId, volumeMul = 1.0) {
+  play(id: SoundId, volumeMul = 1.0, rate = 1.0) {
     if (this.muted) return;
     const h = this.getHowl(id);
     const baseVol = this.masterVolume * this.sfxVolume * volumeMul;
     if (baseVol <= 0.001) return;
     const playId = h.play();
     h.volume(baseVol, playId);
+    // Optional pitch shift (e.g. the rising hitmarker chain). Only touch the
+    // rate when it actually differs so the common path stays allocation-free.
+    if (rate !== 1.0) h.rate(rate, playId);
   }
 
   /**

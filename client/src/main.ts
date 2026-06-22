@@ -17,9 +17,11 @@
 import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
+import { RampageFX } from './ui/RampageFX';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
+import { Duel, type DuelResult } from './modes/Duel';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
@@ -29,7 +31,9 @@ import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
-import type { WeaponId } from './weapons/Weapon';
+import { LOGIN_REWARDS } from './account/Account';
+import { WEAPON_LIBRARY, type WeaponId } from './weapons/Weapon';
+import { weaponSkinsFor } from './account/Cosmetics';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
 // FPS games are unplayable without a mouse. Show a friendly notice instead of
@@ -66,6 +70,7 @@ const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
 const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
+const menuDuel = document.getElementById('menu-duel') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -96,8 +101,22 @@ let scoreboardOpen = false;
 const game = new Game(canvas);
 game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
+game.duel = new Duel(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
+// "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
+const rampage = new RampageFX();
+announcer.onStreakChange = (streak) => rampage.setStreak(streak);
+// Skill-shot callouts — inspect the live player/weapon state at kill time.
+announcer.resolveKillStyle = (e) => {
+  // NO SCOPE: a sniper kill landed without being scoped.
+  if (e.weaponId === 'sniper' && !game.inventory.isScoped) return 'noscope';
+  // AIRBORNE: you were off the ground when the kill landed.
+  if (game.player.state === 'air') return 'airborne';
+  // LONGSHOT: the lethal hit was far from you.
+  if (e.hitPoint && game.player.pos.distanceTo(e.hitPoint) >= 45) return 'longshot';
+  return null;
+};
 const damageDir = new DamageDirection(game);
 void damageDir;
 // Progression spectacle — rank badges (HUD + menu), level-up banner, +XP popups.
@@ -236,6 +255,94 @@ onrRetry.addEventListener('click', () => {
 });
 onrQuit.addEventListener('click', () => {
   onsResults.classList.add('hidden');
+  quitToMenu();
+});
+
+// ─── Duel (1v1 gauntlet) mode ──────────────────────────────────────────────
+const duelTicker = document.getElementById('duel-ticker')!;
+const duelNoN = document.getElementById('duel-no-n')!;
+const duelStreakN = document.getElementById('duel-streak-n')!;
+const duelBestN = document.getElementById('duel-best-n')!;
+const duelBanner = document.getElementById('duel-banner')!;
+const duelBannerMain = document.getElementById('dub-main')!;
+const duelBannerSub = document.getElementById('dub-sub')!;
+const duelResults = document.getElementById('duel-results')!;
+const durWins = document.getElementById('dur-wins')!;
+const durFaced = document.getElementById('dur-faced')!;
+const durBest = document.getElementById('dur-best')!;
+const durXp = document.getElementById('dur-xp')!;
+const durSub = document.getElementById('dur-sub')!;
+const durNewBest = document.getElementById('dur-newbest')!;
+const durRetry = document.getElementById('dur-retry') as HTMLButtonElement;
+const durQuit = document.getElementById('dur-quit') as HTMLButtonElement;
+let duelBannerTimer = 0;
+
+function flashDuelBanner(main: string, sub: string, won: boolean, hold: number) {
+  duelBannerMain.textContent = main;
+  duelBannerSub.textContent = sub;
+  duelBanner.classList.toggle('won', won);
+  duelBanner.classList.remove('hidden');
+  duelBanner.style.animation = 'none';
+  void duelBanner.offsetWidth;   // reflow so the pop animation restarts
+  duelBanner.style.animation = '';
+  window.clearTimeout(duelBannerTimer);
+  duelBannerTimer = window.setTimeout(() => duelBanner.classList.add('hidden'), hold);
+}
+
+game.duel!.onState = (duelNum, wins, best) => {
+  duelNoN.textContent = String(duelNum);
+  duelStreakN.textContent = String(wins);
+  duelBestN.textContent = String(best);
+};
+game.duel!.onDuelStart = (_duelNum, rival, tier) => {
+  flashDuelBanner(`VS ${rival.toUpperCase()}`, tier, false, 1500);
+  game.audio.play('spawn_protect');
+};
+game.duel!.onDuelWon = (wins) => {
+  flashDuelBanner('DUEL WON', `streak ${wins}`, true, 1400);
+  game.audio.play('match_end');
+};
+game.duel!.onEnd = (r: DuelResult) => {
+  duelTicker.classList.add('hidden');
+  duelBanner.classList.add('hidden');
+  showDuelResults(r);
+};
+
+function showDuelResults(r: DuelResult) {
+  game.audio.play('match_end');
+  game.input.exitPointerLock();
+  durWins.textContent = String(r.wins);
+  durFaced.textContent = String(r.duelsFaced);
+  durBest.textContent = String(r.best);
+  durXp.textContent = `+${r.xpEarned}`;
+  durSub.textContent = r.wins > 0
+    ? `${r.lastRival.toUpperCase()} ended your run`
+    : `${r.lastRival.toUpperCase()} got the better of you`;
+  durNewBest.classList.toggle('hidden', !r.isNewBest);
+  duelResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  Ads.refreshSlot('duel');
+}
+
+function stopDuel() {
+  if (game.duel?.active) game.duel.stop();
+  window.clearTimeout(duelBannerTimer);
+  duelTicker.classList.add('hidden');
+  duelBanner.classList.add('hidden');
+  duelResults.classList.add('hidden');
+}
+
+durRetry.addEventListener('click', () => {
+  duelResults.classList.add('hidden');
+  hud.classList.remove('hidden');
+  duelTicker.classList.remove('hidden');
+  game.resetMatchScore();
+  announcer.reset();
+  game.duel!.start();
+  game.input.requestPointerLock();
+});
+durQuit.addEventListener('click', () => {
+  duelResults.classList.add('hidden');
   quitToMenu();
 });
 
@@ -458,9 +565,10 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' = 'combat') {
   stopAimLab();
   stopOnslaught();
+  stopDuel();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -499,6 +607,14 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
     onsTicker.classList.add('hidden');
   }
 
+  // Duel: hand the roster to the gauntlet controller + show its ticker.
+  if (mode === 'duel') {
+    game.duel!.start();
+    duelTicker.classList.remove('hidden');
+  } else {
+    duelTicker.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -512,6 +628,8 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
  */
 function startOnline() {
   stopAimLab();
+  stopOnslaught();
+  stopDuel();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -560,6 +678,7 @@ function startOnline() {
 function quitToMenu() {
   stopAimLab();
   stopOnslaught();
+  stopDuel();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -575,9 +694,13 @@ function quitToMenu() {
   ggTicker.classList.add('hidden');
   tdmTicker.classList.add('hidden');
   onsTicker.classList.add('hidden');
+  duelTicker.classList.add('hidden');
   refreshOnslaughtButton();
+  refreshDuelButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
+  // Refresh the loadout card so mastery progress earned this match shows.
+  renderWeaponStats((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
 }
 
 // Class selector. Selection persists in localStorage; takes effect immediately
@@ -618,7 +741,7 @@ mapBtns.forEach((btn) => {
 });
 // Recover from a corrupt localStorage value. Practice is reached via its own
 // button, so it isn't a valid *combat* map selection.
-const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt', 'overpass'];
+const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt', 'overpass', 'frostline'];
 if (!COMBAT_MAPS.includes(savedMap)) {
   localStorage.setItem('ilc.map', 'sandstone');
 }
@@ -641,6 +764,55 @@ diffBtns.forEach((btn) => {
 });
 game.setDifficulty(savedDiff === 'easy' || savedDiff === 'hard' ? savedDiff : 'normal');
 
+// Weapon identity card — archetype + normalized stat bars, so the 7 guns read
+// as distinct picks (a Krunker loadout staple). Pure UI off WEAPON_LIBRARY.
+const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
+  ar: 'Versatile Rifle',
+  smg: 'Run & Gun',
+  sniper: 'One-Shot Sniper',
+  shotgun: 'Close-Range Brawler',
+  marksman: 'Precision DMR',
+  lmg: 'Suppressive Fire',
+  railgun: 'Piercing Beam',
+  pistol: 'Sidearm',
+};
+const wsName = document.getElementById('ws-name')!;
+const wsArch = document.getElementById('ws-arch')!;
+const wsDmg = document.getElementById('ws-dmg') as HTMLElement;
+const wsRof = document.getElementById('ws-rof') as HTMLElement;
+const wsRange = document.getElementById('ws-range') as HTMLElement;
+const wsMag = document.getElementById('ws-mag') as HTMLElement;
+const wsMasteryKills = document.getElementById('ws-mastery-kills')!;
+const wsMasteryNext = document.getElementById('ws-mastery-next')!;
+const wsMasteryFill = document.getElementById('ws-mastery-fill') as HTMLElement;
+function renderWeaponStats(id: WeaponId) {
+  const c = WEAPON_LIBRARY[id];
+  // Per-trigger-pull damage (shotgun fires multiple pellets at once).
+  const dmg = c.baseDamage * (c.pellets ?? 1);
+  const pct = (v: number, max: number) => `${Math.max(6, Math.min(100, Math.round((v / max) * 100)))}%`;
+  wsName.textContent = c.displayName;
+  wsArch.textContent = WEAPON_ARCHETYPE[id];
+  wsDmg.style.width = pct(dmg, 95);            // shotgun ~90 maxes it
+  wsRof.style.width = pct(c.fireRate, 15);     // SMG 14 near max
+  wsRange.style.width = pct(c.falloffEnd, 150); // sniper saturates
+  wsMag.style.width = pct(c.magSize, 60);      // LMG 60 maxes it
+
+  // Mastery progress — lifetime kills toward the next mastery skin.
+  const kills = game.account.weaponKillsFor(id);
+  wsMasteryKills.textContent = String(kills);
+  const tiers = weaponSkinsFor(id).filter((s) => s.killReq > 0).sort((a, b) => a.killReq - b.killReq);
+  const next = tiers.find((s) => kills < s.killReq);
+  const prevReq = [...tiers].reverse().find((s) => kills >= s.killReq)?.killReq ?? 0;
+  if (next) {
+    wsMasteryNext.textContent = `${next.displayName} · ${kills}/${next.killReq}`;
+    const span = next.killReq - prevReq;
+    wsMasteryFill.style.width = `${Math.max(4, Math.min(100, Math.round(((kills - prevReq) / span) * 100)))}%`;
+  } else {
+    wsMasteryNext.textContent = tiers.length ? '★ all skins unlocked' : '—';
+    wsMasteryFill.style.width = tiers.length ? '100%' : '0%';
+  }
+}
+
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.
 const loadoutBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn:not([data-map]):not([data-diff])');
@@ -654,6 +826,7 @@ loadoutBtns.forEach((btn) => {
     const newId = game.inventory.setPrimary(id);
     game.viewmodel.swapTo(newId);
     localStorage.setItem('ilc.primary', newId);
+    renderWeaponStats(newId);
     game.mp?.sendHello();
   });
 });
@@ -662,12 +835,14 @@ if (savedPrimary !== 'ar') {
   game.inventory.setPrimary(savedPrimary);
   game.viewmodel.swapTo(savedPrimary);
 }
+renderWeaponStats(savedPrimary);
 
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
 menuTdm.addEventListener('click', () => startGame('tdm'));
 menuOnslaught.addEventListener('click', () => startGame('onslaught'));
+menuDuel.addEventListener('click', () => startGame('duel'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -706,6 +881,13 @@ function refreshOnslaughtButton() {
   menuOnslaught.textContent = best > 0 ? `☠ Onslaught · best wave ${best}` : '☠ Onslaught (Survival)';
 }
 refreshOnslaughtButton();
+
+/** Surface the duel win-streak personal best on the Duel menu button. */
+function refreshDuelButton() {
+  const best = Duel.personalBest();
+  menuDuel.textContent = best > 0 ? `🎯 Duel · best streak ${best}` : '🎯 Duel (1v1 Gauntlet)';
+}
+refreshDuelButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {
@@ -1005,6 +1187,60 @@ if (!localStorage.getItem(HOWTO_SEEN_KEY)) {
   showHowto();
 }
 
+// ─── Daily login reward ────────────────────────────────────────────────────
+const dailyOverlay = document.getElementById('daily-overlay')!;
+const dailyTrack = document.getElementById('daily-track')!;
+const dailySub = document.getElementById('daily-sub')!;
+const dailyClaim = document.getElementById('daily-claim') as HTMLButtonElement;
+const dailyDismiss = document.getElementById('daily-dismiss') as HTMLButtonElement;
+const menuDaily = document.getElementById('menu-daily') as HTMLButtonElement;
+
+function renderDaily() {
+  const st = game.account.dailyLoginStatus();
+  dailyTrack.replaceChildren();
+  for (let i = 0; i < LOGIN_REWARDS.length; i++) {
+    const chip = document.createElement('div');
+    chip.className = 'daily-day';
+    if (i === st.cycleIndex) chip.classList.add(st.available ? 'today' : 'done');
+    else if (i < st.cycleIndex) chip.classList.add('past');
+    if (i === LOGIN_REWARDS.length - 1) chip.classList.add('jackpot');
+    chip.innerHTML = `<span class="dd-label">Day ${i + 1}</span><span class="dd-xp">+${LOGIN_REWARDS[i]}</span>`;
+    dailyTrack.appendChild(chip);
+  }
+  if (st.available) {
+    dailySub.textContent = st.day > 1
+      ? `${st.day}-day streak 🔥 — claim Day ${st.day}.`
+      : `Welcome back — claim your Day 1 reward.`;
+    dailyClaim.disabled = false;
+    dailyClaim.textContent = `▸ Claim +${st.reward} XP`;
+  } else {
+    dailySub.textContent = `Claimed today — ${st.streak}-day streak 🔥. Come back tomorrow!`;
+    dailyClaim.disabled = true;
+    dailyClaim.textContent = 'Claimed ✓';
+  }
+}
+function showDaily() { renderDaily(); dailyOverlay.classList.remove('hidden'); }
+function hideDaily() { dailyOverlay.classList.add('hidden'); }
+
+dailyClaim.addEventListener('click', () => {
+  const res = game.account.claimDailyLogin();
+  if (res) {
+    game.audio.play('level_up');
+    renderDaily();           // re-render to the claimed state (account.onChange also fires)
+  } else {
+    game.audio.play('ui_click');
+  }
+});
+dailyDismiss.addEventListener('click', () => { hideDaily(); game.audio.play('ui_click'); });
+menuDaily.addEventListener('click', () => { showDaily(); game.audio.play('ui_click'); });
+
+// Auto-show once per session if a reward is waiting — but never on top of the
+// first-run How-to card (brand-new players see that first; daily greets them
+// next session).
+if (localStorage.getItem(HOWTO_SEEN_KEY) && game.account.dailyLoginStatus().available) {
+  showDaily();
+}
+
 // Pointer-lock change → toggle HUD vs pause overlay.
 // We only show the pause overlay if we lost lock *during* a game (i.e. the
 // main menu isn't visible). Otherwise the user is just clicking around the
@@ -1094,8 +1330,31 @@ const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
+// Match-summary strip (tyoq4q) + accolade flavour (p4aum5), merged into one card.
+const pmSKills = document.getElementById('pm-s-kills')!;
+const pmSDeaths = document.getElementById('pm-s-deaths')!;
+const pmSKd = document.getElementById('pm-s-kd')!;
+const pmSStreak = document.getElementById('pm-s-streak')!;
+const pmSPlace = document.getElementById('pm-s-place')!;
+const pmNewBest = document.getElementById('pm-newbest')!;
+const pmScAccolade = document.getElementById('pm-sc-accolade')!;
+const BEST_MATCH_KILLS_KEY = 'ilc.bestMatchKills';
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
+
+/** Pick a punchy accolade for the player's match performance — pure flavour
+ *  that makes the post-match scorecard feel earned. Ordered most → least
+ *  impressive so the best-fitting title wins. */
+function accoladeFor(youWon: boolean, rank: number, kills: number, deaths: number, kd: number): string {
+  if (deaths === 0 && kills >= 5) return 'FLAWLESS';
+  if (kd >= 3 && kills >= 6) return 'DOMINATING';
+  if (youWon || rank === 1) return 'MVP';
+  if (kills >= 15) return 'ON A TEAR';
+  if (kd >= 2) return 'SHARPSHOOTER';
+  if (rank > 0 && rank <= 3) return 'PODIUM FINISH';
+  if (kills >= 8) return 'SOLID RUN';
+  return 'GOOD FIGHT';
+}
 
 function showPostMatch(winnerId: string) {
   game.audio.play('match_end');
@@ -1147,6 +1406,23 @@ function showPostMatch(winnerId: string) {
     pmWinnerLine.innerHTML = `winner: <b>${game.isLocalPlayer(winnerId) ? 'YOU' : game.displayNameFor(winnerId)}</b>`;
   }
 
+  // Personal scorecard — placement + K/D + best-streak + a dynamic accolade.
+  // Combines both routine branches' post-match work into one coherent strip:
+  // the accolade flavour (FLAWLESS/MVP…) plus the full kills/deaths/KD/streak/
+  // place summary. Keeps eyes on the ad-bearing screen a beat longer.
+  const myRow = rows.find((r) => r.isYou);
+  const myDeaths = myRow?.deaths ?? 0;
+  const myKdNum = myDeaths === 0 ? myKills : myKills / myDeaths;
+  const myKd = myDeaths === 0 ? myKills.toFixed(1) : (myKills / myDeaths).toFixed(2);
+  const placeLabel = tdmTeam !== null ? (youWon ? 'WON' : 'LOST') : (myRank > 0 ? `#${myRank}` : '—');
+
+  pmScAccolade.textContent = accoladeFor(youWon, myRank, myKills, myDeaths, myKdNum);
+  pmSKills.textContent = String(myKills);
+  pmSDeaths.textContent = String(myDeaths);
+  pmSKd.textContent = myKd;
+  pmSStreak.textContent = String(announcer.bestStreak);
+  pmSPlace.textContent = placeLabel;
+
   // Build scoreboard rows.
   pmScoreboardBody.innerHTML = rows.map((r, i) => {
     const name = r.isYou ? 'YOU' : game.displayNameFor(r.id);
@@ -1160,6 +1436,14 @@ function showPostMatch(winnerId: string) {
   }).join('');
 
   pmUnlocks.textContent = '';   // future: list newly-unlocked skins this match
+
+  // NEW-BEST badge — most kills in a single match (FFA-style modes only; TDM is
+  // team-scored, so a personal-kills record there is less meaningful but still
+  // tracked). Persisted across sessions.
+  const prevBest = Number(localStorage.getItem(BEST_MATCH_KILLS_KEY) ?? 0);
+  const isNewBest = myKills > prevBest && myKills > 0;
+  if (isNewBest) localStorage.setItem(BEST_MATCH_KILLS_KEY, String(myKills));
+  pmNewBest.classList.toggle('hidden', !isNewBest);
 
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');
