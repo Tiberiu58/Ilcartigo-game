@@ -29,6 +29,8 @@ import type { GameEventBus } from '../core/events';
 
 const WALK_SPEED = 4.0;
 const RESPAWN_DELAY = 3.0;
+/** Hit-flash duration (seconds) — brief bright pop on every landed hit. */
+const HIT_FLASH_TIME = 0.11;
 
 /**
  * Difficulty tier — three preset bundles of reaction time, aim jitter, and
@@ -150,6 +152,13 @@ export class Bot implements Damageable {
   private headMesh!: THREE.Mesh;
   private baseBodyColor: number;
   private baseHeadColor: number;
+  /** Base emissive colour (0 for normal bots, crimson for elites) — restored
+   *  after a hit-flash so the elite glow survives the flash. */
+  private baseEmissive = 0x000000;
+  /** Hit-flash timer (seconds remaining); set by flashHit(), decayed in update. */
+  private hitFlash = 0;
+  /** Whether the current flash is a headshot (hotter, longer). */
+  private hitFlashHead = false;
   /** TDM respawn anchor (team's spawn area). null = FFA waypoint respawn. */
   homeSpawn: THREE.Vector3 | null = null;
 
@@ -206,6 +215,7 @@ export class Bot implements Damageable {
     this.baseBodyColor = bodyColor;
     this.baseHeadColor = headColor;
     const emissive = opts.emissive ?? 0x000000;
+    this.baseEmissive = emissive;
 
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(BODY_HALF.x * 2, BODY_HALF.y * 2, BODY_HALF.z * 2),
@@ -260,6 +270,8 @@ export class Bot implements Damageable {
   update(dt: number, targets: BotTarget[]) {
     this.weapon.update(dt);
     this.timeSinceLastShot += dt;
+    // Hit-flash decays regardless of alive/dead so the lethal-blow flash shows.
+    this.tickHitFlash(dt);
 
     if (this.health.dead) {
       this.state = 'dead';
@@ -355,6 +367,35 @@ export class Bot implements Damageable {
     // Head a touch darker than the body so the silhouette still reads.
     const head = color === null ? this.baseHeadColor : (color & 0xfefefe) >> 1;
     (this.headMesh.material as THREE.MeshLambertMaterial).color.setHex(head);
+  }
+
+  /** Flash the figure bright on a landed hit — the satisfying "I tagged them"
+   *  confirmation. Headshots flash hotter + a touch longer. Decayed in update. */
+  flashHit(isHeadshot: boolean) {
+    this.hitFlash = isHeadshot ? HIT_FLASH_TIME * 1.25 : HIT_FLASH_TIME;
+    this.hitFlashHead = isHeadshot;
+  }
+
+  /** Drive the hit-flash emissive each frame; restore the base emissive at end. */
+  private tickHitFlash(dt: number) {
+    if (this.hitFlash <= 0) return;
+    this.hitFlash = Math.max(0, this.hitFlash - dt);
+    const bodyMat = this.bodyMesh.material as THREE.MeshLambertMaterial;
+    const headMat = this.headMesh.material as THREE.MeshLambertMaterial;
+    if (this.hitFlash > 0) {
+      const t = this.hitFlash / HIT_FLASH_TIME; // 1 → 0
+      const hex = this.hitFlashHead ? 0xffd0d0 : 0xffffff;
+      bodyMat.emissive.setHex(hex);
+      headMat.emissive.setHex(hex);
+      bodyMat.emissiveIntensity = 0.6 + t * 1.6;
+      headMat.emissiveIntensity = 0.6 + t * 1.6;
+    } else {
+      // Restore the base look (keeps the elite crimson glow intact).
+      bodyMat.emissive.setHex(this.baseEmissive);
+      headMat.emissive.setHex(this.baseEmissive);
+      bodyMat.emissiveIntensity = 0.6;
+      headMat.emissiveIntensity = 0.6;
+    }
   }
 
   private faceTarget(target: THREE.Vector3, dt: number) {

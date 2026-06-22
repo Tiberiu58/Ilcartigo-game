@@ -16,6 +16,8 @@ import { findSkin } from '../account/Cosmetics';
 
 const INTERP_DELAY_MS = 100;
 const BUFFER_MS = 1000;       // keep 1s of history
+/** Hit-flash duration (ms) — brief bright pop when this remote is hit. */
+const HIT_FLASH_MS = 110;
 // Footstep stride for remote players (slightly longer than local so distant
 // players don't sound like they're sprinting; tuned by ear-ish).
 const REMOTE_FOOTSTEP_STRIDE = 3.4;
@@ -53,6 +55,11 @@ export class RemotePlayer {
   private lastFsX = 0;
   private lastFsZ = 0;
   private fsInit = false;
+
+  // Hit flash — bright emissive pop on a landed hit (set via flashHit()).
+  private flashUntil = 0;
+  private flashHead = false;
+  private flashing = false;
 
   constructor(id: string, scene: THREE.Scene) {
     this.id = id;
@@ -97,6 +104,12 @@ export class RemotePlayer {
     this.buffer.push({ t: arrivalTimeMs, pos: [...snap.pos] as [number, number, number], yaw: snap.yaw });
     const cutoff = arrivalTimeMs - BUFFER_MS;
     while (this.buffer.length > 0 && this.buffer[0].t < cutoff) this.buffer.shift();
+  }
+
+  /** Flash this remote bright on a landed hit (called from MultiplayerSession). */
+  flashHit(isHeadshot: boolean) {
+    this.flashUntil = performance.now() + (isHeadshot ? HIT_FLASH_MS * 1.25 : HIT_FLASH_MS);
+    this.flashHead = isHeadshot;
   }
 
   /** Recolor body + head meshes per the skin definition. */
@@ -149,6 +162,25 @@ export class RemotePlayer {
     if (Math.abs(bodyMat.opacity - targetOpacity) > 0.01) {
       bodyMat.opacity += (targetOpacity - bodyMat.opacity) * 0.2;
       headMat.opacity = bodyMat.opacity;
+    }
+
+    // Hit-flash emissive pop. Default remote materials have black emissive, so
+    // we only touch it while flashing and restore to black once it ends.
+    const fnow = performance.now();
+    if (fnow < this.flashUntil) {
+      const t = (this.flashUntil - fnow) / HIT_FLASH_MS; // ~1 → 0
+      const hex = this.flashHead ? 0xffd0d0 : 0xffffff;
+      bodyMat.emissive.setHex(hex);
+      headMat.emissive.setHex(hex);
+      bodyMat.emissiveIntensity = Math.min(1.6, t * 1.6);
+      headMat.emissiveIntensity = bodyMat.emissiveIntensity;
+      this.flashing = true;
+    } else if (this.flashing) {
+      bodyMat.emissive.setHex(0x000000);
+      headMat.emissive.setHex(0x000000);
+      bodyMat.emissiveIntensity = 1;
+      headMat.emissiveIntensity = 1;
+      this.flashing = false;
     }
 
     // Footstep cadence from interpolated horizontal travel. Cloaked players

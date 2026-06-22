@@ -2,7 +2,13 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.34.0 — **Achievements / Career Medals** (this round). A tiered,
+> **Status:** v0.35.0 — **Enemy hit-flash** (this round). The struck figure now
+> pops bright on every landed hit (red-white on a headshot) — the instant Krunker
+> "I'm tagging them" confirmation that makes spraying feel good and fights read
+> at a glance. Works on bots (solo) and remotes (MP), for any attacker (TDM
+> crossfire reads too). Pure-client, no protocol change.
+>
+> **v0.34.0 — Achievements / Career Medals.** A tiered,
 > career-spanning progression layer on top of the existing lifetime stats: **8
 > medals / 25 tiers** (Eliminator, Headhunter, Champion, Veteran, Unstoppable, No
 > Life, Survivor, Duelist), each tier granting one-time XP (200→4000). New

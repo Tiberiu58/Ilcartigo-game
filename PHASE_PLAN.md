@@ -1269,3 +1269,40 @@ New `achievement` sound id reserved (silent until `achievement.wav` is dropped i
   subtitle/footer).
 
 ### Phase 34 COMPLETE — career-medal progression, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 35 — Enemy hit-flash (autonomous build, v0.35.0)
+
+The most-felt gap in moment-to-moment shooting feel: when you land a shot, the
+enemy didn't *react* visually. Krunker (and every good shooter) flashes the
+struck figure bright on each hit — the instant "I'm tagging them" confirmation
+that makes spraying satisfying and reading a fight easy. Phase 35 adds it. Pure
+client, **no protocol change** — solo + MP both intact.
+
+- **Bots flash bright on every landed hit** (`Bot.flashHit` + `tickHitFlash`):
+  the body + head emissive pops white (red-white + a touch longer on a
+  headshot), decaying over ~0.11 s. Runs at the top of `update()` before the
+  dead-branch early-out so even the *lethal* blow flashes. Stores the base
+  emissive so the elite (boss-wave) crimson glow is restored intact after the
+  flash.
+- **MP remotes flash too** (`RemotePlayer.flashHit`, applied in `render()` via a
+  `performance.now()` deadline; `MultiplayerSession.flashRemoteHit`). Default
+  remote materials have black emissive, so we only touch it while flashing and
+  restore to black after — no interference with the cloak-opacity fade or skin
+  recolour.
+- **One trigger point.** `Game`'s existing `damage` bus handler resolves the
+  struck target to a bot (solo) or a remote (MP) and flashes it — for *any*
+  attacker, so TDM crossfire and bot-vs-bot reads too. Cheap: one emissive set
+  per frame during a brief timer. Aim Lab targets already pop + relocate on hit,
+  so they're deliberately left untouched.
+
+### Status log
+- ✅ Phase 35 — Enemy hit-flash. DONE (client tsc + build green; app chunk
+  ~86.6 KB gzip, 95 modules; server unchanged). `Bot` flash (base-emissive
+  restore keeps elite glow), `RemotePlayer` flash (deadline-driven, black-emissive
+  restore), `MultiplayerSession.flashRemoteHit`, Game `damage`-handler trigger
+  (bot or remote, any attacker). Versions bumped to v0.35.0 (+ menu subtitle/
+  footer).
+
+### Phase 35 COMPLETE — combat-feel hit-flash, pure client, no protocol change, solo + MP intact.

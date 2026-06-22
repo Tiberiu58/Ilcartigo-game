@@ -417,6 +417,14 @@ export class Game {
       if (youTaking) {
         this.applyShake(0.06, 8);
       }
+      // Enemy hit-flash — the struck figure pops bright on every landed hit
+      // (the satisfying Krunker hit confirmation). Fires for any attacker so
+      // TDM crossfire reads too; cheap (one emissive set + a short timer).
+      if (!youTaking) {
+        const bot = this.bots.find((b) => b.id === e.targetId);
+        if (bot) bot.flashHit(e.isHeadshot);
+        else this.mp?.flashRemoteHit(e.targetId, e.isHeadshot);
+      }
     });
 
     // Hit confirm SFX. Plays unspatialized so it always reads as feedback.

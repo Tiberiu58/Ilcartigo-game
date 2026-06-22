@@ -107,6 +107,11 @@ export class MultiplayerSession {
     return true;
   }
 
+  /** Flash a remote player bright on a landed hit. No-op if unknown. */
+  flashRemoteHit(id: string, isHeadshot: boolean) {
+    this.remotes.get(id)?.flashHit(isHeadshot);
+  }
+
   /**
    * Enumerate remote players for the minimap. Yields each remote's interpolated
    * world x/z plus its cloaked + dead flags so the radar can hide stealthed /
