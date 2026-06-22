@@ -81,6 +81,9 @@ export class Announcer {
   private subEl: HTMLElement;
   private audio: AudioManager;
   private isLocal: (id: string) => boolean;
+  /** Fired whenever the local killstreak changes (kill / death / reset). Drives
+   *  the persistent "ON FIRE" rampage aura. */
+  onStreakChange?: (streak: number) => void;
 
   private streak = 0;
   private multiCount = 0;
@@ -124,6 +127,7 @@ export class Announcer {
     this.lastKilledMeBy = null;
     this.deathsSinceKill = 0;
     this.hideBanner();
+    this.onStreakChange?.(0);
   }
 
   private onLocalKill(victimId: string, firstOfMatch: boolean) {
@@ -136,6 +140,7 @@ export class Announcer {
     }
     this.lastKillAt = now;
     this.streak++;
+    this.onStreakChange?.(this.streak);
 
     // ── Specials (take headline priority over multi/streak) ──────────────────
     let special: Tier | null = null;
@@ -178,6 +183,7 @@ export class Announcer {
     this.streak = 0;
     this.multiCount = 0;
     this.lastKillAt = 0;
+    this.onStreakChange?.(0);
     this.deathsSinceKill++;
     // Remember a real attacker (not a fall / self) so the next kill on them
     // counts as Revenge.

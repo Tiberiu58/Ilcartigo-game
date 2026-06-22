@@ -17,6 +17,7 @@
 import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
+import { RampageFX } from './ui/RampageFX';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
@@ -99,6 +100,9 @@ game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
+// "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
+const rampage = new RampageFX();
+announcer.onStreakChange = (streak) => rampage.setStreak(streak);
 const damageDir = new DamageDirection(game);
 void damageDir;
 // Progression spectacle — rank badges (HUD + menu), level-up banner, +XP popups.

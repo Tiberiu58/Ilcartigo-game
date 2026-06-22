@@ -860,3 +860,32 @@ row up and delete it — the flashiest multi-kill tool in the game.
   (+ menu subtitle/footer).
 
 ### Phase 27 COMPLETE — additive weapon + new pierce mechanic, no protocol change, solo + MP intact.
+
+---
+
+## Phase 28 — "ON FIRE" Rampage (autonomous build, v0.28.0)
+
+A pure-client combat-juice round on the brief's "flashy feedback / desire to win
+the next duel" pillar. The Announcer already pops one-shot milestone *banners*;
+this adds the **persistent hot-streak state** arena shooters reward you with —
+something you feel the whole time you're dominating, and dread losing.
+
+- **Sustained rampage aura + badge.** At a **5+ killstreak** a heat glow rises
+  from the screen edges and a streak badge shows above the crosshair, escalating
+  by tier — ON FIRE (5) → INFERNO (10) → BLAZING (15+) — and snapping off the
+  moment you die.
+- **Single source of truth.** New `Announcer.onStreakChange` callback fires on
+  every kill / death / `reset()` (the Announcer already owns the streak count).
+  New `ui/RampageFX.ts` maps it to `<body>` tier classes (CSS drives the
+  `#rampage-aura` glow) + the `#rampage-badge`. No new kill/death bookkeeping,
+  edge-toggled (no per-frame cost), and it clears cleanly on match reset / mode
+  switch / quit via the existing `announcer.reset()` call sites.
+
+### Status log
+- ✅ Phase 28 — ON FIRE Rampage. DONE (client + server tsc + client build green;
+  app chunk ~80.9 KB gzip). `Announcer.onStreakChange` (fired on kill/death/
+  reset), `ui/RampageFX.ts` (tier classes + badge), `#rampage-aura`/
+  `#rampage-badge` DOM + CSS (3 escalating tiers), main.ts wiring. Versions
+  bumped to v0.28.0 (+ menu subtitle/footer).
+
+### Phase 28 COMPLETE — pure client, no protocol change, solo + MP intact.

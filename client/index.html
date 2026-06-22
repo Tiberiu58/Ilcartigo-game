@@ -73,6 +73,16 @@
              Toggled by HUD.tick. -->
         <div id="lowhp-vignette" class="hidden"></div>
 
+        <!-- Rampage "ON FIRE" aura — persistent heat glow at the screen edges
+             while on a killstreak. Intensity classes set on <body> by RampageFX. -->
+        <div id="rampage-aura"></div>
+        <!-- Rampage streak badge — near the crosshair, shows the live streak. -->
+        <div id="rampage-badge" class="hidden">
+          <span class="rb-flame">🔥</span>
+          <span class="rb-label">ON FIRE</span>
+          <span class="rb-count">×5</span>
+        </div>
+
         <!-- Gun Game ticker — top-center. Shows your weapon-ladder progress.
              Populated by main.ts via GunGame.onLocalTierChange. -->
         <div id="gungame-ticker" class="hidden">
@@ -271,7 +281,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.27</p>
+          <p class="subtitle">Browser arena shooter · v0.28</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -341,7 +351,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.27.0 — Railgun · Daily Rewards · Arena Power-Ups · TDM · Onslaught · LMG · Cobalt</div>
+          <div>v0.28.0 — ON FIRE rampage · Railgun · Daily Rewards · Power-Ups · TDM · Onslaught</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

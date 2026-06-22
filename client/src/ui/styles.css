@@ -627,6 +627,68 @@ body.kill-flash #app::after {
   50%      { opacity: 0.95; }
 }
 
+/* ── Rampage "ON FIRE" aura — persistent heat glow while on a killstreak. ──── */
+#rampage-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;                 /* under HP/low-HP vignettes, over the world */
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  /* Hot glow rising from the bottom edge, intensity set by the tier var. */
+  background:
+    radial-gradient(120% 70% at 50% 118%, var(--rampage-col, rgba(255,140,40,0.55)) 0%, transparent 60%);
+  box-shadow: inset 0 0 120px 10px var(--rampage-edge, rgba(255,120,40,0.22));
+}
+body.rampage-on #rampage-aura {
+  opacity: 1;
+  animation: rampage-flicker 1.1s ease-in-out infinite;
+}
+body.rampage-t1 #rampage-aura { --rampage-col: rgba(255, 140, 40, 0.50); --rampage-edge: rgba(255, 120, 40, 0.20); }
+body.rampage-t2 #rampage-aura { --rampage-col: rgba(255, 70, 60, 0.60);  --rampage-edge: rgba(255, 60, 50, 0.28); }
+body.rampage-t3 #rampage-aura { --rampage-col: rgba(200, 74, 255, 0.60); --rampage-edge: rgba(170, 60, 255, 0.30); }
+@keyframes rampage-flicker {
+  0%, 100% { opacity: 0.78; }
+  45%      { opacity: 1; }
+  70%      { opacity: 0.86; }
+}
+
+/* Rampage streak badge — above the crosshair, escalates with the aura. */
+#rampage-badge {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 46px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: rgba(10, 8, 8, 0.62);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 140, 60, 0.4);
+  pointer-events: none;
+  z-index: 8;
+  white-space: nowrap;
+}
+#rampage-badge.hidden { display: none; }
+#rampage-badge .rb-flame { font-size: 14px; filter: drop-shadow(0 0 4px rgba(255,120,40,0.9)); }
+#rampage-badge .rb-label {
+  font: 800 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ff8a3a;
+  text-shadow: 0 0 8px rgba(255, 120, 40, 0.6);
+}
+#rampage-badge .rb-count {
+  font: 800 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: #fff;
+}
+#rampage-badge.rb-pop { animation: rampage-badge-pop 0.4s ease-out; }
+@keyframes rampage-badge-pop {
+  0%   { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  55%  { transform: translateX(-50%) scale(1.18); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
 /* Speed lines — radial motion streaks at the screen edges. Opacity is driven
    per-frame from main.ts (--speed-lines-op). A faint conic streak texture over
    a darkening edge vignette sells the "going fast" feel without a 3D pass. */
