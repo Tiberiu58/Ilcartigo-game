@@ -166,6 +166,10 @@
         <!-- Floating "+XP" reward chips on kills. ProgressionFX.ts appends here. -->
         <div id="reward-popups"></div>
 
+        <!-- Achievement (career-medal) toasts — slide in bottom-right when a
+             medal tier unlocks. Populated by AchievementToast.ts. -->
+        <div id="achievement-toasts"></div>
+
         <!-- Rank badge — level + tier, bottom-left. Synced by ProgressionFX.ts. -->
         <div id="rank-badge"></div>
 
@@ -302,7 +306,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.33</p>
+          <p class="subtitle">Browser arena shooter · v0.34</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -398,7 +402,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.33.0 — Duel · Railgun · Power-ups · Daily rewards · Skill-shots · Frostline · Rampage · 6 maps · 8 weapons</div>
+          <div>v0.34.0 — Achievements · Duel · Railgun · Power-ups · Daily rewards · Skill-shots · Frostline · 6 maps · 8 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -665,6 +669,13 @@
 
               <h4 class="prof-section-title">Daily Challenges</h4>
               <div class="challenges-list" id="challenges-list">
+                <!-- Populated by ProfileUI -->
+              </div>
+
+              <h4 class="prof-section-title">
+                Achievements <span class="ach-count" id="ach-count"></span>
+              </h4>
+              <div class="ach-grid" id="ach-grid">
                 <!-- Populated by ProfileUI -->
               </div>
             </section>

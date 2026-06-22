@@ -20,6 +20,7 @@ import {
   type WeaponSkinId, type WeaponSkinConfig,
 } from './Cosmetics';
 import type { ClassId } from '../classes/types';
+import { ACHIEVEMENTS, type AchievementUnlock } from './Achievements';
 
 const STORAGE_KEY = 'ilc.account';
 const XP_PER_LEVEL = 1000;
@@ -82,6 +83,8 @@ interface AccountData {
   daily: DailyState;
   /** Daily-login streak (show-up reward, separate from the in-match challenges). */
   login: LoginState;
+  /** Per-achievement count of tiers already granted (career medals). */
+  achievements: Record<string, number>;
 }
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
@@ -183,6 +186,7 @@ function freshData(): AccountData {
     name: '',
     daily: freshDaily(freshStats()),
     login: { last: '', streak: 0 },
+    achievements: {},
   };
 }
 
@@ -190,6 +194,8 @@ export class Account {
   private data: AccountData = freshData();
   /** Listeners notified on any mutation (XP gain, unlock, equip). */
   private listeners = new Set<() => void>();
+  /** Listeners notified when an achievement tier is freshly unlocked (toasts). */
+  private achListeners = new Set<(u: AchievementUnlock) => void>();
 
   constructor() {
     this.load();
@@ -246,7 +252,17 @@ export class Account {
           && typeof (parsed.login as LoginState).streak === 'number')
           ? parsed.login as LoginState
           : fresh.login,
+        achievements: (parsed.achievements && typeof parsed.achievements === 'object')
+          ? parsed.achievements as Record<string, number>
+          : fresh.achievements,
       };
+      // Migration: an older save predates achievements. Baseline each medal to
+      // the tier its current metric already meets WITHOUT paying out XP, so we
+      // never retro-dump rewards / spam toasts for stats earned before this
+      // update. Only crossings made after the migration pay out.
+      if (!parsed.achievements || typeof parsed.achievements !== 'object') {
+        this.seedAchievementBaseline();
+      }
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
     } catch (e) {
@@ -477,6 +493,7 @@ export class Account {
     this.data.stats.kills++;
     if (isHeadshot) this.data.stats.headshots++;
     this.save();
+    this.checkAchievements();
   }
 
   /** Record a local-player death. */
@@ -490,6 +507,7 @@ export class Account {
     if (streak > this.data.stats.bestStreak) {
       this.data.stats.bestStreak = streak;
       this.save();
+      this.checkAchievements();
     }
   }
 
@@ -498,6 +516,9 @@ export class Account {
     this.data.stats.matches++;
     if (won) this.data.stats.wins++;
     this.save();
+    // Catches match/win medals plus the onslaught/duel best-PB medals, whose
+    // metrics read the localStorage bests the modes write at run's end.
+    this.checkAchievements();
   }
 
   /** Accumulate played time. Called periodically with elapsed seconds; we
@@ -509,6 +530,7 @@ export class Account {
       this.data.stats.playSeconds += Math.floor(this.playSecondsAccum);
       this.playSecondsAccum -= Math.floor(this.playSecondsAccum);
       this.save();
+      this.checkAchievements();
     }
   }
 
@@ -587,6 +609,67 @@ export class Account {
     this.data.xp += st.reward;
     this.save();
     return { day: st.day, reward: st.reward };
+  }
+
+  // ── Achievements (career medals) ──────────────────────────────────────────
+
+  /** Subscribe to fresh achievement unlocks (for toasts). Returns unsubscribe. */
+  onAchievement(fn: (u: AchievementUnlock) => void): () => void {
+    this.achListeners.add(fn);
+    return () => this.achListeners.delete(fn);
+  }
+
+  /** Tiers granted so far for a medal id. */
+  achievementTier(id: string): number {
+    return this.data.achievements[id] ?? 0;
+  }
+
+  /**
+   * Set each medal's granted-tier count to whatever its metric already meets,
+   * WITHOUT awarding XP. Used on first migration so existing players keep their
+   * earned medals but don't get a retroactive XP dump. No save here — the
+   * caller (load) persists once it finishes assembling state.
+   */
+  private seedAchievementBaseline() {
+    for (const ach of ACHIEVEMENTS) {
+      const value = ach.metric(this);
+      let g = 0;
+      while (g < ach.tiers.length && value >= ach.tiers[g].goal) g++;
+      this.data.achievements[ach.id] = g;
+    }
+  }
+
+  /**
+   * Evaluate every medal; grant XP + record any newly-met tiers (possibly
+   * several at once). Saves + fires achievement listeners only if something
+   * unlocked, so the common (no-unlock) path is a cheap loop. Returns the
+   * unlocks for the caller's convenience.
+   */
+  checkAchievements(): AchievementUnlock[] {
+    const unlocked: AchievementUnlock[] = [];
+    for (const ach of ACHIEVEMENTS) {
+      const granted = this.data.achievements[ach.id] ?? 0;
+      const value = ach.metric(this);
+      let g = granted;
+      while (g < ach.tiers.length && value >= ach.tiers[g].goal) {
+        this.data.xp += ach.tiers[g].reward;
+        unlocked.push({ ach, tierIndex: g, reward: ach.tiers[g].reward });
+        g++;
+      }
+      if (g !== granted) this.data.achievements[ach.id] = g;
+    }
+    if (unlocked.length > 0) {
+      this.save();
+      for (const u of unlocked) for (const fn of this.achListeners) fn(u);
+    }
+    return unlocked;
+  }
+
+  /** Total achievement tiers unlocked across all medals (for "N/total"). */
+  get achievementsUnlocked(): number {
+    let n = 0;
+    for (const ach of ACHIEVEMENTS) n += this.data.achievements[ach.id] ?? 0;
+    return n;
   }
 
   /** Reset to fresh state. Wipes XP, cosmetics, AND lifetime stats. */

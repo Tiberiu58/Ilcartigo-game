@@ -1213,3 +1213,59 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 34 — Achievements / Career Medals (autonomous build, v0.34.0)
+
+The long-term retention hook the game still lacked. Daily challenges reward
+*today's* play and daily-login rewards reward *showing up*, but nothing rewarded
+**career milestones** — the "I'm 40 kills from the next medal, one more game"
+pull that keeps players grinding (→ more sessions → more ad impressions). Phase
+34 adds a tiered achievement system on top of the existing lifetime-stat
+tracking. Pure-client, migration-safe, **no protocol/server change** — solo + MP
++ every prior mode intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **8 career medals, 25 tiers total.** Eliminator (kills 50/250/1k/5k),
+  Headhunter (headshots 25/100/500), Champion (wins 5/25/100), Veteran (matches
+  10/50/200), Unstoppable (best streak 5/10/20), No Life (playtime 1/5/20 h),
+  Survivor (Onslaught best wave 5/10/20), Duelist (Duel best streak 3/7/15).
+  Each tier grants a one-time XP reward (200 → 4000). New `account/Achievements.ts`
+  registry — pure data, metric closures read `Account.stats` (career) or a mode's
+  persisted PB from localStorage (Onslaught/Duel own those keys).
+- **Migration-safe, no retro-dump.** `Account` gained `achievements:
+  Record<id, grantedTierCount>`. On the first load of an existing save (field
+  absent), `seedAchievementBaseline()` sets each medal to the tier its current
+  metric already meets **without** awarding XP — so veterans keep their earned
+  medals but get no surprise XP flood / toast spam; only crossings *after* the
+  update pay out. `checkAchievements()` grants every newly-met tier (can be
+  several at once), saves once, and fires achievement listeners.
+- **Wired into the stat flow.** `recordKill` / `recordStreak` / `recordMatchEnd`
+  / `addPlaytime` call `checkAchievements()` after persisting; `Onslaught.endRun`
+  / `Duel.endRun` call it right after writing their PB so the Survivor/Duelist
+  medal can pop on the results card. Common (no-unlock) path is just a cheap loop.
+- **Toast + Profile UI.** New `ui/AchievementToast.ts` — bottom-right "ACHIEVEMENT
+  UNLOCKED" cards (glyph + medal name + tier + XP), queued so simultaneous
+  unlocks play one-after-another, with an `achievement` SFX (silent until the
+  asset lands). New **Achievements grid** in the Profile settings tab: every
+  medal with its current tier, a progress bar toward the next tier (floored at
+  the previous tier's goal), the next reward, an "N/25" completion count, and a
+  "maxed" state. Earned medals brighten; locked ones dim/grayscale.
+
+New `achievement` sound id reserved (silent until `achievement.wav` is dropped in).
+
+### Status log
+- ✅ Phase 34 — Achievements. DONE (client + server tsc + client build green; app
+  chunk ~86 KB gzip, 95 modules; headless test confirmed multi-tier crossing,
+  correct XP totals, idempotency, and the 25-tier registry). New
+  `account/Achievements.ts` + `ui/AchievementToast.ts`, `Account` extension
+  (`achievements` state + `seedAchievementBaseline`/`checkAchievements`/
+  `achievementTier`/`achievementsUnlocked`/`onAchievement`), Onslaught/Duel
+  endRun hooks, ProfileUI grid, `#achievement-toasts` + Profile-tab DOM + CSS,
+  `achievement` sound id, main.ts wiring. Versions bumped to v0.34.0 (+ menu
+  subtitle/footer).
+
+### Phase 34 COMPLETE — career-medal progression, pure client, no protocol change, solo + MP intact.

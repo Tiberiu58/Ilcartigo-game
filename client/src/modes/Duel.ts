@@ -164,6 +164,8 @@ export class Duel {
     const prevBest = Number(localStorage.getItem(PB_KEY) ?? 0);
     const isNewBest = this.wins > prevBest;
     if (isNewBest) localStorage.setItem(PB_KEY, String(this.wins));
+    // A new best win-streak may have just earned a Duelist medal tier.
+    this.game.account.checkAchievements();
 
     this.onEnd?.({
       wins: this.wins,

@@ -28,6 +28,7 @@ import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
+import { AchievementToast } from './ui/AchievementToast';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
@@ -1303,6 +1304,8 @@ const cosmeticsUI = new CosmeticsUI(game.account);
 void cosmeticsUI;
 const profileUI = new ProfileUI(game.account);
 void profileUI;
+const achievementToast = new AchievementToast(game.account, game.audio);
+void achievementToast;
 
 // Reset progression button — wipes XP + unlocks + equipped cosmetics after a
 // confirm prompt. Useful for testing the unlock loop or for players who want

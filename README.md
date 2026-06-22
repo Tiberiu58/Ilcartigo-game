@@ -2,7 +2,16 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.33.0 — **second routine-integration round.** Two more autonomous build branches merged onto `main`, combining everything they each built. **From the power-ups/progression branch:** **Arena Power-Ups** (OVERCHARGE ×1.7 dmg, RAPID FIRE ×1.55 RoF, OVERSHIELD 50%-absorb — contested buff pads, solo-only), the **Railgun** (8th weapon — piercing beam, one-shot heads, line multi-kills), **Daily Login Rewards** (7-day escalating XP streak), **"ON FIRE" rampage** (persistent killstreak aura), **cosmetics expansion** (kill effects →8, tracers →10, finishes →8), and **skill-shot callouts** (NO SCOPE / AIRBORNE / LONGSHOT). **From the content/feel branch:** **Duel** (solo 1v1 gauntlet — single-elimination ladder vs escalating rivals), **Frostline** (6th combat map, frozen tundra), **weapon identity cards** (archetype + stat bars in the loadout), a **rising hitmarker**, and a **kill banner** ("ELIMINATED {name}"). Their overlapping post-match work was reconciled into one card (accolade + stat strip + NEW PERSONAL BEST). All pure-client / zero-protocol — solo + live MP both intact. Built on the v0.24.0 routine-integration round (Team Deathmatch, Onslaught, Cobalt + Overpass maps, LMG, melee, grenade, nameplates, bot difficulty), the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified), and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
+> **Status:** v0.34.0 — **Achievements / Career Medals** (this round). A tiered,
+> career-spanning progression layer on top of the existing lifetime stats: **8
+> medals / 25 tiers** (Eliminator, Headhunter, Champion, Veteran, Unstoppable, No
+> Life, Survivor, Duelist), each tier granting one-time XP (200→4000). New
+> bottom-right **"ACHIEVEMENT UNLOCKED" toasts**, a full **Achievements grid in
+> the Profile tab** (current tier, progress-to-next, "N/25" completion), and
+> migration-safe baselining so existing saves keep their earned medals with no
+> retroactive XP dump. Pure-client, no protocol change — solo + MP both intact.
+>
+> Built on **v0.33.0 — the second routine-integration round.** Two more autonomous build branches merged onto `main`, combining everything they each built. **From the power-ups/progression branch:** **Arena Power-Ups** (OVERCHARGE ×1.7 dmg, RAPID FIRE ×1.55 RoF, OVERSHIELD 50%-absorb — contested buff pads, solo-only), the **Railgun** (8th weapon — piercing beam, one-shot heads, line multi-kills), **Daily Login Rewards** (7-day escalating XP streak), **"ON FIRE" rampage** (persistent killstreak aura), **cosmetics expansion** (kill effects →8, tracers →10, finishes →8), and **skill-shot callouts** (NO SCOPE / AIRBORNE / LONGSHOT). **From the content/feel branch:** **Duel** (solo 1v1 gauntlet — single-elimination ladder vs escalating rivals), **Frostline** (6th combat map, frozen tundra), **weapon identity cards** (archetype + stat bars in the loadout), a **rising hitmarker**, and a **kill banner** ("ELIMINATED {name}"). Their overlapping post-match work was reconciled into one card (accolade + stat strip + NEW PERSONAL BEST). All pure-client / zero-protocol — solo + live MP both intact. Built on the v0.24.0 routine-integration round (Team Deathmatch, Onslaught, Cobalt + Overpass maps, LMG, melee, grenade, nameplates, bot difficulty), the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified), and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -311,6 +320,12 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `pickup_powerup.wav` | Arena power-up grab (overcharge / rapid) | "power up", "buff activate", "energy pickup" |
 | `fire_railgun.wav` | Railgun beam discharge (heavy electric crack) | "railgun", "energy beam shot", "sci-fi laser shot" |
 | `fire_lmg.wav` | LMG burst (deep rapid chug) | "machine gun", "lmg shot", "heavy mg" |
+
+**Phase 34 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `achievement.wav` | Career-medal unlock chime (short, bright, rewarding) | "achievement unlock", "level complete", "reward chime" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 

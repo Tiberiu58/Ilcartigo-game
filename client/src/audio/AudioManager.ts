@@ -66,6 +66,8 @@ export const SOUND_FILES = {
   ui_click:      'ui_click.wav',
   // Progression — celebratory sting when XP crosses a level boundary.
   level_up:      'level_up.wav',
+  // Career medal unlocked — a short, bright achievement chime.
+  achievement:   'achievement.wav',
 
   // Low-HP danger cue — a slow heartbeat throbs while health is critical.
   heartbeat:     'heartbeat.wav',

@@ -204,6 +204,8 @@ export class Onslaught {
     const prevBest = Number(localStorage.getItem(PB_KEY) ?? 0);
     const isNewBest = this.wave > prevBest;
     if (isNewBest) localStorage.setItem(PB_KEY, String(this.wave));
+    // A new best-wave may have just earned a Survivor medal tier.
+    this.game.account.checkAchievements();
 
     this.onEnd?.({
       wave: this.wave,

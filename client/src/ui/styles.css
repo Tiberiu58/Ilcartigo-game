@@ -3041,6 +3041,135 @@ body.no-speedlines #speed-lines { display: none; }
   100% { opacity: 0; transform: translate(calc(-50% + var(--rp-jitter, 0px)), -52px) scale(1.0); }
 }
 
+/* ── Achievement (career-medal) toasts ─────────────────────────────────────
+   Slide in from the bottom-right when a medal tier unlocks. */
+#achievement-toasts {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 30;
+  pointer-events: none;
+}
+.ach-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+  max-width: 320px;
+  padding: 11px 15px;
+  background: linear-gradient(135deg, rgba(14, 16, 22, 0.96), rgba(20, 24, 34, 0.96));
+  border: 1px solid var(--ach-color, #ffd24a);
+  border-left: 4px solid var(--ach-color, #ffd24a);
+  border-radius: 9px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), 0 0 16px color-mix(in srgb, var(--ach-color, #ffd24a) 35%, transparent);
+  transform: translateX(140%);
+  opacity: 0;
+  transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.42s ease;
+}
+.ach-toast.ach-in  { transform: translateX(0); opacity: 1; }
+.ach-toast.ach-out { transform: translateX(140%); opacity: 0; }
+.ach-glyph {
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ach-color, #ffd24a) 60%, transparent));
+}
+.ach-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ach-kicker {
+  font: 800 9px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2.5px;
+  color: var(--ach-color, #ffd24a);
+  opacity: 0.85;
+}
+.ach-title {
+  font: 800 15px/1.1 'Inter', system-ui, sans-serif;
+  color: #fff;
+}
+.ach-title em {
+  font-style: normal;
+  color: var(--ach-color, #ffd24a);
+  font-size: 13px;
+}
+.ach-sub {
+  font: 600 11px/1.2 'JetBrains Mono', Consolas, monospace;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Achievements grid (Profile tab) ──────────────────────────────────────── */
+.ach-count {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent);
+  margin-left: 6px;
+}
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+  margin-bottom: 8px;
+}
+@media (max-width: 720px) { .ach-grid { grid-template-columns: 1fr; } }
+.ach-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  opacity: 0.62;
+  transition: opacity 0.12s ease, border-color 0.12s ease;
+}
+.ach-card.ach-earned {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--ach-color, #ffd24a) 45%, rgba(255,255,255,0.1));
+}
+.ach-card.ach-maxed {
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), color-mix(in srgb, var(--ach-color, #ffd24a) 12%, transparent));
+  border-color: var(--ach-color, #ffd24a);
+}
+.ach-card-glyph {
+  font-size: 26px;
+  line-height: 1;
+  flex: 0 0 auto;
+  filter: grayscale(1) brightness(0.8);
+}
+.ach-card.ach-earned .ach-card-glyph {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ach-color, #ffd24a) 55%, transparent));
+}
+.ach-card-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
+.ach-card-name {
+  font: 800 13px/1 'Inter', system-ui, sans-serif;
+  color: #fff;
+}
+.ach-card-name em {
+  font-style: normal;
+  color: var(--ach-color, #ffd24a);
+  font-size: 11px;
+  margin-left: 3px;
+}
+.ach-card-bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ach-card-fill {
+  height: 100%;
+  background: var(--ach-color, #ffd24a);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.ach-card-foot {
+  font: 600 10px/1.2 'JetBrains Mono', Consolas, monospace;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 /* Crosshair preset buttons. */
 .ch-presets {
   display: flex;

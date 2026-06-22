@@ -8,6 +8,7 @@
 
 import type { Account } from '../account/Account';
 import { DRILLS, type DrillId } from '../modes/AimLab';
+import { ACHIEVEMENTS, TIER_LABELS, TOTAL_ACHIEVEMENT_TIERS } from '../account/Achievements';
 
 export class ProfileUI {
   private account: Account;
@@ -19,6 +20,8 @@ export class ProfileUI {
   private statsGrid: HTMLElement;
   private aimlabBests: HTMLElement | null;
   private challengesList: HTMLElement;
+  private achGrid: HTMLElement | null;
+  private achCount: HTMLElement | null;
 
   constructor(account: Account) {
     this.account = account;
@@ -30,6 +33,8 @@ export class ProfileUI {
     this.statsGrid = document.getElementById('stats-grid')!;
     this.aimlabBests = document.getElementById('aimlab-bests');
     this.challengesList = document.getElementById('challenges-list')!;
+    this.achGrid = document.getElementById('ach-grid');
+    this.achCount = document.getElementById('ach-count');
 
     // Name save.
     this.nameInput.value = account.hasName ? account.name : '';
@@ -63,6 +68,39 @@ export class ProfileUI {
     this.renderStats();
     this.renderAimlabBests();
     this.renderChallenges();
+    this.renderAchievements();
+  }
+
+  private renderAchievements() {
+    if (!this.achGrid) return;
+    if (this.achCount) {
+      this.achCount.textContent = `${this.account.achievementsUnlocked} / ${TOTAL_ACHIEVEMENT_TIERS}`;
+    }
+    this.achGrid.innerHTML = ACHIEVEMENTS.map((ach) => {
+      const granted = this.account.achievementTier(ach.id);
+      const maxed = granted >= ach.tiers.length;
+      const value = ach.metric(this.account);
+      const tierLabel = granted > 0 ? (TIER_LABELS[granted - 1] ?? String(granted)) : '';
+      // Progress toward the next tier (from the previous tier's goal as the floor).
+      let pct = 100, foot = '';
+      if (!maxed) {
+        const next = ach.tiers[granted];
+        const floor = granted > 0 ? ach.tiers[granted - 1].goal : 0;
+        pct = Math.max(0, Math.min(100, ((value - floor) / (next.goal - floor)) * 100));
+        foot = `${value.toLocaleString()} / ${next.goal.toLocaleString()} ${ach.unit} · +${next.reward} XP`;
+      } else {
+        foot = `★ all ${ach.tiers.length} tiers · maxed`;
+      }
+      return `
+        <div class="ach-card ${maxed ? 'ach-maxed' : ''} ${granted > 0 ? 'ach-earned' : ''}" style="--ach-color:${ach.color}">
+          <span class="ach-card-glyph">${ach.glyph}</span>
+          <div class="ach-card-info">
+            <span class="ach-card-name">${ach.name}${tierLabel ? ` <em>${tierLabel}</em>` : ''}</span>
+            <div class="ach-card-bar"><div class="ach-card-fill" style="width:${pct}%"></div></div>
+            <span class="ach-card-foot">${foot}</span>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   private renderAimlabBests() {
