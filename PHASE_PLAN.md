@@ -965,3 +965,28 @@ default-unlock + migration logic is untouched.
   (+ menu subtitle/footer).
 
 ### Phase 31 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 32 — Skill-shot callouts (autonomous build, v0.32.0)
+
+Rewards *how* you frag — the skill-expression hooks (NO SCOPE / AIRBORNE /
+LONGSHOT) that make a clutch kill feel earned and pull you toward the next one.
+Pure-client, no protocol change.
+
+- **NO SCOPE** (sniper kill while un-scoped), **AIRBORNE** (player `state ===
+  'air'` at kill time), **LONGSHOT** (lethal `hitPoint` ≥45 m from the player).
+- **Clean integration.** New optional `Announcer.resolveKillStyle(e)` (wired in
+  `main.ts`, reads live `game.player`/`game.inventory` state). `onLocalKill` now
+  takes the full `KillEvent`; the style slots into the existing headline
+  priority just under First Blood/Revenge/Comeback and over multi/streak (which
+  ride the subline). Railgun collaterals already surface via the multi-kill chain
+  (2 pierced kills = DOUBLE KILL), so no special-casing needed there.
+
+### Status log
+- ✅ Phase 32 — Skill-shot callouts. DONE (client + server tsc + client build
+  green; app chunk ~81.9 KB gzip). `STYLE_TIERS` + `KillStyle` +
+  `resolveKillStyle` in Announcer (onLocalKill takes KillEvent), main.ts
+  resolver. Versions bumped to v0.32.0 (+ menu subtitle/footer).
+
+### Phase 32 COMPLETE — pure client, no protocol change, solo + MP intact.

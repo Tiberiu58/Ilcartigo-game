@@ -103,6 +103,16 @@ const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
 const rampage = new RampageFX();
 announcer.onStreakChange = (streak) => rampage.setStreak(streak);
+// Skill-shot callouts — inspect the live player/weapon state at kill time.
+announcer.resolveKillStyle = (e) => {
+  // NO SCOPE: a sniper kill landed without being scoped.
+  if (e.weaponId === 'sniper' && !game.inventory.isScoped) return 'noscope';
+  // AIRBORNE: you were off the ground when the kill landed.
+  if (game.player.state === 'air') return 'airborne';
+  // LONGSHOT: the lethal hit was far from you.
+  if (e.hitPoint && game.player.pos.distanceTo(e.hitPoint) >= 45) return 'longshot';
+  return null;
+};
 const damageDir = new DamageDirection(game);
 void damageDir;
 // Progression spectacle — rank badges (HUD + menu), level-up banner, +XP popups.

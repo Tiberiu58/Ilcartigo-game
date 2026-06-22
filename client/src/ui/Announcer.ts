@@ -21,7 +21,7 @@
  * beyond `isLocalPlayer` + the event bus + the audio manager.
  */
 
-import type { GameEventBus } from '../core/events';
+import type { GameEventBus, KillEvent } from '../core/events';
 import type { AudioManager, SoundId } from '../audio/AudioManager';
 
 /** A local kill chains into the current multi-kill if it lands within this. */
@@ -61,6 +61,16 @@ const SPECIAL_TIERS = {
   comeback:   { text: 'COMEBACK',    color: '#4ad6ff', sound: 'comeback' as SoundId,    scale: 1.3 },
 } satisfies Record<string, Tier>;
 
+// Skill-shot callouts — flashy "how" of a kill (a resolver in main.ts reads the
+// player/weapon state at kill time). They take headline priority just under the
+// firstBlood/revenge/comeback specials, over the generic multi/streak banners.
+export type KillStyle = 'noscope' | 'airborne' | 'longshot';
+const STYLE_TIERS: Record<KillStyle, Tier> = {
+  noscope:  { text: 'NO SCOPE', color: '#4ad6ff', sound: 'kill_feedback', scale: 1.35 },
+  airborne: { text: 'AIRBORNE', color: '#7ae47a', sound: 'kill_feedback', scale: 1.3  },
+  longshot: { text: 'LONGSHOT', color: '#ffd24a', sound: 'kill_feedback', scale: 1.3  },
+};
+
 /** Deaths since your last kill needed before the next kill counts as a Comeback. */
 const COMEBACK_DEATHS = 3;
 
@@ -84,6 +94,9 @@ export class Announcer {
   /** Fired whenever the local killstreak changes (kill / death / reset). Drives
    *  the persistent "ON FIRE" rampage aura. */
   onStreakChange?: (streak: number) => void;
+  /** Optional resolver (injected by main.ts) that inspects a local kill + the
+   *  live game state and returns a skill-shot style to call out, or null. */
+  resolveKillStyle?: (e: KillEvent) => KillStyle | null;
 
   private streak = 0;
   /** Highest streak reached this match — surfaced on the post-match summary. */
@@ -109,7 +122,7 @@ export class Announcer {
       const firstOfMatch = !this.matchHadKill;
       this.matchHadKill = true;
       if (this.isLocal(e.attackerId) && !this.isLocal(e.targetId)) {
-        this.onLocalKill(e.targetId, firstOfMatch);
+        this.onLocalKill(e, firstOfMatch);
       }
       // Dying resets our streak + multi chain (whether we were killed by a
       // player or fell — any death of the local player counts).
@@ -136,7 +149,8 @@ export class Announcer {
     this.onStreakChange?.(0);
   }
 
-  private onLocalKill(victimId: string, firstOfMatch: boolean) {
+  private onLocalKill(e: KillEvent, firstOfMatch: boolean) {
+    const victimId = e.targetId;
     const now = performance.now();
     // Multi-kill chaining.
     if (now - this.lastKillAt <= MULTIKILL_WINDOW * 1000) {
@@ -157,6 +171,12 @@ export class Announcer {
       special = SPECIAL_TIERS.revenge;
     } else if (this.deathsSinceKill >= COMEBACK_DEATHS) {
       special = SPECIAL_TIERS.comeback;
+    }
+    // Skill-shot callout (NO SCOPE / AIRBORNE / LONGSHOT) — only when no rarer
+    // special already claimed the headline.
+    if (!special && this.resolveKillStyle) {
+      const style = this.resolveKillStyle(e);
+      if (style) special = STYLE_TIERS[style];
     }
     // Avenged → clear the grudge so we don't re-announce it next kill.
     if (this.lastKilledMeBy && victimId === this.lastKilledMeBy) this.lastKilledMeBy = null;
