@@ -1306,3 +1306,42 @@ client, **no protocol change** — solo + MP both intact.
   footer).
 
 ### Phase 35 COMPLETE — combat-feel hit-flash, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 36 — Voltage (new combat map) (autonomous build, v0.36.0)
+
+Fresh content is the highest-leverage "one more game" lever in an arena shooter,
+and a new map deepens **every** solo combat mode at once (FFA / TDM / Gun Game /
+Onslaught / Duel + the map selector). ILCARTIGO had five combat maps; Phase 36
+adds a sixth with a distinct identity: **a neon cyber arena**.
+
+- **Voltage** — near-black panelled ground lit by a glowing cyan grid, dual
+  magenta + cyan neon trim, and translucent emissive **light-pylon** cover. The
+  darkest/flashiest map, for instant contrast with warm Sandstone, rusty
+  Industrial, steel Cobalt, dusk Overpass and icy Frostline. A dual-accent scheme
+  (magenta N/E, cyan S/W) gives the symmetric arena directional flair.
+- **Built on the proven symmetric Cobalt/Frostline skeleton** — the collidable
+  geometry coordinates are byte-identical to Frostline's (headless-verified
+  layout), so every TDM side is fair and all spawns are known-clear. Only the
+  theme + cover styling change: ice blocks become glowing light-pylons, the floor
+  gains a neon grid, and the lighting drops to a night-arena key + magenta/cyan
+  rim fills. Verticality stays jump-pad-driven (no step-up-snagging ledges).
+- **Solo-selectable, zero MP risk.** New `maps/VoltageMap.ts` registered in
+  `MapId` / `MAPS` + a loadout button + the `COMBAT_MAPS` validation list; health
+  pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in
+  sync). The MP server still defaults to Sandstone and clients adopt the server's
+  map, so Voltage needs no protocol/server change.
+- **Verified geometry headlessly** — a mock-World harness ran the real
+  `buildVoltage` and asserted **all 6 FFA + TDM spawns sit clear of every solid**
+  (27 solids, matching Frostline's count).
+
+### Status log
+- ✅ Phase 36 — Voltage map. DONE (client + server tsc + client build green;
+  headless spawn-clearance test passed — all 6 spawns clear, 27 solids). New
+  `maps/VoltageMap.ts` (neon palette, glowing grid floor, emissive light-pylon
+  cover, dual magenta/cyan accents, night lighting), full wiring
+  (MapId/MAPS/menu/COMBAT_MAPS), Voltage pickups mirrored client + server.
+  Versions bumped to v0.36.0 (+ menu subtitle/footer). App chunk ~87.3 KB gzip.
+
+### Phase 36 COMPLETE — sixth combat map, solo-selectable, no protocol change, solo + MP intact.

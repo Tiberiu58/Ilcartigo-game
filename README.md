@@ -2,7 +2,13 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.35.0 — **Enemy hit-flash** (this round). The struck figure now
+> **Status:** v0.36.0 — **Voltage** (this round). A sixth combat map: a neon
+> cyber arena — near-black ground lit by a glowing cyan grid, dual magenta/cyan
+> neon trim, translucent light-pylon cover. Built on the proven symmetric
+> Frostline skeleton (headless spawn-verified), solo-selectable across every
+> combat mode, no protocol change.
+>
+> **v0.35.0 — Enemy hit-flash.** The struck figure
 > pops bright on every landed hit (red-white on a headshot) — the instant Krunker
 > "I'm tagging them" confirmation that makes spraying feel good and fights read
 > at a glance. Works on bots (solo) and remotes (MP), for any attacker (TDM
