@@ -29,6 +29,7 @@ import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
+import { LOGIN_REWARDS } from './account/Account';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -1003,6 +1004,60 @@ menuHowto.addEventListener('click', () => { showHowto(); game.audio.play('ui_cli
 // Auto-show once for brand-new players (after the menu is up).
 if (!localStorage.getItem(HOWTO_SEEN_KEY)) {
   showHowto();
+}
+
+// ─── Daily login reward ────────────────────────────────────────────────────
+const dailyOverlay = document.getElementById('daily-overlay')!;
+const dailyTrack = document.getElementById('daily-track')!;
+const dailySub = document.getElementById('daily-sub')!;
+const dailyClaim = document.getElementById('daily-claim') as HTMLButtonElement;
+const dailyDismiss = document.getElementById('daily-dismiss') as HTMLButtonElement;
+const menuDaily = document.getElementById('menu-daily') as HTMLButtonElement;
+
+function renderDaily() {
+  const st = game.account.dailyLoginStatus();
+  dailyTrack.replaceChildren();
+  for (let i = 0; i < LOGIN_REWARDS.length; i++) {
+    const chip = document.createElement('div');
+    chip.className = 'daily-day';
+    if (i === st.cycleIndex) chip.classList.add(st.available ? 'today' : 'done');
+    else if (i < st.cycleIndex) chip.classList.add('past');
+    if (i === LOGIN_REWARDS.length - 1) chip.classList.add('jackpot');
+    chip.innerHTML = `<span class="dd-label">Day ${i + 1}</span><span class="dd-xp">+${LOGIN_REWARDS[i]}</span>`;
+    dailyTrack.appendChild(chip);
+  }
+  if (st.available) {
+    dailySub.textContent = st.day > 1
+      ? `${st.day}-day streak 🔥 — claim Day ${st.day}.`
+      : `Welcome back — claim your Day 1 reward.`;
+    dailyClaim.disabled = false;
+    dailyClaim.textContent = `▸ Claim +${st.reward} XP`;
+  } else {
+    dailySub.textContent = `Claimed today — ${st.streak}-day streak 🔥. Come back tomorrow!`;
+    dailyClaim.disabled = true;
+    dailyClaim.textContent = 'Claimed ✓';
+  }
+}
+function showDaily() { renderDaily(); dailyOverlay.classList.remove('hidden'); }
+function hideDaily() { dailyOverlay.classList.add('hidden'); }
+
+dailyClaim.addEventListener('click', () => {
+  const res = game.account.claimDailyLogin();
+  if (res) {
+    game.audio.play('level_up');
+    renderDaily();           // re-render to the claimed state (account.onChange also fires)
+  } else {
+    game.audio.play('ui_click');
+  }
+});
+dailyDismiss.addEventListener('click', () => { hideDaily(); game.audio.play('ui_click'); });
+menuDaily.addEventListener('click', () => { showDaily(); game.audio.play('ui_click'); });
+
+// Auto-show once per session if a reward is waiting — but never on top of the
+// first-run How-to card (brand-new players see that first; daily greets them
+// next session).
+if (localStorage.getItem(HOWTO_SEEN_KEY) && game.account.dailyLoginStatus().available) {
+  showDaily();
 }
 
 // Pointer-lock change → toggle HUD vs pause overlay.

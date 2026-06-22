@@ -2502,6 +2502,90 @@ body.no-speedlines #speed-lines { display: none; }
 .howto-tips b { color: var(--accent); }
 .howto-card .menu-btn { width: 100%; }
 
+/* ── Daily login reward card ──────────────────────────────────────────────── */
+#daily-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 24px;
+}
+#daily-overlay.hidden { display: none; }
+.daily-card {
+  background: var(--panel);
+  border-top: 4px solid #ffd23f;
+  border-radius: 12px;
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  padding: 30px 34px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.daily-card h2 {
+  font-size: 24px;
+  letter-spacing: 3px;
+  color: #ffd23f;
+  text-align: center;
+}
+.daily-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 22px;
+}
+.daily-track {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.daily-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.daily-day .dd-label {
+  font: 700 9px/1 'Segoe UI', sans-serif;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.daily-day .dd-xp {
+  font: 800 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+}
+.daily-day.past { opacity: 0.45; }
+.daily-day.past .dd-xp { color: var(--muted); }
+.daily-day.jackpot { border-color: rgba(255, 210, 63, 0.4); }
+.daily-day.jackpot .dd-xp { color: #ffd23f; }
+.daily-day.today {
+  background: rgba(255, 210, 63, 0.16);
+  border-color: #ffd23f;
+  box-shadow: 0 0 14px rgba(255, 210, 63, 0.3);
+  animation: daily-today-pulse 1.6s ease-in-out infinite;
+}
+.daily-day.today .dd-xp, .daily-day.today .dd-label { color: #ffe27a; }
+.daily-day.done {
+  background: rgba(54, 224, 138, 0.14);
+  border-color: #36e08a;
+}
+.daily-day.done .dd-xp { color: #36e08a; }
+@keyframes daily-today-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 210, 63, 0.25); }
+  50% { box-shadow: 0 0 20px rgba(255, 210, 63, 0.5); }
+}
+.daily-card .menu-btn { width: 100%; }
+.daily-card .menu-btn:disabled { opacity: 0.5; cursor: default; }
+.menu-btn.daily { border-left: 3px solid #ffd23f; }
+.menu-btn.daily:hover { border-left-color: #ffe27a; color: #ffe27a; }
+
 /* ── Phase 13: progression spectacle ─────────────────────────────────────── */
 
 /* Rank badge — shared markup between the HUD (in-game, bottom-left) and the

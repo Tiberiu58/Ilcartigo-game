@@ -780,3 +780,42 @@ green, never break solo / MP / the audit fixes.
   footer).
 
 ### Phase 25 COMPLETE — solo arena power-ups, no protocol change, solo + MP intact.
+
+---
+
+## Phase 26 — Daily Login Rewards (autonomous build, v0.26.0)
+
+After a gameplay round (power-ups), a **retention + revenue** round on a
+different pillar. Every live game runs a "show up and get something" loop; we
+had in-match daily *challenges* but no daily *login* reward. This adds one —
+pure-client, migration-safe, no protocol change — and surfaces it as a card on
+the menu, a natural ad-adjacent moment that pulls players back daily (→ more
+menu ad impressions).
+
+- **Escalating 7-day cycle.** `LOGIN_REWARDS = [100, 150, 200, 300, 400, 600,
+  1200]` XP. Consecutive days advance the streak (day-7 jackpot, then repeats);
+  a missed day resets to day 1; one claim per local day.
+- **`Account` extension (migration-safe).** New `login: { last, streak }` state
+  with a defensive load merge (old saves default cleanly). `dailyLoginStatus()`
+  computes what claiming now would grant + the cycle position + availability;
+  `claimDailyLogin()` awards the XP, advances the streak, once per day. The
+  continue/reset/day-8-cycle/same-day-locked date math was verified with a
+  standalone harness before wiring the UI.
+- **Reward card + menu button.** `#daily-overlay` with a 7-chip track (past
+  dimmed, today pulsing gold, claimed green, the day-7 jackpot styled), a Claim
+  button showing the exact XP, and a streak line. **Auto-shows once per day**
+  when a reward is unclaimed — but gated so it never stacks on the first-run
+  How-to card for brand-new players (they get the daily greeting next session).
+  Replayable from a new **🎁 Daily Reward** menu button. Claiming plays the
+  level-up sting; XP flows through the normal `account.onChange` so the rank +
+  cosmetics UIs update live.
+
+### Status log
+- ✅ Phase 26 — Daily Login Rewards. DONE (client + server tsc + client build
+  green; app chunk ~80.3 KB gzip). `Account.login` state + `dailyLoginStatus`/
+  `claimDailyLogin` + `LOGIN_REWARDS` + `yesterdayKey`/`dateKey` helpers (date
+  logic harness-verified), `#daily-overlay` card + `#menu-daily` button + CSS
+  track, main.ts render/claim/auto-show (How-to-gated). Versions bumped to
+  v0.26.0 (+ menu subtitle/footer).
+
+### Phase 26 COMPLETE — pure client, no protocol change, solo + MP intact.

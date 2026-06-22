@@ -271,7 +271,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.25</p>
+          <p class="subtitle">Browser arena shooter · v0.26</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -333,13 +333,14 @@
             <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
+            <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
             <button class="menu-btn" id="menu-about">About</button>
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.25.0 — Arena Power-Ups · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee</div>
+          <div>v0.26.0 — Daily Rewards · Arena Power-Ups · TDM · Onslaught · Cobalt · Overpass · LMG</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -500,6 +501,18 @@
             <b>Pro tip:</b> headshots hurt more, killstreaks earn glory, and daily challenges in your Profile pay bonus XP.
           </div>
           <button class="menu-btn primary" id="howto-dismiss">▸ Got it — let's play</button>
+        </div>
+      </div>
+
+      <!-- Daily-login reward card — auto-shows once per day when a reward is
+           unclaimed; replayable from the menu. Track + claim wired in main.ts. -->
+      <div id="daily-overlay" class="hidden">
+        <div class="daily-card">
+          <h2>🎁 Daily Reward</h2>
+          <p class="daily-sub" id="daily-sub">Come back every day for bigger XP rewards.</p>
+          <div class="daily-track" id="daily-track"></div>
+          <button class="menu-btn primary" id="daily-claim">▸ Claim</button>
+          <button class="menu-btn" id="daily-dismiss">Close</button>
         </div>
       </div>
 
