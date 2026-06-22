@@ -715,3 +715,68 @@ two Bot type sets — `GameDifficulty` global skill + `BotDifficulty` per-tier +
 app chunk ~78 KB gzip, 89 modules. Versions unified to **v0.24.0**. The
 deliberately-unmerged t2Opo power-up branch from the prior round remains
 unmerged (still conflicts with the health-pickup system).
+
+---
+
+## Phase 25 — Arena Power-Ups (autonomous build, v0.25.0)
+
+The first new *gameplay-loop* addition since map health pickups, and the
+long-deferred roadmap item "arena power-ups (damage boost / haste)". Every prior
+attempt was shelved because a routine branch (t2Opo) entangled power-ups with
+the **health-pickup wire protocol** (its own `Pickup` payload + a `dmr` weapon),
+which would have meant a from-scratch protocol reconciliation. This round sidesteps
+that entirely: power-ups are a **solo-only, weapon-layer** system with **zero
+protocol/server/controller change** — so MP, the two-controller sync, and every
+audit fix are all untouched.
+
+Guiding constraint (kept): no protocol changes, no new deps, typecheck + build
+green, never break solo / MP / the audit fixes.
+
+**Design (why it's low-risk + self-contained):**
+- **New `entities/PowerupManager.ts`** — mirrors the proven `PickupManager`
+  render/solo-logic pattern, but is *fully independent* of the health-pickup
+  data + protocol (no shared `Pickups.ts`, no wire types). Two buff pads per
+  combat map:
+  - **OVERCHARGE** (crimson gem) → `Weapon.damageMultiplier` ×1.7 for 9 s.
+  - **RAPID FIRE** (gold gem) → `Weapon.fireRateMultiplier` ×1.55 for 9 s.
+  Pads bob/spin, are grabbed by overlap (player-only — bots don't grab), then go
+  on a 20 s respawn. Map-control loop: rotate to the buff, fight over it, lose it
+  when you die.
+- **Weapon-layer effects only.** New `Weapon.damageMultiplier` (in
+  `computeDamage`) + `fireRateMultiplier` (in `tryFire`'s cooldown), driven by
+  `WeaponInventory.setDamage/FireRateMultiplier`, persisted across `setPrimary`
+  exactly like `reloadMultiplier` + `ownerTeam`. Nothing touches movement,
+  networking, or the server controller.
+- **Solo combat / TDM / Onslaught only.** `PowerupManager.active()` early-outs
+  in MP (server-authoritative damage — a client buff would mislead), Gun Game
+  (keeps its ladder identity), and Practice; pads hide there. Buffs clear on
+  death (`respawnPlayer` → `clearBuffs`) and on every fresh match
+  (`resetMatchScore` → `powerups.resetAll` + `clearBuffs`).
+- **Safe placement, no per-map curation.** Pad positions derive from each map's
+  FFA spawn anchors (`game.mapSpawns`, guaranteed clear of solids), pulled 45%
+  toward map centre for contested space, with a `clearOf` solid-overlap fallback
+  to the raw anchor — so a future map can never embed a pad in geometry.
+
+**Feel / UI:**
+- Grab fires `pickup_powerup` SFX, a coloured `CastFX.flash` burst at the player,
+  a tinted `#powerup-flash` screen-edge pulse (colour set inline), screen-shake,
+  and an `OVERCHARGE!/RAPID FIRE!` `ScorePopup` (new `buff` theme).
+- New left-edge **buff tray** (`HUD.tickBuffs`, `#buff-tray`) — one pill per
+  active buff with an icon, name, seconds, and a draining timer bar; DOM built on
+  activation, torn down on expiry.
+- Pads render on the **minimap** as diamond markers in the buff colour (dimmed on
+  cooldown) via `PowerupManager.forEachPad`.
+- New `pickup_powerup` sound id (silent until the asset lands).
+
+### Status log
+- ✅ Phase 25 — Arena Power-Ups. DONE (client + server tsc + client build green;
+  app chunk ~79.6 KB gzip, 90 modules). New `PowerupManager` (solo pads,
+  spawn-anchor placement + solid fallback, mode gating), `Weapon.damage/
+  fireRateMultiplier`, `WeaponInventory.setDamage/FireRateMultiplier` (persisted
+  across setPrimary), `Game.grantPowerup/powerupBuffs/tickBuffs/clearBuffs/
+  mapSpawns`, HUD buff tray, `#powerup-flash` + `#buff-tray` DOM + CSS, minimap
+  diamonds, `pickup_powerup` sound id. Buffs clear on death + fresh match; MP /
+  Gun Game / Practice gated off. Versions bumped to v0.25.0 (+ menu subtitle/
+  footer).
+
+### Phase 25 COMPLETE — solo arena power-ups, no protocol change, solo + MP intact.

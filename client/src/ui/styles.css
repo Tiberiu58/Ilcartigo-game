@@ -478,6 +478,7 @@ body.kill-flash #app::after {
 }
 .score-pop-xp   { color: #ffd23f; }
 .score-pop-heal { color: #36e08a; }
+.score-pop-buff { color: #ff7aa0; text-shadow: 0 0 8px rgba(255, 90, 130, 0.7), 0 1px 3px rgba(0,0,0,0.8); }
 @keyframes score-pop-rise {
   0%   { opacity: 0; transform: translateY(6px) scale(0.8); }
   18%  { opacity: 1; transform: translateY(0) scale(1.1); }
@@ -497,6 +498,71 @@ body.kill-flash #app::after {
   z-index: 6;
 }
 #heal-flash.show { animation: kill-flash-fade 0.35s ease-out forwards; }
+
+/* Power-up grab flash — tinted vignette pulse (colour set inline via --pu-flash
+   by Game.grantPowerup). Dedicated element to avoid pseudo-element collisions. */
+#powerup-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, var(--pu-flash, #ff3b54) 120%);
+  opacity: 0;
+  z-index: 6;
+}
+#powerup-flash.show { animation: kill-flash-fade 0.42s ease-out forwards; }
+
+/* Active power-up tray — pills stacked at the left edge, mid-height. Each pill
+   has an icon+name row and a draining timer bar in the buff colour. */
+#buff-tray {
+  position: absolute;
+  left: 18px; top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 7;
+}
+.buff-pill {
+  min-width: 150px;
+  background: rgba(10, 12, 18, 0.72);
+  border-left: 3px solid #ff3b54;
+  border-radius: 5px;
+  padding: 7px 10px 8px;
+  animation: buff-pill-in 0.25s ease-out;
+}
+.buff-pill.buff-haste { border-left-color: #ffc23a; }
+.buff-pill .bp-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.buff-pill .bp-name {
+  font: 800 11px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1.5px;
+  color: #ff7a90;
+}
+.buff-pill.buff-haste .bp-name { color: #ffd06a; }
+.buff-pill .bp-time {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text-dim, #9aa0ac);
+}
+.buff-pill .bp-bar {
+  margin-top: 6px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.buff-pill .bp-fill {
+  height: 100%;
+  width: 100%;
+  background: #ff3b54;
+  border-radius: 3px;
+  transform-origin: left;
+  box-shadow: 0 0 6px rgba(255, 59, 84, 0.6);
+}
+.buff-pill.buff-haste .bp-fill { background: #ffc23a; box-shadow: 0 0 6px rgba(255, 194, 58, 0.6); }
+@keyframes buff-pill-in {
+  0% { opacity: 0; transform: translateX(-14px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
 
 /* Damage-direction flash: red vignette pulse on hit. */
 #damage-flash {

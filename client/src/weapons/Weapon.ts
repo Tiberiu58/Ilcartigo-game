@@ -278,6 +278,10 @@ export class Weapon {
   private reloadRemaining = 0;
   /** Scales reload time. Rush passive sets this to 0.7 (30% faster). */
   reloadMultiplier = 1.0;
+  /** Scales outgoing damage. Arena OVERCHARGE power-up sets this >1 (solo). */
+  damageMultiplier = 1.0;
+  /** Scales fire rate (shots/sec). Arena RAPID power-up sets this >1 (solo). */
+  fireRateMultiplier = 1.0;
   private currentSpread = 0;
   private recoilPitchAccum = 0;
   private recoilYawAccum = 0;
@@ -361,7 +365,7 @@ export class Weapon {
       return null;
     }
 
-    this.cooldown = 1 / this.config.fireRate;
+    this.cooldown = 1 / (this.config.fireRate * this.fireRateMultiplier);
     this.ammoInMag--;
     this.shotIndex++;
 
@@ -459,7 +463,7 @@ export class Weapon {
       mul = 1 - t * (1 - c.falloffMinMultiplier);
     }
     if (isHeadshot) mul *= c.headshotMultiplier;
-    return c.baseDamage * mul;
+    return c.baseDamage * mul * this.damageMultiplier;
   }
 }
 

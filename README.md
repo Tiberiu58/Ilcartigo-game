@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.24.0 — **routine-integration round.** Two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
+> **Status:** v0.25.0 — **Arena Power-Ups round.** New solo gameplay-loop hook: two contested buff pads per combat map — **OVERCHARGE** (×1.7 damage) and **RAPID FIRE** (×1.55 fire rate), 9 s each, 20 s respawn — with a live buff tray, minimap markers, and full grab juice (SFX, burst, screen flash, score-pop). Weapon-layer only, **zero protocol/server change** (the long-deferred roadmap item, done without entangling the health-pickup wire model). Built on the routine-integration round (v0.24.0): two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -304,6 +304,12 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `melee.wav` | Knife swing whoosh / slash | "knife swing", "whoosh swipe", "melee slash" |
 | `grenade_explode.wav` | Frag grenade detonation | "grenade explosion", "frag boom", "explosion" |
 
+**Phase 25 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `pickup_powerup.wav` | Arena power-up grab (overcharge / rapid) | "power up", "buff activate", "energy pickup" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -604,6 +610,39 @@ map selector). Distinct identity: **verticality**.
   both client + server `Pickups.ts`. Geometry verified headlessly (all spawns
   clear of solids). App chunk ~72.9 KB gzip (+1.1 KB). No new deps.
 
+## Phase 25 — Arena Power-Ups (this round, v0.25.0)
+
+The first new *gameplay-loop* addition since map health pickups — and the
+long-deferred "arena power-ups (damage boost / haste)" from the roadmap, now
+implemented cleanly. Earlier attempts were dropped because a prior branch
+entangled power-ups with the **health-pickup wire protocol**; this round sticks
+them entirely in a **solo-only, weapon-layer** system, so there is **zero
+protocol/server change** and MP is untouched.
+
+- **Two contested buff pads per combat map.** **OVERCHARGE** (crimson gem) →
+  ×1.7 weapon damage for 9 s; **RAPID FIRE** (gold gem) → ×1.55 fire rate for
+  9 s. Pads float + spin, are grabbed by walking over them, then go on a 20 s
+  respawn — classic map-control: rotate to the buff, fight over it, lose it when
+  you die.
+- **Weapon-layer effects only.** New `Weapon.damageMultiplier` /
+  `fireRateMultiplier` (applied in `computeDamage` / `tryFire`), driven by
+  `WeaponInventory.setDamage/FireRateMultiplier` (persisted across `setPrimary`
+  like the reload multiplier + team). Nothing about movement, networking, or the
+  server controller changes — so the two controllers stay trivially in sync.
+- **Solo combat / TDM / Onslaught only.** Gated off in MP (where damage is
+  server-authoritative — a client-only buff would mislead), Gun Game (keeps its
+  ladder identity), and Practice. Dying drops your buff; a fresh match restores
+  all pads.
+- **Juicy feedback.** Grab fires `pickup_powerup` SFX, a coloured `CastFX`
+  burst, a screen-edge flash, screen-shake, and an `OVERCHARGE!/RAPID FIRE!`
+  score-pop. A left-edge **buff tray** shows each active power-up with a
+  draining timer bar; pads also show as diamond markers on the minimap.
+- New `entities/PowerupManager.ts` (mirrors the `PickupManager` pattern but is
+  fully independent of the health-pickup data/protocol). Pad placement is
+  derived from each map's FFA spawn anchors (guaranteed clear of solids), pulled
+  toward map centre with a solid-overlap fallback — so a future map can never
+  embed a pad in geometry. New `pickup_powerup` sound id.
+
 ## Publication & Monetization (this round)
 
 The first round focused on **going live** rather than gameplay. Code-side deploy
@@ -684,12 +723,12 @@ documented three-edit checklist.
 
 ## Project status
 
-v0.24.0 — **deployed and live**, two routine branches integrated. Movement, combat, 6 classes, **7 weapons** (incl. Marksman + LMG), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.25.0 — **deployed and live**, two routine branches integrated + Arena Power-Ups. Movement, combat, 6 classes, **7 weapons** (incl. Marksman + LMG), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus **arena power-ups (OVERCHARGE / RAPID FIRE, solo)**; scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~205 KB gzipped` (app ~78 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.24.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.24.0.
+- `/client` — Vite + TS + Three.js game client. `~206 KB gzipped` (app ~80 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, **arena power-ups**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.25.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.25.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 
 ## What you'd want to do next (post-v1)
@@ -702,7 +741,7 @@ Things deliberately left for later:
 - **TDM game mode** — team assignment, team spawns (maps already define `teamSpawns`), team scoring.
 - **Matchmaking + multiple rooms** instead of one shared FFA.
 - **Anti-cheat** beyond server authority (movement validation, fire rate caps).
-- **Arena power-ups** (damage boost / haste) — the un-merged routine branch; needs deconflicting with the existing health-pickup system into one shared pickup model.
+- ✅ **Arena power-ups** (damage boost / haste) — DONE in v0.25.0 as a solo-only, weapon-layer system (`PowerupManager`), independent of the health-pickup wire model. Online support (server-authoritative buff pads) is a future protocol-touching item.
 - **More cosmetics**: victory poses, more weapon skins/finishes.
 - **Bot AI improvements**: per-map waypoints, stair climbing.
 

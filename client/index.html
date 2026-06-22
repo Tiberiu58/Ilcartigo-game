@@ -52,6 +52,14 @@
         <!-- Heal flash — brief green vignette on grabbing a health pickup. -->
         <div id="heal-flash"></div>
 
+        <!-- Power-up grab flash — brief tinted vignette (colour set inline by
+             Game.grantPowerup: crimson for OVERCHARGE, gold for RAPID). -->
+        <div id="powerup-flash"></div>
+
+        <!-- Active power-up buffs — left-edge tray, populated by HUD.tickBuffs.
+             Each pill = icon + name + a draining timer bar. -->
+        <div id="buff-tray"></div>
+
         <!-- Speed lines — radial motion streaks at the screen edges, opacity
              driven by horizontal speed (bhop / slide / Surge). Toggle in
              Settings → General. -->
@@ -263,7 +271,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.24</p>
+          <p class="subtitle">Browser arena shooter · v0.25</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -331,7 +339,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.24.0 — TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
+          <div>v0.25.0 — Arena Power-Ups · TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

@@ -36,6 +36,9 @@ export class WeaponInventory {
   /** TDM team (friendly-fire). Persisted here so it survives setPrimary, which
    *  builds a fresh Weapon. Undefined = FFA. */
   private ownerTeam: number | undefined = undefined;
+  /** Arena power-up multipliers — persisted so they survive setPrimary. */
+  private damageMultiplier = 1.0;
+  private fireRateMultiplier = 1.0;
 
   // For swap-pending state: the next weapon-id queue, set when 1/2 pressed but
   // we're still in the middle of an in-flight swap animation. Viewmodel owns
@@ -64,6 +67,8 @@ export class WeaponInventory {
     this.weapons[0] = new Weapon(WEAPON_LIBRARY[id], this.world, this.bus, this.ownerId);
     this.weapons[0].reloadMultiplier = prevMul;
     this.weapons[0].ownerTeam = this.ownerTeam;
+    this.weapons[0].damageMultiplier = this.damageMultiplier;
+    this.weapons[0].fireRateMultiplier = this.fireRateMultiplier;
     this.active = 0;
     this.scoped = false;
     return id;
@@ -72,6 +77,18 @@ export class WeaponInventory {
   /** Apply a global reload multiplier (Rush passive). */
   setReloadMultiplier(m: number) {
     for (const w of this.weapons) w.reloadMultiplier = m;
+  }
+
+  /** Arena OVERCHARGE power-up — scale outgoing damage on both weapons. */
+  setDamageMultiplier(m: number) {
+    this.damageMultiplier = m;
+    for (const w of this.weapons) w.damageMultiplier = m;
+  }
+
+  /** Arena RAPID power-up — scale fire rate on both weapons. */
+  setFireRateMultiplier(m: number) {
+    this.fireRateMultiplier = m;
+    for (const w of this.weapons) w.fireRateMultiplier = m;
   }
 
   /** Set the TDM friendly-fire team on every weapon (and remember it so a later
