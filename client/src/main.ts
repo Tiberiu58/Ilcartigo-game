@@ -17,6 +17,7 @@
 import { Game } from './core/Game';
 import { HUD } from './ui/HUD';
 import { Announcer } from './ui/Announcer';
+import { RampageFX } from './ui/RampageFX';
 import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
@@ -29,6 +30,7 @@ import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
+import { LOGIN_REWARDS } from './account/Account';
 import type { WeaponId } from './weapons/Weapon';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
@@ -98,6 +100,19 @@ game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
+// "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
+const rampage = new RampageFX();
+announcer.onStreakChange = (streak) => rampage.setStreak(streak);
+// Skill-shot callouts — inspect the live player/weapon state at kill time.
+announcer.resolveKillStyle = (e) => {
+  // NO SCOPE: a sniper kill landed without being scoped.
+  if (e.weaponId === 'sniper' && !game.inventory.isScoped) return 'noscope';
+  // AIRBORNE: you were off the ground when the kill landed.
+  if (game.player.state === 'air') return 'airborne';
+  // LONGSHOT: the lethal hit was far from you.
+  if (e.hitPoint && game.player.pos.distanceTo(e.hitPoint) >= 45) return 'longshot';
+  return null;
+};
 const damageDir = new DamageDirection(game);
 void damageDir;
 // Progression spectacle — rank badges (HUD + menu), level-up banner, +XP popups.
@@ -1005,6 +1020,60 @@ if (!localStorage.getItem(HOWTO_SEEN_KEY)) {
   showHowto();
 }
 
+// ─── Daily login reward ────────────────────────────────────────────────────
+const dailyOverlay = document.getElementById('daily-overlay')!;
+const dailyTrack = document.getElementById('daily-track')!;
+const dailySub = document.getElementById('daily-sub')!;
+const dailyClaim = document.getElementById('daily-claim') as HTMLButtonElement;
+const dailyDismiss = document.getElementById('daily-dismiss') as HTMLButtonElement;
+const menuDaily = document.getElementById('menu-daily') as HTMLButtonElement;
+
+function renderDaily() {
+  const st = game.account.dailyLoginStatus();
+  dailyTrack.replaceChildren();
+  for (let i = 0; i < LOGIN_REWARDS.length; i++) {
+    const chip = document.createElement('div');
+    chip.className = 'daily-day';
+    if (i === st.cycleIndex) chip.classList.add(st.available ? 'today' : 'done');
+    else if (i < st.cycleIndex) chip.classList.add('past');
+    if (i === LOGIN_REWARDS.length - 1) chip.classList.add('jackpot');
+    chip.innerHTML = `<span class="dd-label">Day ${i + 1}</span><span class="dd-xp">+${LOGIN_REWARDS[i]}</span>`;
+    dailyTrack.appendChild(chip);
+  }
+  if (st.available) {
+    dailySub.textContent = st.day > 1
+      ? `${st.day}-day streak 🔥 — claim Day ${st.day}.`
+      : `Welcome back — claim your Day 1 reward.`;
+    dailyClaim.disabled = false;
+    dailyClaim.textContent = `▸ Claim +${st.reward} XP`;
+  } else {
+    dailySub.textContent = `Claimed today — ${st.streak}-day streak 🔥. Come back tomorrow!`;
+    dailyClaim.disabled = true;
+    dailyClaim.textContent = 'Claimed ✓';
+  }
+}
+function showDaily() { renderDaily(); dailyOverlay.classList.remove('hidden'); }
+function hideDaily() { dailyOverlay.classList.add('hidden'); }
+
+dailyClaim.addEventListener('click', () => {
+  const res = game.account.claimDailyLogin();
+  if (res) {
+    game.audio.play('level_up');
+    renderDaily();           // re-render to the claimed state (account.onChange also fires)
+  } else {
+    game.audio.play('ui_click');
+  }
+});
+dailyDismiss.addEventListener('click', () => { hideDaily(); game.audio.play('ui_click'); });
+menuDaily.addEventListener('click', () => { showDaily(); game.audio.play('ui_click'); });
+
+// Auto-show once per session if a reward is waiting — but never on top of the
+// first-run How-to card (brand-new players see that first; daily greets them
+// next session).
+if (localStorage.getItem(HOWTO_SEEN_KEY) && game.account.dailyLoginStatus().available) {
+  showDaily();
+}
+
 // Pointer-lock change → toggle HUD vs pause overlay.
 // We only show the pause overlay if we lost lock *during* a game (i.e. the
 // main menu isn't visible). Otherwise the user is just clicking around the
@@ -1094,6 +1163,13 @@ const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
+const pmSKills = document.getElementById('pm-s-kills')!;
+const pmSDeaths = document.getElementById('pm-s-deaths')!;
+const pmSKd = document.getElementById('pm-s-kd')!;
+const pmSStreak = document.getElementById('pm-s-streak')!;
+const pmSPlace = document.getElementById('pm-s-place')!;
+const pmNewBest = document.getElementById('pm-newbest')!;
+const BEST_MATCH_KILLS_KEY = 'ilc.bestMatchKills';
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
 
@@ -1160,6 +1236,23 @@ function showPostMatch(winnerId: string) {
   }).join('');
 
   pmUnlocks.textContent = '';   // future: list newly-unlocked skins this match
+
+  // Your match summary strip — personal kills/deaths/KD/best-streak/place.
+  const myDeaths = rows.find((r) => r.isYou)?.deaths ?? 0;
+  const myKd = myDeaths === 0 ? myKills.toFixed(1) : (myKills / myDeaths).toFixed(2);
+  pmSKills.textContent = String(myKills);
+  pmSDeaths.textContent = String(myDeaths);
+  pmSKd.textContent = myKd;
+  pmSStreak.textContent = String(announcer.bestStreak);
+  pmSPlace.textContent = tdmTeam !== null ? (youWon ? 'WON' : 'LOST') : (myRank > 0 ? `#${myRank}` : '—');
+
+  // NEW-BEST badge — most kills in a single match (FFA-style modes only; TDM is
+  // team-scored, so a personal-kills record there is less meaningful but still
+  // tracked). Persisted across sessions.
+  const prevBest = Number(localStorage.getItem(BEST_MATCH_KILLS_KEY) ?? 0);
+  const isNewBest = myKills > prevBest && myKills > 0;
+  if (isNewBest) localStorage.setItem(BEST_MATCH_KILLS_KEY, String(myKills));
+  pmNewBest.classList.toggle('hidden', !isNewBest);
 
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');

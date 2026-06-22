@@ -478,6 +478,7 @@ body.kill-flash #app::after {
 }
 .score-pop-xp   { color: #ffd23f; }
 .score-pop-heal { color: #36e08a; }
+.score-pop-buff { color: #ff7aa0; text-shadow: 0 0 8px rgba(255, 90, 130, 0.7), 0 1px 3px rgba(0,0,0,0.8); }
 @keyframes score-pop-rise {
   0%   { opacity: 0; transform: translateY(6px) scale(0.8); }
   18%  { opacity: 1; transform: translateY(0) scale(1.1); }
@@ -497,6 +498,74 @@ body.kill-flash #app::after {
   z-index: 6;
 }
 #heal-flash.show { animation: kill-flash-fade 0.35s ease-out forwards; }
+
+/* Power-up grab flash — tinted vignette pulse (colour set inline via --pu-flash
+   by Game.grantPowerup). Dedicated element to avoid pseudo-element collisions. */
+#powerup-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, var(--pu-flash, #ff3b54) 120%);
+  opacity: 0;
+  z-index: 6;
+}
+#powerup-flash.show { animation: kill-flash-fade 0.42s ease-out forwards; }
+
+/* Active power-up tray — pills stacked at the left edge, mid-height. Each pill
+   has an icon+name row and a draining timer bar in the buff colour. */
+#buff-tray {
+  position: absolute;
+  left: 18px; top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 7;
+}
+.buff-pill {
+  min-width: 150px;
+  background: rgba(10, 12, 18, 0.72);
+  border-left: 3px solid #ff3b54;
+  border-radius: 5px;
+  padding: 7px 10px 8px;
+  animation: buff-pill-in 0.25s ease-out;
+}
+.buff-pill.buff-haste { border-left-color: #ffc23a; }
+.buff-pill.buff-shield { border-left-color: #3ad6ff; }
+.buff-pill .bp-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.buff-pill .bp-name {
+  font: 800 11px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1.5px;
+  color: #ff7a90;
+}
+.buff-pill.buff-haste .bp-name { color: #ffd06a; }
+.buff-pill.buff-shield .bp-name { color: #7ae4ff; }
+.buff-pill .bp-time {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text-dim, #9aa0ac);
+}
+.buff-pill .bp-bar {
+  margin-top: 6px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.buff-pill .bp-fill {
+  height: 100%;
+  width: 100%;
+  background: #ff3b54;
+  border-radius: 3px;
+  transform-origin: left;
+  box-shadow: 0 0 6px rgba(255, 59, 84, 0.6);
+}
+.buff-pill.buff-haste .bp-fill { background: #ffc23a; box-shadow: 0 0 6px rgba(255, 194, 58, 0.6); }
+.buff-pill.buff-shield .bp-fill { background: #3ad6ff; box-shadow: 0 0 6px rgba(58, 214, 255, 0.6); }
+@keyframes buff-pill-in {
+  0% { opacity: 0; transform: translateX(-14px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
 
 /* Damage-direction flash: red vignette pulse on hit. */
 #damage-flash {
@@ -559,6 +628,68 @@ body.kill-flash #app::after {
 @keyframes lowhp-pulse {
   0%, 100% { opacity: 0.45; }
   50%      { opacity: 0.95; }
+}
+
+/* ── Rampage "ON FIRE" aura — persistent heat glow while on a killstreak. ──── */
+#rampage-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;                 /* under HP/low-HP vignettes, over the world */
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  /* Hot glow rising from the bottom edge, intensity set by the tier var. */
+  background:
+    radial-gradient(120% 70% at 50% 118%, var(--rampage-col, rgba(255,140,40,0.55)) 0%, transparent 60%);
+  box-shadow: inset 0 0 120px 10px var(--rampage-edge, rgba(255,120,40,0.22));
+}
+body.rampage-on #rampage-aura {
+  opacity: 1;
+  animation: rampage-flicker 1.1s ease-in-out infinite;
+}
+body.rampage-t1 #rampage-aura { --rampage-col: rgba(255, 140, 40, 0.50); --rampage-edge: rgba(255, 120, 40, 0.20); }
+body.rampage-t2 #rampage-aura { --rampage-col: rgba(255, 70, 60, 0.60);  --rampage-edge: rgba(255, 60, 50, 0.28); }
+body.rampage-t3 #rampage-aura { --rampage-col: rgba(200, 74, 255, 0.60); --rampage-edge: rgba(170, 60, 255, 0.30); }
+@keyframes rampage-flicker {
+  0%, 100% { opacity: 0.78; }
+  45%      { opacity: 1; }
+  70%      { opacity: 0.86; }
+}
+
+/* Rampage streak badge — above the crosshair, escalates with the aura. */
+#rampage-badge {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 46px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: rgba(10, 8, 8, 0.62);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 140, 60, 0.4);
+  pointer-events: none;
+  z-index: 8;
+  white-space: nowrap;
+}
+#rampage-badge.hidden { display: none; }
+#rampage-badge .rb-flame { font-size: 14px; filter: drop-shadow(0 0 4px rgba(255,120,40,0.9)); }
+#rampage-badge .rb-label {
+  font: 800 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ff8a3a;
+  text-shadow: 0 0 8px rgba(255, 120, 40, 0.6);
+}
+#rampage-badge .rb-count {
+  font: 800 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: #fff;
+}
+#rampage-badge.rb-pop { animation: rampage-badge-pop 0.4s ease-out; }
+@keyframes rampage-badge-pop {
+  0%   { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  55%  { transform: translateX(-50%) scale(1.18); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); }
 }
 
 /* Speed lines — radial motion streaks at the screen edges. Opacity is driven
@@ -1430,6 +1561,47 @@ body.no-speedlines #speed-lines { display: none; }
   margin-bottom: 24px;
 }
 .pm-winner b { color: var(--text); }
+
+/* Your match summary — a row of stat tiles above the full scoreboard. */
+.pm-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pm-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  padding: 10px 4px;
+  text-align: center;
+}
+.pm-stat .pm-stat-v {
+  display: block;
+  font: 800 22px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--accent);
+}
+.pm-stat label {
+  display: block;
+  margin-top: 5px;
+  font: 700 8.5px/1.1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.pm-newbest {
+  text-align: center;
+  font: 800 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1.5px;
+  color: #ffd23f;
+  background: rgba(255, 210, 63, 0.1);
+  border: 1px solid rgba(255, 210, 63, 0.35);
+  border-radius: 6px;
+  padding: 9px;
+  margin-bottom: 20px;
+  animation: daily-today-pulse 1.6s ease-in-out infinite;
+}
+.pm-newbest.hidden { display: none; }
+
 .pm-scoreboard {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 6px;
@@ -2435,6 +2607,90 @@ body.no-speedlines #speed-lines { display: none; }
 }
 .howto-tips b { color: var(--accent); }
 .howto-card .menu-btn { width: 100%; }
+
+/* ── Daily login reward card ──────────────────────────────────────────────── */
+#daily-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 24px;
+}
+#daily-overlay.hidden { display: none; }
+.daily-card {
+  background: var(--panel);
+  border-top: 4px solid #ffd23f;
+  border-radius: 12px;
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  padding: 30px 34px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.daily-card h2 {
+  font-size: 24px;
+  letter-spacing: 3px;
+  color: #ffd23f;
+  text-align: center;
+}
+.daily-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 22px;
+}
+.daily-track {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.daily-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.daily-day .dd-label {
+  font: 700 9px/1 'Segoe UI', sans-serif;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.daily-day .dd-xp {
+  font: 800 12px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--text);
+}
+.daily-day.past { opacity: 0.45; }
+.daily-day.past .dd-xp { color: var(--muted); }
+.daily-day.jackpot { border-color: rgba(255, 210, 63, 0.4); }
+.daily-day.jackpot .dd-xp { color: #ffd23f; }
+.daily-day.today {
+  background: rgba(255, 210, 63, 0.16);
+  border-color: #ffd23f;
+  box-shadow: 0 0 14px rgba(255, 210, 63, 0.3);
+  animation: daily-today-pulse 1.6s ease-in-out infinite;
+}
+.daily-day.today .dd-xp, .daily-day.today .dd-label { color: #ffe27a; }
+.daily-day.done {
+  background: rgba(54, 224, 138, 0.14);
+  border-color: #36e08a;
+}
+.daily-day.done .dd-xp { color: #36e08a; }
+@keyframes daily-today-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 210, 63, 0.25); }
+  50% { box-shadow: 0 0 20px rgba(255, 210, 63, 0.5); }
+}
+.daily-card .menu-btn { width: 100%; }
+.daily-card .menu-btn:disabled { opacity: 0.5; cursor: default; }
+.menu-btn.daily { border-left: 3px solid #ffd23f; }
+.menu-btn.daily:hover { border-left-color: #ffe27a; color: #ffe27a; }
 
 /* ── Phase 13: progression spectacle ─────────────────────────────────────── */
 

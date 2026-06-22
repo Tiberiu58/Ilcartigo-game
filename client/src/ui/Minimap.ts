@@ -163,6 +163,20 @@ export class Minimap {
       ctx.fillRect(x - 1, y - 3, 2, 6);
     });
 
+    // Arena power-ups — diamond markers in the buff colour (dimmed on cooldown).
+    this.game.powerups.forEachPad((wx, wz, type, available) => {
+      const x = this.toX(wx);
+      const y = this.toY(wz);
+      const base = type === 'damage' ? [255, 59, 84] : type === 'haste' ? [255, 194, 58] : [58, 214, 255];
+      ctx.fillStyle = available
+        ? `rgb(${base[0]}, ${base[1]}, ${base[2]})`
+        : `rgba(${base[0]}, ${base[1]}, ${base[2]}, 0.3)`;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 4); ctx.lineTo(x + 4, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 4, y);
+      ctx.closePath();
+      ctx.fill();
+    });
+
     // Enemies — red dots. Solo bots, or MP remotes (skip cloaked + dead).
     ctx.fillStyle = '#ff5a5a';
     if (this.game.mp) {

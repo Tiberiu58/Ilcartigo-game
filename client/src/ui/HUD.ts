@@ -54,6 +54,9 @@ export class HUD {
   private apDots: HTMLElement[];
   private utilityPill: HTMLElement;
   private upFill: HTMLElement;
+  private buffTray: HTMLElement;
+  /** Live buff pills keyed by kind, so we only build DOM on activation. */
+  private buffPills = new Map<string, { el: HTMLElement; bar: HTMLElement }>();
 
   private lastHp = -1;
   private lastAmmo = -1;
@@ -113,6 +116,7 @@ export class HUD {
     this.apDots = Array.from(this.abilityPill.querySelectorAll<HTMLElement>('.ap-dot'));
     this.utilityPill = document.getElementById('utility-pill')!;
     this.upFill = this.utilityPill.querySelector('.up-fill') as HTMLElement;
+    this.buffTray = document.getElementById('buff-tray')!;
 
     // Player-shot hits → hitmarker (local-only event).
     bus.on('hitConfirm', ({ isHeadshot }) => {
@@ -195,6 +199,7 @@ export class HUD {
 
     this.tickAbilityPill();
     this.tickUtilityPill();
+    this.tickBuffs();
     this.tickCrosshairSpread();
     this.tickLowHp();
     this.tickMatchScore();
@@ -213,6 +218,41 @@ export class HUD {
     const f = this.game.grenadeReadyFraction;
     this.upFill.style.transform = `scaleX(${f.toFixed(3)})`;
     this.utilityPill.classList.toggle('ready', f >= 1);
+  }
+
+  /** Arena power-up tray — one pill per active buff with a draining timer bar.
+   *  DOM is built on activation and torn down on expiry; only bar widths + the
+   *  seconds label change per frame. */
+  private tickBuffs() {
+    const buffs = this.game.powerupBuffs();
+    const seen = new Set<string>();
+    for (const b of buffs) {
+      seen.add(b.kind);
+      let pill = this.buffPills.get(b.kind);
+      if (!pill) {
+        const el = document.createElement('div');
+        el.className = `buff-pill buff-${b.kind}`;
+        const label = b.kind === 'damage' ? '🔥 OVERCHARGE'
+          : b.kind === 'haste' ? '⚡ RAPID FIRE'
+          : '🛡 OVERSHIELD';
+        el.innerHTML =
+          `<div class="bp-row"><span class="bp-name">${label}</span>` +
+          `<span class="bp-time"></span></div><div class="bp-bar"><div class="bp-fill"></div></div>`;
+        this.buffTray.appendChild(el);
+        pill = { el, bar: el.querySelector('.bp-fill') as HTMLElement };
+        this.buffPills.set(b.kind, pill);
+      }
+      pill.bar.style.transform = `scaleX(${Math.max(0, Math.min(1, b.frac)).toFixed(3)})`;
+      const t = pill.el.querySelector('.bp-time') as HTMLElement;
+      t.textContent = `${Math.ceil(b.seconds)}s`;
+    }
+    // Remove pills whose buff expired.
+    for (const [kind, pill] of this.buffPills) {
+      if (!seen.has(kind)) {
+        pill.el.remove();
+        this.buffPills.delete(kind);
+      }
+    }
   }
 
   /**

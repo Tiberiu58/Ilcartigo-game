@@ -12,6 +12,9 @@ export class Health {
   dead = false;
   /** performance.now() timestamp until which incoming damage is ignored. */
   private invulnUntil = 0;
+  /** Fraction of incoming damage absorbed (0..1). The arena OVERSHIELD power-up
+   *  sets this on the local player; 0 everywhere else. */
+  damageReduction = 0;
 
   constructor(max: number) {
     this.max = max;
@@ -43,6 +46,7 @@ export class Health {
   takeDamage(amount: number): boolean {
     if (this.dead) return false;
     if (this.isInvulnerable) return false;
+    if (this.damageReduction > 0) amount *= (1 - this.damageReduction);
     this.current = Math.max(0, this.current - amount);
     if (this.current === 0) {
       this.dead = true;

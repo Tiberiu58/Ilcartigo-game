@@ -13,8 +13,8 @@
 const MAX_ON_SCREEN = 6;
 
 export const ScorePopup = {
-  /** Spawn a floating toast. `cls` picks the colour theme (xp | heal). */
-  pop(text: string, cls: 'xp' | 'heal' = 'xp') {
+  /** Spawn a floating toast. `cls` picks the colour theme (xp | heal | buff). */
+  pop(text: string, cls: 'xp' | 'heal' | 'buff' = 'xp') {
     const host = document.getElementById('score-popups');
     if (!host) return;
     const el = document.createElement('div');

@@ -52,6 +52,14 @@
         <!-- Heal flash — brief green vignette on grabbing a health pickup. -->
         <div id="heal-flash"></div>
 
+        <!-- Power-up grab flash — brief tinted vignette (colour set inline by
+             Game.grantPowerup: crimson for OVERCHARGE, gold for RAPID). -->
+        <div id="powerup-flash"></div>
+
+        <!-- Active power-up buffs — left-edge tray, populated by HUD.tickBuffs.
+             Each pill = icon + name + a draining timer bar. -->
+        <div id="buff-tray"></div>
+
         <!-- Speed lines — radial motion streaks at the screen edges, opacity
              driven by horizontal speed (bhop / slide / Surge). Toggle in
              Settings → General. -->
@@ -64,6 +72,16 @@
         <!-- Low-HP danger vignette — pulses red when HP drops under threshold.
              Toggled by HUD.tick. -->
         <div id="lowhp-vignette" class="hidden"></div>
+
+        <!-- Rampage "ON FIRE" aura — persistent heat glow at the screen edges
+             while on a killstreak. Intensity classes set on <body> by RampageFX. -->
+        <div id="rampage-aura"></div>
+        <!-- Rampage streak badge — near the crosshair, shows the live streak. -->
+        <div id="rampage-badge" class="hidden">
+          <span class="rb-flame">🔥</span>
+          <span class="rb-label">ON FIRE</span>
+          <span class="rb-count">×5</span>
+        </div>
 
         <!-- Gun Game ticker — top-center. Shows your weapon-ladder progress.
              Populated by main.ts via GunGame.onLocalTierChange. -->
@@ -263,7 +281,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.24</p>
+          <p class="subtitle">Browser arena shooter · v0.32</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -315,6 +333,7 @@
               <button class="loadout-btn" data-weapon="sniper">Sniper</button>
               <button class="loadout-btn" data-weapon="shotgun">Shotgun</button>
               <button class="loadout-btn" data-weapon="lmg">LMG</button>
+              <button class="loadout-btn" data-weapon="railgun">Railgun</button>
             </div>
           </div>
           <div class="menu-buttons">
@@ -325,13 +344,14 @@
             <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
+            <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
             <button class="menu-btn" id="menu-about">About</button>
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.24.0 — TDM · Onslaught · Cobalt · Overpass · LMG · Grenade · Melee · Nameplates</div>
+          <div>v0.32.0 — Skill-shots · Cosmetics · Match Summary · Overshield · ON FIRE rampage</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -363,6 +383,17 @@
         <div class="postmatch-card">
           <h2 id="pm-title">MATCH OVER</h2>
           <p id="pm-winner-line" class="pm-winner">winner: —</p>
+
+          <!-- Your match summary — personal stat strip + a NEW BEST badge for a
+               record kill count. Populated by main.ts showPostMatch. -->
+          <div id="pm-summary" class="pm-summary">
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-kills">0</span><label>KILLS</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-deaths">0</span><label>DEATHS</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-kd">0.0</span><label>K/D</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-streak">0</span><label>BEST STREAK</label></div>
+            <div class="pm-stat"><span class="pm-stat-v" id="pm-s-place">—</span><label>PLACE</label></div>
+          </div>
+          <div id="pm-newbest" class="pm-newbest hidden">★ NEW PERSONAL BEST · most kills in a match!</div>
 
           <div class="pm-scoreboard">
             <div class="pm-row pm-row-head">
@@ -492,6 +523,18 @@
             <b>Pro tip:</b> headshots hurt more, killstreaks earn glory, and daily challenges in your Profile pay bonus XP.
           </div>
           <button class="menu-btn primary" id="howto-dismiss">▸ Got it — let's play</button>
+        </div>
+      </div>
+
+      <!-- Daily-login reward card — auto-shows once per day when a reward is
+           unclaimed; replayable from the menu. Track + claim wired in main.ts. -->
+      <div id="daily-overlay" class="hidden">
+        <div class="daily-card">
+          <h2>🎁 Daily Reward</h2>
+          <p class="daily-sub" id="daily-sub">Come back every day for bigger XP rewards.</p>
+          <div class="daily-track" id="daily-track"></div>
+          <button class="menu-btn primary" id="daily-claim">▸ Claim</button>
+          <button class="menu-btn" id="daily-dismiss">Close</button>
         </div>
       </div>
 

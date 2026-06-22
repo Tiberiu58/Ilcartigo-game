@@ -29,6 +29,8 @@ export const SOUND_FILES = {
   fire_sniper:   'fire_sniper.wav',
   fire_shotgun:  'fire_shotgun.wav',
   fire_marksman: 'fire_marksman.wav',
+  fire_lmg:      'fire_lmg.wav',
+  fire_railgun:  'fire_railgun.wav',
   fire_pistol:   'fire_pistol.wav',
   reload:        'reload.wav',
   empty_click:   'empty_click.wav',
@@ -70,6 +72,9 @@ export const SOUND_FILES = {
 
   // Pickups (Phase 13D) — health pack grabbed.
   pickup_health: 'pickup_health.wav',
+
+  // Arena power-up (Phase 25) — overcharge / rapid-fire pad grabbed.
+  pickup_powerup: 'pickup_powerup.wav',
 
   // Quick melee (Phase 20) — knife swing whoosh.
   melee:         'melee.wav',

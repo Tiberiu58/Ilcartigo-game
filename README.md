@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.24.0 — **routine-integration round.** Two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
+> **Status:** v0.32.0 — **Skill-shot round.** Flashy callouts for *how* you frag — NO SCOPE (un-scoped sniper), AIRBORNE (mid-air), LONGSHOT (≥45 m) — via a new `Announcer.resolveKillStyle` resolver that slots cleanly into the existing callout priority. Pure-client, no protocol change. Built on the **Cosmetics expansion round (v0.31.0)**: A content drop deepening the unlock chase: +4 kill effects (→8), +4 tracers (→10), +2 weapon finishes (→8), all self-visible and auto-surfaced by the existing Cosmetics UI (pure data, no logic change). Built on the **Match Summary round (v0.30.0)**: The post-match overlay (main ad breakpoint) gains a personal stat strip — kills · deaths · K/D · best streak · place — plus a pulsing **NEW PERSONAL BEST** badge for a record kill count, lifting satisfaction + ad dwell. Pure-client, no protocol change. Built on the **Overshield round (v0.29.0)**: Rounds out the arena power-up triad with a defensive **OVERSHIELD** (absorb 50% incoming damage, 9 s) — a tiny `Health.damageReduction` field, solo-only, no protocol change — so buff pads now pose a real damage/speed/survivability choice. Built on the **ON FIRE Rampage round (v0.28.0)**: A persistent killstreak state: at 5+ kills a heat aura rises from the screen edges + a streak badge escalates (ON FIRE → INFERNO → BLAZING), snapping off when you die — driven by a new `Announcer.onStreakChange` hook + `ui/RampageFX.ts`, pure-client, no protocol change. Built on the **Railgun round (v0.27.0)**: An 8th weapon with a new mechanic: the **Railgun**, a heavy precision beam that **pierces every enemy in a line** until it hits a wall (one-shot heads, line multi-kills) — new `World.raycastPierce` + `Weapon.firePiercing`, full viewmodel/loadout/mastery integration, and an MP-safe single-target server profile (pierce is a solo bonus, no protocol change). Built on the **Daily Rewards round (v0.26.0)**: a retention/revenue layer — a **daily-login streak** with an escalating 7-day XP cycle (100→1200, day-7 jackpot, repeats), shown as a card that auto-greets you once per day and is replayable from the menu — a natural ad-adjacent menu moment. Pure-client, migration-safe `Account` extension, no protocol change. Built on the **Arena Power-Ups round (v0.25.0)**: two contested buff pads per combat map — **OVERCHARGE** (×1.7 damage) and **RAPID FIRE** (×1.55 fire rate), 9 s each, 20 s respawn — with a live buff tray, minimap markers, and full grab juice, weapon-layer only with zero protocol/server change. Both build on the routine-integration round (v0.24.0): two autonomous build branches merged onto `main`, combining every new mode + weapon + map: **Team Deathmatch** (solo 3-v-3, first to 50, bots that fight across team lines), **Onslaught** (wave-survival with boss waves + HP scaling, 3 lives, high-score chase, OVERRUN card), **two new combat maps** — **Cobalt** (competitive-symmetric steel/neon) and **Overpass** (vertical bridge-deck arena), the **LMG** (7th weapon, belt-fed suppressor + mastery skins), **quick melee** (knife on V/F), **frag grenade** (G — arcing LoS-gated AoE), **enemy nameplates** (callsign + HP bar), **bot difficulty** (Easy/Normal/Hard) + **humanized bot callsigns**, and **solo FFA is now a real match** (ends at 30 kills → post-match). All pure-client / zero-protocol — solo + live MP both intact. Built on the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified) and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -304,6 +304,14 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `melee.wav` | Knife swing whoosh / slash | "knife swing", "whoosh swipe", "melee slash" |
 | `grenade_explode.wav` | Frag grenade detonation | "grenade explosion", "frag boom", "explosion" |
 
+**Phase 25 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `pickup_powerup.wav` | Arena power-up grab (overcharge / rapid) | "power up", "buff activate", "energy pickup" |
+| `fire_railgun.wav` | Railgun beam discharge (heavy electric crack) | "railgun", "energy beam shot", "sci-fi laser shot" |
+| `fire_lmg.wav` | LMG burst (deep rapid chug) | "machine gun", "lmg shot", "heavy mg" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -604,6 +612,164 @@ map selector). Distinct identity: **verticality**.
   both client + server `Pickups.ts`. Geometry verified headlessly (all spawns
   clear of solids). App chunk ~72.9 KB gzip (+1.1 KB). No new deps.
 
+## Phase 25 — Arena Power-Ups (this round, v0.25.0)
+
+The first new *gameplay-loop* addition since map health pickups — and the
+long-deferred "arena power-ups (damage boost / haste)" from the roadmap, now
+implemented cleanly. Earlier attempts were dropped because a prior branch
+entangled power-ups with the **health-pickup wire protocol**; this round sticks
+them entirely in a **solo-only, weapon-layer** system, so there is **zero
+protocol/server change** and MP is untouched.
+
+- **Two contested buff pads per combat map.** **OVERCHARGE** (crimson gem) →
+  ×1.7 weapon damage for 9 s; **RAPID FIRE** (gold gem) → ×1.55 fire rate for
+  9 s. Pads float + spin, are grabbed by walking over them, then go on a 20 s
+  respawn — classic map-control: rotate to the buff, fight over it, lose it when
+  you die.
+- **Weapon-layer effects only.** New `Weapon.damageMultiplier` /
+  `fireRateMultiplier` (applied in `computeDamage` / `tryFire`), driven by
+  `WeaponInventory.setDamage/FireRateMultiplier` (persisted across `setPrimary`
+  like the reload multiplier + team). Nothing about movement, networking, or the
+  server controller changes — so the two controllers stay trivially in sync.
+- **Solo combat / TDM / Onslaught only.** Gated off in MP (where damage is
+  server-authoritative — a client-only buff would mislead), Gun Game (keeps its
+  ladder identity), and Practice. Dying drops your buff; a fresh match restores
+  all pads.
+- **Juicy feedback.** Grab fires `pickup_powerup` SFX, a coloured `CastFX`
+  burst, a screen-edge flash, screen-shake, and an `OVERCHARGE!/RAPID FIRE!`
+  score-pop. A left-edge **buff tray** shows each active power-up with a
+  draining timer bar; pads also show as diamond markers on the minimap.
+- New `entities/PowerupManager.ts` (mirrors the `PickupManager` pattern but is
+  fully independent of the health-pickup data/protocol). Pad placement is
+  derived from each map's FFA spawn anchors (guaranteed clear of solids), pulled
+  toward map centre with a solid-overlap fallback — so a future map can never
+  embed a pad in geometry. New `pickup_powerup` sound id.
+
+## Phase 32 — Skill-shot callouts (this round, v0.32.0)
+
+Rewards *how* you frag, not just that you did — the CoD/Krunker skill-expression
+hooks that make a clutch kill feel earned (and make you want to do it again).
+Pure-client, no protocol change.
+
+- **NO SCOPE** (sniper kill while un-scoped), **AIRBORNE** (you were off the
+  ground), **LONGSHOT** (lethal hit ≥45 m away) — flashy center-screen callouts.
+- **Clean integration.** A new optional `Announcer.resolveKillStyle(e)` resolver
+  (wired in `main.ts`, inspects live `game.player` / weapon state at kill time)
+  slots into the Announcer's existing priority: just under the First Blood /
+  Revenge / Comeback specials, over the generic multi-kill / streak banners, with
+  the multi/streak riding the subline. (Railgun *collaterals* already surface via
+  the multi-kill system — two pierced kills = DOUBLE KILL.)
+
+## Phase 31 — Cosmetics expansion (this round, v0.31.0)
+
+A content drop deepening the unlock chase (more to grind for → more sessions →
+more ad impressions). Pure data — the Cosmetics UI auto-iterates the registries,
+so the new items appear, unlock and equip with no logic change.
+
+- **+4 kill effects** (Emerald Shock, Amber Burst, Violet Rift, Inferno —
+  1200–4500 XP) → 8 total. Seen on every kill.
+- **+4 bullet tracers** (Emerald, Violet, Amber, Ice Blue — 1500–3400 XP) → 10
+  total. Seen on every shot.
+- **+2 weapon finishes** (Verdant, Solar Flare — 3200/4000 XP) → 8 total. Seen
+  on the viewmodel the whole time you hold a gun.
+
+## Phase 30 — Match Summary (this round, v0.30.0)
+
+Upgrades the **post-match overlay** — the game's main natural ad breakpoint —
+from a bare scoreboard into a personal **match summary**, increasing both
+satisfaction (a clear "how did *I* do") and dwell time on the ad screen
+(revenue). Pure-client, no protocol change.
+
+- **Your-stats strip** above the scoreboard: KILLS · DEATHS · K/D · **BEST
+  STREAK** · PLACE (rank, or WON/LOST in TDM). Best-streak comes from a new
+  `Announcer.bestStreak` (a match-max tracked alongside the existing streak,
+  reset with the rest on `announcer.reset()`).
+- **NEW PERSONAL BEST badge** — a pulsing gold banner when you set a record for
+  most kills in a single match (persisted to `localStorage`), the kind of "beat
+  your record" hook that pulls players into one more game.
+
+## Phase 29 — Overshield power-up (this round, v0.29.0)
+
+Rounds out the **Arena Power-Up triad** started in Phase 25 with a *defensive*
+option, so the buff pads pose a real choice (damage vs speed vs survivability)
+instead of two offensive variants. Pure-client, solo-only, no protocol change.
+
+- **OVERSHIELD** (teal pad) → the local player **absorbs 50% of incoming
+  damage** for 9 s. Implemented as a tiny `Health.damageReduction` field applied
+  in `takeDamage` (0 everywhere but the buffed local player), so nothing about
+  the damage flow, bots, or networking changes.
+- **Full reuse.** Third `PowerupType` + a third map pad (placement now picks 3
+  spread spawn anchors), the teal grab flash + `OVERSHIELD!` score-pop, a
+  `🛡 OVERSHIELD` buff-tray pill, and a teal minimap diamond — all via the
+  existing power-up plumbing. Clears on death / fresh match through the same
+  `clearBuffs` path.
+
+## Phase 28 — "ON FIRE" Rampage (this round, v0.28.0)
+
+A pure-client **combat-juice** round on the brief's "flashy feedback / desire to
+win the next duel" pillar. Where the Announcer pops one-shot milestone *banners*
+(KILLING SPREE, RAMPAGE…), this adds a **persistent state you feel the whole
+time you're hot** — a heat aura you don't want to lose.
+
+- **Sustained rampage aura.** On a **5+ killstreak**, a heat glow rises from the
+  screen edges + a streak badge appears above the crosshair, escalating through
+  tiers — **ON FIRE** (5, orange) → **INFERNO** (10, red) → **BLAZING** (15+,
+  violet) — and snapping off the instant you die.
+- **Single source of truth.** New `Announcer.onStreakChange` fires on every
+  kill / death / reset (the Announcer already owns the streak); a new
+  `ui/RampageFX.ts` translates it into `<body>` tier classes (CSS drives the
+  aura) + the badge. No new kill/death bookkeeping, no per-frame cost
+  (edge-toggled), and it clears cleanly on match reset / mode switch / quit via
+  the existing `announcer.reset()` calls.
+
+## Phase 27 — Railgun weapon (this round, v0.27.0)
+
+An **eighth weapon** with a genuinely new mechanic — the first non-config
+archetype since the base roster. The **Railgun** is a heavy precision beam that
+**pierces every enemy in a line** until it hits a wall: line up a row and delete
+it with one shot. Pinpoint (zero spread), no falloff, slow (0.85 RPS), a 4-round
+mag and a 3 s reload, 75 dmg (2-shot body, **1-shot headshot** at ×2.0). The
+flashiest multi-kill tool in the game.
+
+- **New `World.raycastPierce`** — finds the nearest wall along the ray, then
+  returns every damageable in front of it (sorted near→far, head/body), skipping
+  the shooter / dead / same-team. `Weapon.firePiercing` drives one beam tracer to
+  the wall via a single `shot` event and applies damage to each pierced enemy
+  with its own damage/kill event, so killfeed, damage numbers, XP, mastery and
+  the announcer (multi-kills!) all work for free.
+- **Full integration** — `RAILGUN_CONFIG` + `pierce` flag in `WeaponConfig`, a
+  cyan-coiled `buildRailgun` viewmodel, `WEAPON_LABEL`/`WEAPON_BUILDERS` entries,
+  a loadout button, three **mastery skins** (Ion / Plasma / Singularity), and
+  `fire_railgun` + `fire_lmg` sound ids.
+- **MP-safe.** Pierce is **solo-only** (it isn't in the protocol); online the
+  server applies the Railgun as a hard-hitting **single-target** weapon via a new
+  `SERVER_WEAPONS['railgun']` profile + `VALID_WEAPONS` entry — so weapon identity
+  still matters in MP, just without the line-pierce bonus. No protocol change.
+
+## Phase 26 — Daily Login Rewards (this round, v0.26.0)
+
+A pure-client **retention + revenue** layer (different pillar from v0.25's
+gameplay round): the show-up reward loop every live game runs. It complements
+the existing in-match daily *challenges* (do X to earn XP) with a daily
+*login* reward (just come back).
+
+- **Escalating 7-day cycle.** `LOGIN_REWARDS = [100, 150, 200, 300, 400, 600,
+  1200]` XP. Consecutive days advance the streak (day-7 jackpot, then the cycle
+  repeats); a missed day resets to day 1. One claim per local day.
+- **Migration-safe `Account` extension.** New `login: { last, streak }` state
+  (defaulting cleanly on old saves), `dailyLoginStatus()` (what claiming now
+  would grant + cycle position), and `claimDailyLogin()` (awards the XP, advances
+  the streak, once per day). Date math is verified (continue / reset / day-8
+  cycle / same-day-locked).
+- **Reward card.** A `#daily-overlay` with a 7-chip track (past dimmed, today
+  pulsing gold, claimed green, day-7 jackpot styled), a Claim button showing the
+  exact XP, and a streak line. **Auto-shows once per day** when a reward is
+  waiting (but never on top of the first-run How-to card for brand-new players),
+  and is replayable from a new **🎁 Daily Reward** menu button. Claiming plays
+  the level-up sting and the XP flows through the normal `account.onChange`
+  (rank/cosmetics UIs update live). More daily menu visits = more ad impressions
+  on the menu's existing slots.
+
 ## Publication & Monetization (this round)
 
 The first round focused on **going live** rather than gameplay. Code-side deploy
@@ -684,12 +850,12 @@ documented three-edit checklist.
 
 ## Project status
 
-v0.24.0 — **deployed and live**, two routine branches integrated. Movement, combat, 6 classes, **7 weapons** (incl. Marksman + LMG), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.32.0 — **deployed and live**, two routine branches integrated + Arena Power-Ups (×3) + Daily Rewards + Railgun + ON FIRE rampage + Match Summary + expanded cosmetics + skill-shot callouts. Movement, combat, 6 classes, **8 weapons** (incl. Marksman + LMG + **Railgun**), **5 maps** (Sandstone · Industrial · **Cobalt** · **Overpass** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · Practice — plus the **post-match Match Summary**, **OVERSHIELD power-up**, **"ON FIRE" rampage aura**, **piercing Railgun**, **daily login rewards**, **arena power-ups (OVERCHARGE / RAPID FIRE, solo)**; scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + tracer cosmetics + announcer specials; rank ladder + weapon mastery/skins + weapon finishes + server-authoritative per-weapon damage; minimap/radar + speed lines + bullet-impact FX + map health pickups + crosshair hit feedback + score popups; **bot difficulty + callsigns + enemy nameplates + quick melee + frag grenades**. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~205 KB gzipped` (app ~78 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.24.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.24.0.
+- `/client` — Vite + TS + Three.js game client. `~206 KB gzipped` (app ~80 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, 5 maps, **arena power-ups**, scoreboard, killstreaks, **rank ladder**, profile/stats, **weapon mastery + skins + finishes**, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, bullet-impact FX, map health pickups, crosshair hit feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, LMG, **piercing Railgun**, arena power-ups (×3 incl. overshield), daily login rewards, **ON FIRE rampage**, **post-match match summary**, **expanded cosmetics (8 kill effects · 10 tracers · 8 finishes)**, **skill-shot callouts**. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.32.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff**. Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.32.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 
 ## What you'd want to do next (post-v1)
@@ -702,7 +868,7 @@ Things deliberately left for later:
 - **TDM game mode** — team assignment, team spawns (maps already define `teamSpawns`), team scoring.
 - **Matchmaking + multiple rooms** instead of one shared FFA.
 - **Anti-cheat** beyond server authority (movement validation, fire rate caps).
-- **Arena power-ups** (damage boost / haste) — the un-merged routine branch; needs deconflicting with the existing health-pickup system into one shared pickup model.
+- ✅ **Arena power-ups** (damage boost / haste) — DONE in v0.25.0 as a solo-only, weapon-layer system (`PowerupManager`), independent of the health-pickup wire model. Online support (server-authoritative buff pads) is a future protocol-touching item.
 - **More cosmetics**: victory poses, more weapon skins/finishes.
 - **Bot AI improvements**: per-map waypoints, stair climbing.
 

@@ -715,3 +715,278 @@ two Bot type sets — `GameDifficulty` global skill + `BotDifficulty` per-tier +
 app chunk ~78 KB gzip, 89 modules. Versions unified to **v0.24.0**. The
 deliberately-unmerged t2Opo power-up branch from the prior round remains
 unmerged (still conflicts with the health-pickup system).
+
+---
+
+## Phase 25 — Arena Power-Ups (autonomous build, v0.25.0)
+
+The first new *gameplay-loop* addition since map health pickups, and the
+long-deferred roadmap item "arena power-ups (damage boost / haste)". Every prior
+attempt was shelved because a routine branch (t2Opo) entangled power-ups with
+the **health-pickup wire protocol** (its own `Pickup` payload + a `dmr` weapon),
+which would have meant a from-scratch protocol reconciliation. This round sidesteps
+that entirely: power-ups are a **solo-only, weapon-layer** system with **zero
+protocol/server/controller change** — so MP, the two-controller sync, and every
+audit fix are all untouched.
+
+Guiding constraint (kept): no protocol changes, no new deps, typecheck + build
+green, never break solo / MP / the audit fixes.
+
+**Design (why it's low-risk + self-contained):**
+- **New `entities/PowerupManager.ts`** — mirrors the proven `PickupManager`
+  render/solo-logic pattern, but is *fully independent* of the health-pickup
+  data + protocol (no shared `Pickups.ts`, no wire types). Two buff pads per
+  combat map:
+  - **OVERCHARGE** (crimson gem) → `Weapon.damageMultiplier` ×1.7 for 9 s.
+  - **RAPID FIRE** (gold gem) → `Weapon.fireRateMultiplier` ×1.55 for 9 s.
+  Pads bob/spin, are grabbed by overlap (player-only — bots don't grab), then go
+  on a 20 s respawn. Map-control loop: rotate to the buff, fight over it, lose it
+  when you die.
+- **Weapon-layer effects only.** New `Weapon.damageMultiplier` (in
+  `computeDamage`) + `fireRateMultiplier` (in `tryFire`'s cooldown), driven by
+  `WeaponInventory.setDamage/FireRateMultiplier`, persisted across `setPrimary`
+  exactly like `reloadMultiplier` + `ownerTeam`. Nothing touches movement,
+  networking, or the server controller.
+- **Solo combat / TDM / Onslaught only.** `PowerupManager.active()` early-outs
+  in MP (server-authoritative damage — a client buff would mislead), Gun Game
+  (keeps its ladder identity), and Practice; pads hide there. Buffs clear on
+  death (`respawnPlayer` → `clearBuffs`) and on every fresh match
+  (`resetMatchScore` → `powerups.resetAll` + `clearBuffs`).
+- **Safe placement, no per-map curation.** Pad positions derive from each map's
+  FFA spawn anchors (`game.mapSpawns`, guaranteed clear of solids), pulled 45%
+  toward map centre for contested space, with a `clearOf` solid-overlap fallback
+  to the raw anchor — so a future map can never embed a pad in geometry.
+
+**Feel / UI:**
+- Grab fires `pickup_powerup` SFX, a coloured `CastFX.flash` burst at the player,
+  a tinted `#powerup-flash` screen-edge pulse (colour set inline), screen-shake,
+  and an `OVERCHARGE!/RAPID FIRE!` `ScorePopup` (new `buff` theme).
+- New left-edge **buff tray** (`HUD.tickBuffs`, `#buff-tray`) — one pill per
+  active buff with an icon, name, seconds, and a draining timer bar; DOM built on
+  activation, torn down on expiry.
+- Pads render on the **minimap** as diamond markers in the buff colour (dimmed on
+  cooldown) via `PowerupManager.forEachPad`.
+- New `pickup_powerup` sound id (silent until the asset lands).
+
+### Status log
+- ✅ Phase 25 — Arena Power-Ups. DONE (client + server tsc + client build green;
+  app chunk ~79.6 KB gzip, 90 modules). New `PowerupManager` (solo pads,
+  spawn-anchor placement + solid fallback, mode gating), `Weapon.damage/
+  fireRateMultiplier`, `WeaponInventory.setDamage/FireRateMultiplier` (persisted
+  across setPrimary), `Game.grantPowerup/powerupBuffs/tickBuffs/clearBuffs/
+  mapSpawns`, HUD buff tray, `#powerup-flash` + `#buff-tray` DOM + CSS, minimap
+  diamonds, `pickup_powerup` sound id. Buffs clear on death + fresh match; MP /
+  Gun Game / Practice gated off. Versions bumped to v0.25.0 (+ menu subtitle/
+  footer).
+
+### Phase 25 COMPLETE — solo arena power-ups, no protocol change, solo + MP intact.
+
+---
+
+## Phase 26 — Daily Login Rewards (autonomous build, v0.26.0)
+
+After a gameplay round (power-ups), a **retention + revenue** round on a
+different pillar. Every live game runs a "show up and get something" loop; we
+had in-match daily *challenges* but no daily *login* reward. This adds one —
+pure-client, migration-safe, no protocol change — and surfaces it as a card on
+the menu, a natural ad-adjacent moment that pulls players back daily (→ more
+menu ad impressions).
+
+- **Escalating 7-day cycle.** `LOGIN_REWARDS = [100, 150, 200, 300, 400, 600,
+  1200]` XP. Consecutive days advance the streak (day-7 jackpot, then repeats);
+  a missed day resets to day 1; one claim per local day.
+- **`Account` extension (migration-safe).** New `login: { last, streak }` state
+  with a defensive load merge (old saves default cleanly). `dailyLoginStatus()`
+  computes what claiming now would grant + the cycle position + availability;
+  `claimDailyLogin()` awards the XP, advances the streak, once per day. The
+  continue/reset/day-8-cycle/same-day-locked date math was verified with a
+  standalone harness before wiring the UI.
+- **Reward card + menu button.** `#daily-overlay` with a 7-chip track (past
+  dimmed, today pulsing gold, claimed green, the day-7 jackpot styled), a Claim
+  button showing the exact XP, and a streak line. **Auto-shows once per day**
+  when a reward is unclaimed — but gated so it never stacks on the first-run
+  How-to card for brand-new players (they get the daily greeting next session).
+  Replayable from a new **🎁 Daily Reward** menu button. Claiming plays the
+  level-up sting; XP flows through the normal `account.onChange` so the rank +
+  cosmetics UIs update live.
+
+### Status log
+- ✅ Phase 26 — Daily Login Rewards. DONE (client + server tsc + client build
+  green; app chunk ~80.3 KB gzip). `Account.login` state + `dailyLoginStatus`/
+  `claimDailyLogin` + `LOGIN_REWARDS` + `yesterdayKey`/`dateKey` helpers (date
+  logic harness-verified), `#daily-overlay` card + `#menu-daily` button + CSS
+  track, main.ts render/claim/auto-show (How-to-gated). Versions bumped to
+  v0.26.0 (+ menu subtitle/footer).
+
+### Phase 26 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 27 — Railgun weapon (autonomous build, v0.27.0)
+
+Back to the brief's first pillar (weapon variety / satisfying shooting). An
+**8th weapon** — and the first with a genuinely new mechanic since the base
+roster: the **Railgun**, a heavy precision beam that **pierces every enemy in a
+line** until it stops at a wall. Pinpoint, no falloff, slow (0.85 RPS), 4-round
+mag, 3 s reload, 75 dmg (2-shot body, 1-shot head at ×2.0). Identity = line a
+row up and delete it — the flashiest multi-kill tool in the game.
+
+- **New `World.raycastPierce`** (additive, doesn't touch the existing single-hit
+  `raycast`): nearest wall t, then every damageable in front of it sorted
+  near→far with head/body + headshot flag, skipping shooter/dead/same-team.
+- **`Weapon.firePiercing`** — gated by a new optional `WeaponConfig.pierce`
+  flag in `firePellet`. One beam to the wall (or max range) drives the tracer +
+  impact via a single `shot` event; damage is applied to every pierced enemy,
+  each emitting its own damage/kill event, so killfeed, damage numbers, XP,
+  weapon mastery and the multi-kill announcer all work with no special-casing.
+  `computeDamage` already folds in the OVERCHARGE multiplier, so power-ups stack.
+- **Full integration:** `RAILGUN_CONFIG` + `WEAPON_LIBRARY` entry, cyan-coiled
+  `buildRailgun` viewmodel + `WEAPON_BUILDERS`, `WEAPON_LABEL` (Gun Game),
+  loadout button, three mastery skins (Ion / Plasma / Singularity) +
+  `WEAPON_SKIN_ORDER`, and `fire_railgun` + the previously-missing `fire_lmg`
+  sound ids.
+- **MP-safe, no protocol change.** Pierce is solo-only (it isn't in the
+  protocol). Online, the server applies the Railgun as a hard single-target hit
+  via `SERVER_WEAPONS['railgun']` + a `VALID_WEAPONS` entry (mirrors the LMG
+  precedent), so weapon identity still matters in MP without the line-pierce
+  bonus. In MP the client's local `firePiercing` finds no networked damageables,
+  so it just draws the beam and lets the server own damage — no double-hits.
+
+### Status log
+- ✅ Phase 27 — Railgun. DONE (client + server tsc + client build green; app
+  chunk ~80.8 KB gzip). `World.raycastPierce`, `Weapon.pierce`/`RAILGUN_CONFIG`/
+  `firePiercing`, viewmodel + label + loadout + mastery skins + sound ids,
+  server `SERVER_WEAPONS`/`VALID_WEAPONS` railgun. Versions bumped to v0.27.0
+  (+ menu subtitle/footer).
+
+### Phase 27 COMPLETE — additive weapon + new pierce mechanic, no protocol change, solo + MP intact.
+
+---
+
+## Phase 28 — "ON FIRE" Rampage (autonomous build, v0.28.0)
+
+A pure-client combat-juice round on the brief's "flashy feedback / desire to win
+the next duel" pillar. The Announcer already pops one-shot milestone *banners*;
+this adds the **persistent hot-streak state** arena shooters reward you with —
+something you feel the whole time you're dominating, and dread losing.
+
+- **Sustained rampage aura + badge.** At a **5+ killstreak** a heat glow rises
+  from the screen edges and a streak badge shows above the crosshair, escalating
+  by tier — ON FIRE (5) → INFERNO (10) → BLAZING (15+) — and snapping off the
+  moment you die.
+- **Single source of truth.** New `Announcer.onStreakChange` callback fires on
+  every kill / death / `reset()` (the Announcer already owns the streak count).
+  New `ui/RampageFX.ts` maps it to `<body>` tier classes (CSS drives the
+  `#rampage-aura` glow) + the `#rampage-badge`. No new kill/death bookkeeping,
+  edge-toggled (no per-frame cost), and it clears cleanly on match reset / mode
+  switch / quit via the existing `announcer.reset()` call sites.
+
+### Status log
+- ✅ Phase 28 — ON FIRE Rampage. DONE (client + server tsc + client build green;
+  app chunk ~80.9 KB gzip). `Announcer.onStreakChange` (fired on kill/death/
+  reset), `ui/RampageFX.ts` (tier classes + badge), `#rampage-aura`/
+  `#rampage-badge` DOM + CSS (3 escalating tiers), main.ts wiring. Versions
+  bumped to v0.28.0 (+ menu subtitle/footer).
+
+### Phase 28 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 29 — Overshield power-up (autonomous build, v0.29.0)
+
+Rounds out the Phase-25 arena power-up triad with a **defensive** option so the
+buff pads pose a real choice (damage vs speed vs survivability) instead of two
+offensive variants. Pure-client, solo-only, no protocol change — built directly
+on the Phase-25 plumbing.
+
+- **OVERSHIELD** (teal pad) → absorb **50% of incoming damage** for 9 s. New
+  `Health.damageReduction` field (0..1) applied in `takeDamage` — 0 everywhere
+  but the buffed local player, so the damage flow / bots / networking are
+  untouched. Set by `Game.grantPowerup('shield')`, cleared by the same
+  `tickBuffs`/`clearBuffs` edges (death / fresh match) as the other buffs.
+- **Full reuse:** third `PowerupType`, a third map pad (placement now picks 3
+  spread spawn anchors), teal grab flash + `OVERSHIELD!` score-pop, a
+  `🛡 OVERSHIELD` buff-tray pill (`HUD.tickBuffs` label/CSS), and a teal minimap
+  diamond.
+
+### Status log
+- ✅ Phase 29 — Overshield. DONE (client + server tsc + client build green; app
+  chunk ~81.4 KB gzip). `Health.damageReduction`, `PowerupType` 'shield' +
+  colour + 3rd pad, `Game` shield buff (grant/tick/clear/powerupBuffs), HUD pill
+  label + CSS, minimap colour. Versions bumped to v0.29.0 (+ menu subtitle/
+  footer).
+
+### Phase 29 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 30 — Match Summary (autonomous build, v0.30.0)
+
+Upgrades the post-match overlay (the main natural ad breakpoint) from a bare
+scoreboard into a personal **match summary** — more satisfaction + more dwell
+time on the ad screen. Pure-client, no protocol change.
+
+- **Your-stats strip** above the scoreboard: KILLS · DEATHS · K/D · BEST STREAK ·
+  PLACE (rank, or WON/LOST in TDM). Best streak from a new `Announcer.bestStreak`
+  (match-max tracked next to the live streak, reset in `reset()`).
+- **NEW PERSONAL BEST badge** — pulsing gold banner when you beat your record for
+  most kills in a single match (`ilc.bestMatchKills`, persisted). A "beat your
+  record" hook for one-more-game retention.
+
+### Status log
+- ✅ Phase 30 — Match Summary. DONE (client + server tsc + client build green;
+  app chunk ~81.6 KB gzip). `Announcer.maxStreak`/`bestStreak`, `#pm-summary`
+  stat strip + `#pm-newbest` badge (HTML + CSS), `showPostMatch` population +
+  best-match-kills PB persistence. Versions bumped to v0.30.0 (+ menu subtitle/
+  footer).
+
+### Phase 30 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 31 — Cosmetics expansion (autonomous build, v0.31.0)
+
+A content drop deepening the unlock chase (the roadmap's "More cosmetics" item)
+— more to grind for → longer engagement → more ad impressions. Pure data: the
+Cosmetics UI already auto-iterates `KILL_EFFECTS` / `TRACERS` / `FINISHES`, so the
+new items appear, unlock and equip with no logic change, and `Account`'s
+default-unlock + migration logic is untouched.
+
+- **+4 kill effects** (Emerald Shock / Amber Burst / Violet Rift / Inferno,
+  1200–4500 XP) → 8 total — seen on every kill.
+- **+4 tracers** (Emerald / Violet / Amber / Ice Blue, 1500–3400 XP) → 10 total —
+  seen on every shot.
+- **+2 finishes** (Verdant / Solar Flare, 3200/4000 XP) → 8 total — seen on the
+  viewmodel constantly.
+
+### Status log
+- ✅ Phase 31 — Cosmetics expansion. DONE (client + server tsc + client build
+  green). Data-only additions to `Cosmetics.ts`. Versions bumped to v0.31.0
+  (+ menu subtitle/footer).
+
+### Phase 31 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 32 — Skill-shot callouts (autonomous build, v0.32.0)
+
+Rewards *how* you frag — the skill-expression hooks (NO SCOPE / AIRBORNE /
+LONGSHOT) that make a clutch kill feel earned and pull you toward the next one.
+Pure-client, no protocol change.
+
+- **NO SCOPE** (sniper kill while un-scoped), **AIRBORNE** (player `state ===
+  'air'` at kill time), **LONGSHOT** (lethal `hitPoint` ≥45 m from the player).
+- **Clean integration.** New optional `Announcer.resolveKillStyle(e)` (wired in
+  `main.ts`, reads live `game.player`/`game.inventory` state). `onLocalKill` now
+  takes the full `KillEvent`; the style slots into the existing headline
+  priority just under First Blood/Revenge/Comeback and over multi/streak (which
+  ride the subline). Railgun collaterals already surface via the multi-kill chain
+  (2 pierced kills = DOUBLE KILL), so no special-casing needed there.
+
+### Status log
+- ✅ Phase 32 — Skill-shot callouts. DONE (client + server tsc + client build
+  green; app chunk ~81.9 KB gzip). `STYLE_TIERS` + `KillStyle` +
+  `resolveKillStyle` in Announcer (onLocalKill takes KillEvent), main.ts
+  resolver. Versions bumped to v0.32.0 (+ menu subtitle/footer).
+
+### Phase 32 COMPLETE — pure client, no protocol change, solo + MP intact.
