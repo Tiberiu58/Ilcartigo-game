@@ -31,6 +31,7 @@ import { ProfileUI } from './ui/ProfileUI';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
+import { preloadWeaponModels } from './weapons/WeaponModels';
 import { LOGIN_REWARDS } from './account/Account';
 import { WEAPON_LIBRARY, type WeaponId } from './weapons/Weapon';
 import { weaponSkinsFor } from './account/Cosmetics';
@@ -1487,6 +1488,10 @@ pmQuit.addEventListener('click', () => {
 // Initialize ads (mounts menu + post-match slots; loads AdSense only if a real
 // publisher id is configured — otherwise tasteful placeholders).
 Ads.init();
+
+// Warm the FBX weapon models off the critical path. The viewmodel falls back to
+// box geometry until each lands, then swaps the real model in (onModelReady).
+preloadWeaponModels();
 
 game.start();
 

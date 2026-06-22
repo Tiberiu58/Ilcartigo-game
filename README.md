@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.33.0 — **second routine-integration round.** Two more autonomous build branches merged onto `main`, combining everything they each built. **From the power-ups/progression branch:** **Arena Power-Ups** (OVERCHARGE ×1.7 dmg, RAPID FIRE ×1.55 RoF, OVERSHIELD 50%-absorb — contested buff pads, solo-only), the **Railgun** (8th weapon — piercing beam, one-shot heads, line multi-kills), **Daily Login Rewards** (7-day escalating XP streak), **"ON FIRE" rampage** (persistent killstreak aura), **cosmetics expansion** (kill effects →8, tracers →10, finishes →8), and **skill-shot callouts** (NO SCOPE / AIRBORNE / LONGSHOT). **From the content/feel branch:** **Duel** (solo 1v1 gauntlet — single-elimination ladder vs escalating rivals), **Frostline** (6th combat map, frozen tundra), **weapon identity cards** (archetype + stat bars in the loadout), a **rising hitmarker**, and a **kill banner** ("ELIMINATED {name}"). Their overlapping post-match work was reconciled into one card (accolade + stat strip + NEW PERSONAL BEST). All pure-client / zero-protocol — solo + live MP both intact. Built on the v0.24.0 routine-integration round (Team Deathmatch, Onslaught, Cobalt + Overpass maps, LMG, melee, grenade, nameplates, bot difficulty), the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified), and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
+> **Status:** v0.34.0 — **real 3D weapon models.** The first-person viewmodel now shows detailed FBX gun models (rifle, P90, sniper, shotgun, LMG, ray-gun, pistol) instead of the procedural box-guns — lazy-loaded, de-rigged (SkinnedMesh→static Mesh so they clone + render), auto-normalized to a consistent in-hand size, with a graceful box fallback if a model is missing. All existing viewmodel behaviour (recoil, walk-bob, swap dip, muzzle-flash anchor, cloak fade, weapon-finish emissive) preserved. Built on the v0.33.0 **second routine-integration round.** Two more autonomous build branches merged onto `main`, combining everything they each built. **From the power-ups/progression branch:** **Arena Power-Ups** (OVERCHARGE ×1.7 dmg, RAPID FIRE ×1.55 RoF, OVERSHIELD 50%-absorb — contested buff pads, solo-only), the **Railgun** (8th weapon — piercing beam, one-shot heads, line multi-kills), **Daily Login Rewards** (7-day escalating XP streak), **"ON FIRE" rampage** (persistent killstreak aura), **cosmetics expansion** (kill effects →8, tracers →10, finishes →8), and **skill-shot callouts** (NO SCOPE / AIRBORNE / LONGSHOT). **From the content/feel branch:** **Duel** (solo 1v1 gauntlet — single-elimination ladder vs escalating rivals), **Frostline** (6th combat map, frozen tundra), **weapon identity cards** (archetype + stat bars in the loadout), a **rising hitmarker**, and a **kill banner** ("ELIMINATED {name}"). Their overlapping post-match work was reconciled into one card (accolade + stat strip + NEW PERSONAL BEST). All pure-client / zero-protocol — solo + live MP both intact. Built on the v0.24.0 routine-integration round (Team Deathmatch, Onslaught, Cobalt + Overpass maps, LMG, melee, grenade, nameplates, bot difficulty), the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified), and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -910,9 +910,42 @@ progress** — lifetime kills + a bar toward the next mastery skin ("Verdant ·
 right where you pick the gun. Pure UI off `Account.weaponKillsFor` +
 `weaponSkinsFor`; re-rendered on weapon select / boot / quit-to-menu.
 
+## 3D weapon models (v0.34.0)
+
+The first-person viewmodel was procedural boxes since the start. This round wires
+in real **FBX gun models** (provided by the user) while keeping every existing
+behaviour intact and the game safe if a model is ever absent.
+
+- **`weapons/WeaponModels.ts`** — lazy FBX loader. `FBXLoader` is dynamically
+  imported (its own ~16 KB-gzip chunk, out of the main bundle); models load
+  async + cached; `onModelReady` lets the live viewmodel swap its box for the
+  real model the instant it lands.
+- **De-rig.** The models export as `SkinnedMesh` with skeletons — a plain
+  `clone()` doesn't rebind bones, so cloned skinned meshes render invisibly
+  (the bug that ate most of the build). Fix: bake each mesh's world matrix into
+  fresh geometry and rebuild as a plain `Mesh`, dropping the rig entirely (the
+  guns are static — no animation needed).
+- **Auto-normalize.** FBX exports come in wildly different units; each model is
+  recentred on the origin and uniform-scaled so its longest axis hits a per-
+  weapon target length, then oriented (barrel down -Z) — no hand-guessed raw
+  scales.
+- **`Viewmodel.buildFor`** uses the loaded model when available, else the box
+  builder (unchanged) — so a missing/failed model never breaks the game. Recoil,
+  walk-bob, swap dip, muzzle-flash anchor, cloak opacity, and weapon-finish
+  emissive all still apply (skin-tint is skipped for FBX — no single body box).
+- **Mapping:** Rifle→AR, P90→SMG, SniperRifle→Sniper, Shotgun→Shotgun, Rifle→
+  Marksman (no dedicated DMR model), LMG→LMG, RayGun→Railgun, Pistol→Pistol. The
+  Revolver export is degenerate (a stray vertex blows its bbox to 42 000 units)
+  so it's deliberately unused. Models live in
+  `client/public/assets/models/weapons/`.
+- Browser-verified in-hand (AR, sniper, ray-gun, pistol shown correct + forward-
+  facing); client+server typecheck + build green. **Stage 2** (a player
+  character model for remote MP players) is stocked
+  (`assets/models/character/CubeMan.fbx`) but not yet implemented.
+
 ## Project status
 
-v0.33.0 — **deployed and live**, two more routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.34.0 — **deployed and live**, real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 

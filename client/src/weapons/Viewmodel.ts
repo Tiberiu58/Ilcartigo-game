@@ -16,6 +16,7 @@
 
 import * as THREE from 'three';
 import type { WeaponId } from './Weapon';
+import { getWeaponModel, modelMuzzleZ, onModelReady } from './WeaponModels';
 
 const SWAP_DURATION = 0.32;       // total time gun is offscreen during swap
 const SWAP_DROP = 0.35;           // y-offset at full swap
@@ -42,6 +43,11 @@ export class Viewmodel {
 
   // Hidden flag — sniper scope hides the viewmodel completely.
   private hidden = false;
+
+  // True when the current content is a loaded FBX model (vs the box fallback).
+  // Tint is skipped for FBX (no single "body box" to recolour); finish +
+  // cloak opacity still traverse the whole tree so they work either way.
+  private usingModel = false;
 
   // Per-weapon body tint (equipped weapon skin). Applied to the body mesh after
   // each (re)build so it survives weapon swaps. Undefined = stock look.
@@ -73,6 +79,12 @@ export class Viewmodel {
     });
     this.flashMesh = new THREE.Mesh(flashGeom, flashMat);
     this.group.add(this.flashMesh);
+
+    // When a weapon's FBX model finishes loading, rebuild if it's the one
+    // currently held (and we're not mid-swap) so the box is replaced live.
+    onModelReady((id) => {
+      if (id === this.currentId && this.swapPhase < 0) this.buildFor(id);
+    });
 
     this.buildFor('ar');
   }
@@ -213,8 +225,20 @@ export class Viewmodel {
       disposeRecursive(c);
     }
 
-    // Build new geometry — each helper returns the muzzle z-offset from group origin.
-    const muzzleZ = WEAPON_BUILDERS[id](this.content);
+    // Prefer a loaded FBX model; fall back to the procedural box builder if the
+    // model has no def, isn't loaded yet, or failed (kicks off the load on a
+    // miss → onModelReady rebuilds us when it lands).
+    const model = getWeaponModel(id);
+    let muzzleZ: number;
+    if (model) {
+      this.content.add(model);
+      this.usingModel = true;
+      muzzleZ = modelMuzzleZ(id) ?? -0.5;
+    } else {
+      // Each helper adds meshes to content and returns the muzzle z-offset.
+      muzzleZ = WEAPON_BUILDERS[id](this.content);
+      this.usingModel = false;
+    }
     this.muzzleAnchor.position.set(0, 0.02, muzzleZ);
     this.flashMesh.position.copy(this.muzzleAnchor.position);
     // Re-apply cosmetics to the freshly-built meshes: skin tint (body colour)
@@ -234,8 +258,11 @@ export class Viewmodel {
   }
 
   /** Tint the body mesh (first child = the largest box in every builder) to the
-   *  current weapon's equipped skin colour, or leave it stock if none. */
+   *  current weapon's equipped skin colour, or leave it stock if none.
+   *  No-op for FBX models — they have no single "body box" child, so a skin
+   *  tint would garble the import. (Finish emissive still applies tree-wide.) */
   private applyTint() {
+    if (this.usingModel) return;
     const body = this.content.children[0] as THREE.Mesh | undefined;
     if (!body) return;
     const mat = body.material as THREE.MeshLambertMaterial | undefined;
