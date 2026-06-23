@@ -82,6 +82,7 @@ For multiplayer testing, open the client URL in **two browser windows** and clic
 | `V` / `F` | Quick melee (knife) |
 | `G` | Throw frag grenade |
 | `R` | Reload |
+| `T` | Inspect weapon (cosmetic twirl) |
 | `1`/`2`/`Q` | Primary / Pistol / quick-swap |
 | `Esc` | Pause |
 
@@ -916,6 +917,18 @@ progress** — lifetime kills + a bar toward the next mastery skin ("Verdant ·
 23/50", "★ all skins unlocked" at max). Surfaces the use-to-unlock cosmetic reward
 right where you pick the gun. Pure UI off `Account.weaponKillsFor` +
 `weaponSkinsFor`; re-rendered on weapon select / boot / quit-to-menu.
+
+## Phase 37 — Weapon inspect (this round, v0.35.0)
+
+The "show off your gun" flourish every modern shooter (and Krunker) has — and
+the perfect payoff for the crate/cosmetic loop: unlock a skin or finish, then
+press **T** to admire it. A procedural viewmodel twirl that pulls the gun toward
+the camera and rotates it to show its side, easing in and settling back to rest
+over ~1.45 s. Composes additively on top of the existing rest/bob/recoil/melee
+transform (no interference), and is **cancelled instantly by firing / melee /
+swap / scope** so it never gets in the way of combat. New `inspect` input action
+(`KeyT`), `Viewmodel.inspect()`, consumed in `Game`. Pure-client viewmodel work,
+no protocol change.
 
 ## Phase 35 — ILCARTIGO Crates (this round, v0.35.0)
 

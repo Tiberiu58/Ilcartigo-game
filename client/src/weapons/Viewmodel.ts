@@ -21,6 +21,7 @@ import { getWeaponModel, modelMuzzleZ, onModelReady } from './WeaponModels';
 const SWAP_DURATION = 0.32;       // total time gun is offscreen during swap
 const SWAP_DROP = 0.35;           // y-offset at full swap
 const MELEE_ANIM = 0.22;          // melee swing duration (seconds)
+const INSPECT_ANIM = 1.45;        // weapon-inspect twirl duration (seconds)
 
 export class Viewmodel {
   readonly group: THREE.Group;
@@ -34,6 +35,8 @@ export class Viewmodel {
   private recoilOffset = 0;
   // Melee swing animation timer (seconds remaining). 0 = idle.
   private meleeTime = 0;
+  // Weapon-inspect twirl timer (seconds remaining). 0 = idle.
+  private inspectTime = 0;
   private restPos = new THREE.Vector3(0.32, -0.28, -0.55);
   private restRot = new THREE.Euler(0, Math.PI, 0); // -Z forward
 
@@ -142,6 +145,7 @@ export class Viewmodel {
   /** Trigger swap animation. Mesh rebuild happens at the bottom of the dip. */
   swapTo(id: WeaponId) {
     if (id === this.currentId && this.swapPhase < 0) return;
+    this.inspectTime = 0;            // a swap cancels any inspect twirl
     this.swapPending = id;
     this.swapPhase = 0;
   }
@@ -149,6 +153,7 @@ export class Viewmodel {
   /** Call on fire — triggers flash + visual kick. No-op while swapping. */
   onFire() {
     if (this.swapPhase >= 0 || this.hidden) return;
+    this.inspectTime = 0;            // firing snaps the gun back to combat
     this.flashTime = 0.06;
     this.recoilOffset = 0.05;
   }
@@ -156,7 +161,20 @@ export class Viewmodel {
   /** Call on melee — triggers a quick slash swing. No-op while swapping. */
   meleeSwing() {
     if (this.swapPhase >= 0 || this.hidden) return;
+    this.inspectTime = 0;
     this.meleeTime = MELEE_ANIM;
+  }
+
+  /**
+   * Trigger the weapon-inspect twirl — a quick "show off the gun" flourish that
+   * rotates + pulls the model toward the camera and settles back to rest. Lets
+   * players admire the skin/finish they just unlocked (a Krunker staple). No-op
+   * while swapping, scoped (hidden), or already inspecting; cancelled instantly
+   * by firing/melee/swap so it never interferes with combat.
+   */
+  inspect() {
+    if (this.swapPhase >= 0 || this.hidden || this.inspectTime > 0) return;
+    this.inspectTime = INSPECT_ANIM;
   }
 
   update(dt: number, playerSpeed: number, isGrounded: boolean) {
@@ -197,13 +215,33 @@ export class Viewmodel {
       meleeRotZ = -arc * 0.9;
     }
 
+    // Inspect twirl — pulls the gun toward the camera and rotates it to show
+    // off, easing in and back out. All offsets are additive on top of rest.
+    let inX = 0, inY = 0, inZ = 0, inRotX = 0, inRotY = 0, inRotZ = 0;
+    if (this.inspectTime > 0) {
+      this.inspectTime = Math.max(0, this.inspectTime - dt);
+      const p = 1 - this.inspectTime / INSPECT_ANIM;   // 0..1 over the anim
+      const ease = Math.sin(p * Math.PI);               // raise + settle bell curve
+      inRotY = ease * 0.95;
+      inRotX = ease * -0.32;
+      inRotZ = ease * 0.55;
+      inZ = ease * 0.14;
+      inY = ease * 0.05;
+      inX = -ease * 0.05;
+    }
+
     this.group.position.set(
-      this.restPos.x + bobX + meleeX,
-      this.restPos.y - bobY - swapDip + meleeY,
-      this.restPos.z + this.recoilOffset,
+      this.restPos.x + bobX + meleeX + inX,
+      this.restPos.y - bobY - swapDip + meleeY + inY,
+      this.restPos.z + this.recoilOffset + inZ,
     );
-    // Roll the model during the swing (idle = restRot, so this is a no-op when not meleeing).
-    this.group.rotation.z = this.restRot.z + meleeRotZ;
+    // Compose rest + melee roll + inspect twirl (idle = restRot, a no-op when
+    // neither animation is active).
+    this.group.rotation.set(
+      this.restRot.x + inRotX,
+      this.restRot.y + inRotY,
+      this.restRot.z + meleeRotZ + inRotZ,
+    );
 
     // Flash fade.
     const flashMat = this.flashMesh.material as THREE.MeshBasicMaterial;

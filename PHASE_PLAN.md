@@ -1290,3 +1290,31 @@ Pure-client, no protocol change.
   v0.35.0 (same release as the Crates feature it completes).
 
 ### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 37 — Weapon inspect (autonomous build, v0.35.0)
+
+The classic "admire your gun" flourish — the natural payoff for the crate /
+cosmetic loop (unlock a skin/finish → press **T** to show it off). Pure-client
+viewmodel work, no protocol change.
+
+- **`Viewmodel.inspect()`** — a procedural twirl that eases the gun toward the
+  camera and rotates it (yaw +0.95 / pitch −0.32 / roll +0.55) on a `sin(p·π)`
+  bell curve over ~1.45 s, then settles back to rest. All offsets are **additive**
+  on top of the existing rest/bob/recoil/melee transform — `update()` now sets
+  the full `rotation` (was z-only) — so nothing else is disturbed.
+- **Combat-safe.** No-op while swapping / scoped / already inspecting, and
+  **cancelled instantly** by `onFire` / `meleeSwing` / `swapTo` so it never
+  delays a shot.
+- **Input.** New `inspect` action bound to `KeyT`, edge-consumed in
+  `Game.update` → `viewmodel.inspect()`. Controls updated in the How-to card +
+  HUD hint + README.
+
+### Status log
+- ✅ Phase 37 — Weapon inspect. DONE (client tsc + build green, server tsc
+  unaffected; app chunk ~89 KB gzip). `Input` inspect action, `Viewmodel`
+  inspect twirl (additive rotation compose), `Game` consume, controls docs.
+  Still v0.35.0.
+
+### Phase 37 COMPLETE — pure client, no protocol change, solo + MP intact.

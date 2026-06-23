@@ -1241,6 +1241,10 @@ export class Game {
 
     if (this.input.consumeAction('reload')) this.inventory.current.startReload();
 
+    // Weapon inspect (T) — pure cosmetic twirl to show off the held gun's
+    // skin/finish. Edge-triggered; the viewmodel ignores it mid-swap/scoped.
+    if (this.input.consumeAction('inspect')) this.viewmodel.inspect();
+
     // Quick melee (V / F) — edge-triggered, solo-only (MP damage is server-
     // authoritative and there's no melee in the protocol; a client-only hit
     // would mislead). The cooldown ticks regardless so the timer stays sane.
