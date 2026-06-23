@@ -1495,6 +1495,108 @@ body.no-speedlines #speed-lines { display: none; }
 .duel-card h2 { color: #ffb454; letter-spacing: 8px; }
 .duel-card .alr-score { color: #ffca7a; }
 
+/* ─── Hardpoint (King of the Hill) ─────────────────────────────────────── */
+.menu-btn.koth { border-left: 3px solid #4ad6ff; }
+.menu-btn.koth:hover { border-left-color: #4ad6ff; color: #8fe6ff; }
+
+#koth-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(14, 22, 28, 0.86);
+  padding: 7px 16px 9px;
+  border-radius: 4px;
+  border-left: 3px solid #4ad6ff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 280px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#koth-ticker.hidden { display: none; }
+.koth-you {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #8fe6ff;
+}
+.koth-you #koth-you-n { color: #fff; }
+.koth-enemy {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ff8a85;
+}
+.koth-enemy #koth-enemy-n { color: #fff; }
+.koth-state {
+  font: 800 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.06);
+  color: var(--muted);
+}
+.koth-state.koth-player { color: #0a1016; background: #4ad6ff; }
+.koth-state.koth-enemy { color: #0a1016; background: #ff4a44; }
+.koth-state.koth-contested { color: #0a1016; background: #ffd23a; }
+.koth-bar {
+  flex-basis: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.10);
+  position: relative;
+  overflow: hidden;
+}
+.koth-bar-you, .koth-bar-enemy {
+  position: absolute;
+  top: 0; height: 100%;
+  transition: width 0.12s linear;
+}
+.koth-bar-you { left: 0; background: #4ad6ff; }
+.koth-bar-enemy { right: 0; background: #ff4a44; opacity: 0.85; }
+
+#koth-banner {
+  position: absolute;
+  left: 50%; top: 30%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 14;
+  pointer-events: none;
+  animation: onb-pop 0.5s ease-out;
+}
+#koth-banner.hidden { display: none; }
+.kob-main {
+  font: 900 54px/1 'Segoe UI', sans-serif;
+  letter-spacing: 5px;
+  color: #4ad6ff;
+  text-shadow: 0 4px 30px rgba(74, 214, 255, 0.5), 0 2px 6px rgba(0,0,0,0.6);
+}
+.kob-sub {
+  margin-top: 6px;
+  font: 700 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(180, 235, 255, 0.85);
+}
+
+#koth-results {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 26;
+}
+#koth-results.hidden { display: none; }
+.koth-card { border-top-color: #4ad6ff !important; }
+.koth-card h2 { color: #4ad6ff; letter-spacing: 8px; }
+.koth-card h2.lost { color: #ff6a64; }
+.koth-card .alr-score { color: #8fe6ff; }
+
 .menu-footer {
   grid-area: footer;
   display: flex;

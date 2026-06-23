@@ -1213,3 +1213,72 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 34 — 3D weapon viewmodels (v0.34.0)
+
+The first-person viewmodel swapped the procedural box-guns for detailed FBX gun
+models (rifle, P90, sniper, shotgun, LMG, ray-gun, pistol) — lazy-loaded,
+de-rigged (SkinnedMesh→static Mesh so they clone + render), auto-normalized to a
+consistent in-hand size, with a graceful box fallback if a model is missing. All
+existing viewmodel behaviour (recoil, walk-bob, swap dip, muzzle-flash anchor,
+cloak fade, weapon-finish emissive) preserved. Pure client, no protocol change.
+
+---
+
+## Phase 35 — Hardpoint / King of the Hill objective mode (autonomous build, v0.35.0)
+
+The roster had FFA / TDM / Gun Game / Onslaught / Duel / Aim Lab / Practice but
+**no objective mode** — the format where you fight to *control space*, not just
+rack frags. Hardpoint closes that gap: the most map-control-driven mode in the
+game and a fresh competitive loop ("hold the next one"). Pure-client, solo-only,
+**no protocol/server/controller change** — built straight on the proven
+Onslaught/Duel survival-bot pattern, so solo + MP + every prior mode stay intact.
+
+- **Hold the zone, race to the goal.** A glowing capture zone scores you points
+  while you stand in it **alone**; an enemy inside **contests** it (nobody
+  scores); leave it undefended and the enemy banks points instead. First side to
+  **100** wins. Scoring is purely occupancy-based (no kill-bus coupling), so it
+  composes cleanly with XP / stats / killfeed / announcer / mastery (the enemy
+  squad are ordinary frags).
+- **The zone relocates** every 22 s (with a "HARDPOINT MOVED" banner + cue), so
+  camping one corner never works — it's a constant reposition-and-refight loop,
+  the Hardpoint signature.
+- **Continuous pressure.** A 3-bot enemy squad (engager/engager/predictor, red
+  figures) hunts the player via the standard combat AI and **auto-respawns**, so
+  the fight never lulls. The player auto-respawns on the normal combat timer
+  (Hardpoint is *not* single-elimination — death just costs you tempo).
+- **Win-streak progression.** Each win extends a persistent streak
+  (`ilc.koth.best`); a win's "Play Again" carries the streak forward, a loss
+  resets it. Scaling bonus XP per win (`60 + (streak-1)·25`). The menu button
+  surfaces your best streak.
+- **Self-contained controller** (`modes/Hardpoint.ts`, Game-coupled like
+  Duel/Onslaught): owns the bot roster only while it runs (`setSurvivalActive`
+  parks the base bots; `clearSurvivalBots` disposes the squad on stop). Zone
+  anchors derive from the map's spawn anchors (pulled toward centre, with a
+  solid-overlap fallback so a zone can never embed in geometry) — works on every
+  combat map with no per-map curation. Live in-world visual: a control-coloured
+  ground ring + translucent dome + vertical beam (teal=you / red=enemy /
+  yellow=contested / grey=neutral).
+- **UI / feel.** `#koth-ticker` (YOU score · control state · ENEMY score + a
+  dual progress bar), a `#koth-banner` flash on start + each zone move, a
+  VICTORY/DEFEAT results card (final score · win streak · captures · bonus XP ·
+  NEW PERSONAL BEST, with a `koth` ad slot — a natural breakpoint), and a
+  `⛳ Hardpoint` main-menu button surfacing the best streak. New `koth` ad slot
+  in `Ads.ts`.
+- **Minimal engine surface:** added a read-only `Bot.pos` getter (zone-occupancy
+  checks), a `'koth'` GameMode (combat-class; `isCombatMode` includes it; *not*
+  in the auto-respawn exclusion list so the player keeps coming back), and a
+  `Game.hardpoint` field ticked in `Game.tick`. Everything else reuses existing
+  APIs.
+
+### Status log
+- ✅ Phase 35 — Hardpoint (KOTH). DONE (client + server tsc + client build green;
+  app chunk ~88.9 KB gzip). New `modes/Hardpoint.ts` (occupancy scoring, zone
+  rotation, escalating auto-respawning squad, win-streak PB, in-world zone
+  visual), `Bot.pos` getter, `'koth'` mode + tick, full UI (ticker/banner/
+  results/menu/css) + `koth` ad slot. Versions bumped to v0.35.0 (+ menu
+  subtitle/footer).
+
+### Phase 35 COMPLETE — first objective mode, pure client, no protocol change, solo + MP intact.

@@ -22,6 +22,7 @@ import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
 import { Duel, type DuelResult } from './modes/Duel';
+import { Hardpoint, type HardpointResult, type ZoneControl } from './modes/Hardpoint';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
@@ -72,6 +73,7 @@ const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement
 const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
 const menuDuel = document.getElementById('menu-duel') as HTMLButtonElement;
+const menuKoth = document.getElementById('menu-koth') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -103,6 +105,7 @@ const game = new Game(canvas);
 game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
 game.duel = new Duel(game);
+game.hardpoint = new Hardpoint(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
@@ -347,6 +350,101 @@ durQuit.addEventListener('click', () => {
   quitToMenu();
 });
 
+// ─── Hardpoint (King of the Hill) mode ─────────────────────────────────────
+const kothTicker = document.getElementById('koth-ticker')!;
+const kothYouN = document.getElementById('koth-you-n')!;
+const kothEnemyN = document.getElementById('koth-enemy-n')!;
+const kothStateEl = document.getElementById('koth-state')!;
+const kothBarYou = document.getElementById('koth-bar-you')!;
+const kothBarEnemy = document.getElementById('koth-bar-enemy')!;
+const kothBanner = document.getElementById('koth-banner')!;
+const kobMain = document.getElementById('kob-main')!;
+const kobSub = document.getElementById('kob-sub')!;
+const kothResults = document.getElementById('koth-results')!;
+const korTitle = document.getElementById('kor-title')!;
+const korSub = document.getElementById('kor-sub')!;
+const korScore = document.getElementById('kor-score')!;
+const korNewBest = document.getElementById('kor-newbest')!;
+const korStreak = document.getElementById('kor-streak')!;
+const korCaptures = document.getElementById('kor-captures')!;
+const korXp = document.getElementById('kor-xp')!;
+const korRetry = document.getElementById('kor-retry') as HTMLButtonElement;
+const korQuit = document.getElementById('kor-quit') as HTMLButtonElement;
+
+let kothBannerTimer = 0;
+function flashKothBanner(main: string, sub: string, hold: number) {
+  kobMain.textContent = main;
+  kobSub.textContent = sub;
+  kothBanner.classList.remove('hidden');
+  kothBanner.style.animation = 'none';
+  void kothBanner.offsetWidth;   // reflow so the pop animation restarts
+  kothBanner.style.animation = '';
+  window.clearTimeout(kothBannerTimer);
+  kothBannerTimer = window.setTimeout(() => kothBanner.classList.add('hidden'), hold);
+}
+
+game.hardpoint!.onState = (player, enemy, goal, control: ZoneControl) => {
+  kothYouN.textContent = String(player);
+  kothEnemyN.textContent = String(enemy);
+  kothStateEl.textContent =
+    control === 'player' ? 'CAPTURING' :
+    control === 'enemy' ? 'LOSING' :
+    control === 'contested' ? 'CONTESTED' : 'NEUTRAL';
+  kothStateEl.className = `koth-state koth-${control}`;
+  kothBarYou.style.width = `${(player / goal) * 100}%`;
+  kothBarEnemy.style.width = `${(enemy / goal) * 100}%`;
+};
+game.hardpoint!.onZoneMove = (label, sub) => {
+  flashKothBanner(label, sub, 1500);
+  game.audio.play('spawn_protect');
+};
+game.hardpoint!.onEnd = (r: HardpointResult) => {
+  kothTicker.classList.add('hidden');
+  kothBanner.classList.add('hidden');
+  showKothResults(r);
+};
+
+function showKothResults(r: HardpointResult) {
+  game.audio.play('match_end');
+  game.input.exitPointerLock();
+  korTitle.textContent = r.won ? 'HARDPOINT WON' : 'HARDPOINT LOST';
+  korTitle.classList.toggle('lost', !r.won);
+  korSub.textContent = r.won
+    ? (r.streak > 1 ? `${r.streak} in a row — hold the next one` : 'you held the line')
+    : 'the enemy locked it down';
+  korScore.textContent = `${r.playerScore} – ${r.enemyScore}`;
+  korStreak.textContent = String(r.streak);
+  korCaptures.textContent = String(r.captures);
+  korXp.textContent = `+${r.xpEarned}`;
+  korNewBest.classList.toggle('hidden', !r.isNewBest);
+  kothResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  Ads.refreshSlot('koth');
+}
+
+function stopKoth() {
+  if (game.hardpoint?.active) game.hardpoint.stop();
+  window.clearTimeout(kothBannerTimer);
+  kothTicker.classList.add('hidden');
+  kothBanner.classList.add('hidden');
+  kothResults.classList.add('hidden');
+}
+
+korRetry.addEventListener('click', () => {
+  const won = korTitle.textContent === 'HARDPOINT WON';
+  kothResults.classList.add('hidden');
+  hud.classList.remove('hidden');
+  kothTicker.classList.remove('hidden');
+  game.resetMatchScore();
+  announcer.reset();
+  game.hardpoint!.start(won);   // a win carries the streak forward
+  game.input.requestPointerLock();
+});
+korQuit.addEventListener('click', () => {
+  kothResults.classList.add('hidden');
+  quitToMenu();
+});
+
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
 const savedSens = Number(localStorage.getItem('ilc.sens') ?? 0.5);
@@ -566,10 +664,11 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' | 'koth' = 'combat') {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -616,6 +715,14 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
     duelTicker.classList.add('hidden');
   }
 
+  // Hardpoint: hand the roster to the objective controller + show its ticker.
+  if (mode === 'koth') {
+    game.hardpoint!.start();
+    kothTicker.classList.remove('hidden');
+  } else {
+    kothTicker.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -631,6 +738,7 @@ function startOnline() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -680,6 +788,7 @@ function quitToMenu() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -696,8 +805,10 @@ function quitToMenu() {
   tdmTicker.classList.add('hidden');
   onsTicker.classList.add('hidden');
   duelTicker.classList.add('hidden');
+  kothTicker.classList.add('hidden');
   refreshOnslaughtButton();
   refreshDuelButton();
+  refreshKothButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
   // Refresh the loadout card so mastery progress earned this match shows.
@@ -844,6 +955,7 @@ menuGungame.addEventListener('click', () => startGame('gungame'));
 menuTdm.addEventListener('click', () => startGame('tdm'));
 menuOnslaught.addEventListener('click', () => startGame('onslaught'));
 menuDuel.addEventListener('click', () => startGame('duel'));
+menuKoth.addEventListener('click', () => startGame('koth'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -889,6 +1001,13 @@ function refreshDuelButton() {
   menuDuel.textContent = best > 0 ? `🎯 Duel · best streak ${best}` : '🎯 Duel (1v1 Gauntlet)';
 }
 refreshDuelButton();
+
+/** Surface the Hardpoint win-streak personal best on the menu button. */
+function refreshKothButton() {
+  const best = Hardpoint.personalBest();
+  menuKoth.textContent = best > 0 ? `⛳ Hardpoint · best streak ${best}` : '⛳ Hardpoint (King of the Hill)';
+}
+refreshKothButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {

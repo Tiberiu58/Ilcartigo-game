@@ -49,6 +49,7 @@ import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 import type { AimLab } from '../modes/AimLab';
 import type { Onslaught } from '../modes/Onslaught';
 import type { Duel } from '../modes/Duel';
+import type { Hardpoint } from '../modes/Hardpoint';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -63,14 +64,14 @@ const MAPS: Record<MapId, GameMap> = {
   frostline: FROSTLINE_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' | 'koth';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game + TDM play like Combat with extra
  *  rules layered on top; Onslaught is wave survival vs escalating bot packs;
  *  Duel is a 1v1 gauntlet vs a single escalating opponent. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel';
+  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel' || m === 'koth';
 }
 
 /** TDM team identity colours (figures + HUD). Blue = the player's team. */
@@ -152,6 +153,9 @@ export class Game {
   /** Optional Duel (1v1 gauntlet) controller — null unless launched from the
    *  menu. Created + wired by main.ts; ticked here for intro/intermission pacing. */
   duel: Duel | null = null;
+  /** Optional Hardpoint (King-of-the-Hill objective) controller — null unless
+   *  launched from the menu. Created + wired by main.ts; ticked here. */
+  hardpoint: Hardpoint | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
 
@@ -1327,6 +1331,7 @@ export class Game {
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
     if (this.onslaught) this.onslaught.update(dt);  // wave pacing + respawn timing
     if (this.duel) this.duel.update(dt);            // duel intro/intermission pacing
+    if (this.hardpoint) this.hardpoint.update(dt);  // hardpoint scoring + zone rotation
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

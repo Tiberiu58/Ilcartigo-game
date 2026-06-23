@@ -343,6 +343,12 @@ export class Bot implements Damageable {
     this.skill = SKILL[level];
   }
 
+  /** Read-only world position (feet). Used by objective modes (Hardpoint) for
+   *  zone-occupancy checks without exposing the mutable internal vector. */
+  get pos(): THREE.Vector3 {
+    return this.position;
+  }
+
   /** Eye position (mid-head) in world space — for Game's target list + LoS. */
   getEye(out: THREE.Vector3): THREE.Vector3 {
     return out.set(this.position.x, this.position.y + HEAD_OFFSET + HEAD_SIZE / 2, this.position.z);
