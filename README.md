@@ -1051,9 +1051,35 @@ unlocks and equips with no logic change.
 - **+2 bullet tracers** (Rose / Sky Pulse, 4200–5000 XP) → 12 total.
 - **+2 weapon finishes** (Rose Gold / Azure, 5200–6000 XP) → 10 total.
 
+## Phase 39 — "Final Blow" win cinematic (v0.39.0)
+
+Makes *winning* feel like an event (the brief's "constant desire to win the next
+duel" pillar + flashy feedback). When you land the **match-winning kill** in a
+solo match, the game eases into a brief **slow-motion** with a big gold **FINAL
+BLOW** banner + a warm vignette, then the post-match overlay (the natural ad
+breakpoint) lands a beat later — more payoff on the win, more dwell on the ad
+screen. Pure client, **zero protocol change**, MP completely unaffected.
+
+- **Time-scaled bullet-time, solo-only.** A `timeScale` multiplier on the sim dt
+  (the cinematic countdown itself runs on *real* dt) eases the whole sim to ~0.32×
+  then back to full over 1.25 s — bots, bullets, effects all slow together, but
+  mouse-look stays responsive (delta-driven) so you can pan around the moment.
+  `MAX_DT` is clamped *before* scaling, so the tick can only ever slow, never
+  speed up.
+- **Routed through a new `Game.endMatch`.** The two solo match-end paths (FFA kill
+  goal + TDM team goal) go through it; it plays the cinematic only when the
+  **local player / local team** won (a loss shows post-match immediately), and
+  delays `onMatchEnded` until the slow-mo finishes. MP never routes through here
+  (the server owns match-end → `onMatchEnded` fires directly), so the online sim
+  is never time-scaled. A quit/rematch during the window is guarded against.
+- **Presentation.** New `#finalblow-banner` (gold, centre-stage, `fb-pop`) + a
+  `body.slowmo` vignette, flashed via a new `game.onWinCinematic` callback and
+  cleared defensively when the scoreboard shows. The cinematic state resets in
+  `resetMatchScore` so a fresh match always runs at full speed.
+
 ## Project status
 
-v0.38.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + **Foundry map** + **Burst Rifle** + expanded cosmetics + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, Railgun, **Burst Rifle**), **7 maps** (Sandstone · Industrial · Cobalt · Overpass · Frostline · **Foundry** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (10 kill effects · 12 tracers · 10 finishes · per-weapon mastery skins); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.39.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + **Foundry map** + **Burst Rifle** + expanded cosmetics + **Final Blow win cinematic** + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, Railgun, **Burst Rifle**), **7 maps** (Sandstone · Industrial · Cobalt · Overpass · Frostline · **Foundry** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (10 kill effects · 12 tracers · 10 finishes · per-weapon mastery skins); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 

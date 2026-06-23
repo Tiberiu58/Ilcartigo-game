@@ -1383,3 +1383,41 @@ equips with no logic change.
   footer).
 
 ### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — "Final Blow" win cinematic (autonomous build, v0.39.0)
+
+A flashy-feedback round on the brief's "constant desire to win the next duel"
+pillar: make *winning* feel like an event. When the local player lands the
+match-winning kill in a solo match, the game eases into a brief **slow-motion**
+with a big gold **FINAL BLOW** banner + a warm vignette, then the post-match
+overlay (the natural ad breakpoint) lands a beat later. Pure client, zero
+protocol change, MP unaffected.
+
+- **Time-scaled bullet-time, solo-only.** New `Game.timeScale` multiplies the sim
+  dt (the cinematic countdown runs on *real* dt), easing the whole sim to ~0.32×
+  then back to full over `CINEMATIC_DUR` (1.25 s). `MAX_DT` is clamped before the
+  scale so the tick can only slow, never speed up; mouse-look is delta-driven so
+  it stays responsive during the moment.
+- **`Game.endMatch` gateway.** The two solo end paths (FFA kill goal + TDM team
+  goal) now route through `endMatch(winnerId)`, which fires the cinematic only
+  when the local player / local team won (a loss → immediate post-match) and
+  delays `onMatchEnded` until the slow-mo ends. MP never routes through here (the
+  server owns match-end → `MultiplayerSession` fires `onMatchEnded` directly), so
+  the online sim is never time-scaled. The delayed callback is guarded
+  (`matchEnded && running`) against a quit/rematch during the window.
+- **Presentation.** New `#finalblow-banner` + `fb-pop`/`slowmo-in` keyframes +
+  `body.slowmo` vignette in `styles.css`; flashed via a new `game.onWinCinematic`
+  callback (main.ts) and cleared in `showPostMatch` + on a timer. Cinematic state
+  resets in `resetMatchScore`.
+
+### Status log
+- ✅ Phase 39 — Final Blow cinematic. DONE (client + server tsc + client build
+  green; app chunk ~88.3 KB gzip). `Game.timeScale`/`cinematicRemaining`/
+  `CINEMATIC_DUR`/`onWinCinematic` + tick slow-mo + `endMatch` gateway (TDM + solo
+  FFA routed through it) + resetMatchScore clear; `#finalblow-banner` DOM + CSS +
+  main.ts wiring (banner + body.slowmo, defensive clear). Versions bumped to
+  v0.39.0 (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — pure client, no protocol change, solo + MP intact.

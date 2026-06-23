@@ -2598,6 +2598,48 @@ body.no-speedlines #speed-lines { display: none; }
   100% { opacity: 0; transform: translateY(-8px) scale(1.0); }
 }
 
+/* ── Final-blow win cinematic ────────────────────────────────────────────── */
+/* The "FINAL BLOW" banner shown during the brief slow-mo on a match-winning
+   kill. Big, gold, centre-stage — the moment that sells the win. */
+#finalblow-banner {
+  position: fixed;
+  top: 38vh;
+  left: 0; right: 0;
+  text-align: center;
+  z-index: 30;
+  pointer-events: none;
+  user-select: none;
+  font: 900 56px/1 'Segoe UI', 'Arial Black', sans-serif;
+  letter-spacing: 10px;
+  text-transform: uppercase;
+  color: #ffd24a;
+  text-shadow: 0 3px 14px rgba(0,0,0,0.9), 0 0 34px rgba(255,180,40,0.7);
+  -webkit-text-stroke: 1.5px rgba(80,40,0,0.55);
+}
+#finalblow-banner.hidden { display: none; }
+#finalblow-banner.fb-pop { animation: fb-pop 1.25s cubic-bezier(.2,.9,.2,1) forwards; }
+@keyframes fb-pop {
+  0%   { opacity: 0; transform: scale(0.6) rotate(-3deg); letter-spacing: 2px; }
+  14%  { opacity: 1; transform: scale(1.14) rotate(0deg); letter-spacing: 14px; }
+  28%  { transform: scale(1.0); letter-spacing: 10px; }
+  78%  { opacity: 1; transform: scale(1.0); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+/* Slow-mo vignette — a soft dark + warm edge tint that fades in for the
+   cinematic. Driven by a <body> class so it composes with everything else. */
+body.slowmo::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 42%, rgba(20,8,0,0.55) 100%),
+    radial-gradient(ellipse at center, rgba(255,170,50,0.06) 0%, rgba(255,170,50,0) 55%);
+  animation: slowmo-in 0.35s ease-out forwards;
+}
+@keyframes slowmo-in { from { opacity: 0; } to { opacity: 1; } }
+
 /* ── Profile tab ─────────────────────────────────────────────────────────── */
 .seg-toggle-btn {
   background: var(--accent);
