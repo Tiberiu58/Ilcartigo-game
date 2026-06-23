@@ -1365,3 +1365,21 @@ code), no protocol change.
   Versions bumped to v0.37.0 (+ menu subtitle/footer).
 
 ### Phase 38 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — Striker mastery skins (autonomous build, v0.37.0)
+
+A pure-data follow-up that closes the loop on Phase 38: the Striker now has its
+own three use-to-unlock mastery skins (Breacher / Venom / Inferno) and joins
+`WEAPON_SKIN_ORDER`, so the new weapon participates in the earn-by-playing
+cosmetic chase like every other gun (it was the only one without one). The
+Cosmetics UI auto-iterates the order, so the new tab + skins appear with no logic
+change.
+
+### Status log
+- ✅ Phase 39 — Striker mastery skins. DONE (client + server tsc + client build
+  green). Three `makeWeaponSkins('striker', …)` tiers + `striker` in
+  `WEAPON_SKIN_ORDER`. App chunk ~89.5 KB gzip.
+
+### Phase 39 COMPLETE — pure data, no protocol change, solo + MP intact.
