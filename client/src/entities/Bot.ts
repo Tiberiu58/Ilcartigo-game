@@ -29,6 +29,7 @@ import type { GameEventBus } from '../core/events';
 
 const WALK_SPEED = 4.0;
 const RESPAWN_DELAY = 3.0;
+const HIT_FLASH_DURATION = 0.11;  // seconds the white hit-flash lasts
 
 /**
  * Difficulty tier — three preset bundles of reaction time, aim jitter, and
@@ -150,6 +151,10 @@ export class Bot implements Damageable {
   private headMesh!: THREE.Mesh;
   private baseBodyColor: number;
   private baseHeadColor: number;
+  private baseEmissive = 0x000000;
+  /** Hit-flash timer (seconds remaining). On a hit the figure flashes white so
+   *  landed shots read instantly — the Krunker "my shots connect" feedback. */
+  private hitFlashT = 0;
   /** TDM respawn anchor (team's spawn area). null = FFA waypoint respawn. */
   homeSpawn: THREE.Vector3 | null = null;
 
@@ -206,6 +211,7 @@ export class Bot implements Damageable {
     this.baseBodyColor = bodyColor;
     this.baseHeadColor = headColor;
     const emissive = opts.emissive ?? 0x000000;
+    this.baseEmissive = emissive;
 
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(BODY_HALF.x * 2, BODY_HALF.y * 2, BODY_HALF.z * 2),
@@ -277,6 +283,7 @@ export class Bot implements Damageable {
       return;
     }
     this.group.rotation.z = 0;
+    this.updateHitFlash(dt);
 
     // Eye position of bot (mid-head).
     const botEye = _SCRATCH.set(this.position.x, this.position.y + HEAD_OFFSET + HEAD_SIZE / 2, this.position.z);
@@ -352,6 +359,34 @@ export class Bot implements Damageable {
   /** Eye position (mid-head) in world space — for Game's target list + LoS. */
   getEye(out: THREE.Vector3): THREE.Vector3 {
     return out.set(this.position.x, this.position.y + HEAD_OFFSET + HEAD_SIZE / 2, this.position.z);
+  }
+
+  /** Flash the figure white briefly — called when this bot takes damage so a
+   *  landed hit is unmissable. Cheap (just sets a timer; update() drives it). */
+  flashHit() {
+    if (this.health.dead) return;
+    this.hitFlashT = HIT_FLASH_DURATION;
+  }
+
+  /** Drive the hit-flash emissive toward white, then restore the base emissive
+   *  when it expires. No-op once the timer is exhausted. */
+  private updateHitFlash(dt: number) {
+    if (this.hitFlashT <= 0) return;
+    this.hitFlashT = Math.max(0, this.hitFlashT - dt);
+    const f = this.hitFlashT / HIT_FLASH_DURATION;   // 1 → 0
+    const bm = this.bodyMesh.material as THREE.MeshLambertMaterial;
+    const hm = this.headMesh.material as THREE.MeshLambertMaterial;
+    if (this.hitFlashT > 0) {
+      bm.emissive.setRGB(f, f, f);
+      hm.emissive.setRGB(f, f, f);
+      bm.emissiveIntensity = 0.6 + f * 1.6;
+      hm.emissiveIntensity = 0.6 + f * 1.6;
+    } else {
+      bm.emissive.setHex(this.baseEmissive);
+      hm.emissive.setHex(this.baseEmissive);
+      bm.emissiveIntensity = 0.6;
+      hm.emissiveIntensity = 0.6;
+    }
   }
 
   /** Override the figure's colour for team identity in TDM. null restores the

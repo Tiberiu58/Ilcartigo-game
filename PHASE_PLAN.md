@@ -1308,3 +1308,30 @@ client, no protocol change.
   minimap zone circle, ZONE CAPTURED score-pop, Profile Bests cell.
 
 ### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 37 — Enemy hit-flash (autonomous build, v0.36.0)
+
+A cross-cutting combat-feel win that benefits EVERY mode: enemies now flash
+**white** the instant they take damage, so a landed shot is unmissable — the
+Krunker/UT "my shots are connecting" feedback that makes shooting feel impactful.
+Pure-client, no protocol change.
+
+- New `Bot.flashHit()` + `updateHitFlash(dt)` — on damage, the figure's body +
+  head emissive ramp to white and decay back over ~0.11 s (driven in the bot's
+  alive-update; cheap O(1) timer, restores the base emissive exactly so elite
+  glows are preserved). Independent of the TDM team-colour (diffuse) path.
+- Triggered from `Game`'s existing `damage` bus handler via an O(n<10) lookup by
+  target id. **Solo only** — MP remotes don't broadcast per-hit damage to the
+  mesh layer, so the flash is gated behind `!this.mp` (MP keeps its existing
+  damage-number feedback). Works for bots in FFA / TDM / Gun Game / Onslaught /
+  Duel / Hardpoint with no per-mode wiring.
+
+### Status log
+- ✅ Phase 37 — Enemy hit-flash. DONE (client + server tsc + client build green;
+  app chunk ~89.3 KB gzip). `Bot` hit-flash fields/method/update + `HIT_FLASH_
+  DURATION`, Game damage-handler trigger (solo-gated). Versions bumped to
+  v0.36.0 (+ menu subtitle/footer).
+
+### Phase 37 COMPLETE — pure client, no protocol change, solo + MP intact.
