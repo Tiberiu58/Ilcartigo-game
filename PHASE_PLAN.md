@@ -1282,3 +1282,29 @@ Onslaught/Duel survival-bot pattern, so solo + MP + every prior mode stay intact
   subtitle/footer).
 
 ### Phase 35 COMPLETE — first objective mode, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 36 — Hardpoint integration polish (autonomous build, v0.35.0)
+
+A small follow-up that wires the new Hardpoint mode into the rest of the game's
+feedback/progression surfaces (so it feels first-class, not bolted-on). Pure
+client, no protocol change.
+
+- **Minimap zone marker.** The live capture zone now draws on the tactical radar
+  as a control-coloured circle (teal=you / red=enemy / yellow=contested /
+  grey=neutral), so you can read where the objective is + who holds it at a
+  glance. New `Hardpoint.activeZone()` accessor (returns null when no match is
+  running, so the marker only shows during KOTH).
+- **Capture juice.** Seizing the zone pops a `ZONE CAPTURED` score toast + a
+  kill-confirm cue via a new `Hardpoint.onCapture` callback (fires on the flip to
+  player control) wired in `main.ts`.
+- **Profile → Bests.** The Hardpoint best win streak (`ilc.koth.best`) now shows
+  in the Bests grid alongside Aim Lab drills, Onslaught wave, and Duel streak.
+
+### Status log
+- ✅ Phase 36 — Hardpoint integration polish. DONE (client + server tsc + client
+  build green; app chunk ~89.2 KB gzip). `Hardpoint.activeZone()`/`onCapture`,
+  minimap zone circle, ZONE CAPTURED score-pop, Profile Bests cell.
+
+### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.

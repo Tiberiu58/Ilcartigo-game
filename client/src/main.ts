@@ -403,6 +403,10 @@ game.hardpoint!.onEnd = (r: HardpointResult) => {
   kothBanner.classList.add('hidden');
   showKothResults(r);
 };
+game.hardpoint!.onCapture = () => {
+  ScorePopup.pop('ZONE CAPTURED', 'buff');
+  game.audio.play('kill_feedback');
+};
 
 function showKothResults(r: HardpointResult) {
   game.audio.play('match_end');

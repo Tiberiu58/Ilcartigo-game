@@ -83,6 +83,8 @@ export class Hardpoint {
   onZoneMove?: (label: string, sub: string) => void;
   /** Fired when the match ends — drives the results card. */
   onEnd?: (result: HardpointResult) => void;
+  /** Fired when YOU seize control of the zone (flips to player control). */
+  onCapture?: () => void;
 
   constructor(game: Game) {
     this.game = game;
@@ -146,7 +148,7 @@ export class Hardpoint {
     // Occupancy → scoring.
     const control = this.evaluateControl();
     if (control === 'player') {
-      if (this.lastControl !== 'player') this.captures++;
+      if (this.lastControl !== 'player') { this.captures++; this.onCapture?.(); }
       this.playerScore = Math.min(GOAL, this.playerScore + CAPTURE_RATE * dt);
     } else if (control === 'enemy') {
       this.enemyScore = Math.min(GOAL, this.enemyScore + CAPTURE_RATE * dt);
@@ -162,6 +164,15 @@ export class Hardpoint {
   /** Current best win streak (menu/profile display). */
   static personalBest(): number {
     return Number(localStorage.getItem(PB_KEY) ?? 0);
+  }
+
+  /** The live capture zone for the minimap: world x/z + who controls it. Null
+   *  when no match is running (so the marker only shows during a Hardpoint). */
+  activeZone(): { x: number; z: number; control: ZoneControl } | null {
+    if (!this.active || this.phase === 'over' || this.phase === 'idle') return null;
+    const z = this.anchors[this.zoneIdx];
+    if (!z) return null;
+    return { x: z.x, z: z.z, control: this.lastControl };
   }
 
   // ── internals ──────────────────────────────────────────────────────────

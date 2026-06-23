@@ -177,6 +177,25 @@ export class Minimap {
       ctx.fill();
     });
 
+    // Hardpoint capture zone — a control-coloured circle (only during KOTH).
+    const zone = this.game.hardpoint?.activeZone();
+    if (zone) {
+      const zx = this.toX(zone.x);
+      const zy = this.toY(zone.z);
+      const zr = Math.max(5, 4.2 * this.scale);
+      const col = zone.control === 'player' ? '74, 214, 255'
+        : zone.control === 'enemy' ? '255, 74, 68'
+        : zone.control === 'contested' ? '255, 210, 58'
+        : '191, 207, 224';
+      ctx.beginPath();
+      ctx.arc(zx, zy, zr, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${col}, 0.18)`;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgb(${col})`;
+      ctx.stroke();
+    }
+
     // Enemies — red dots. Solo bots, or MP remotes (skip cloaked + dead).
     ctx.fillStyle = '#ff5a5a';
     if (this.game.mp) {

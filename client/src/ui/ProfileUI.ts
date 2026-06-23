@@ -90,6 +90,13 @@ export class ProfileUI {
           <span class="stat-val">${duelBest}</span>
           <span class="stat-label">Duel Streak</span>
         </div>`);
+    // Hardpoint (King of the Hill) best win streak shares this "Bests" grid too.
+    const kothBest = Number(localStorage.getItem('ilc.koth.best')) || 0;
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${kothBest}</span>
+          <span class="stat-label">Hardpoint Streak</span>
+        </div>`);
     this.aimlabBests.innerHTML = cells.join('');
   }
 
