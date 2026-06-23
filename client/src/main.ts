@@ -887,6 +887,7 @@ const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
   smg: 'Run & Gun',
   sniper: 'One-Shot Sniper',
   shotgun: 'Close-Range Brawler',
+  striker: 'Auto Shotgun',
   marksman: 'Precision DMR',
   lmg: 'Suppressive Fire',
   railgun: 'Piercing Beam',

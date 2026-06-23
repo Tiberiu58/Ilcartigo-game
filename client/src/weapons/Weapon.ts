@@ -170,6 +170,36 @@ export const SHOTGUN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Striker — fully-automatic combat shotgun. Where the pump Shotgun is a
+// burst-damage one-and-done, the Striker trades per-trigger punch for a fast
+// repeating spray: fewer pellets per shot but ~2.5× the fire rate, so it shreds
+// at close range as long as you keep them in the cone. Brutal falloff keeps it
+// honest past a few metres. A distinct sustained-CQC archetype.
+export const STRIKER_CONFIG: WeaponConfig = {
+  id: 'striker',
+  displayName: 'Striker',
+  fireRate: 3.6,
+  automatic: true,
+  magSize: 18,
+  reloadTime: 2.6,
+  reserveAmmo: -1,
+  baseDamage: 9,               // 6 pellets × 9 = 54 close per trigger pull
+  headshotMultiplier: 1.3,
+  maxRange: 55,
+  falloffStart: 5,
+  falloffEnd: 20,
+  falloffMinMultiplier: 0.3,
+  baseSpread: 0.05,
+  maxSpread: 0.05,
+  spreadPerShot: 0.0,
+  spreadDecay: 0.0,
+  recoilPitch: 0.03,
+  recoilYaw: 0.011,
+  recoilDecay: 0.6,
+  pellets: 6,
+  slot: 'primary',
+};
+
 // Marksman — semi-auto precision rifle (DMR). Fills the gap between the AR's
 // auto spray and the Sniper's scoped one-shot: hard-hitting per-click, pinpoint
 // when paced, but punishing bloom if you spam. No scope — handles fast, rewards
@@ -285,6 +315,7 @@ export const WEAPON_LIBRARY = {
   sniper: SNIPER_CONFIG,
   shotgun: SHOTGUN_CONFIG,
   marksman: MARKSMAN_CONFIG,
+  striker: STRIKER_CONFIG,
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
   pistol: PISTOL_CONFIG,

@@ -280,6 +280,7 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   smg: buildSMG,
   sniper: buildSniper,
   shotgun: buildShotgun,
+  striker: buildShotgun,   // auto-shotgun reuses the pump-shotgun viewmodel
   marksman: buildMarksman,
   lmg: buildLMG,
   railgun: buildRailgun,

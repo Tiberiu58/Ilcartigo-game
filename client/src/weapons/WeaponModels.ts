@@ -101,6 +101,7 @@ export const WEAPON_MODELS: Partial<Record<WeaponId, ModelDef>> = {
   smg:      { file: 'P90.fbx',         length: 0.80, rot: [0, Z0, 0], pos: [0, 0.0, 0.10],  muzzleZ: -0.40 },
   sniper:   { file: 'SniperRifle.fbx', length: 1.05, rot: [0, Z0, 0], pos: [0, 0.0, 0.26],  muzzleZ: -0.78 },
   shotgun:  { file: 'Shotgun.fbx',     length: 0.92, rot: [0, Z0, 0], pos: [0, 0.0, 0.20],  muzzleZ: -0.60 },
+  striker:  { file: 'Shotgun.fbx',     length: 0.88, rot: [0, Z0, 0], pos: [0, 0.0, 0.18],  muzzleZ: -0.58 },
   marksman: { file: 'Rifle.fbx',       length: 1.00, rot: [0, Z0, 0], pos: [0, 0.0, 0.20],  muzzleZ: -0.68 },
   lmg:      { file: 'LMG.fbx',         length: 0.95, rot: [0, ZX, 0], pos: [0, -0.04, 0.10], muzzleZ: -0.70 },
   railgun:  { file: 'RayGun.fbx',      length: 0.78, rot: [0, Z0, 0], pos: [0, -0.08, 0.12], muzzleZ: -0.72 },

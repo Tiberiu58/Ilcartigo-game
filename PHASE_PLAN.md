@@ -1335,3 +1335,33 @@ Pure-client, no protocol change.
   v0.36.0 (+ menu subtitle/footer).
 
 ### Phase 37 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Striker auto-shotgun (9th weapon, v0.37.0)
+
+Back to the brief's weapon-variety pillar — a **9th weapon** filling the one
+fire-archetype gap in the close-range bracket: the **Striker**, a fully-automatic
+combat shotgun. Where the pump Shotgun is burst-damage one-and-done, the Striker
+trades per-trigger punch for a fast repeating spray — 6 pellets at ~3.6 RPS
+(≈2.5× the pump's cadence) — so it shreds at close range as long as you keep them
+in the cone, with brutal falloff to keep it honest past a few metres. A distinct
+sustained-CQC identity. Additive, reuses every existing mechanic (no new firing
+code), no protocol change.
+
+- **Client:** `STRIKER_CONFIG` + `WEAPON_LIBRARY` entry (defines the new
+  `WeaponId`), viewmodel reuses the pump-shotgun builder + the Shotgun.fbx model,
+  `WEAPON_LABEL` (Gun Game) + `WEAPON_ARCHETYPE` ("Auto Shotgun") + a loadout
+  button. No mastery skins yet (`weaponSkinsFor('striker')` → [], handled
+  gracefully by the loadout card — the LMG precedent).
+- **Server:** `SERVER_WEAPONS['striker']` (single-target online — no pellets in
+  the protocol; lower per-shot than the pump but it fires far faster, so DPS
+  stays competitive) + a `VALID_WEAPONS` entry, so weapon identity holds in MP.
+
+### Status log
+- ✅ Phase 38 — Striker auto-shotgun. DONE (client + server tsc + client build
+  green; app chunk ~89.4 KB gzip). Weapon config + library + viewmodel/model
+  reuse + label + archetype + loadout button + server damage/valid-weapon.
+  Versions bumped to v0.37.0 (+ menu subtitle/footer).
+
+### Phase 38 COMPLETE — additive weapon, no protocol change, solo + MP intact.
