@@ -1349,3 +1349,25 @@ LMG / Marksman), so it slots in everywhere cleanly and is authoritative in MP.
   button + mastery skins + server profile + audio id. Still v0.35.0.
 
 ### Phase 38 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — Cosmetics expansion (autonomous build, v0.35.0)
+
+A content drop deepening the unlock chase AND enlarging the Phase 35 crate pool
+(`CRATE_POOL` auto-builds from the cosmetics registries, so it gained 11 fresh
+drops with zero logic change). Pure data — the Cosmetics UI + crates auto-iterate.
+
+- **+4 kill effects** (Azure Shock / Rose Burst / Jade Rift / Golden Nova,
+  1400–5200 XP) → 12 total.
+- **+4 tracers** (Azure / Rose / Jade / Sunset, 1300–3000 XP) → 14 total.
+- **+3 finishes** (Tidal / Rose Gold / Jade, 1800–2800 XP) → 11 total.
+
+Crate pool 53 → 64 items.
+
+### Status log
+- ✅ Phase 39 — Cosmetics expansion. DONE (client tsc + build green; headless
+  crate test: 64-item pool fully unlocks). Data-only additions to `Cosmetics.ts`.
+  README counts updated. Still v0.35.0.
+
+### Phase 39 COMPLETE — pure data, no protocol change, solo + MP intact.

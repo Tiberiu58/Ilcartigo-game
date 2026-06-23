@@ -919,6 +919,23 @@ progress** — lifetime kills + a bar toward the next mastery skin ("Verdant ·
 right where you pick the gun. Pure UI off `Account.weaponKillsFor` +
 `weaponSkinsFor`; re-rendered on weapon select / boot / quit-to-menu.
 
+## Phase 39 — Cosmetics expansion (this round, v0.35.0)
+
+A content drop that deepens both the XP-unlock chase **and** the new crate pool
+(`CRATE_POOL` auto-builds from these registries, so the crate odds gained 11
+fresh drops with zero logic change). Pure data — the Cosmetics UI auto-iterates,
+so the new items appear, unlock and equip automatically.
+
+- **+4 kill effects** (Azure Shock · Rose Burst · Jade Rift · Golden Nova,
+  1400–5200 XP) → **12 total** — seen on every kill.
+- **+4 tracers** (Azure · Rose · Jade · Sunset, 1300–3000 XP) → **14 total** —
+  seen on every shot.
+- **+3 finishes** (Tidal · Rose Gold · Jade, 1800–2800 XP) → **11 total** — seen
+  on the viewmodel constantly.
+
+Crate pool: 53 → **64 items**. Verified headlessly (full-pool unlock still
+reaches every item) + client tsc + build green.
+
 ## Phase 38 — Hand Cannon (9th weapon) (this round, v0.35.0)
 
 More weapon variety — the brief's "weapon variety" pillar. The **Hand Cannon** is
@@ -1010,7 +1027,7 @@ behaviour intact and the game safe if a model is ever absent.
 
 ## Project status
 
-v0.35.0 — **deployed and live**, **crate/spin reward loop** + real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, **Railgun**, **Hand Cannon**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **Crates** (spin-to-unlock cosmetics; keys from levelling + a free daily), **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.35.0 — **deployed and live**, **crate/spin reward loop** + real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, **Railgun**, **Hand Cannon**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **Crates** (spin-to-unlock cosmetics; keys from levelling + a free daily), **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (12 kill effects · 14 tracers · 11 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 

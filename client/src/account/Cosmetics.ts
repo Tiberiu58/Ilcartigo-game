@@ -159,6 +159,10 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
   { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
   { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
+  { id: 'shock-azure',   displayName: 'Azure Shock',    particleColor: 0x3aa0ff, tintColor: 0x081a30, cost: 1400 },
+  { id: 'burst-rose',    displayName: 'Rose Burst',     particleColor: 0xff90c0, tintColor: 0x301622, cost: 1900 },
+  { id: 'rift-jade',     displayName: 'Jade Rift',      particleColor: 0x30ffb0, tintColor: 0x06241a, cost: 3000 },
+  { id: 'nova-gold',     displayName: 'Golden Nova',    particleColor: 0xffe27a, tintColor: 0x3a3010, cost: 5200 },
 ];
 
 /**
@@ -177,6 +181,10 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
   { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
   { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
+  { id: 'tracer-azure',   displayName: 'Azure',        color: 0x3aa0ff, cost: 1300 },
+  { id: 'tracer-rose',    displayName: 'Rose',         color: 0xff90c0, cost: 1700 },
+  { id: 'tracer-jade',    displayName: 'Jade',         color: 0x30ffb0, cost: 2400 },
+  { id: 'tracer-sunset',  displayName: 'Sunset',       color: 0xff7a3a, cost: 3000 },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -310,6 +318,9 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
   { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
   { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
+  { id: 'finish-tidal',    displayName: 'Tidal',      emissive: 0x0a2a44, swatch: 0x3aa0ff, cost: 1800 },
+  { id: 'finish-rosegold', displayName: 'Rose Gold',  emissive: 0x3a1420, swatch: 0xff90c0, cost: 2200 },
+  { id: 'finish-jade',     displayName: 'Jade',       emissive: 0x0a3328, swatch: 0x30ffb0, cost: 2800 },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';
