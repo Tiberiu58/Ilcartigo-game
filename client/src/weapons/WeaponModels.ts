@@ -89,12 +89,12 @@ interface ModelDef {
  * vertex blows its bbox to 42000 units) so it's deliberately NOT used.
  */
 // Two native orientations among these FBX exports (measured in-browser by
-// checking which world axis the model's longest dimension lands on):
-//   Z0 = barrel already down model-Z after the bake → NO Y-rotation (rot 0).
-//        Rifle / Shotgun / Sniper / P90 / RayGun export this way.
-//   ZX = barrel along model-X → rotate -90° Y so it faces -Z.
-//        LMG + Pistol export this way.
-const Z0 = 0;
+// checking which world axis the model's longest dimension lands on, AND which
+// end the muzzle is on):
+//   Z0 = long axis on model-Z, but muzzle points +Z (toward camera) → 180° Y so
+//        the muzzle faces -Z (forward). Rifle/Shotgun/Sniper/P90/RayGun.
+//   ZX = long axis on model-X, muzzle faces correctly at -90° Y. LMG + Pistol.
+const Z0 = Math.PI;
 const ZX = -Math.PI / 2;
 export const WEAPON_MODELS: Partial<Record<WeaponId, ModelDef>> = {
   ar:       { file: 'Rifle.fbx',       length: 0.95, rot: [0, Z0, 0], pos: [0, 0.0, 0.16],  muzzleZ: -0.52 },
