@@ -1035,9 +1035,25 @@ with a clear between-burst gap.
   a `fire_burst` sound id. Verified headlessly (round-counting, mag drain,
   between-burst cooldown).
 
+## Phase 38 — Burst mastery skins + cosmetics expansion (v0.38.0)
+
+Closes the use-to-unlock loop for the new Burst Rifle (it was the only primary
+without mastery skins) and deepens the unlock chase with a high-end content
+drop — more to grind for → longer engagement → more ad impressions. Pure data:
+the Cosmetics UI already auto-iterates the registries, so everything appears,
+unlocks and equips with no logic change.
+
+- **Burst Rifle mastery skins** (Tactical / Volley / Trident, earned by lifetime
+  kills with the gun) + `'burst'` added to `WEAPON_SKIN_ORDER`, so it joins the
+  use-to-unlock cosmetics track like every other weapon and shows mastery
+  progress on the loadout card.
+- **+2 kill effects** (Azure Pulse / Gilded Burst, 5500–7000 XP) → 10 total.
+- **+2 bullet tracers** (Rose / Sky Pulse, 4200–5000 XP) → 12 total.
+- **+2 weapon finishes** (Rose Gold / Azure, 5200–6000 XP) → 10 total.
+
 ## Project status
 
-v0.37.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + **Foundry map** + **Burst Rifle** + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, Railgun, **Burst Rifle**), **7 maps** (Sandstone · Industrial · Cobalt · Overpass · Frostline · **Foundry** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.38.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + **Foundry map** + **Burst Rifle** + expanded cosmetics + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, Railgun, **Burst Rifle**), **7 maps** (Sandstone · Industrial · Cobalt · Overpass · Frostline · **Foundry** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (10 kill effects · 12 tracers · 10 finishes · per-weapon mastery skins); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 

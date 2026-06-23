@@ -159,6 +159,8 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
   { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
   { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
+  { id: 'pulse-azure',   displayName: 'Azure Pulse',    particleColor: 0x40b4ff, tintColor: 0x0a1c30, cost: 5500 },
+  { id: 'burst-gold',    displayName: 'Gilded Burst',   particleColor: 0xffd24a, tintColor: 0x2a1f00, cost: 7000 },
 ];
 
 /**
@@ -177,6 +179,8 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
   { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
   { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
+  { id: 'tracer-rose',    displayName: 'Rose',         color: 0xff7aa8, cost: 4200 },
+  { id: 'tracer-sky',     displayName: 'Sky Pulse',    color: 0x40b4ff, cost: 5000 },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -259,6 +263,11 @@ export const WEAPON_SKINS: ReadonlyArray<WeaponSkinConfig> = [
     { displayName: 'Plasma',   color: 0xb060ff },
     { displayName: 'Singularity', color: 0x1a2030 },
   ]),
+  ...makeWeaponSkins('burst', 'Standard', [
+    { displayName: 'Tactical', color: 0x46524a },
+    { displayName: 'Volley',   color: 0xffb020 },
+    { displayName: 'Trident',  color: 0x2aa0c8 },
+  ]),
   ...makeWeaponSkins('pistol', 'Standard', [
     { displayName: 'Slate',    color: 0x556070 },
     { displayName: 'Ivory',    color: 0xe8e2d0 },
@@ -267,7 +276,7 @@ export const WEAPON_SKINS: ReadonlyArray<WeaponSkinConfig> = [
 ];
 
 /** Weapon ids in the order the UI should present them. */
-export const WEAPON_SKIN_ORDER = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'lmg', 'railgun', 'pistol'] as const;
+export const WEAPON_SKIN_ORDER = ['ar', 'smg', 'marksman', 'sniper', 'shotgun', 'lmg', 'railgun', 'burst', 'pistol'] as const;
 
 export function weaponSkinsFor(weaponId: string): WeaponSkinConfig[] {
   return WEAPON_SKINS.filter((s) => s.weaponId === weaponId);
@@ -305,6 +314,8 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
   { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
   { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
+  { id: 'finish-rose',     displayName: 'Rose Gold',  emissive: 0x3a1420, swatch: 0xff7aa8, cost: 5200 },
+  { id: 'finish-azure',    displayName: 'Azure',      emissive: 0x0a2440, swatch: 0x40b4ff, cost: 6000 },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';

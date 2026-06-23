@@ -1353,3 +1353,33 @@ bursts, a one-burst body+head kill, but you commit to each burst's rhythm.
   Versions bumped to v0.37.0 (+ menu subtitle/footer).
 
 ### Phase 37 COMPLETE — additive weapon + new timed-burst mechanic, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Burst mastery skins + cosmetics expansion (autonomous build, v0.38.0)
+
+A cosmetics/rewards-pillar round: closes the use-to-unlock loop for the new Burst
+Rifle (the only primary still lacking mastery skins) and deepens the unlock chase
+with a high-end content drop. Pure data — the Cosmetics UI auto-iterates the
+`KILL_EFFECTS` / `TRACERS` / `FINISHES` / weapon-skin registries, and `Account`'s
+default-unlock + migration logic is untouched, so everything appears, unlocks and
+equips with no logic change.
+
+- **Burst Rifle mastery skins** (Tactical / Volley / Trident) via `makeWeaponSkins`
+  + `'burst'` inserted into `WEAPON_SKIN_ORDER` before `pistol`. The loadout
+  weapon card (`renderWeaponStats` → `weaponSkinsFor`) now shows burst mastery
+  progress, and `Game.refreshWeaponSkins` tints the burst viewmodel when a skin is
+  equipped — all generic paths, verified safe (`equippedWeaponSkinId` falls back to
+  `burst-default`, which has no colour → no tint).
+- **+2 kill effects** (Azure Pulse / Gilded Burst, 5500–7000 XP) → 10 total.
+- **+2 bullet tracers** (Rose / Sky Pulse, 4200–5000 XP) → 12 total.
+- **+2 weapon finishes** (Rose Gold / Azure, 5200–6000 XP) → 10 total.
+
+### Status log
+- ✅ Phase 38 — Burst mastery + cosmetics expansion. DONE (client + server tsc +
+  client build green; app chunk ~88 KB gzip). Data-only additions to
+  `Cosmetics.ts` (`WEAPON_SKINS` burst entries + `WEAPON_SKIN_ORDER`, +2 each of
+  kill effects / tracers / finishes). Versions bumped to v0.38.0 (+ menu subtitle/
+  footer).
+
+### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.
