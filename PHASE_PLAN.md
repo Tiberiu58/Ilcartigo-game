@@ -1306,3 +1306,50 @@ counterpart to icy Frostline.
   footer).
 
 ### Phase 36 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 37 — Burst Rifle (9th weapon) (autonomous build, v0.37.0)
+
+Back to the brief's first pillar (weapon variety / satisfying shooting). The
+ninth weapon — the **Burst Rifle** — fires a tight **3-round burst** per trigger
+pull, the classic "tap-tap-tap" rifle, and is the first weapon with a new firing
+*timing* mechanic since the base roster. Identity: pinpoint when you pace your
+bursts, a one-burst body+head kill, but you commit to each burst's rhythm.
+
+- **Timed burst — Game-scheduled with live aim.** New `WeaponConfig.burst`
+  (`{ count, intervalMs }`). `tryFire` fires round 1 and returns the rounds still
+  owed (`FireResult.burst`); `Game.tickBurst(dt)` fires the rest over the next
+  frames using the player's **live** eye/aim (so the burst tracks the crosshair)
+  with per-round camera recoil — better feel than committing to the pull's aim.
+  New `Weapon.fireBurstRound` runs one round (ammo + recoil + bloom + the shared
+  `firePellet`), so tracers / impact FX / damage numbers / XP / killfeed / weapon
+  mastery / the multi-kill announcer all work with **zero special-casing**.
+- **Self-cancelling.** `tickBurst` clears the pending burst the instant the player
+  dies, swaps off the burst weapon (active weapon id no longer matches), or is
+  mid-swap — so a holstered/dead weapon can never fire in the background (the one
+  real footgun of an in-`Weapon`-update scheduler, avoided by driving it from
+  Game where player state is known). A mag emptying mid-burst (`fireBurstRound`
+  returns null) stops it cleanly. 8 full bursts per 24-round mag.
+- **MP-safe (Railgun precedent).** Online, each of the 3 rounds is sent as its
+  own single-target fire event and applied by a new `SERVER_WEAPONS['burst']`
+  profile + `VALID_WEAPONS` entry — the timed burst is client-driven, the server
+  owns damage, no protocol change. The client's local rounds hit no networked
+  damageables in MP (same as every other weapon), so there are no double-hits.
+- **Full integration:** `BURST_CONFIG` + `WEAPON_LIBRARY`, a compact `buildBurst`
+  viewmodel (3-pip burst selector) + `WEAPON_MODELS` (Rifle FBX), `WEAPON_LABEL`
+  (Gun Game), `WEAPON_ARCHETYPE` + a per-pull damage stat that folds in the burst
+  count, a loadout button, and a `fire_burst` sound id. Headlessly verified
+  (round-counting, full-mag burst count, between-burst cooldown gate).
+
+### Status log
+- ✅ Phase 37 — Burst Rifle. DONE (client + server tsc + client build green; app
+  chunk ~87.8 KB gzip; headless logic test passed — burst.remaining=2, 3 shots/
+  burst, 8 bursts/mag, cooldown gates re-pull). `WeaponConfig.burst` +
+  `BURST_CONFIG` + `FireResult.burst` + `Weapon.fireBurstRound`; `Game` burst
+  fields + `tickBurst` + fire-block scheduling; `buildBurst` viewmodel +
+  `WEAPON_MODELS`/`WEAPON_LABEL`/`WEAPON_ARCHETYPE`/stat-bar; server
+  `SERVER_WEAPONS`/`VALID_WEAPONS` burst; `fire_burst` sound id; loadout button.
+  Versions bumped to v0.37.0 (+ menu subtitle/footer).
+
+### Phase 37 COMPLETE — additive weapon + new timed-burst mechanic, no protocol change, solo + MP intact.

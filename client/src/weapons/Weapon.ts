@@ -63,6 +63,11 @@ export interface WeaponConfig {
   /** If true, shots pierce every enemy in a line until they hit a wall (Railgun).
    *  Solo-only — MP damage is server-authoritative (single-target). */
   pierce?: boolean;
+  /** If set, one trigger pull fires a fixed burst of `count` rounds spaced
+   *  `intervalMs` apart (Burst Rifle). The first round fires from tryFire; Game
+   *  schedules the rest with live aim (so the burst tracks your crosshair) and
+   *  per-round camera recoil. The between-burst gap is the normal fireRate. */
+  burst?: { count: number; intervalMs: number };
   /** Display class shown in HUD (PRIMARY / SECONDARY). Pistol = SECONDARY. */
   slot: 'primary' | 'secondary';
 }
@@ -254,6 +259,37 @@ export const RAILGUN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Burst Rifle — fires a tight 3-round burst per trigger pull. The signature
+// "tap-tap-tap" rifle: pinpoint when you pace your bursts, hard-hitting per
+// volley (3 × 23 = 69 body, a one-burst kill with any headshot round), but you
+// commit to each burst's rhythm. Automatic (hold to keep bursting) with a clear
+// between-burst gap. The novel timed-burst mechanic is client-side; MP applies
+// each round as a single-target server hit (mirrors the Railgun precedent).
+export const BURST_CONFIG: WeaponConfig = {
+  id: 'burst',
+  displayName: 'Burst Rifle',
+  fireRate: 3.2,               // bursts per second (the between-burst cadence)
+  automatic: true,            // hold LMB to keep firing bursts
+  magSize: 24,                // 8 full bursts
+  reloadTime: 1.9,
+  reserveAmmo: -1,
+  baseDamage: 23,
+  headshotMultiplier: 1.75,
+  maxRange: 170,
+  falloffStart: 35,
+  falloffEnd: 95,
+  falloffMinMultiplier: 0.55,
+  baseSpread: 0.005,
+  maxSpread: 0.05,
+  spreadPerShot: 0.006,        // stays tight within a burst; blooms if you mash
+  spreadDecay: 0.4,
+  recoilPitch: 0.016,
+  recoilYaw: 0.005,
+  recoilDecay: 0.7,
+  burst: { count: 3, intervalMs: 60 },
+  slot: 'primary',
+};
+
 // Pistol — semi-auto sidearm. Always equipped, decent damage, no reserve cap.
 export const PISTOL_CONFIG: WeaponConfig = {
   id: 'pistol',
@@ -287,6 +323,7 @@ export const WEAPON_LIBRARY = {
   marksman: MARKSMAN_CONFIG,
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
+  burst: BURST_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;
@@ -295,6 +332,9 @@ export interface FireResult {
   hit: RayHit | null;
   /** Camera pitch/yaw kick this shot — UI applies it to the camera. */
   recoilKick: { pitch: number; yaw: number };
+  /** Set on the first round of a burst weapon — the follow-up rounds Game must
+   *  schedule (rounds 2..count) and the interval between them, in ms. */
+  burst?: { remaining: number; intervalMs: number };
 }
 
 export class Weapon {
@@ -425,7 +465,32 @@ export class Weapon {
       this.currentSpread = Math.min(this.config.maxSpread, this.currentSpread + this.config.spreadPerShot);
     }
 
-    return { hit: firstHit, recoilKick: kick };
+    const result: FireResult = { hit: firstHit, recoilKick: kick };
+    // Burst weapon: the first round just fired; hand Game the follow-up rounds.
+    if (this.config.burst && this.config.burst.count > 1) {
+      result.burst = { remaining: this.config.burst.count - 1, intervalMs: this.config.burst.intervalMs };
+    }
+    return result;
+  }
+
+  /**
+   * Fire one follow-up round of a burst (rounds 2..count). Driven by Game's
+   * per-frame scheduler with *live* aim, so the burst tracks your crosshair and
+   * each round applies its own camera recoil. Does NOT touch the between-burst
+   * cooldown (set by the initiating tryFire). Returns the round's result, or
+   * null if the mag emptied / a reload started mid-burst (caller stops then).
+   */
+  fireBurstRound(origin: THREE.Vector3, aim: THREE.Vector3, spreadMultiplier = 1.0): FireResult | null {
+    if (this.reloadRemaining > 0 || this.ammoInMag <= 0) return null;
+    this.ammoInMag--;
+    this.shotIndex++;
+    const yawDir = (this.shotIndex % 2 === 0) ? 1 : -1;
+    const kick = { pitch: this.config.recoilPitch, yaw: this.config.recoilYaw * yawDir };
+    this.recoilPitchAccum += kick.pitch;
+    this.recoilYawAccum += kick.yaw;
+    const hit = this.firePellet(origin, aim, spreadMultiplier);
+    this.currentSpread = Math.min(this.config.maxSpread, this.currentSpread + this.config.spreadPerShot);
+    return { hit, recoilKick: kick };
   }
 
   /**

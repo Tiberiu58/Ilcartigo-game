@@ -319,6 +319,12 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | --- | --- | --- |
 | `inspect.wav` | Weapon-inspect handling rustle (soft cloth/metal) | "gun handling", "rifle foley", "cloth rustle" |
 
+**Phase 37 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `fire_burst.wav` | Burst-rifle round crack (plays per round of the 3-round burst) | "burst rifle", "m16 shot", "carbine shot" |
+
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
 A continuation focused on making the game *feel* like Krunker — instant feedback, visible progression, retention hooks — plus the revenue layer. Each sub-phase shipped independently and was verified (typecheck + build, headless smoke tests where the logic is server-side, browser checks for UI).
@@ -997,13 +1003,45 @@ central furnace stack as the landmark.
   and asserted **all 6 FFA + TDM spawns sit clear of every solid** (27 solids,
   8 pads).
 
+## Phase 37 — Burst Rifle (9th weapon) (v0.37.0)
+
+Back to the brief's first pillar (weapon variety / satisfying shooting). The
+ninth weapon — the **Burst Rifle** — fires a tight **3-round burst** per trigger
+pull, the signature "tap-tap-tap" rifle: pinpoint when you pace your bursts,
+hard-hitting per volley (3 × 23 = 69 body, a one-burst kill with any headshot
+round), but you commit to each burst's rhythm. Automatic (hold to keep bursting)
+with a clear between-burst gap.
+
+- **New timed-burst mechanic — Game-scheduled, live aim.** `WeaponConfig.burst`
+  (`{ count, intervalMs }`) declares the burst. `tryFire` fires round 1 and
+  returns the rounds still owed; `Game.tickBurst` fires the rest over the next
+  frames with the player's **live** eye/aim (so the burst tracks your crosshair)
+  and per-round camera recoil. `Weapon.fireBurstRound` does one round (ammo +
+  recoil + spread + the shared `firePellet`, so tracers / impacts / damage / XP /
+  killfeed / mastery / the announcer all work for free).
+- **Self-cancelling — never fires in the background.** The scheduler stops the
+  instant the player dies, swaps off the burst weapon, or is mid-swap, so a
+  holstered or dead weapon can't keep firing. A mag emptying mid-burst stops it
+  cleanly (8 full bursts per 24-round mag).
+- **MP-safe, mirrors the Railgun precedent.** In MP each of the 3 rounds is sent
+  as its own single-target fire event, applied authoritatively by a new
+  `SERVER_WEAPONS['burst']` profile + `VALID_WEAPONS` entry — so the burst works
+  online too, no protocol change. (The client's local rounds find no networked
+  damageables, so the server owns damage — no double-hits.)
+- **Full integration:** `BURST_CONFIG` + `WEAPON_LIBRARY` entry, a compact
+  `buildBurst` viewmodel (with a 3-pip burst selector) + `WEAPON_MODELS` (uses
+  the Rifle FBX), `WEAPON_LABEL` (Gun Game), `WEAPON_ARCHETYPE` ("Burst Rifle")
+  + a per-pull damage stat that folds in the burst count, a loadout button, and
+  a `fire_burst` sound id. Verified headlessly (round-counting, mag drain,
+  between-burst cooldown).
+
 ## Project status
 
-v0.36.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + **Foundry map** + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **7 maps** (Sandstone · Industrial · Cobalt · Overpass · Frostline · **Foundry** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.37.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + **Foundry map** + **Burst Rifle** + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, Railgun, **Burst Rifle**), **7 maps** (Sandstone · Industrial · Cobalt · Overpass · Frostline · **Foundry** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~85 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 7 maps, 8 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.33.0.
+- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~85 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 7 maps, 9 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.33.0.
 - `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff** (incl. Railgun). Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.33.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 

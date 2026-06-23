@@ -82,6 +82,9 @@ export const SOUND_FILES = {
   // Weapon inspect (Phase 35) — a soft handling/cloth rustle when you flaunt the gun.
   inspect:       'inspect.wav',
 
+  // Burst Rifle (Phase 37) — a snappy 3-round burst crack.
+  fire_burst:    'fire_burst.wav',
+
   // Frag grenade (Phase 21) — detonation boom.
   grenade_explode: 'grenade_explode.wav',
 

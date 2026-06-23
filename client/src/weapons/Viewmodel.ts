@@ -329,8 +329,25 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   marksman: buildMarksman,
   lmg: buildLMG,
   railgun: buildRailgun,
+  burst: buildBurst,
   pistol: buildPistol,
 };
+
+function buildBurst(p: THREE.Group): number {
+  p.add(box(0.15, 0.12, 0.38, 0x2f3a34, 0, 0, 0));            // compact carbine body (olive-steel)
+  p.add(box(0.10, 0.10, 0.20, 0x3c4a42, 0, -0.02, 0.26));     // stock
+  p.add(box(0.055, 0.055, 0.40, 0x161b18, 0, 0.02, -0.30));   // barrel
+  p.add(box(0.045, 0.045, 0.12, 0x0e1210, 0, 0.02, -0.52));   // muzzle brake
+  p.add(box(0.10, 0.17, 0.10, 0x222a26, 0, -0.14, 0.0));      // mag
+  p.add(box(0.08, 0.14, 0.10, 0x222a26, 0, -0.12, 0.16));     // grip
+  p.add(box(0.09, 0.05, 0.16, 0x14181f, 0, 0.095, -0.02));    // top rail / optic base
+  p.add(box(0.05, 0.05, 0.05, 0x6ad0a0, 0, 0.095, -0.12));    // optic lens (teal)
+  // Three-round burst selector — three bright pips on the receiver (accent).
+  p.add(box(0.02, 0.02, 0.02, 0xffc24a, 0.085, 0.02, 0.10));
+  p.add(box(0.02, 0.02, 0.02, 0xffc24a, 0.085, 0.02, 0.06));
+  p.add(box(0.02, 0.02, 0.02, 0xffc24a, 0.085, 0.02, 0.02));
+  return -0.58;
+}
 
 function buildRailgun(p: THREE.Group): number {
   p.add(box(0.15, 0.13, 0.46, 0x202a36, 0, 0, 0));            // sleek body (steel-blue)
