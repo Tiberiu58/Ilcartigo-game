@@ -100,6 +100,10 @@ export const SOUND_FILES = {
   streak_10:     'streak_10.wav',
   streak_15:     'streak_15.wav',
   streak_20:     'streak_20.wav',
+
+  // Crates (Phase 35) — reel spin loop + reveal sting.
+  crate_spin:    'crate_spin.wav',
+  crate_reveal:  'crate_reveal.wav',
 } as const;
 
 export type SoundId = keyof typeof SOUND_FILES;

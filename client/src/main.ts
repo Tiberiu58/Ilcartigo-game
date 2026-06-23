@@ -28,6 +28,7 @@ import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
+import { CrateUI } from './ui/CrateUI';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
@@ -1304,6 +1305,25 @@ const cosmeticsUI = new CosmeticsUI(game.account);
 void cosmeticsUI;
 const profileUI = new ProfileUI(game.account);
 void profileUI;
+
+// ─── Crates (spin-for-cosmetic reward loop) ────────────────────────────────
+const crateUI = new CrateUI(game.account, game.audio);
+const menuCrates = document.getElementById('menu-crates') as HTMLButtonElement;
+function updateCratesButton() {
+  const keys = game.account.crateKeys;
+  const free = game.account.freeCrateAvailable();
+  menuCrates.textContent = keys > 0
+    ? `📦 Crates · ${keys} 🔑`
+    : (free ? '📦 Crates · free crate ready' : '📦 Crates');
+  menuCrates.classList.toggle('has-crate', keys > 0 || free);
+}
+menuCrates.addEventListener('click', () => {
+  crateUI.open();
+  Ads.refreshSlot('crate');
+  game.audio.play('ui_click');
+});
+game.account.onChange(updateCratesButton);
+updateCratesButton();
 
 // Reset progression button — wipes XP + unlocks + equipped cosmetics after a
 // confirm prompt. Useful for testing the unlock loop or for players who want

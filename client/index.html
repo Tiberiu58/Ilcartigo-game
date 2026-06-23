@@ -302,7 +302,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.34</p>
+          <p class="subtitle">Browser arena shooter · v0.35</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -392,13 +392,14 @@
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
+            <button class="menu-btn crates" id="menu-crates">📦 Crates</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
             <button class="menu-btn" id="menu-about">About</button>
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.34.0 — 3D weapon models · Duel · Railgun · Power-ups · Daily rewards · 6 maps · 8 weapons</div>
+          <div>v0.35.0 — Crates · 3D weapon models · Duel · Railgun · Power-ups · Daily rewards · 6 maps · 8 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -612,6 +613,31 @@
           <div class="daily-track" id="daily-track"></div>
           <button class="menu-btn primary" id="daily-claim">▸ Claim</button>
           <button class="menu-btn" id="daily-dismiss">Close</button>
+        </div>
+      </div>
+
+      <!-- Crate / spin overlay — open crates (earned by levelling up + a free
+           daily) to unlock random cosmetics. Reel + grant wired in CrateUI.ts. -->
+      <div id="crate-overlay" class="hidden">
+        <div class="crate-card">
+          <h2>📦 CRATES</h2>
+          <p class="crate-sub" id="crate-sub">Open crates to unlock skins, kill effects, tracers &amp; finishes.</p>
+          <div class="crate-keys" id="crate-keys-line"></div>
+
+          <div class="crate-reel-window" id="crate-reel-window">
+            <div class="crate-reel-marker"></div>
+            <div class="crate-reel-strip" id="crate-reel"></div>
+          </div>
+
+          <div class="crate-result hidden" id="crate-result"></div>
+
+          <div class="crate-actions">
+            <button class="menu-btn primary" id="crate-open">▸ Open Crate</button>
+            <button class="menu-btn" id="crate-free">🎁 Claim free daily crate</button>
+          </div>
+          <div class="crate-odds" id="crate-odds"></div>
+          <div class="ad-slot ad-crate" id="ad-crate" data-ad-slot="crate"></div>
+          <button class="menu-btn" id="crate-dismiss">Close</button>
         </div>
       </div>
 

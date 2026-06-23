@@ -82,7 +82,16 @@ interface AccountData {
   daily: DailyState;
   /** Daily-login streak (show-up reward, separate from the in-match challenges). */
   login: LoginState;
+  /** Crate currency — keys earned by levelling up + a free daily crate. */
+  crateKeys: number;
+  /** Lifetime crates opened (bragging stat). */
+  cratesOpened: number;
+  /** YYYY-MM-DD the last free daily crate key was claimed. */
+  lastFreeCrate: string;
 }
+
+/** Cosmetic axes a crate can grant (weapon skins stay mastery-gated). */
+export type CosmeticAxis = 'skin' | 'effect' | 'tracer' | 'finish';
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
 export interface DailyChallenge {
@@ -183,6 +192,9 @@ function freshData(): AccountData {
     name: '',
     daily: freshDaily(freshStats()),
     login: { last: '', streak: 0 },
+    crateKeys: 0,
+    cratesOpened: 0,
+    lastFreeCrate: '',
   };
 }
 
@@ -246,6 +258,11 @@ export class Account {
           && typeof (parsed.login as LoginState).streak === 'number')
           ? parsed.login as LoginState
           : fresh.login,
+        crateKeys: typeof parsed.crateKeys === 'number' && Number.isFinite(parsed.crateKeys)
+          ? Math.max(0, Math.floor(parsed.crateKeys)) : fresh.crateKeys,
+        cratesOpened: typeof parsed.cratesOpened === 'number' && Number.isFinite(parsed.cratesOpened)
+          ? Math.max(0, Math.floor(parsed.cratesOpened)) : fresh.cratesOpened,
+        lastFreeCrate: typeof parsed.lastFreeCrate === 'string' ? parsed.lastFreeCrate : fresh.lastFreeCrate,
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
@@ -340,10 +357,19 @@ export class Account {
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
+  /** Credit one crate key per level boundary crossed since `prevXp`. Caller saves. */
+  private creditLevelKeys(prevXp: number) {
+    const before = Math.floor(prevXp / XP_PER_LEVEL);
+    const after = Math.floor(this.data.xp / XP_PER_LEVEL);
+    if (after > before) this.data.crateKeys += (after - before);
+  }
+
   /** Add XP. Triggers persistence + listeners. Returns the new total. */
   awardXP(amount: number): number {
     if (amount <= 0) return this.data.xp;
+    const prev = this.data.xp;
     this.data.xp += amount;
+    this.creditLevelKeys(prev);
     this.save();
     return this.data.xp;
   }
@@ -547,7 +573,9 @@ export class Account {
     const progress = this.data.stats[c.stat] - c.baseline;
     if (progress < c.goal) return false;
     c.claimed = true;
+    const prev = this.data.xp;
     this.data.xp += c.reward;
+    this.creditLevelKeys(prev);
     this.save();
     return true;
   }
@@ -584,9 +612,77 @@ export class Account {
     if (!st.available) return null;
     this.data.login.last = todayKey();
     this.data.login.streak = st.day;
+    const prev = this.data.xp;
     this.data.xp += st.reward;
+    this.creditLevelKeys(prev);
     this.save();
     return { day: st.day, reward: st.reward };
+  }
+
+  // ── Crates (key economy + cosmetic grants) ────────────────────────────────
+
+  /** Crate keys on hand. */
+  get crateKeys(): number { return this.data.crateKeys; }
+  /** Lifetime crates opened. */
+  get cratesOpened(): number { return this.data.cratesOpened; }
+
+  /** True if a cosmetic on the given axis is already unlocked. */
+  hasCosmetic(axis: CosmeticAxis, id: string): boolean {
+    switch (axis) {
+      case 'skin':   return this.data.unlockedSkins.includes(id);
+      case 'effect': return this.data.unlockedEffects.includes(id);
+      case 'tracer': return this.data.unlockedTracers.includes(id);
+      case 'finish': return this.data.unlockedFinishes.includes(id);
+    }
+  }
+
+  /** Force-unlock a cosmetic (no XP cost — used by crate grants). Returns true
+   *  if it was newly unlocked, false if the player already owned it. */
+  grantCosmetic(axis: CosmeticAxis, id: string): boolean {
+    if (this.hasCosmetic(axis, id)) return false;
+    switch (axis) {
+      case 'skin':   this.data.unlockedSkins.push(id); break;
+      case 'effect': this.data.unlockedEffects.push(id); break;
+      case 'tracer': this.data.unlockedTracers.push(id); break;
+      case 'finish': this.data.unlockedFinishes.push(id); break;
+    }
+    this.save();
+    return true;
+  }
+
+  /** Spend one crate key. Returns false (no-op) if the player has none. */
+  spendCrateKey(): boolean {
+    if (this.data.crateKeys <= 0) return false;
+    this.data.crateKeys--;
+    this.save();
+    return true;
+  }
+
+  /** Add crate keys (e.g. a bonus reward). */
+  addCrateKeys(n: number) {
+    if (n <= 0) return;
+    this.data.crateKeys += Math.floor(n);
+    this.save();
+  }
+
+  /** Bump the lifetime crates-opened counter. */
+  recordCrateOpened() {
+    this.data.cratesOpened++;
+    this.save();
+  }
+
+  /** True if today's free crate key hasn't been claimed yet. */
+  freeCrateAvailable(): boolean {
+    return this.data.lastFreeCrate !== todayKey();
+  }
+
+  /** Claim the once-per-day free crate key. Returns true on success. */
+  claimFreeCrate(): boolean {
+    if (!this.freeCrateAvailable()) return false;
+    this.data.lastFreeCrate = todayKey();
+    this.data.crateKeys++;
+    this.save();
+    return true;
   }
 
   /** Reset to fresh state. Wipes XP, cosmetics, AND lifetime stats. */

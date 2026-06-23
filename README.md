@@ -2,7 +2,7 @@
 
 Fast-paced browser arena shooter — Krunker-style movement, class-based abilities.
 
-> **Status:** v0.34.0 — **real 3D weapon models.** The first-person viewmodel now shows detailed FBX gun models (rifle, P90, sniper, shotgun, LMG, ray-gun, pistol) instead of the procedural box-guns — lazy-loaded, de-rigged (SkinnedMesh→static Mesh so they clone + render), auto-normalized to a consistent in-hand size, with a graceful box fallback if a model is missing. All existing viewmodel behaviour (recoil, walk-bob, swap dip, muzzle-flash anchor, cloak fade, weapon-finish emissive) preserved. Built on the v0.33.0 **second routine-integration round.** Two more autonomous build branches merged onto `main`, combining everything they each built. **From the power-ups/progression branch:** **Arena Power-Ups** (OVERCHARGE ×1.7 dmg, RAPID FIRE ×1.55 RoF, OVERSHIELD 50%-absorb — contested buff pads, solo-only), the **Railgun** (8th weapon — piercing beam, one-shot heads, line multi-kills), **Daily Login Rewards** (7-day escalating XP streak), **"ON FIRE" rampage** (persistent killstreak aura), **cosmetics expansion** (kill effects →8, tracers →10, finishes →8), and **skill-shot callouts** (NO SCOPE / AIRBORNE / LONGSHOT). **From the content/feel branch:** **Duel** (solo 1v1 gauntlet — single-elimination ladder vs escalating rivals), **Frostline** (6th combat map, frozen tundra), **weapon identity cards** (archetype + stat bars in the loadout), a **rising hitmarker**, and a **kill banner** ("ELIMINATED {name}"). Their overlapping post-match work was reconciled into one card (accolade + stat strip + NEW PERSONAL BEST). All pure-client / zero-protocol — solo + live MP both intact. Built on the v0.24.0 routine-integration round (Team Deathmatch, Onslaught, Cobalt + Overpass maps, LMG, melee, grenade, nameplates, bot difficulty), the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified), and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
+> **Status:** v0.35.0 — **ILCARTIGO Crates.** A Krunker-style crate/spin reward loop: earn crate keys by levelling up (every XP source feeds it) plus a free daily crate, then open crates via a flashy animated reel that lands on a random cosmetic — force-unlocking it (bypassing its XP cost) or refunding XP on a duplicate. Auto-built pool from the cosmetics registries (53 items, 4 rarities), weighted draws with bad-luck protection, a new `📦 Crates` menu button + crate-screen AdSense breakpoint. Pure-client, no protocol change. Built on **v0.34.0 — real 3D weapon models.** The first-person viewmodel now shows detailed FBX gun models (rifle, P90, sniper, shotgun, LMG, ray-gun, pistol) instead of the procedural box-guns — lazy-loaded, de-rigged (SkinnedMesh→static Mesh so they clone + render), auto-normalized to a consistent in-hand size, with a graceful box fallback if a model is missing. All existing viewmodel behaviour (recoil, walk-bob, swap dip, muzzle-flash anchor, cloak fade, weapon-finish emissive) preserved. Built on the v0.33.0 **second routine-integration round.** Two more autonomous build branches merged onto `main`, combining everything they each built. **From the power-ups/progression branch:** **Arena Power-Ups** (OVERCHARGE ×1.7 dmg, RAPID FIRE ×1.55 RoF, OVERSHIELD 50%-absorb — contested buff pads, solo-only), the **Railgun** (8th weapon — piercing beam, one-shot heads, line multi-kills), **Daily Login Rewards** (7-day escalating XP streak), **"ON FIRE" rampage** (persistent killstreak aura), **cosmetics expansion** (kill effects →8, tracers →10, finishes →8), and **skill-shot callouts** (NO SCOPE / AIRBORNE / LONGSHOT). **From the content/feel branch:** **Duel** (solo 1v1 gauntlet — single-elimination ladder vs escalating rivals), **Frostline** (6th combat map, frozen tundra), **weapon identity cards** (archetype + stat bars in the loadout), a **rising hitmarker**, and a **kill banner** ("ELIMINATED {name}"). Their overlapping post-match work was reconciled into one card (accolade + stat strip + NEW PERSONAL BEST). All pure-client / zero-protocol — solo + live MP both intact. Built on the v0.24.0 routine-integration round (Team Deathmatch, Onslaught, Cobalt + Overpass maps, LMG, melee, grenade, nameplates, bot difficulty), the publication round (site + game on Vercel, **MP server live on Fly.io** at `ilcartigo-game.fly.dev`, AdSense `ca-pub-8134911671778438` verified), and Phase 13–14 (Gun Game, Aim Lab, rank ladder, weapon mastery, Marksman, server-authoritative per-weapon damage, minimap, impact FX, health pickups, weapon finishes).
 
 ## Repo layout
 
@@ -311,6 +311,13 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `pickup_powerup.wav` | Arena power-up grab (overcharge / rapid) | "power up", "buff activate", "energy pickup" |
 | `fire_railgun.wav` | Railgun beam discharge (heavy electric crack) | "railgun", "energy beam shot", "sci-fi laser shot" |
 | `fire_lmg.wav` | LMG burst (deep rapid chug) | "machine gun", "lmg shot", "heavy mg" |
+
+**Phase 35 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `crate_spin.wav` | Crate reel spin loop (ticking/whir) | "reel spin", "wheel tick", "slot machine spin" |
+| `crate_reveal.wav` | Crate drop reveal sting | "reward reveal", "unlock chime", "item drop" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -910,6 +917,31 @@ progress** — lifetime kills + a bar toward the next mastery skin ("Verdant ·
 right where you pick the gun. Pure UI off `Account.weaponKillsFor` +
 `weaponSkinsFor`; re-rendered on weapon select / boot / quit-to-menu.
 
+## Phase 35 — ILCARTIGO Crates (this round, v0.35.0)
+
+A Krunker-style **crate / spin reward loop** on top of the cosmetics economy —
+the retention + ad-revenue hook the game was missing. Pure-client,
+localStorage-backed, **no protocol/server change** — solo + MP both intact.
+
+- **Crate keys** are earned **+1 per level** (every XP source — kills, wins,
+  daily challenges, login rewards — feeds it) plus a **free daily crate**.
+- **Opening a crate** plays a flashy animated **reel** (`ui/CrateUI.ts`) that
+  scrolls then eases onto a random cosmetic and reveals a rarity-glowed result
+  card — **★ NEW UNLOCK** (force-unlocked, bypassing its XP cost) or **DUPLICATE
+  → +XP** refund (60/150/350/700 by rarity). Open-another chaining keeps the
+  dopamine loop going.
+- **Pool (`account/Crates.ts`)** auto-builds from the cosmetics registries (53
+  items across 4 rarities, banded by XP cost) — new cosmetics appear in crates
+  for free. Weighted rarity draw (56/28/12/4) with **bad-luck protection**
+  (prefers unowned items of the rolled tier). Weapon skins stay out (mastery
+  loop kept pure).
+- **Wiring.** New `📦 Crates` menu button (live key badge + ready-pulse), a new
+  `crate` AdSense slot (the crate screen is a natural menu ad breakpoint), and
+  `crate_spin` / `crate_reveal` sound ids. Account gains a migration-safe key
+  economy (`crateKeys` / `cratesOpened` / `lastFreeCrate`, `creditLevelKeys`,
+  `grantCosmetic`, free-daily claim). Verified headlessly (5000 opens unlock the
+  whole pool, then dupe→XP) + client/server tsc + build green.
+
 ## 3D weapon models (v0.34.0)
 
 The first-person viewmodel was procedural boxes since the start. This round wires
@@ -945,12 +977,12 @@ behaviour intact and the game safe if a model is ever absent.
 
 ## Project status
 
-v0.34.0 — **deployed and live**, real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.35.0 — **deployed and live**, **crate/spin reward loop** + real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **Crates** (spin-to-unlock cosmetics; keys from levelling + a free daily), **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~85 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 6 maps, 8 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.33.0.
-- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff** (incl. Railgun). Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.33.0.
+- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~89 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 6 maps, 8 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun, **Crates** (spin-to-unlock cosmetics). **Live at <https://velocity-two-chi.vercel.app/play>.** v0.35.0.
+- `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff** (incl. Railgun). Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.35.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 
 ## What you'd want to do next (post-v1)

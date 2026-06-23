@@ -1213,3 +1213,54 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 35 — ILCARTIGO Crates (autonomous build, v0.35.0)
+
+A Krunker-style **crate / spin reward loop** layered on top of the existing
+cosmetics economy — the single highest-leverage retention + ad-revenue hook the
+game was still missing. Players earn **crate keys** (every XP source feeds it),
+open crates via a flashy animated reel that lands on a random cosmetic, and chase
+the legendary drops. The crate screen is a natural menu **ad breakpoint** (more
+between-match menu dwell → more impressions). Pure-client, localStorage-backed,
+**no protocol/server change** — solo + MP both intact.
+
+- **Key economy (`Account` additions).** `crateKeys` is credited **+1 per level
+  boundary crossed** by *any* XP gain — a new private `creditLevelKeys` hooks
+  `awardXP`, `claimChallenge`, and `claimDailyLogin`, so kills, wins, daily
+  challenges and login rewards all feed the crate loop. Plus a **free daily
+  crate** (`freeCrateAvailable` / `claimFreeCrate`, one key per local day). New
+  migration-safe fields (`crateKeys` / `cratesOpened` / `lastFreeCrate`) default
+  cleanly on old saves. Force-unlock + ownership helpers (`grantCosmetic`,
+  `hasCosmetic`, typed by a new `CosmeticAxis`).
+- **Crate logic (`account/Crates.ts`).** A flat `CRATE_POOL` auto-built from the
+  cosmetics registries (53 items: 16 common / 12 rare / 13 epic / 12 legendary,
+  rarity banded by XP cost) — new registry entries appear in crates for free.
+  Weighted rarity draw (common 56 / rare 28 / epic 12 / legendary 4) with
+  **bad-luck protection** (prefers unowned items of the rolled tier, so crates
+  keep handing out *new* cosmetics until a tier is exhausted, then dupe→XP).
+  `openCrate` force-unlocks (fresh) or refunds XP (dupe: 60/150/350/700 by
+  rarity) and bumps the counter; `buildReel` lays out the animation strip with
+  the winner at a fixed index. Weapon skins stay **out** of the pool (mastery
+  loop kept pure). Verified headlessly: 5000 opens unlock all 53 then only dupe.
+- **Spin UI (`ui/CrateUI.ts` + overlay).** A `#crate-overlay` with key balance,
+  free-daily claim, odds legend, and the centrepiece **animated reel** — a
+  horizontal strip that scrolls fast then eases (`cubic-bezier`, 4.2 s) onto the
+  marker, with a rarity-glowed result card (★ NEW UNLOCK + Equip, or DUPLICATE
+  · +XP) and Open-Another chaining. Resilient: a safety timeout backstops a
+  missed `transitionend`. New `crate_spin` / `crate_reveal` sound ids
+  (silent until assets land).
+- **Wiring.** New `📦 Crates` main-menu button (live key/free-crate badge +
+  ready-pulse), a `crate` AdSense slot (`Ads.ts` + `data-ad-slot`), and CrateUI
+  re-renders off `account.onChange`. Equipping a crate drop flows through the
+  existing equip methods → viewmodel/skin updates for free.
+
+### Status log
+- ✅ Phase 35 — Crates. DONE (client + server tsc + client build green; app
+  chunk ~89 KB gzip). New `account/Crates.ts`, `ui/CrateUI.ts`, Account key
+  economy, crate overlay + CSS, menu button, `crate` ad slot, 2 sound ids.
+  Headless logic test passed (full-pool unlock + reel landing). Versions bumped
+  to v0.35.0 (+ menu subtitle/footer).
+
+### Phase 35 COMPLETE — pure client, no protocol change, solo + MP intact.
