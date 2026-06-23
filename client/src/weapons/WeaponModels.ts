@@ -25,6 +25,40 @@
 import * as THREE from 'three';
 import type { WeaponId } from './Weapon';
 
+/**
+ * The FBX weapon exports carry meaningful material NAMES (LightWood, DarkWood,
+ * Black, Metal, Barrels, BulletYellow…) but all-white diffuse colours, so the
+ * model would render as a flat grey blob. Reconstruct a colour from the name
+ * (case-insensitive substring match, most-specific first) so each part reads
+ * distinctly and the guns look like guns. Returns null for unknown names
+ * (caller uses a neutral gunmetal fallback).
+ */
+const MATERIAL_COLORS: Array<[RegExp, number]> = [
+  [/lightwood|light_wood/i, 0xb5824a],
+  [/darkwood|dark_wood/i,   0x5c3a1e],
+  [/wood/i,                 0x8a5a2c],
+  [/darkermetal|darkmetal|dark_metal/i, 0x33393f],
+  [/gunmetal|metal/i,       0x6e757d],
+  [/barrel/i,               0x2b2f34],
+  [/trigger/i,              0x3a3f45],
+  [/grip|handle/i,          0x26292d],
+  [/magazine|\bmag\b/i,     0x2e3338],
+  [/muzzle/i,               0x1c1f22],
+  [/bulletred|\bred\b/i,    0xb23b32],
+  [/bulletyellow|brass|yellow/i, 0xc8a13a],
+  [/bulletorange|orange/i,  0xc8742a],
+  [/scope|lens|glass|optic/i, 0x6fb7cf],
+  [/black/i,                0x16181b],
+  [/grey|gray/i,            0x7a8088],
+  [/green/i,                0x4a9d52],
+];
+function colorForMaterialName(name: string): THREE.Color | null {
+  for (const [re, hex] of MATERIAL_COLORS) {
+    if (re.test(name)) return new THREE.Color(hex);
+  }
+  return null;
+}
+
 /** Per-weapon FBX file + how to place it in the viewmodel's local space. */
 interface ModelDef {
   /** File under public/assets/models/weapons/. */
@@ -54,16 +88,23 @@ interface ModelDef {
  * RayGun. `pistol` uses Pistol.fbx — the Revolver export is degenerate (a stray
  * vertex blows its bbox to 42000 units) so it's deliberately NOT used.
  */
-const NZ = -Math.PI / 2;   // barrel-along-+X models → rotate -90° Y to face -Z
+// Two native orientations among these FBX exports (measured in-browser by
+// checking which world axis the model's longest dimension lands on):
+//   Z0 = barrel already down model-Z after the bake → NO Y-rotation (rot 0).
+//        Rifle / Shotgun / Sniper / P90 / RayGun export this way.
+//   ZX = barrel along model-X → rotate -90° Y so it faces -Z.
+//        LMG + Pistol export this way.
+const Z0 = 0;
+const ZX = -Math.PI / 2;
 export const WEAPON_MODELS: Partial<Record<WeaponId, ModelDef>> = {
-  ar:       { file: 'Rifle.fbx',       length: 0.95, rot: [0, NZ, 0], pos: [0, 0.0, 0.16],  muzzleZ: -0.52 },
-  smg:      { file: 'P90.fbx',         length: 0.80, rot: [0, NZ, 0], pos: [0, 0.0, 0.10],  muzzleZ: -0.40 },
-  sniper:   { file: 'SniperRifle.fbx', length: 1.05, rot: [0, NZ, 0], pos: [0, 0.0, 0.26],  muzzleZ: -0.78 },
-  shotgun:  { file: 'Shotgun.fbx',     length: 0.92, rot: [0, NZ, 0], pos: [0, 0.0, 0.20],  muzzleZ: -0.60 },
-  marksman: { file: 'Rifle.fbx',       length: 1.00, rot: [0, NZ, 0], pos: [0, 0.0, 0.20],  muzzleZ: -0.68 },
-  lmg:      { file: 'LMG.fbx',         length: 0.95, rot: [0, NZ, 0], pos: [0, -0.04, 0.10], muzzleZ: -0.70 },
-  railgun:  { file: 'RayGun.fbx',      length: 0.78, rot: [0, NZ, 0], pos: [0, -0.08, 0.12], muzzleZ: -0.72 },
-  pistol:   { file: 'Pistol.fbx',      length: 0.42, rot: [0, NZ, 0], pos: [0, 0.0, 0.0],   muzzleZ: -0.20 },
+  ar:       { file: 'Rifle.fbx',       length: 0.95, rot: [0, Z0, 0], pos: [0, 0.0, 0.16],  muzzleZ: -0.52 },
+  smg:      { file: 'P90.fbx',         length: 0.80, rot: [0, Z0, 0], pos: [0, 0.0, 0.10],  muzzleZ: -0.40 },
+  sniper:   { file: 'SniperRifle.fbx', length: 1.05, rot: [0, Z0, 0], pos: [0, 0.0, 0.26],  muzzleZ: -0.78 },
+  shotgun:  { file: 'Shotgun.fbx',     length: 0.92, rot: [0, Z0, 0], pos: [0, 0.0, 0.20],  muzzleZ: -0.60 },
+  marksman: { file: 'Rifle.fbx',       length: 1.00, rot: [0, Z0, 0], pos: [0, 0.0, 0.20],  muzzleZ: -0.68 },
+  lmg:      { file: 'LMG.fbx',         length: 0.95, rot: [0, ZX, 0], pos: [0, -0.04, 0.10], muzzleZ: -0.70 },
+  railgun:  { file: 'RayGun.fbx',      length: 0.78, rot: [0, Z0, 0], pos: [0, -0.08, 0.12], muzzleZ: -0.72 },
+  pistol:   { file: 'Pistol.fbx',      length: 0.42, rot: [0, ZX, 0], pos: [0, 0.0, 0.0],   muzzleZ: -0.20 },
 };
 
 const BASE = import.meta.env.BASE_URL || '/';
@@ -108,9 +149,17 @@ const inflight = new Map<string, Promise<THREE.Group | null>>();
  */
 function staticizeAndNormalizeMaterials(root: THREE.Object3D): THREE.Group {
   const convertMat = (m: THREE.Material): THREE.MeshLambertMaterial => {
-    const anyM = m as unknown as { color?: THREE.Color; map?: THREE.Texture | null };
+    const anyM = m as unknown as { color?: THREE.Color; map?: THREE.Texture | null; name?: string };
+    // These FBX exports ship with all-white materials (no diffuse colour, no
+    // texture) — only the material NAME carries the intent (LightWood, Metal,
+    // Barrels…). Reconstruct a sensible colour from the name so each part reads
+    // distinctly (and a rifle stops looking like a grey blob == a shotgun).
+    const named = colorForMaterialName(anyM.name ?? '');
+    const baseColor = named ?? (anyM.color && anyM.color.getHex() !== 0xffffff
+      ? anyM.color.clone()
+      : new THREE.Color(0x8a929c));   // neutral gunmetal fallback
     return new THREE.MeshLambertMaterial({
-      color: anyM.color ? anyM.color.clone() : new THREE.Color(0x9aa3ad),
+      color: baseColor,
       map: anyM.map ?? null,
       flatShading: true,
     });
