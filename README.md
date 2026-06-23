@@ -81,6 +81,7 @@ For multiplayer testing, open the client URL in **two browser windows** and clic
 | `E` | Class ability |
 | `V` / `F` | Quick melee (knife) |
 | `G` | Throw frag grenade |
+| `T` | Inspect weapon (cosmetic flourish) |
 | `R` | Reload |
 | `1`/`2`/`Q` | Primary / Pistol / quick-swap |
 | `Esc` | Pause |
@@ -311,6 +312,12 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | `pickup_powerup.wav` | Arena power-up grab (overcharge / rapid) | "power up", "buff activate", "energy pickup" |
 | `fire_railgun.wav` | Railgun beam discharge (heavy electric crack) | "railgun", "energy beam shot", "sci-fi laser shot" |
 | `fire_lmg.wav` | LMG burst (deep rapid chug) | "machine gun", "lmg shot", "heavy mg" |
+
+**Phase 35 additions to the catalog** (same drop-in rules — silent until present):
+
+| Filename | What it is | Suggested freesound.org search |
+| --- | --- | --- |
+| `inspect.wav` | Weapon-inspect handling rustle (soft cloth/metal) | "gun handling", "rifle foley", "cloth rustle" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -943,9 +950,30 @@ behaviour intact and the game safe if a model is ever absent.
   character model for remote MP players) is stocked
   (`assets/models/character/CubeMan.fbx`) but not yet implemented.
 
+## Phase 35 — Weapon inspect (v0.35.0)
+
+A CS/Krunker staple the game was missing: press **T** to **inspect your weapon**
+— a smooth lift-rotate-return flourish that shows the gun (now a real FBX model)
+and its equipped **skin + finish** off. Directly feeds the cosmetic-desire loop
+(you *want* to admire the skin you grinded for → more reason to chase the next
+one). Pure-client, **zero protocol change**, works solo + MP.
+
+- **`Viewmodel.startInspect()` / `isInspecting`** — a 1.5 s animation layered on
+  top of walk-bob/recoil exactly like the melee swing: an `env` (sin, 0→1→0)
+  drives the lift/roll/tilt while a smooth `turn` (0→1→0) spins the gun to reveal
+  its side profile, then eases back to the exact rest pose. Composes cleanly —
+  with all offsets zero the pose is byte-for-byte the old idle.
+- **Never blocks combat.** Any fire / weapon-swap / melee / scope-in snaps the
+  inspect back to 0 inside the Viewmodel, so it's purely a "downtime flex" and
+  can't interfere with a fight. `startInspect` no-ops while swapping, scoped, or
+  already inspecting (no stacking).
+- **Wiring.** New `inspect` input action bound to **KeyT** (edge-triggered,
+  pointer-lock gated, skipped while dead). A new `inspect` sound id (silent until
+  the asset lands). How-to card + README controls updated.
+
 ## Project status
 
-v0.34.0 — **deployed and live**, real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.35.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 

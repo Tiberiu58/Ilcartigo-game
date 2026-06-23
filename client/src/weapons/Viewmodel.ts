@@ -21,6 +21,7 @@ import { getWeaponModel, modelMuzzleZ, onModelReady } from './WeaponModels';
 const SWAP_DURATION = 0.32;       // total time gun is offscreen during swap
 const SWAP_DROP = 0.35;           // y-offset at full swap
 const MELEE_ANIM = 0.22;          // melee swing duration (seconds)
+const INSPECT_ANIM = 1.5;         // weapon-inspect flourish duration (seconds)
 
 export class Viewmodel {
   readonly group: THREE.Group;
@@ -34,6 +35,10 @@ export class Viewmodel {
   private recoilOffset = 0;
   // Melee swing animation timer (seconds remaining). 0 = idle.
   private meleeTime = 0;
+  // Weapon-inspect flourish timer (seconds remaining). 0 = idle. Purely
+  // cosmetic — shows off the model + equipped skin/finish; any combat action
+  // (fire / swap / melee / scope) snaps it back to 0 so it never blocks play.
+  private inspectTime = 0;
   private restPos = new THREE.Vector3(0.32, -0.28, -0.55);
   private restRot = new THREE.Euler(0, Math.PI, 0); // -Z forward
 
@@ -92,6 +97,21 @@ export class Viewmodel {
   setHidden(hidden: boolean) {
     this.hidden = hidden;
     this.group.visible = !hidden;
+    // Scoping in (or any forced hide) cancels an in-progress inspect.
+    if (hidden) this.inspectTime = 0;
+  }
+
+  /** True while the inspect flourish is playing — lets the caller throttle SFX. */
+  get isInspecting(): boolean { return this.inspectTime > 0; }
+
+  /**
+   * Trigger the weapon-inspect flourish — a smooth lift-rotate-return that
+   * shows the gun (and its equipped skin/finish) off. No-op while swapping,
+   * hidden (scoped), or already inspecting, so it can't stack or fight a swap.
+   */
+  startInspect() {
+    if (this.swapPhase >= 0 || this.hidden || this.inspectTime > 0) return;
+    this.inspectTime = INSPECT_ANIM;
   }
 
   /**
@@ -144,6 +164,7 @@ export class Viewmodel {
     if (id === this.currentId && this.swapPhase < 0) return;
     this.swapPending = id;
     this.swapPhase = 0;
+    this.inspectTime = 0;   // swapping out cancels the inspect flourish
   }
 
   /** Call on fire — triggers flash + visual kick. No-op while swapping. */
@@ -151,12 +172,14 @@ export class Viewmodel {
     if (this.swapPhase >= 0 || this.hidden) return;
     this.flashTime = 0.06;
     this.recoilOffset = 0.05;
+    this.inspectTime = 0;   // firing instantly snaps the gun back to combat pose
   }
 
   /** Call on melee — triggers a quick slash swing. No-op while swapping. */
   meleeSwing() {
     if (this.swapPhase >= 0 || this.hidden) return;
     this.meleeTime = MELEE_ANIM;
+    this.inspectTime = 0;
   }
 
   update(dt: number, playerSpeed: number, isGrounded: boolean) {
@@ -197,13 +220,36 @@ export class Viewmodel {
       meleeRotZ = -arc * 0.9;
     }
 
+    // Inspect flourish — lift the gun in toward the camera, turn it to flash the
+    // side profile (skin/finish on show), then ease back to rest. `env` rises and
+    // falls 0→1→0 over the duration for the translation + roll; `turn` is an
+    // ease-in-out so the spin reaches its peak mid-animation and unwinds.
+    let inspX = 0, inspY = 0, inspZ = 0, inspRotX = 0, inspRotY = 0, inspRotZ = 0;
+    if (this.inspectTime > 0) {
+      this.inspectTime = Math.max(0, this.inspectTime - dt);
+      const p = 1 - this.inspectTime / INSPECT_ANIM;   // 0 → 1 progress
+      const env = Math.sin(p * Math.PI);               // 0 at ends, 1 at midpoint
+      const turn = 0.5 - 0.5 * Math.cos(p * Math.PI * 2); // ease 0→1→0 (smooth)
+      inspX = -0.10 * env;        // pull left, toward centre
+      inspY = 0.07 * env;         // lift up
+      inspZ = 0.16 * env;         // bring closer to the camera
+      inspRotY = -2.5 * turn;     // rotate to reveal the side
+      inspRotZ = 0.55 * env;      // roll
+      inspRotX = 0.32 * env;      // tilt the muzzle up so the top reads
+    }
+
     this.group.position.set(
-      this.restPos.x + bobX + meleeX,
-      this.restPos.y - bobY - swapDip + meleeY,
-      this.restPos.z + this.recoilOffset,
+      this.restPos.x + bobX + meleeX + inspX,
+      this.restPos.y - bobY - swapDip + meleeY + inspY,
+      this.restPos.z + this.recoilOffset + inspZ,
     );
-    // Roll the model during the swing (idle = restRot, so this is a no-op when not meleeing).
-    this.group.rotation.z = this.restRot.z + meleeRotZ;
+    // Compose roll (melee + inspect) plus the inspect tilt/turn; idle = restRot,
+    // so with all offsets zero this is exactly the previous rest pose.
+    this.group.rotation.set(
+      this.restRot.x + inspRotX,
+      this.restRot.y + inspRotY,
+      this.restRot.z + meleeRotZ + inspRotZ,
+    );
 
     // Flash fade.
     const flashMat = this.flashMesh.material as THREE.MeshBasicMaterial;

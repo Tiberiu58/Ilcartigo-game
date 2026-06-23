@@ -1244,6 +1244,16 @@ export class Game {
     if (this.input.pointerLocked && this.input.consumeAction('grenade') && !this.mp) this.throwGrenade();
     this.grenades.update(dt);
 
+    // Weapon inspect (T) — a purely cosmetic flourish that shows off the held
+    // gun + its equipped skin/finish. Works solo + MP (no gameplay effect); any
+    // fire/swap/melee/scope cancels it inside the Viewmodel so combat is never
+    // blocked. Edge-triggered + pointer-lock gated.
+    if (this.input.pointerLocked && this.input.consumeAction('inspect') &&
+        !this.playerActor.health.dead && !this.viewmodel.isInspecting) {
+      this.viewmodel.startInspect();
+      this.audio.play('inspect');
+    }
+
     // Ability press (E) — edge-triggered.
     if (this.input.consumeAction('ability') && !this.playerActor.health.dead) {
       const triggered = this.abilities.tryTrigger();

@@ -79,6 +79,9 @@ export const SOUND_FILES = {
   // Quick melee (Phase 20) — knife swing whoosh.
   melee:         'melee.wav',
 
+  // Weapon inspect (Phase 35) — a soft handling/cloth rustle when you flaunt the gun.
+  inspect:       'inspect.wav',
+
   // Frag grenade (Phase 21) — detonation boom.
   grenade_explode: 'grenade_explode.wav',
 

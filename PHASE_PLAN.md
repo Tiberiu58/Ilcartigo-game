@@ -1213,3 +1213,55 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Continuation roadmap (autonomous build, v0.35.0+)
+
+Resuming the steady, one-phase-at-a-time cadence on `main` (v0.34.0 baseline:
+3D FBX weapon models live). Same guiding constraints as every prior round:
+**no protocol changes unless a phase explicitly opts in, no new heavy deps,
+client + server `tsc` + client `build` green each phase, never break solo / MP /
+the audit fixes / the two-controller sync.** Each phase is independently
+shippable and hits one of the brief's pillars (satisfying shooting · flashy
+feedback · weapon variety · cosmetics · rewards · the next-duel pull · AdSense
+revenue · Krunker feel).
+
+## Phase 35 — Weapon inspect (autonomous build, v0.35.0)
+
+The just-landed FBX weapon models gave the game real guns to look at, but no way
+to *look* at them — and the cosmetic skins/finishes you grind for are only ever
+glimpsed in the corner of the screen mid-fight. Phase 35 adds the CS/Krunker
+**weapon-inspect** flourish (press **T**): a smooth lift-rotate-return that turns
+the held gun to show off its model + equipped skin + finish. It's a pure
+"downtime flex" that feeds the cosmetic-desire → retention → ad-impression loop,
+and it's the lowest-risk possible change — pure client, zero protocol, and it
+can never interfere with combat.
+
+- **`Viewmodel.startInspect()` + `isInspecting` getter.** A 1.5 s animation
+  composed onto the existing pose stack (walk-bob + recoil + swap-dip + melee)
+  exactly like `meleeSwing`: `env = sin(p·π)` (0→1→0) drives lift/roll/tilt while
+  a smooth `turn = ½−½cos(p·2π)` spins the gun to its side profile and back. With
+  every inspect offset at 0 the composed pose is identical to the old idle, so
+  nothing else moved. `update()`'s final transform switched from a single
+  `rotation.z =` to a full `rotation.set(...)` (x/y were already restRot, so
+  behaviour is unchanged when not inspecting).
+- **Never blocks combat.** `onFire` / `swapTo` / `meleeSwing` / `setHidden(true)`
+  (scope-in) all snap `inspectTime` to 0, so the instant you do anything that
+  matters the gun is back in fighting pose. `startInspect` no-ops while swapping,
+  scoped, or already inspecting (no stacking / no swap fight).
+- **Wiring.** New `'inspect'` input action bound to **KeyT** (edge-triggered via
+  `consumeAction`, pointer-lock gated, skipped while dead) in `Game.update`,
+  alongside the melee/grenade handlers — but **not** `!this.mp`-gated, since it's
+  purely visual and safe online. New `inspect` `SoundId` (asset-driven, silent
+  until a `.wav` lands). How-to card (new T row), README controls table, and the
+  audio catalog all updated.
+
+### Status log
+- ✅ Phase 35 — Weapon inspect. DONE (client + server tsc + client build green;
+  app chunk ~86.6 KB gzip). `Viewmodel` inspect animation + `startInspect`/
+  `isInspecting` + combat-action cancels; `Input` `'inspect'`/KeyT; `Game.update`
+  trigger + `inspect` SFX; AudioManager `inspect` id; how-to + README + catalog.
+  Versions bumped to v0.35.0 (+ menu subtitle/footer).
+
+### Phase 35 COMPLETE — pure client, no protocol change, solo + MP intact.
