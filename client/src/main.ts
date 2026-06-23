@@ -1350,6 +1350,8 @@ const pmTitle = document.getElementById('pm-title')!;
 const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
+const pmCrate = document.getElementById('pm-crate')!;
+const pmCrateN = document.getElementById('pm-crate-n')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
 // Match-summary strip (tyoq4q) + accolade flavour (p4aum5), merged into one card.
 const pmSKills = document.getElementById('pm-s-kills')!;
@@ -1418,6 +1420,10 @@ function showPostMatch(winnerId: string) {
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
+  // Crate keys banked this match (via level-ups) — surface the new loop.
+  const keysEarned = game.crateKeysEarnedThisMatch;
+  pmCrate.classList.toggle('hidden', keysEarned <= 0);
+  if (keysEarned > 0) pmCrateN.textContent = String(keysEarned);
 
   pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null ? 'DEFEAT' : 'MATCH OVER');
   if (tdmTeam !== null) {

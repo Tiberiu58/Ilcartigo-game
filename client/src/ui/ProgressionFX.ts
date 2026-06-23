@@ -37,6 +37,7 @@ export class ProgressionFX {
   private banner: HTMLElement;
   private bannerLevel: HTMLElement;
   private bannerRank: HTMLElement;
+  private bannerCrate: HTMLElement;
   private popups: HTMLElement;
 
   /** Last level we rendered — used to detect crossings without celebrating on
@@ -58,6 +59,7 @@ export class ProgressionFX {
     this.banner = document.getElementById('levelup-banner')!;
     this.bannerLevel = document.getElementById('lu-level')!;
     this.bannerRank = document.getElementById('lu-rank')!;
+    this.bannerCrate = document.getElementById('lu-crate')!;
     this.popups = document.getElementById('reward-popups')!;
 
     this.lastLevel = account.level;
@@ -69,8 +71,9 @@ export class ProgressionFX {
       const level = this.account.level;
       if (level > this.lastLevel) {
         // Could jump multiple levels from a big challenge reward — celebrate
-        // the final landing level (one banner, not N).
-        this.celebrateLevelUp(level);
+        // the final landing level (one banner, not N). Each level crossed
+        // banks one crate key (Account.creditLevelKeys), so surface that too.
+        this.celebrateLevelUp(level, level - this.lastLevel);
       }
       this.lastLevel = level;
       this.syncBadges();
@@ -105,13 +108,23 @@ export class ProgressionFX {
     this.menuBadge.innerHTML = html;
   }
 
-  /** Pop the full-screen level-up banner + play the sting. */
-  private celebrateLevelUp(level: number) {
+  /** Pop the full-screen level-up banner + play the sting. `keysGained` is the
+   *  number of crate keys banked by crossing this level boundary (≥1). */
+  private celebrateLevelUp(level: number, keysGained = 1) {
     const rank = rankForLevel(level);
     this.bannerLevel.textContent = `LEVEL ${level}`;
     this.bannerRank.textContent = rank.name;
     this.bannerRank.style.color = rank.color;
     this.banner.style.setProperty('--lu-color', rank.color);
+
+    // Surface the crate key(s) earned — the level-up is exactly when keys bank.
+    if (keysGained > 0) {
+      this.bannerCrate.textContent = `+${keysGained} 🔑 CRATE KEY${keysGained > 1 ? 'S' : ''}`;
+      this.bannerCrate.classList.remove('hidden');
+      this.rewardPopup(`+${keysGained} 🔑 CRATE`, '#c98bff');
+    } else {
+      this.bannerCrate.classList.add('hidden');
+    }
 
     this.banner.classList.remove('hidden', 'lu-pop');
     // Force reflow so the pop animation restarts on consecutive level-ups.

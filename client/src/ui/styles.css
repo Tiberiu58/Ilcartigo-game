@@ -1805,6 +1805,13 @@ body.no-speedlines #speed-lines { display: none; }
   font: 700 22px/1.2 'Segoe UI', sans-serif;
   color: var(--accent);
 }
+.pm-crate {
+  margin-top: 4px;
+  font: 700 14px/1.2 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: #c98bff;
+}
+.pm-crate.hidden { display: none; }
 #pm-unlocks {
   margin-top: 8px;
   font-size: 12px;
@@ -3208,6 +3215,14 @@ body.no-speedlines #speed-lines { display: none; }
   text-transform: uppercase;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
 }
+.lu-crate {
+  margin-top: 10px;
+  font: 800 15px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 3px;
+  color: #d7b2ff;
+  text-shadow: 0 0 14px rgba(176, 96, 255, 0.7), 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+.lu-crate.hidden { display: none; }
 #levelup-banner.lu-pop { animation: lu-pop 2.2s cubic-bezier(0.16, 0.9, 0.3, 1) forwards; }
 @keyframes lu-pop {
   0%   { opacity: 0; transform: translateY(14px) scale(0.7); }

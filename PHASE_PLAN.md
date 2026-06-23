@@ -1264,3 +1264,29 @@ between-match menu dwell → more impressions). Pure-client, localStorage-backed
   to v0.35.0 (+ menu subtitle/footer).
 
 ### Phase 35 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 36 — Crate-key feedback (autonomous build, v0.35.0)
+
+A small but important follow-up to Phase 35: crate keys were banking **silently**
+on level-up (no on-screen feedback), so the new reward loop felt invisible
+mid-match. This round surfaces it at the two moments keys are earned/visible.
+Pure-client, no protocol change.
+
+- **Level-up banner** now shows a `+N 🔑 CRATE KEY(S)` line (keys = levels
+  crossed) plus a violet `+N 🔑 CRATE` reward popup near the crosshair —
+  `ProgressionFX.celebrateLevelUp` gained a `keysGained` arg (the
+  `onChange`-computed `level - lastLevel`, exactly what `creditLevelKeys` banks).
+- **Post-match overlay** shows `+N 🔑 crate key` under the XP earned. `Game`
+  snapshots `crateKeys` in `resetMatchScore` (the canonical match-start hook) and
+  exposes `crateKeysEarnedThisMatch` (diffed at match end, after the win-XP
+  award so a match-ending level-up counts). Hidden when zero.
+
+### Status log
+- ✅ Phase 36 — Crate-key feedback. DONE (client + server tsc + client build
+  green; app chunk ~89 KB gzip). `#lu-crate` + `#pm-crate` DOM + CSS,
+  `ProgressionFX` keys line + popup, `Game.crateKeysEarnedThisMatch`. Still
+  v0.35.0 (same release as the Crates feature it completes).
+
+### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.

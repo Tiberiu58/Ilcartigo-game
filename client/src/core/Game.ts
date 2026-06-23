@@ -236,6 +236,9 @@ export class Game {
   matchKills = new Map<string, number>();
   matchDeaths = new Map<string, number>();
   matchEnded = false;
+  /** Crate-key count at the start of the current match — diffed at match end to
+   *  show how many keys the player banked (via level-ups) this match. */
+  private matchStartCrateKeys = 0;
   /** Local player's current consecutive-kill streak (resets on death). Feeds
    *  the lifetime best-streak stat. */
   localStreak = 0;
@@ -962,10 +965,16 @@ export class Game {
   }
 
   /** Reset per-match score tallies. Called on mode swap and on Play Again. */
+  /** Crate keys banked since the current match began (via level-ups). */
+  get crateKeysEarnedThisMatch(): number {
+    return Math.max(0, this.account.crateKeys - this.matchStartCrateKeys);
+  }
+
   resetMatchScore() {
     this.matchKills.clear();
     this.matchDeaths.clear();
     this.matchEnded = false;
+    this.matchStartCrateKeys = this.account.crateKeys;
     this.teamScore[0] = 0;
     this.teamScore[1] = 0;
     // Power-ups: restore all pads + drop any active buff on a fresh match.
