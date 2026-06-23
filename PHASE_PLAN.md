@@ -1421,3 +1421,29 @@ protocol change, MP unaffected.
   v0.39.0 (+ menu subtitle/footer).
 
 ### Phase 39 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — Hit-combo meter (autonomous build, v0.40.0)
+
+A small flashy-feedback round on the brief's #1 pillar (satisfying shooting). The
+game already ramps the hit-confirm SFX pitch on consecutive landed hits (Phase 26
+rising hitmarker); Phase 40 gives that chain a **visible companion** — a "x3"+
+combo counter by the crosshair. Pure HUD, no protocol change, works in every mode
+(local hits only).
+
+- **`HUD.bumpCombo`** (off the existing `hitConfirm` event) mirrors the Game's
+  1.1 s chain window and shows a `#hit-combo` counter only at **x3+** (so it
+  celebrates a real streak, not every shot), colour climbing gold → hot orange
+  (≥6) → violet blaze (≥10), with an `hc-pop` scale-in. Auto-hides after a ~1.15 s
+  gap (`resetCombo`) and resets on death. No new Game state — reads the same event
+  the rising hitmarker uses.
+- New `#hit-combo` DOM + CSS (`hc-pop` keyframe, hot/blaze tiers).
+
+### Status log
+- ✅ Phase 40 — Hit-combo meter. DONE (client + server tsc + client build green;
+  app chunk ~88.5 KB gzip). HUD combo fields + `bumpCombo`/`resetCombo` off
+  `hitConfirm` + death reset; `#hit-combo` DOM + CSS. Versions bumped to v0.40.0
+  (+ menu subtitle/footer).
+
+### Phase 40 COMPLETE — pure client HUD, no protocol change, solo + MP intact.

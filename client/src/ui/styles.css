@@ -2625,6 +2625,31 @@ body.no-speedlines #speed-lines { display: none; }
   78%  { opacity: 1; transform: scale(1.0); }
   100% { opacity: 0; transform: scale(1.04); }
 }
+/* ── Hit-combo meter ─────────────────────────────────────────────────────── */
+/* "x3"+ counter just right of the crosshair, celebrating a chain of landed
+   hits. Colour climbs gold → hot orange (≥6) → violet blaze (≥10). */
+#hit-combo {
+  position: fixed;
+  top: 47vh;
+  left: 56%;
+  z-index: 16;
+  pointer-events: none;
+  user-select: none;
+  font: 900 26px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: #ffd24a;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 14px rgba(255,190,60,0.6);
+}
+#hit-combo.hidden { display: none; }
+#hit-combo.hot   { color: #ff8a3c; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 16px rgba(255,120,40,0.7); }
+#hit-combo.blaze { color: #c77dff; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 18px rgba(180,90,255,0.75); }
+#hit-combo.hc-pop { animation: hc-pop 0.42s ease-out; }
+@keyframes hc-pop {
+  0%   { transform: scale(1.5); opacity: 0.4; }
+  30%  { transform: scale(1.0); opacity: 1; }
+  100% { transform: scale(1.0); opacity: 1; }
+}
+
 /* Slow-mo vignette — a soft dark + warm edge tint that fades in for the
    cinematic. Driven by a <body> class so it composes with everything else. */
 body.slowmo::after {
