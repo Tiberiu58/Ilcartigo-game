@@ -254,6 +254,34 @@ export const RAILGUN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Hand Cannon — heavy magnum primary. Pinpoint hip-fire, brutal per-shot
+// damage (2-shot body, 1-shot headshot on a 100-HP target), but a slow trigger,
+// heavy kick + big per-shot bloom that punish spamming. A high-skill "deagle"
+// niche between the Pistol and the (scoped) Sniper — no scope, shorter range.
+export const HANDCANNON_CONFIG: WeaponConfig = {
+  id: 'handcannon',
+  displayName: 'Hand Cannon',
+  fireRate: 2.4,
+  automatic: false,
+  magSize: 6,
+  reloadTime: 2.0,
+  reserveAmmo: -1,
+  baseDamage: 50,              // 2-shot body; ×2.0 head = 100 → 1-shot a 100-HP head
+  headshotMultiplier: 2.0,
+  maxRange: 150,
+  falloffStart: 30,
+  falloffEnd: 90,
+  falloffMinMultiplier: 0.55,
+  baseSpread: 0.002,           // near-pinpoint first shot
+  maxSpread: 0.05,
+  spreadPerShot: 0.024,        // big bloom — you must pace your shots
+  spreadDecay: 0.5,
+  recoilPitch: 0.05,           // heavy magnum kick
+  recoilYaw: 0.012,
+  recoilDecay: 0.5,
+  slot: 'primary',
+};
+
 // Pistol — semi-auto sidearm. Always equipped, decent damage, no reserve cap.
 export const PISTOL_CONFIG: WeaponConfig = {
   id: 'pistol',
@@ -287,6 +315,7 @@ export const WEAPON_LIBRARY = {
   marksman: MARKSMAN_CONFIG,
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
+  handcannon: HANDCANNON_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;

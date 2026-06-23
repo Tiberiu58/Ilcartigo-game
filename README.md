@@ -319,6 +319,7 @@ Settings → Audio tab has a "Play test sound" button that plays `ui_click.wav` 
 | --- | --- | --- |
 | `crate_spin.wav` | Crate reel spin loop (ticking/whir) | "reel spin", "wheel tick", "slot machine spin" |
 | `crate_reveal.wav` | Crate drop reveal sting | "reward reveal", "unlock chime", "item drop" |
+| `fire_handcannon.wav` | Hand Cannon magnum boom (deep, heavy) | "magnum shot", "44 revolver", "deagle shot" |
 
 ## Phase 11 — Fun, catch & revenue (this round, v0.11.0)
 
@@ -918,6 +919,25 @@ progress** — lifetime kills + a bar toward the next mastery skin ("Verdant ·
 right where you pick the gun. Pure UI off `Account.weaponKillsFor` +
 `weaponSkinsFor`; re-rendered on weapon select / boot / quit-to-menu.
 
+## Phase 38 — Hand Cannon (9th weapon) (this round, v0.35.0)
+
+More weapon variety — the brief's "weapon variety" pillar. The **Hand Cannon** is
+a heavy magnum primary filling a high-skill "deagle" niche between the Pistol and
+the (scoped) Sniper: **pinpoint hip-fire**, brutal per-shot damage (**2-shot
+body, 1-shot headshot** on a 100-HP target), but a slow 2.4-RPS trigger, heavy
+kick + big per-shot bloom that punish spamming, a 6-round mag and short-ish
+range with quick falloff. Built on the proven config-driven weapon pattern:
+
+- **Client** — `HANDCANNON_CONFIG` in `WEAPON_LIBRARY`, a chunky revolver
+  viewmodel (`buildHandCannon`), a "Heavy Magnum" identity card, a loadout
+  button, three **mastery skins** (Bounty / Vendetta / Deadeye), and a
+  `fire_handcannon` sound id (silent until the asset lands).
+- **Server** — a `SERVER_WEAPONS['handcannon']` damage/falloff profile +
+  `VALID_WEAPONS` entry, so it's **authoritative in MP** (weapon identity holds
+  online). No protocol change.
+- Not on the Gun Game ladder (that stays its fixed rungs). Client + server
+  typecheck + build green.
+
 ## Phase 37 — Weapon inspect (this round, v0.35.0)
 
 The "show off your gun" flourish every modern shooter (and Krunker) has — and
@@ -990,11 +1010,11 @@ behaviour intact and the game safe if a model is ever absent.
 
 ## Project status
 
-v0.35.0 — **deployed and live**, **crate/spin reward loop** + real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **Crates** (spin-to-unlock cosmetics; keys from levelling + a free daily), **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.35.0 — **deployed and live**, **crate/spin reward loop** + real 3D weapon models + two routine branches integrated. Movement, combat, 6 classes, **9 weapons** (incl. Marksman, LMG, **Railgun**, **Hand Cannon**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **Crates** (spin-to-unlock cosmetics; keys from levelling + a free daily), **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~89 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 6 maps, 8 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun, **Crates** (spin-to-unlock cosmetics). **Live at <https://velocity-two-chi.vercel.app/play>.** v0.35.0.
+- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~89 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 6 maps, 9 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun, Hand Cannon, **Crates** (spin-to-unlock cosmetics). **Live at <https://velocity-two-chi.vercel.app/play>.** v0.35.0.
 - `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff** (incl. Railgun). Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.35.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 

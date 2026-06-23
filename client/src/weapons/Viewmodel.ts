@@ -321,8 +321,21 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   marksman: buildMarksman,
   lmg: buildLMG,
   railgun: buildRailgun,
+  handcannon: buildHandCannon,
   pistol: buildPistol,
 };
+
+function buildHandCannon(p: THREE.Group): number {
+  p.add(box(0.12, 0.12, 0.24, 0x2a2f38, 0, 0, 0));            // chunky frame
+  p.add(box(0.06, 0.06, 0.30, 0x14171c, 0, 0.02, -0.22));     // long heavy barrel
+  p.add(box(0.10, 0.10, 0.10, 0x3a424d, 0, 0.0, 0.02));       // cylinder (revolver)
+  p.add(box(0.105, 0.105, 0.02, 0x55606c, 0, 0.0, -0.04));    // cylinder face ring
+  p.add(box(0.09, 0.18, 0.11, 0x232931, 0.0, -0.14, 0.08));   // grip
+  p.add(box(0.04, 0.05, 0.04, 0x18181d, 0, 0.085, 0.10));     // hammer
+  p.add(box(0.02, 0.04, 0.02, 0xf5d442, 0, 0.09, -0.34));     // front sight
+  p.add(box(0.05, 0.04, 0.10, 0x14171c, 0, -0.06, -0.12));    // underlug
+  return -0.40;
+}
 
 function buildRailgun(p: THREE.Group): number {
   p.add(box(0.15, 0.13, 0.46, 0x202a36, 0, 0, 0));            // sleek body (steel-blue)

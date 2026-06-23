@@ -1318,3 +1318,34 @@ viewmodel work, no protocol change.
   Still v0.35.0.
 
 ### Phase 37 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Hand Cannon (9th weapon) (autonomous build, v0.35.0)
+
+Weapon variety (a core brief pillar). The **Hand Cannon** — a heavy magnum
+primary — fills a high-skill "deagle" niche between the Pistol and the (scoped)
+Sniper. Built on the proven config-driven weapon pattern (same path as Railgun /
+LMG / Marksman), so it slots in everywhere cleanly and is authoritative in MP.
+
+- **Identity.** Pinpoint hip-fire (`baseSpread 0.002`), brutal per-shot damage
+  (50 body → 2-shot; ×2.0 head = 100 → 1-shot a 100-HP head), but slow (2.4 RPS),
+  heavy kick (`recoilPitch 0.05`) + big per-shot bloom (`spreadPerShot 0.024`)
+  so spamming wrecks your accuracy. 6-round mag, 2.0 s reload, 150 range with
+  quick falloff (30→90).
+- **Client wiring.** `HANDCANNON_CONFIG` + `WEAPON_LIBRARY`, `buildHandCannon`
+  revolver viewmodel (`WEAPON_BUILDERS`), `WEAPON_ARCHETYPE` ("Heavy Magnum"),
+  `GunGame.WEAPON_LABEL`, a loadout button, three mastery skins (Bounty /
+  Vendetta / Deadeye) + `WEAPON_SKIN_ORDER`, and a `fire_handcannon` sound id.
+- **Server wiring.** `SERVER_WEAPONS['handcannon']` (50 dmg / ×2.0 head /
+  30→90 falloff / 0.55 min) + `VALID_WEAPONS`. No protocol change — weapon
+  identity holds online.
+- Not on the Gun Game ladder (fixed rungs). Exhaustive `Record<WeaponId, …>`
+  maps (label/archetype/builder) all updated — tsc enforces completeness.
+
+### Status log
+- ✅ Phase 38 — Hand Cannon. DONE (client + server tsc + client build green;
+  app chunk ~89.7 KB gzip). Config + viewmodel + archetype/label + loadout
+  button + mastery skins + server profile + audio id. Still v0.35.0.
+
+### Phase 38 COMPLETE — additive weapon, no protocol change, solo + MP intact.
