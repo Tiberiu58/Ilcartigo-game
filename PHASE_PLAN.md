@@ -1371,3 +1371,22 @@ Crate pool 53 → 64 items.
   README counts updated. Still v0.35.0.
 
 ### Phase 39 COMPLETE — pure data, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — Open Crates from post-match (autonomous build, v0.35.0)
+
+Closes the Phase 35 reward loop at its highest-engagement moment. The post-match
+overlay (the main ad breakpoint) now shows a **📦 Open Crates (N 🔑)** button when
+the player holds keys (often just earned that match via level-ups), opening the
+crate overlay on top (z-index 30 over post-match's 25; closing returns to the
+scoreboard). Turns the post-match beat into the spin loop and chains two natural
+ad breakpoints (post-match → crate). Reuses `CrateUI.open()` + `Ads.refreshSlot`.
+Pure-client, no protocol change.
+
+### Status log
+- ✅ Phase 40 — Open Crates from post-match. DONE (client tsc + build green;
+  app chunk ~90 KB gzip). `#pm-open-crates` button, conditional show in
+  `showPostMatch`, click → `crateUI.open()`. Still v0.35.0.
+
+### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.

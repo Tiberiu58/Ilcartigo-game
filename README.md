@@ -919,6 +919,16 @@ progress** — lifetime kills + a bar toward the next mastery skin ("Verdant ·
 right where you pick the gun. Pure UI off `Account.weaponKillsFor` +
 `weaponSkinsFor`; re-rendered on weapon select / boot / quit-to-menu.
 
+## Phase 40 — Open Crates from post-match (this round, v0.35.0)
+
+Closes the reward loop at its highest-engagement moment: the **post-match
+overlay** (the game's main ad breakpoint) now shows a **📦 Open Crates (N 🔑)**
+button when the player holds keys — often *just* earned that match via level-ups.
+It opens the crate overlay on top (z-index 30 over the post-match's 25; closing
+returns to the scoreboard), turning the post-match beat directly into the
+spin-to-unlock loop — and chaining two natural ad breakpoints (post-match →
+crate) back to back. Pure-client, no protocol change.
+
 ## Phase 39 — Cosmetics expansion (this round, v0.35.0)
 
 A content drop that deepens both the XP-unlock chase **and** the new crate pool

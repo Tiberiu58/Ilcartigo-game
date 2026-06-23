@@ -1363,6 +1363,7 @@ const pmSPlace = document.getElementById('pm-s-place')!;
 const pmNewBest = document.getElementById('pm-newbest')!;
 const pmScAccolade = document.getElementById('pm-sc-accolade')!;
 const BEST_MATCH_KILLS_KEY = 'ilc.bestMatchKills';
+const pmOpenCrates = document.getElementById('pm-open-crates') as HTMLButtonElement;
 const pmPlayAgain = document.getElementById('pm-play-again') as HTMLButtonElement;
 const pmQuit = document.getElementById('pm-quit') as HTMLButtonElement;
 
@@ -1473,6 +1474,13 @@ function showPostMatch(winnerId: string) {
   if (isNewBest) localStorage.setItem(BEST_MATCH_KILLS_KEY, String(myKills));
   pmNewBest.classList.toggle('hidden', !isNewBest);
 
+  // Offer to open crates right here when the player has keys (often just earned
+  // this match) — converts the post-match beat into the reward loop, and the
+  // crate screen is itself an ad breakpoint.
+  const haveKeys = game.account.crateKeys;
+  pmOpenCrates.classList.toggle('hidden', haveKeys <= 0);
+  pmOpenCrates.textContent = `📦 Open Crates (${haveKeys} 🔑)`;
+
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');
   // Request a fresh ad for the post-match slot (a natural breakpoint).
@@ -1484,6 +1492,14 @@ function hidePostMatch() {
 }
 
 game.onMatchEnded = (winnerId) => showPostMatch(winnerId);
+
+// Open the crate overlay on top of the post-match screen (closing it returns
+// here). Keeps the reward loop one click away at the moment keys are freshest.
+pmOpenCrates.addEventListener('click', () => {
+  crateUI.open();
+  Ads.refreshSlot('crate');
+  game.audio.play('ui_click');
+});
 
 pmPlayAgain.addEventListener('click', () => {
   if (game.mp) {
