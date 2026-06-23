@@ -971,13 +971,39 @@ one). Pure-client, **zero protocol change**, works solo + MP.
   pointer-lock gated, skipped while dead). A new `inspect` sound id (silent until
   the asset lands). How-to card + README controls updated.
 
+## Phase 36 — Foundry map (v0.36.0)
+
+The seventh combat map — fresh content is the highest-leverage "one more game"
+lever in an arena shooter, and a new map deepens **every** solo combat mode at
+once (FFA / TDM / Gun Game / Onslaught / Duel + the map selector). **Foundry** is
+a **molten steelworks** — the warm/fiery counterpart to icy Frostline: dark
+cast-iron structures veined with glowing orange magma, ember-lit under a smoky
+red-black sky, with decorative lava channels carved through the floor and a tall
+central furnace stack as the landmark.
+
+- **Built on the proven symmetric Cobalt/Frostline skeleton** (mirrored about
+  both axes → TDM-fair, spawn corners known-clear) then fully re-themed +
+  re-covered: a raised central smelter dais (jump-pad ring + furnace stack + corner
+  cover), two symmetric N/S team decks with parapets, diagonal slag-heap cover,
+  E/W flank walls, low steppable slag bumps near spawns. Verticality is entirely
+  jump-pad-driven (no step-up-snagging ledges). The lava channels + molten trim
+  are non-colliding decoration with emissive glow, so they're pure look.
+- **Solo-selectable, zero MP risk.** New `maps/FoundryMap.ts` registered in
+  `MapId`/`MAPS` + a loadout button + the `COMBAT_MAPS` validation list; health
+  pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in
+  sync). The MP server still defaults to Sandstone and clients adopt the server's
+  map, so Foundry needs no protocol/server change.
+- **Verified geometry headlessly** — a mock-World harness ran the real `build()`
+  and asserted **all 6 FFA + TDM spawns sit clear of every solid** (27 solids,
+  8 pads).
+
 ## Project status
 
-v0.35.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **6 maps** (Sandstone · Industrial · Cobalt · Overpass · **Frostline** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
+v0.36.0 — **deployed and live**, real 3D weapon models + **weapon inspect (T)** + **Foundry map** + two routine branches integrated. Movement, combat, 6 classes, **8 weapons** (incl. Marksman, LMG, **Railgun**), **7 maps** (Sandstone · Industrial · Cobalt · Overpass · Frostline · **Foundry** · Practice), modes: solo FFA · online FFA · **Team Deathmatch** · **Gun Game** · **Aim Lab** · **Onslaught (wave survival)** · **Duel (1v1 gauntlet)** · Practice — plus **arena power-ups** (OVERCHARGE / RAPID FIRE / OVERSHIELD, solo), **daily login rewards**, **"ON FIRE" rampage**, **skill-shot callouts**, **weapon identity cards**, **kill banner**, a reconciled **post-match scorecard** (accolade + stat strip + NEW PERSONAL BEST), expanded cosmetics (8 kill effects · 10 tracers · 8 finishes); scoreboard + killstreaks + lifetime stats + daily challenges + AdSense + onboarding; directional damage + low-HP tension + death recap + announcer specials; rank ladder + weapon mastery/skins/finishes + server-authoritative per-weapon damage; minimap + speed lines + impact FX + health pickups + crosshair feedback + score popups; bot difficulty + callsigns + nameplates + quick melee + frag grenades. **Live**: site + game on Vercel, MP server on Fly.io, AdSense verified.
 
 ## Project deliverables
 
-- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~85 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 6 maps, 8 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.33.0.
+- `/client` — Vite + TS + Three.js game client. `~215 KB gzipped` (app ~85 KB). Single-player, Practice Range, online FFA, **Team Deathmatch**, **Gun Game**, **Aim Lab**, **Onslaught (survival)**, **Duel (1v1 gauntlet)**, 7 maps, 8 weapons, **arena power-ups (×3)**, daily login rewards, ON FIRE rampage, skill-shot callouts, weapon identity cards, kill banner, post-match scorecard, scoreboard, killstreaks, rank ladder, profile/stats, weapon mastery + skins + finishes, expanded cosmetics, ads, directional damage, low-HP tension, death recap, tracer cosmetics, announcer specials, minimap, speed lines, impact FX, health pickups, crosshair feedback, score popups, bot difficulty + callsigns, enemy nameplates, quick melee, frag grenades, Railgun. **Live at <https://velocity-two-chi.vercel.app/play>.** v0.33.0.
 - `/server` — Node + Express + Socket.io. 32 Hz server-authoritative tick. Lag-comp hitscan. **Per-weapon damage/falloff** (incl. Railgun). Networked abilities + barriers. Authoritative match-end + class passives. Server-authoritative map pickups. Protocol v3. **Live on Fly.io at <https://ilcartigo-game.fly.dev>.** v0.33.0.
 - `/website` — Static landing site at `ilcartigo.com`. Home + privacy + terms + about. AdSense `ca-pub-8134911671778438` live in `<head>` + `ads.txt`; verified, awaiting Google approval.
 

@@ -1265,3 +1265,44 @@ can never interfere with combat.
   Versions bumped to v0.35.0 (+ menu subtitle/footer).
 
 ### Phase 35 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 36 — Foundry map (autonomous build, v0.36.0)
+
+Fresh content is the highest-leverage "one more game" lever in an arena shooter,
+and the game's own roadmap notes maps as the top content multiplier (they deepen
+**every** solo combat mode at once — FFA / TDM / Gun Game / Onslaught / Duel +
+the selector). ILCARTIGO had six maps (five combat + Practice); Phase 36 adds a
+seventh combat map with a distinct identity: a **molten steelworks**, the warm
+counterpart to icy Frostline.
+
+- **Foundry** — dark cast-iron structures veined with glowing orange magma,
+  ember-lit under a smoky red-black sky, decorative lava channels through the
+  floor, and a tall central furnace stack landmark. A hot point-light glow rises
+  from the furnace; warm key + orange fill lighting + ember fog complete the heat.
+- **Built on the proven symmetric Cobalt/Frostline skeleton** (mirrored about
+  both axes → TDM-fair, spawn corners known-clear) then fully re-themed +
+  re-covered with its own identity: a raised smelter dais (jump-pad ring + furnace
+  stack + corner crouch cover), two symmetric N/S team decks with parapets,
+  diagonal slag-heap cover, E/W flank walls, low steppable slag bumps near spawns.
+  Verticality is entirely jump-pad-driven (no step-up-snagging ledges). All molten
+  trim / lava channels are non-colliding emissive decoration (pure look).
+- **Solo-selectable, zero MP risk.** New `maps/FoundryMap.ts` registered in
+  `MapId` (`'foundry'`) + `MAPS` + a loadout button + the `COMBAT_MAPS` validation
+  list; health pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts`
+  (kept in sync). The MP server still defaults to Sandstone and clients adopt the
+  server's authoritative map, so Foundry needs no protocol/server change.
+- **Verified geometry headlessly** — a mock-World harness (vite-node) ran the real
+  `buildFoundry()` and asserted **all 6 FFA + TDM spawns sit clear of every solid**
+  (27 solids, 8 pads, 0 overlaps).
+
+### Status log
+- ✅ Phase 36 — Foundry map. DONE (client + server tsc + client build green;
+  headless spawn-clearance test passed — 27 solids, 8 pads, all spawns clear; app
+  chunk ~87.3 KB gzip). New `maps/FoundryMap.ts` (molten palette, furnace stack +
+  glow, lava-channel decor), full wiring (MapId/MAPS/menu/COMBAT_MAPS), Foundry
+  pickups mirrored client + server. Versions bumped to v0.36.0 (+ menu subtitle/
+  footer).
+
+### Phase 36 COMPLETE — additive map, no protocol change, solo + MP intact.
