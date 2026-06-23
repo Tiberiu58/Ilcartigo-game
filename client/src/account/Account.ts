@@ -82,7 +82,21 @@ interface AccountData {
   daily: DailyState;
   /** Daily-login streak (show-up reward, separate from the in-match challenges). */
   login: LoginState;
+  /** Recent finished matches (most-recent first), capped at MATCH_HISTORY_MAX. */
+  history: MatchRecord[];
 }
+
+/** A finished-match summary row, shown in the Profile's recent-match list. */
+export interface MatchRecord {
+  mode: string;          // 'FFA' | 'TDM' | 'Gun Game' | ...
+  won: boolean;
+  kills: number;
+  deaths: number;
+  ts: number;            // Date.now() at match end
+}
+
+/** How many recent matches we keep in the rolling history. */
+export const MATCH_HISTORY_MAX = 10;
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
 export interface DailyChallenge {
@@ -183,6 +197,7 @@ function freshData(): AccountData {
     name: '',
     daily: freshDaily(freshStats()),
     login: { last: '', streak: 0 },
+    history: [],
   };
 }
 
@@ -246,6 +261,9 @@ export class Account {
           && typeof (parsed.login as LoginState).streak === 'number')
           ? parsed.login as LoginState
           : fresh.login,
+        history: Array.isArray(parsed.history)
+          ? (parsed.history as MatchRecord[]).slice(0, MATCH_HISTORY_MAX)
+          : fresh.history,
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
@@ -497,6 +515,18 @@ export class Account {
   recordMatchEnd(won: boolean) {
     this.data.stats.matches++;
     if (won) this.data.stats.wins++;
+    this.save();
+  }
+
+  /** Most-recent-first list of recent finished matches (for the Profile). */
+  get matchHistory(): ReadonlyArray<MatchRecord> { return this.data.history; }
+
+  /** Prepend a finished-match summary to the rolling history (capped). */
+  recordMatchHistory(rec: MatchRecord) {
+    this.data.history.unshift(rec);
+    if (this.data.history.length > MATCH_HISTORY_MAX) {
+      this.data.history.length = MATCH_HISTORY_MAX;
+    }
     this.save();
   }
 

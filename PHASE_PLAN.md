@@ -1447,3 +1447,31 @@ combo counter by the crosshair. Pure HUD, no protocol change, works in every mod
   (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — pure client HUD, no protocol change, solo + MP intact.
+
+---
+
+## Phase 41 — Recent-match history (autonomous build, v0.41.0)
+
+A retention round on the "track your improvement" pillar: the Profile now keeps a
+rolling list of your **last 10 finished matches** (mode · WIN/LOSS · K/D · time
+ago). Gives a sense of progression + another reason to open the menu (→ menu ad
+impressions). Pure client, no protocol change, migration-safe.
+
+- **`Account` extension.** New `MatchRecord` type + `history: MatchRecord[]` field
+  (capped at `MATCH_HISTORY_MAX = 10`) with the same defensive load-merge as every
+  other field (old saves default to `[]`). `recordMatchHistory` (unshift + cap) +
+  a `matchHistory` getter. Logged from `showPostMatch` next to `recordMatchEnd`,
+  reusing the already-computed scoreboard rows for the local K/D — so it covers
+  FFA / TDM / Gun Game / online (the modes that use the post-match overlay).
+- **Profile "Recent Matches" list.** New `#match-history` block + a
+  `ProfileUI.renderHistory` (colour-keyed WIN/LOSS rows, `timeAgo` helper) +
+  `.mh-*` CSS, rendered on every `account.onChange`.
+
+### Status log
+- ✅ Phase 41 — Recent-match history. DONE (client + server tsc + client build
+  green; app chunk ~88.9 KB gzip). `Account.MatchRecord`/`history`/
+  `recordMatchHistory`/`matchHistory` (+ migration), `showPostMatch` logging,
+  `ProfileUI.renderHistory` + `timeAgo` + `#match-history` DOM + CSS. Versions
+  bumped to v0.41.0 (+ menu subtitle/footer).
+
+### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.

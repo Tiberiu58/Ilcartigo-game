@@ -1390,8 +1390,19 @@ function showPostMatch(winnerId: string) {
   const tdmTeam = winnerId.startsWith('team:') ? Number(winnerId.slice(5)) : null;
   const youWon = tdmTeam !== null ? tdmTeam === game.playerActor.team : myRank === 1;
 
-  // Lifetime career: count this finished match + win.
+  // Lifetime career: count this finished match + win, and log it to the
+  // recent-match history shown in the Profile.
   game.account.recordMatchEnd(youWon);
+  const modeLabel = game.mode === 'tdm' ? 'TDM'
+    : game.mode === 'gungame' ? 'Gun Game'
+    : game.mp ? 'Online FFA' : 'FFA';
+  game.account.recordMatchHistory({
+    mode: modeLabel,
+    won: youWon,
+    kills: myKills,
+    deaths: rows.find((r) => r.isYou)?.deaths ?? 0,
+    ts: Date.now(),
+  });
 
   // Award end-of-match XP: 50 for a win. FFA also grants 25 for a top-3 finish.
   const xpBefore = game.account.xp;

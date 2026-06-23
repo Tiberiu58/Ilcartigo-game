@@ -18,6 +18,7 @@ export class ProfileUI {
   private xpText: HTMLElement;
   private statsGrid: HTMLElement;
   private aimlabBests: HTMLElement | null;
+  private matchHistory: HTMLElement | null;
   private challengesList: HTMLElement;
 
   constructor(account: Account) {
@@ -29,6 +30,7 @@ export class ProfileUI {
     this.xpText = document.getElementById('prof-xp-text')!;
     this.statsGrid = document.getElementById('stats-grid')!;
     this.aimlabBests = document.getElementById('aimlab-bests');
+    this.matchHistory = document.getElementById('match-history');
     this.challengesList = document.getElementById('challenges-list')!;
 
     // Name save.
@@ -62,7 +64,27 @@ export class ProfileUI {
     this.renderSummary();
     this.renderStats();
     this.renderAimlabBests();
+    this.renderHistory();
     this.renderChallenges();
+  }
+
+  private renderHistory() {
+    if (!this.matchHistory) return;
+    const list = this.account.matchHistory;
+    if (list.length === 0) {
+      this.matchHistory.innerHTML = `<div class="mh-empty">No matches yet — play a round to start your history.</div>`;
+      return;
+    }
+    this.matchHistory.innerHTML = list.map((m) => {
+      const kd = m.deaths === 0 ? m.kills.toFixed(1) : (m.kills / m.deaths).toFixed(2);
+      return `
+        <div class="mh-row ${m.won ? 'mh-win' : 'mh-loss'}">
+          <span class="mh-result">${m.won ? 'WIN' : 'LOSS'}</span>
+          <span class="mh-mode">${m.mode}</span>
+          <span class="mh-kd">${m.kills}/${m.deaths} · ${kd}</span>
+          <span class="mh-ago">${timeAgo(m.ts)}</span>
+        </div>`;
+    }).join('');
   }
 
   private renderAimlabBests() {
@@ -149,4 +171,13 @@ function formatPlaytime(sec: number): string {
   const m = Math.floor((sec % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
+}
+
+/** Compact "time since" for the recent-match list (e.g. "just now", "3h", "2d"). */
+function timeAgo(ts: number): string {
+  const s = Math.max(0, (Date.now() - ts) / 1000);
+  if (s < 45) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)}m`;
+  if (s < 86400) return `${Math.round(s / 3600)}h`;
+  return `${Math.round(s / 86400)}d`;
 }

@@ -2767,6 +2767,28 @@ body.slowmo::after {
   text-transform: uppercase;
 }
 .challenges-list { display: flex; flex-direction: column; gap: 8px; }
+/* ── Recent-match history (Profile) ──────────────────────────────────────── */
+.match-history { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.mh-empty { opacity: 0.55; font-size: 13px; padding: 8px 2px; }
+.mh-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  border-left: 3px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+}
+.mh-row.mh-win  { border-left-color: #36e08a; }
+.mh-row.mh-loss { border-left-color: #ff5a6a; }
+.mh-result { font-weight: 800; letter-spacing: 1px; min-width: 42px; }
+.mh-row.mh-win  .mh-result { color: #36e08a; }
+.mh-row.mh-loss .mh-result { color: #ff6a78; }
+.mh-mode { flex: 1; opacity: 0.9; }
+.mh-kd { font-variant-numeric: tabular-nums; opacity: 0.85; }
+.mh-ago { min-width: 56px; text-align: right; opacity: 0.5; font-size: 12px; }
+
 .chal-row {
   display: flex;
   align-items: center;
