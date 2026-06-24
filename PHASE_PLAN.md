@@ -1449,3 +1449,24 @@ no protocol change.
   subtitle/footer); README status updated.
 
 ### Phase 39 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — Prestige cosmetics tier (autonomous build, v0.40.0)
+
+A pure-data content drop that raises the grind ceiling — long-term goals for
+dedicated players, pairing directly with the Phase 39 next-unlock teaser (more
+high-end targets to chase). The Cosmetics UI already auto-iterates the
+registries, so the new items appear / unlock / equip with no logic change.
+
+- **+2 kill effects** — Prismatic (6000 XP), Supernova (8000 XP).
+- **+2 tracers** — Prism (4500 XP), Phoenix (6000 XP).
+- **+2 finishes** — Prismatic (5500 XP), Obsidian Gold (7000 XP).
+
+### Status log
+- ✅ Phase 40 — Prestige cosmetics. DONE (client + server tsc + client build
+  green). Data-only additions to `Cosmetics.ts` (ids are plain `string`, so no
+  union types to break). Versions bumped to v0.40.0 (+ menu subtitle/footer);
+  README status updated.
+
+### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.

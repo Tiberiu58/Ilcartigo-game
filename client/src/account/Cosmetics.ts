@@ -159,6 +159,9 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
   { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
   { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
+  // Prestige tier.
+  { id: 'prism-burst',   displayName: 'Prismatic',      particleColor: 0x8fd0ff, tintColor: 0x14202c, cost: 6000 },
+  { id: 'supernova',     displayName: 'Supernova',      particleColor: 0xffe08a, tintColor: 0x402810, cost: 8000 },
 ];
 
 /**
@@ -177,6 +180,9 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
   { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
   { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
+  // Prestige tier.
+  { id: 'tracer-prism',   displayName: 'Prism',        color: 0x8fd0ff, cost: 4500 },
+  { id: 'tracer-phoenix', displayName: 'Phoenix',      color: 0xff7020, cost: 6000 },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -310,6 +316,9 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
   { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
   { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
+  // Prestige tier — long-term goals for dedicated players.
+  { id: 'finish-prism',    displayName: 'Prismatic',  emissive: 0x2a1a3a, swatch: 0x8fd0ff, cost: 5500 },
+  { id: 'finish-obsidian', displayName: 'Obsidian Gold', emissive: 0x2a2200, swatch: 0xd4af37, cost: 7000 },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';
