@@ -1364,3 +1364,42 @@ show-it-off payoff that makes the medal grind matter every shot/kill. Pure-data
   subtitle/footer).
 
 ### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — Neon District (new combat map) (autonomous build, v0.39.0)
+
+Fresh content is the highest-leverage "one more game" lever in an arena shooter,
+and a new map deepens **every** combat mode at once — including the brand-new
+Hardpoint (more zone variety). ILCARTIGO had five combat maps; Phase 39 adds a
+sixth with a distinct identity: **a cyberpunk night district.**
+
+- **Neon District** — near-black reflective streets laced with glowing neon grid
+  lines, holographic translucent magenta cover panels, and alternating
+  cyan/magenta emissive trim, under a deep-night sky with neon-haze fog. The
+  darkest, flashiest map — instant contrast with warm Sandstone, rusty
+  Industrial, steel Cobalt, dusk Overpass and icy Frostline.
+- **Built on the proven symmetric Cobalt/Frostline skeleton** (mirrored about
+  both axes → TDM-fair, spawn corners known-clear), then fully re-themed: a raised
+  neon central platform (jump-pad ring + holo pillar + corner cover), two
+  symmetric N/S team decks with parapets (magenta-N / cyan-S side identity),
+  diagonal holo-panel cover, E/W flank walls, low steppable kerbs near spawns.
+  Verticality is entirely jump-pad driven (no step-up-snagging ledges).
+- **Solo-selectable, zero MP risk.** New `maps/NeonMap.ts` registered in
+  `MapId`/`MAPS` + a loadout button + the `COMBAT_MAPS` validation list; health
+  pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in
+  sync). The MP server still defaults to Sandstone and clients adopt the server's
+  map, so Neon needs no protocol/server change.
+- **Verified geometry headlessly** — a mock-World harness ran the real
+  `buildNeon()` and asserted **all 6 FFA + TDM spawns sit clear of every solid**
+  (27 solids, 8 jump pads — matching the verified skeleton).
+
+### Status log
+- ✅ Phase 39 — Neon District. DONE (client + server tsc + client build green;
+  headless spawn-clearance test passed — all spawns clear, 27 solids / 8 pads;
+  app chunk ~92 KB gzip, 104 modules). New `maps/NeonMap.ts` (dark/neon palette,
+  holo-panel cover, grid-line floor, cyan/magenta trim), full wiring
+  (MapId/MAPS/menu/COMBAT_MAPS), Neon pickups mirrored client+server. Versions
+  bumped to v0.39.0 (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — additive map, no protocol change, solo + MP intact.
