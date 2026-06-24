@@ -36,11 +36,15 @@ export const SOUND_FILES = {
   fire_crossbow: 'fire_crossbow.wav',
   fire_pistol:   'fire_pistol.wav',
   reload:        'reload.wav',
+  reload_done:   'reload_done.wav',
+  weapon_switch: 'weapon_switch.wav',
   empty_click:   'empty_click.wav',
 
   // Hit feedback — always plays locally on a confirmed hit.
   hit_confirm:   'hit_confirm.wav',
   hit_headshot:  'hit_headshot.wav',
+  // Near-miss bullet whiz — spatial cue when incoming fire just misses you.
+  whiz:          'whiz.wav',
 
   // Movement.  `footstep` is in the catalog but not yet emitted — needs a
   // distance-based throttle in PlayerController. Wired/trimmed in a later

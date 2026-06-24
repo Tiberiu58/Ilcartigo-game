@@ -206,6 +206,16 @@ export class SynthEngine {
         this.click(dest, t, g * 0.7, 2400);
         this.click(dest, t + 0.13, g * 0.8, 1800);
         break;
+      case 'reload_done':
+        // Magazine seated — a firm low click + a tiny confirming tick.
+        this.click(dest, t, g * 0.8, 1500);
+        this.tone(dest, t + 0.02, 720, 0.05, 'square', g * 0.3, 0.001);
+        break;
+      case 'weapon_switch':
+        // Quick mechanical clack as the new gun comes up.
+        this.click(dest, t, g * 0.55, 2000);
+        this.tone(dest, t + 0.01, 380, 0.05, 'square', g * 0.3, 0.001, 260);
+        break;
       case 'empty_click':
         this.click(dest, t, g * 0.6, 3000);
         break;
@@ -217,6 +227,10 @@ export class SynthEngine {
       case 'hit_headshot':
         this.tone(dest, t, 1500 * rate, 0.05, 'triangle', g * 0.7, 0.001);
         this.tone(dest, t + 0.04, 1900 * rate, 0.05, 'triangle', g * 0.6, 0.001);
+        break;
+      case 'whiz':
+        // A fast descending "zip" as the round snaps past your head.
+        this.noise(dest, t, 0.07, g * 0.6, 'bandpass', 3200, 6, 900);
         break;
       case 'kill_feedback':
         this.tone(dest, t, 620, 0.08, 'square', g * 0.55, 0.002, 700);

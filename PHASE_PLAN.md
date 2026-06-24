@@ -1387,3 +1387,35 @@ because per-trigger burst would need client/server protocol changes.
 
 ### Phase 37 COMPLETE — additive weapon, MP-safe (server profile mirrors it),
 ### no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Combat audio depth (autonomous build, v0.38.0)
+
+A focused pass that amplifies the v0.35 synth investment with the moment-to-
+moment cues a shooter needs. Pure client, no protocol change, new SoundIds all
+synthesized (silent-`.wav`-override still available via `FILE_BACKED`).
+
+- **Reload-complete chime (`reload_done`).** Edge-triggered on the
+  reloading→idle transition in `Game.tick`, but gated on the mag actually being
+  full — so a death or weapon-swap that interrupts a reload stays silent. A firm
+  low click + a tiny confirming tick.
+- **Weapon-switch clack (`weapon_switch`).** Plays on a successful slot1 / slot2 /
+  quick-swap, alongside the existing viewmodel swap-dip. Only on intentional
+  in-game swaps (the slot-key handlers), not on boot/menu setup.
+- **Near-miss bullet whiz (`whiz`).** For every non-local shot, compute the
+  closest point on the shot segment to the player's eye; if it passes within
+  ~0.7–3.0 m without hitting you, play a spatial descending "zip" at that point.
+  Skips shots that hit you (the damage flow owns that) and your own fire. Works
+  for bot fire in solo and remote fire in MP. Allocation-free (a module-level
+  `_SCRATCH_WHIZ` reused per shot).
+
+### Status log
+- ✅ Phase 38 — Combat audio depth. DONE (client + server tsc + client build
+  green; app chunk ~90.2 KB gzip, no new deps). `reload_done` / `weapon_switch` /
+  `whiz` SoundIds + synth recipes, reload-complete edge in `Game.tick`,
+  weapon-switch on slot keys, near-miss whiz in the `shot` handler (segment-
+  closest-point math, `_SCRATCH_WHIZ`). Versions bumped to v0.38.0 (+ menu
+  subtitle/footer); README status updated.
+
+### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.

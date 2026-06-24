@@ -405,6 +405,22 @@ export class Game {
       } else {
         this.player.eyePos(this._eyePos);
         this.audio.playSpatial(fireSoundId, e.origin, this._eyePos, this.camera.rotation.y);
+        // Near-miss "whiz": if an incoming shot's path passes close to you but
+        // doesn't hit you, play a spatial zip at the closest point — Krunker-
+        // style threat awareness ("that was close"). Skips shots that hit you
+        // (the damage flow owns that feedback) and your own fire.
+        if (!(e.hit && this.isLocalPlayer(e.hit.targetId ?? ''))) {
+          // (_eyePos was just set above for the spatial fire sound.)
+          // Closest point on the shot segment to the player's eye.
+          const segLen = e.hit ? e.origin.distanceTo(e.hit.point) : range;
+          let tt = _SCRATCH_WHIZ.copy(this._eyePos).sub(e.origin).dot(e.direction);
+          tt = Math.max(0, Math.min(segLen, tt));
+          _SCRATCH_WHIZ.copy(e.origin).addScaledVector(e.direction, tt);
+          const miss = _SCRATCH_WHIZ.distanceTo(this._eyePos);
+          if (miss > 0.7 && miss < 3.0) {
+            this.audio.playSpatial('whiz', _SCRATCH_WHIZ, this._eyePos, this.camera.rotation.y, 0.9);
+          }
+        }
       }
     });
 
@@ -1183,6 +1199,12 @@ export class Game {
     // when firing an empty mag).
     const isReloading = this.inventory.current.isReloading;
     if (isReloading && !this.lastReloadingState) this.audio.play('reload');
+    // Reload-complete chime — the true→false edge, but only when the mag
+    // actually filled (so a death/swap interrupting a reload stays silent).
+    else if (!isReloading && this.lastReloadingState &&
+             this.inventory.current.ammo >= this.inventory.current.config.magSize) {
+      this.audio.play('reload_done');
+    }
     this.lastReloadingState = isReloading;
 
     // MP respawn edge: in MP the server flips HP back from 0 inside a snapshot;
@@ -1195,15 +1217,15 @@ export class Game {
     }
     this.lastDeadState = isDead;
 
-    // Slot keys — edge-triggered.
+    // Slot keys — edge-triggered. A successful swap clacks the new gun up.
     if (this.input.consumeAction('slot1')) {
-      if (this.inventory.selectSlot(0)) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
+      if (this.inventory.selectSlot(0)) { this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId); this.audio.play('weapon_switch'); }
     }
     if (this.input.consumeAction('slot2')) {
-      if (this.inventory.selectSlot(1)) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
+      if (this.inventory.selectSlot(1)) { this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId); this.audio.play('weapon_switch'); }
     }
     if (this.input.consumeAction('slotLast')) {
-      if (this.inventory.swapLast()) this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId);
+      if (this.inventory.swapLast()) { this.viewmodel.swapTo(this.inventory.current.config.id as WeaponId); this.audio.play('weapon_switch'); }
     }
 
     // Scope on RMB — only while pressed (CS-style hold-to-scope is the only
@@ -1368,3 +1390,4 @@ export class Game {
 const _SCRATCH_END = new THREE.Vector3();
 const _SCRATCH_SPAWN_A = new THREE.Vector3();
 const _SCRATCH_SPAWN_B = new THREE.Vector3();
+const _SCRATCH_WHIZ = new THREE.Vector3();
