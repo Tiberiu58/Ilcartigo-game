@@ -1325,3 +1325,42 @@ build green, never break solo / MP / the audit fixes.
   bumped to v0.37.0 (+ menu subtitle/footer).
 
 ### Phase 37 COMPLETE — solo objective mode, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Medal-exclusive cosmetics (autonomous build, v0.38.0)
+
+A tight follow-up that closes the loop between the Phase-36 medals and the
+cosmetics chase: **prestige flair you can ONLY earn, never buy.** Four new
+cosmetics are gated behind specific medals instead of an XP price — a tangible,
+show-it-off payoff that makes the medal grind matter every shot/kill. Pure-data
++ a small grant hook, **no protocol change** — solo + MP intact.
+
+- **Four medal-exclusives:** the **Champion** tracer (← *Contender*, win 10
+  matches), the **Headhunter** tracer (← *Deadeye*, 250 headshots), the
+  **Conqueror** kill effect (← *Warmonger*, 2,500 kills), and the **Prestige**
+  weapon finish (← *Elite Operator*, level 25). A reachable→long-haul spread so
+  there's an exclusive to chase at every stage.
+- **`Cosmetics.ts`** — optional `medal?: string` on `TracerConfig` /
+  `KillEffectConfig` / `FinishConfig` marks an entry as earned-not-bought
+  (`cost` ignored). Four entries added.
+- **`Account.grantCosmetic(kind, id)`** — adds the cosmetic to the right
+  unlocked list with no XP cost, idempotent. **`AchievementDef.grants`** wires a
+  medal → cosmetic; the tracker calls `grantCosmetic` on unlock (silent or live),
+  so the first-boot retroactive pass also hands veterans the flair they've
+  already earned.
+- **`CosmeticsUI`** — locked medal-exclusives show **"🏅 {Medal}"** instead of an
+  XP price, get a gold `exclusive` cue, and ignore clicks (no purchase path);
+  once earned they equip like any cosmetic. Shared `statusLabel` / `cardClass`
+  helpers dedupe the three card renderers.
+
+### Status log
+- ✅ Phase 38 — Medal-exclusive cosmetics. DONE (client + server tsc + client
+  build green; app chunk ~91 KB gzip). Headless test confirmed each medal grants
+  its cosmetic (live = with toast, retroactive = silent, no toast spam) and the
+  four registry grant-links resolve. `Cosmetics.medal`, `Account.grantCosmetic`,
+  `AchievementDef.grants` + tracker hook, CosmeticsUI medal-gated rendering +
+  no-purchase guards + `.exclusive` CSS. Versions bumped to v0.38.0 (+ menu
+  subtitle/footer).
+
+### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.

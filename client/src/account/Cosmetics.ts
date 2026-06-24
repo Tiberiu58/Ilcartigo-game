@@ -35,6 +35,9 @@ export interface KillEffectConfig {
   /** Screen edge flash color for ~120ms after kill. */
   tintColor: number;
   cost: number;
+  /** If set, this is a medal-exclusive — granted ONLY by earning the named
+   *  achievement (not purchasable with XP). The cost field is ignored. */
+  medal?: string;
 }
 
 export interface TracerConfig {
@@ -43,6 +46,8 @@ export interface TracerConfig {
   /** Colour of the local player's bullet tracer (hex). */
   color: number;
   cost: number;
+  /** Medal-exclusive gate (see KillEffectConfig.medal). */
+  medal?: string;
 }
 
 const SKIN_COSTS = [0, 200, 500, 1000, 2000, 4000];
@@ -159,6 +164,8 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
   { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
   { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
+  // ── Medal-exclusive (earned, not bought) ──
+  { id: 'conqueror',     displayName: 'Conqueror',      particleColor: 0xffd24a, tintColor: 0x2a2000, cost: 0, medal: 'kills-2500' },
 ];
 
 /**
@@ -177,6 +184,9 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
   { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
   { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
+  // ── Medal-exclusive (earned, not bought) ──
+  { id: 'tracer-champion', displayName: 'Champion',    color: 0xffe066, cost: 0, medal: 'wins-10' },
+  { id: 'tracer-headhunter', displayName: 'Headhunter', color: 0xc8ff2a, cost: 0, medal: 'hs-250' },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -289,6 +299,8 @@ export interface FinishConfig {
   /** Swatch colour for the cosmetics grid. */
   swatch: number;
   cost: number;
+  /** Medal-exclusive gate (see KillEffectConfig.medal). */
+  medal?: string;
 }
 
 /**
@@ -305,6 +317,8 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
   { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
   { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
+  // ── Medal-exclusive (earned, not bought) ──
+  { id: 'finish-prestige', displayName: 'Prestige',   emissive: 0x5a4200, swatch: 0xffe066, cost: 0, medal: 'level-25' },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';

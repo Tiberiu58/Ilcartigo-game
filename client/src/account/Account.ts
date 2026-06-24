@@ -619,6 +619,21 @@ export class Account {
     return true;
   }
 
+  /**
+   * Grant a medal-exclusive cosmetic (no XP cost) — called by the achievement
+   * tracker when a medal that awards flair is earned. Idempotent: adds the id to
+   * the right unlocked list if absent. Returns true if newly granted.
+   */
+  grantCosmetic(kind: 'tracer' | 'effect' | 'finish', id: string): boolean {
+    const list = kind === 'tracer' ? this.data.unlockedTracers
+      : kind === 'effect' ? this.data.unlockedEffects
+      : this.data.unlockedFinishes;
+    if ((list as string[]).includes(id)) return false;
+    (list as string[]).push(id);
+    this.save();
+    return true;
+  }
+
   /** Reset to fresh state. Wipes XP, cosmetics, AND lifetime stats. */
   reset() {
     this.data = freshData();

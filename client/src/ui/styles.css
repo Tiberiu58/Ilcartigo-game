@@ -2176,6 +2176,10 @@ body.no-speedlines #speed-lines { display: none; }
 .cos-card.equipped { border-color: var(--accent); background: rgba(245, 212, 66, 0.08); }
 .cos-card.locked { opacity: 0.7; cursor: not-allowed; }
 .cos-card.locked:hover { border-color: var(--border); }
+/* Medal-exclusive cosmetics — a gold cue that they're earned, not bought. */
+.cos-card.exclusive { border-color: rgba(245, 212, 66, 0.4); box-shadow: inset 0 0 0 1px rgba(245, 212, 66, 0.12); }
+.cos-card.exclusive.locked { cursor: default; }
+.cos-card.exclusive .cos-status { color: var(--accent); }
 .cos-card .cos-swatch {
   width: 28px; height: 28px;
   border-radius: 4px;

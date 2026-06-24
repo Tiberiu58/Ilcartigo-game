@@ -18,6 +18,12 @@ import {
   type SkinConfig, type KillEffectConfig, type TracerConfig, type FinishConfig, type WeaponSkinConfig,
 } from '../account/Cosmetics';
 import { CLASS_LIBRARY, CLASS_ORDER, type ClassId } from '../classes/types';
+import { ACHIEVEMENTS } from '../account/Achievements';
+
+/** Resolve a medal id → its display name (for "earn this to unlock" labels). */
+function medalName(id: string): string {
+  return ACHIEVEMENTS.find((a) => a.id === id)?.name ?? 'a medal';
+}
 
 export class CosmeticsUI {
   private account: Account;
@@ -123,10 +129,8 @@ export class CosmeticsUI {
   private effectCardHtml(e: KillEffectConfig): string {
     const unlocked = this.account.isEffectUnlocked(e.id);
     const equipped = this.account.equippedKillEffect() === e.id;
-    const status = !unlocked
-      ? `${e.cost} XP`
-      : equipped ? 'EQUIPPED' : 'EQUIP';
-    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    const status = statusLabel(unlocked, equipped, e.cost, e.medal);
+    const cls = cardClass(unlocked, equipped, e.medal);
     const swatchHex = '#' + e.particleColor.toString(16).padStart(6, '0');
     return `<div class="${cls}" data-effect-id="${e.id}" style="--body-c: ${swatchHex}; --head-c: ${swatchHex}">
       <div class="cos-swatch"><div class="head"></div><div class="body"></div></div>
@@ -202,8 +206,8 @@ export class CosmeticsUI {
   private finishCardHtml(f: FinishConfig): string {
     const unlocked = this.account.isFinishUnlocked(f.id);
     const equipped = this.account.equippedFinish() === f.id;
-    const status = !unlocked ? `${f.cost} XP` : equipped ? 'EQUIPPED' : 'EQUIP';
-    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    const status = statusLabel(unlocked, equipped, f.cost, f.medal);
+    const cls = cardClass(unlocked, equipped, f.medal);
     const hex = '#' + f.swatch.toString(16).padStart(6, '0');
     return `<div class="${cls}" data-finish-id="${f.id}" style="--body-c: ${hex}; --head-c: ${hex}">
       <div class="cos-swatch"><div class="head"></div><div class="body"></div></div>
@@ -216,6 +220,7 @@ export class CosmeticsUI {
     if (!this.account.isFinishUnlocked(id)) {
       const cfg = findFinish(id);
       if (!cfg) return;
+      if (cfg.medal) return;   // medal-exclusive — earned, not bought
       if (!this.account.tryUnlockFinish(id, cfg.cost)) return;
     }
     this.account.equipFinish(id);
@@ -224,8 +229,8 @@ export class CosmeticsUI {
   private tracerCardHtml(t: TracerConfig): string {
     const unlocked = this.account.isTracerUnlocked(t.id);
     const equipped = this.account.equippedTracer() === t.id;
-    const status = !unlocked ? `${t.cost} XP` : equipped ? 'EQUIPPED' : 'EQUIP';
-    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    const status = statusLabel(unlocked, equipped, t.cost, t.medal);
+    const cls = cardClass(unlocked, equipped, t.medal);
     const hex = '#' + t.color.toString(16).padStart(6, '0');
     // Reuse the swatch markup but render a tracer "bolt" via the body bar.
     return `<div class="${cls}" data-tracer-id="${t.id}" style="--body-c: ${hex}; --head-c: ${hex}">
@@ -239,6 +244,7 @@ export class CosmeticsUI {
     if (!this.account.isTracerUnlocked(id)) {
       const cfg = findTracer(id);
       if (!cfg) return;
+      if (cfg.medal) return;   // medal-exclusive — earned, not bought
       if (!this.account.tryUnlockTracer(id, cfg.cost)) return;
     }
     this.account.equipTracer(id);
@@ -256,6 +262,7 @@ export class CosmeticsUI {
     if (!this.account.isEffectUnlocked(id)) {
       const cfg = findKillEffect(id);
       if (!cfg) return;
+      if (cfg.medal) return;   // medal-exclusive — earned, not bought
       if (!this.account.tryUnlockEffect(id, cfg.cost)) return;
     }
     this.account.equipKillEffect(id);
@@ -265,4 +272,20 @@ export class CosmeticsUI {
 function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
+/** Card status label, shared across tracer / effect / finish cards. Medal-gated
+ *  cosmetics show "🏅 {Medal}" instead of an XP price when still locked. */
+function statusLabel(unlocked: boolean, equipped: boolean, cost: number, medal?: string): string {
+  if (equipped) return 'EQUIPPED';
+  if (unlocked) return 'EQUIP';
+  if (medal) return `🏅 ${escape(medalName(medal))}`;
+  return `${cost} XP`;
+}
+
+/** Card class list, adding an `exclusive` modifier for medal-gated cosmetics. */
+function cardClass(unlocked: boolean, equipped: boolean, medal?: string): string {
+  let cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+  if (medal) cls += ' exclusive';
+  return cls;
 }

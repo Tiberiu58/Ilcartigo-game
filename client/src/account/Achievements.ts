@@ -32,6 +32,9 @@ export interface AchievementDef {
   goal: number;
   /** Current progress toward the goal, read from the account / local bests. */
   metric: (a: Account) => number;
+  /** Optional medal-exclusive cosmetic this unlocks (prestige flair you can
+   *  ONLY earn, never buy). The cosmetic carries a matching `medal: id`. */
+  grants?: { kind: 'tracer' | 'effect' | 'finish'; id: string };
 }
 
 /** Best-effort numeric read of a localStorage personal best (modes). */
@@ -49,12 +52,12 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   // ── Kills (the bread-and-butter grind) ──────────────────────────────────
   { id: 'kills-100',  name: 'First Blood Drawn', desc: 'Get 100 lifetime kills',   icon: '🩸', tier: 'bronze', reward: 150,  goal: 100,   metric: (a) => a.stats.kills },
   { id: 'kills-500',  name: 'Seasoned',          desc: 'Get 500 lifetime kills',   icon: '⚔️', tier: 'silver', reward: 400,  goal: 500,   metric: (a) => a.stats.kills },
-  { id: 'kills-2500', name: 'Warmonger',         desc: 'Get 2,500 lifetime kills', icon: '💀', tier: 'gold',   reward: 1000, goal: 2500,  metric: (a) => a.stats.kills },
+  { id: 'kills-2500', name: 'Warmonger',         desc: 'Get 2,500 lifetime kills', icon: '💀', tier: 'gold',   reward: 1000, goal: 2500,  metric: (a) => a.stats.kills, grants: { kind: 'effect', id: 'conqueror' } },
   { id: 'kills-10000',name: 'Legend of the Arena', desc: 'Get 10,000 lifetime kills', icon: '👑', tier: 'elite', reward: 3000, goal: 10000, metric: (a) => a.stats.kills },
 
   // ── Headshots (precision) ────────────────────────────────────────────────
   { id: 'hs-50',   name: 'Marksman',     desc: 'Land 50 headshots',    icon: '🎯', tier: 'bronze', reward: 200,  goal: 50,   metric: (a) => a.stats.headshots },
-  { id: 'hs-250',  name: 'Deadeye',      desc: 'Land 250 headshots',   icon: '🦅', tier: 'silver', reward: 500,  goal: 250,  metric: (a) => a.stats.headshots },
+  { id: 'hs-250',  name: 'Deadeye',      desc: 'Land 250 headshots',   icon: '🦅', tier: 'silver', reward: 500,  goal: 250,  metric: (a) => a.stats.headshots, grants: { kind: 'tracer', id: 'tracer-headhunter' } },
   { id: 'hs-1000', name: 'Headhunter',   desc: 'Land 1,000 headshots', icon: '☠️', tier: 'gold',   reward: 1200, goal: 1000, metric: (a) => a.stats.headshots },
 
   // ── Streaks (clutch / momentum) ──────────────────────────────────────────
@@ -63,13 +66,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'streak-20', name: 'Godlike',       desc: 'Reach a 20-kill streak',  icon: '🌟', tier: 'gold',   reward: 900, goal: 20, metric: (a) => a.stats.bestStreak },
 
   // ── Wins / matches (commitment) ──────────────────────────────────────────
-  { id: 'wins-10',   name: 'Contender',    desc: 'Win 10 matches',     icon: '🏅', tier: 'bronze', reward: 250, goal: 10,  metric: (a) => a.stats.wins },
+  { id: 'wins-10',   name: 'Contender',    desc: 'Win 10 matches',     icon: '🏅', tier: 'bronze', reward: 250, goal: 10,  metric: (a) => a.stats.wins, grants: { kind: 'tracer', id: 'tracer-champion' } },
   { id: 'wins-50',   name: 'Champion',     desc: 'Win 50 matches',     icon: '🏆', tier: 'gold',   reward: 800, goal: 50,  metric: (a) => a.stats.wins },
   { id: 'matches-100', name: 'Veteran',    desc: 'Finish 100 matches', icon: '🎖️', tier: 'silver', reward: 500, goal: 100, metric: (a) => a.stats.matches },
 
   // ── Progression (level) ──────────────────────────────────────────────────
   { id: 'level-10',  name: 'Rising Star',  desc: 'Reach account level 10', icon: '✨', tier: 'bronze', reward: 200, goal: 10, metric: (a) => a.level },
-  { id: 'level-25',  name: 'Elite Operator', desc: 'Reach account level 25', icon: '💎', tier: 'gold', reward: 1000, goal: 25, metric: (a) => a.level },
+  { id: 'level-25',  name: 'Elite Operator', desc: 'Reach account level 25', icon: '💎', tier: 'gold', reward: 1000, goal: 25, metric: (a) => a.level, grants: { kind: 'finish', id: 'finish-prestige' } },
 
   // ── Weapon mastery (variety) ─────────────────────────────────────────────
   { id: 'wm-ar-200',     name: 'Rifle Master',   desc: 'Get 200 kills with the AR',      icon: '🔫', tier: 'silver', reward: 400, goal: 200, metric: (a) => a.weaponKillsFor('ar') },
@@ -128,6 +131,8 @@ export class AchievementTracker {
         if (this.account.isAchievementUnlocked(def.id)) continue;
         if (def.metric(this.account) >= def.goal) {
           const newly = this.account.unlockAchievement(def.id, def.reward);
+          // Grant any medal-exclusive cosmetic (silent or not — it persists).
+          if (def.grants) this.account.grantCosmetic(def.grants.kind, def.grants.id);
           if (newly && !silent) this.onUnlock(def);
         }
       }
