@@ -548,7 +548,11 @@ audioSfx.addEventListener('input', () => {
   audioSfxVal.textContent = `${Math.round(v * 100)}%`;
 });
 audioTestBtn.addEventListener('click', () => {
-  game.audio.play('ui_click');
+  // Showcase the synth: a shot + a confirming hitmarker, so the slider change
+  // is audible against the actual combat SFX rather than a tiny UI blip.
+  game.audio.resume();
+  game.audio.play('fire_ar');
+  window.setTimeout(() => game.audio.play('hit_confirm'), 90);
 });
 
 // ─── Graphics quality ───────────────────────────────────────────────────────

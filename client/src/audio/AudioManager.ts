@@ -18,6 +18,7 @@
 
 import { Howl } from 'howler';
 import type * as THREE from 'three';
+import { SynthEngine } from './SynthEngine';
 
 const SOUND_BASE = '/assets/sounds/';
 
@@ -104,6 +105,15 @@ export const SOUND_FILES = {
 
 export type SoundId = keyof typeof SOUND_FILES;
 
+/**
+ * Ids that should play from a real `.wav` file in /assets/sounds/ instead of
+ * the procedural synth. EMPTY by default — the game ships fully audible via
+ * the SynthEngine with zero asset files. To use a hand-authored sound, drop
+ * its `.wav` into /client/public/assets/sounds/ and add its id here; that one
+ * sound then loads from disk while everything else stays synthesized.
+ */
+export const FILE_BACKED: ReadonlySet<SoundId> = new Set<SoundId>([]);
+
 const STORAGE_MASTER = 'ilc.audio.master';
 const STORAGE_SFX    = 'ilc.audio.sfx';
 const MAX_DISTANCE   = 80;       // beyond this, spatial sounds are inaudible
@@ -113,6 +123,8 @@ export class AudioManager {
   private howls = new Map<SoundId, Howl>();
   /** True once we've logged a "missing file" warning for this id. */
   private missingNoted = new Set<SoundId>();
+  /** Procedural fallback so the game is audible without any .wav assets. */
+  private synth = new SynthEngine();
 
   /** 0..1; multiplied into every play. Set from settings UI. */
   masterVolume = 0.8;
@@ -179,14 +191,24 @@ export class AudioManager {
    */
   play(id: SoundId, volumeMul = 1.0, rate = 1.0) {
     if (this.muted) return;
-    const h = this.getHowl(id);
     const baseVol = this.masterVolume * this.sfxVolume * volumeMul;
     if (baseVol <= 0.001) return;
+    // Default path: synthesize. The game is fully audible with no assets.
+    if (!FILE_BACKED.has(id)) {
+      this.synth.play(id, baseVol, 0, rate);
+      return;
+    }
+    const h = this.getHowl(id);
     const playId = h.play();
     h.volume(baseVol, playId);
     // Optional pitch shift (e.g. the rising hitmarker chain). Only touch the
     // rate when it actually differs so the common path stays allocation-free.
     if (rate !== 1.0) h.rate(rate, playId);
+  }
+
+  /** Resume the synth's audio context after a known user gesture. */
+  resume() {
+    this.synth.resume();
   }
 
   /**
@@ -217,10 +239,15 @@ export class AudioManager {
     const rel = (dx * rightX + dz * rightZ) / Math.max(dist, 0.0001);
     const pan = Math.max(-1, Math.min(1, rel));
 
-    const h = this.getHowl(id);
-    // (See play() for why we don't gate on state() — same reasoning.)
     const vol = this.masterVolume * this.sfxVolume * falloff * volumeMul;
     if (vol <= 0.001) return;
+    // Default path: synthesize with the computed stereo pan.
+    if (!FILE_BACKED.has(id)) {
+      this.synth.play(id, vol, pan, 1.0);
+      return;
+    }
+    const h = this.getHowl(id);
+    // (See play() for why we don't gate on state() — same reasoning.)
     const playId = h.play();
     h.volume(vol, playId);
     h.stereo(pan, playId);

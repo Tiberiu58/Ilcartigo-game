@@ -1213,3 +1213,86 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 34 — Real 3D weapon viewmodels (v0.34.0)
+
+The first-person viewmodel swapped the procedural box-guns for detailed FBX gun
+models (rifle, P90, sniper, shotgun, LMG, ray-gun, pistol/revolver) under
+`/client/public/assets/models/weapons/`. Lazy-loaded, de-rigged
+(SkinnedMesh→static Mesh so they clone + render cleanly), auto-normalized to a
+consistent in-hand size, muzzles flipped to point forward, with a graceful box
+fallback if a model is missing. All existing viewmodel behaviour (recoil,
+walk-bob, swap dip, muzzle-flash anchor, cloak fade, weapon-finish emissive)
+preserved. Pure client, no protocol change.
+
+---
+
+## Phase 35 — Procedural audio engine (autonomous build, v0.35.0)
+
+**The single biggest gap to Krunker-feel: the game shipped completely silent.**
+Every `SoundId` in `AudioManager` mapped to a `.wav` file, and **no `.wav` files
+are bundled** — so a competitive shooter with no gunshots, no hitmarker ding, no
+kill confirm, no footsteps. The brief's core pillars (satisfying shooting
+mechanics, flashy hit/kill feedback) were silent. This phase fixes it with a
+**real-time Web Audio synthesis engine**, so the game is fully audible with
+**zero asset files**.
+
+Guiding constraint (kept): no protocol changes, no new deps (Web Audio is a
+browser API), typecheck + build green, never break solo / MP / the audit fixes.
+
+- **New `audio/SynthEngine.ts`.** A from-scratch synth: a lazily-created
+  `AudioContext` (resumed on the first user gesture per autoplay policy), a
+  master gain → `DynamicsCompressor` → destination chain (the compressor stops
+  overlapping gunfire from clipping into harsh distortion), and a shared 1 s
+  white-noise buffer reused for cracks/explosions/footsteps. Two voice
+  primitives — `tone()` (pitched osc with an attack/decay + optional frequency
+  ramp) and `noise()` (filtered noise burst with a filter sweep) — compose into a
+  per-`SoundId` recipe table:
+  - **8 weapons**, each a filtered-noise crack + a low sine "thump" body tuned per
+    archetype: AR mid-crack, SMG light/high, sniper big boom + long tail, shotgun
+    broad low body, marksman sharp mid, LMG deep chug, **railgun** electric
+    descending saw + sparkle, pistol snappy.
+  - **Hit feedback** — the all-important hitmarker tick (triangle blip), a
+    two-note headshot ding, a two-tone kill confirm. The hitmarker honours the
+    existing **rising-hitmarker `rate`** so the headshot/hit chain pitches up as
+    you shred.
+  - **Movement** — jump (rising sine), land (low thud), footstep (soft filtered
+    tick), jump pad (rising whoosh).
+  - **6 abilities** — blink zap, surge ramp, dash whoosh, cloak shimmer, barrier
+    thunk, pulse ping.
+  - **Death/respawn**, **match/UI/progression** (match-end + level-up arpeggios,
+    UI click, heartbeat), **pickups** (health + power-up chimes), **melee** whoosh,
+    **grenade** boom (noise + low rumble + crack).
+  - **Announcer** — distinct First Blood / Revenge / Comeback stings, plus the
+    multi-kill chain (`sting()` pitched up by tier double→monster) and streak
+    milestones (`fanfare()` ascending triad, brighter by tier).
+  - A `default` case emits a soft neutral blip so no future id is ever silent.
+- **`AudioManager` routes through the synth by default.** New
+  `FILE_BACKED: ReadonlySet<SoundId>` (empty by default). `play()` /
+  `playSpatial()` synthesize unless an id is in `FILE_BACKED`, in which case they
+  use the existing Howl/`.wav` path — so the **drop-in asset pipeline is fully
+  preserved**: add a `.wav` + its id to `FILE_BACKED` and that one sound loads
+  from disk while everything else stays synthesized. Spatial sounds pass their
+  computed stereo pan + distance falloff into the synth (a per-voice
+  `StereoPanner`), so remote gunfire/footsteps still localize. `rate` (rising
+  hitmarker) is honoured. New `AudioManager.resume()` nudges the context awake.
+- **Test button upgraded** — Settings → Audio "Play test sound" now fires a
+  `fire_ar` shot + a `hit_confirm` so the volume sliders audition the real combat
+  SFX, not a tiny UI blip.
+- **No spurious sounds.** Verified melee/grenade emit only `damage`/`kill` (they
+  play `melee`/`grenade_explode` directly), so the `fire_${weaponId}` path only
+  ever sees real gun ids — no stray default blips.
+
+### Status log
+- ✅ Phase 35 — Procedural audio. DONE (client + server tsc + client build green;
+  app chunk ~88.6 KB gzip, +~3 KB for the synth, no new deps). New
+  `audio/SynthEngine.ts` (full recipe table for every SoundId), `AudioManager`
+  `FILE_BACKED` gate + synth routing in `play`/`playSpatial` + `resume()`,
+  upgraded audio test button. Versions bumped to v0.35.0 (+ menu subtitle/footer);
+  README status + audio-asset-guide updated to document the synth-default + the
+  `FILE_BACKED` override.
+
+### Phase 35 COMPLETE — the game is audible. Pure client, no protocol change,
+### solo + MP intact. Drop-in `.wav` pipeline preserved via `FILE_BACKED`.
