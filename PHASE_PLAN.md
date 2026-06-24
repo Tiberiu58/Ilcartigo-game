@@ -1442,3 +1442,31 @@ hold-the-trigger CQB archetype the roster didn't have.
   v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 41 — Medal expansion + new-content medals (autonomous build, v0.41.0)
+
+A small follow-up that keeps the freshly-shipped content feeding the rewards
+loop: **6 new medals → 30 total**, including milestones for the new Hardpoint
+mode and Breacher weapon, plus a medal-count surfaced in the Profile so the
+Awards chase is visible alongside the other career bests. Pure-data + one
+read-only UI line — no protocol change, solo + MP intact.
+
+- **+6 medals:** **Annihilator** (5,000 kills), **Sharpshooter** (100 HS),
+  **Decorated** (25 wins), **Door Kicker** (100 Breacher kills), **Gladiator**
+  (10-duel streak), and **Hill Master** (secure a Hardpoint — its PB is a clear
+  *time*, so the metric treats "a clear exists" as the milestone). The
+  re-entrancy-guarded tracker + silent-retroactive pass handle them with no
+  changes (`ACHIEVEMENT_COUNT` is derived from the array length).
+- **Profile surfacing:** the Bests grid now shows a **Hardpoint Time** cell and a
+  **Medals `earned/total`** cell, linking the Awards tab into the at-a-glance
+  career view.
+
+### Status log
+- ✅ Phase 41 — Medal expansion. DONE (client + server tsc + client build green;
+  app chunk ~92 KB gzip). 6 new `ACHIEVEMENTS` entries (30 total), ProfileUI
+  Bests grid gains Hardpoint-time + medals cells. Versions bumped to v0.41.0
+  (+ menu subtitle/footer).
+
+### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.

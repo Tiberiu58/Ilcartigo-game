@@ -53,10 +53,12 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'kills-100',  name: 'First Blood Drawn', desc: 'Get 100 lifetime kills',   icon: '🩸', tier: 'bronze', reward: 150,  goal: 100,   metric: (a) => a.stats.kills },
   { id: 'kills-500',  name: 'Seasoned',          desc: 'Get 500 lifetime kills',   icon: '⚔️', tier: 'silver', reward: 400,  goal: 500,   metric: (a) => a.stats.kills },
   { id: 'kills-2500', name: 'Warmonger',         desc: 'Get 2,500 lifetime kills', icon: '💀', tier: 'gold',   reward: 1000, goal: 2500,  metric: (a) => a.stats.kills, grants: { kind: 'effect', id: 'conqueror' } },
+  { id: 'kills-5000', name: 'Annihilator',       desc: 'Get 5,000 lifetime kills', icon: '☄️', tier: 'gold',   reward: 1800, goal: 5000,  metric: (a) => a.stats.kills },
   { id: 'kills-10000',name: 'Legend of the Arena', desc: 'Get 10,000 lifetime kills', icon: '👑', tier: 'elite', reward: 3000, goal: 10000, metric: (a) => a.stats.kills },
 
   // ── Headshots (precision) ────────────────────────────────────────────────
   { id: 'hs-50',   name: 'Marksman',     desc: 'Land 50 headshots',    icon: '🎯', tier: 'bronze', reward: 200,  goal: 50,   metric: (a) => a.stats.headshots },
+  { id: 'hs-100',  name: 'Sharpshooter', desc: 'Land 100 headshots',   icon: '🏹', tier: 'bronze', reward: 300,  goal: 100,  metric: (a) => a.stats.headshots },
   { id: 'hs-250',  name: 'Deadeye',      desc: 'Land 250 headshots',   icon: '🦅', tier: 'silver', reward: 500,  goal: 250,  metric: (a) => a.stats.headshots, grants: { kind: 'tracer', id: 'tracer-headhunter' } },
   { id: 'hs-1000', name: 'Headhunter',   desc: 'Land 1,000 headshots', icon: '☠️', tier: 'gold',   reward: 1200, goal: 1000, metric: (a) => a.stats.headshots },
 
@@ -67,6 +69,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 
   // ── Wins / matches (commitment) ──────────────────────────────────────────
   { id: 'wins-10',   name: 'Contender',    desc: 'Win 10 matches',     icon: '🏅', tier: 'bronze', reward: 250, goal: 10,  metric: (a) => a.stats.wins, grants: { kind: 'tracer', id: 'tracer-champion' } },
+  { id: 'wins-25',   name: 'Decorated',    desc: 'Win 25 matches',     icon: '🎗️', tier: 'silver', reward: 450, goal: 25,  metric: (a) => a.stats.wins },
   { id: 'wins-50',   name: 'Champion',     desc: 'Win 50 matches',     icon: '🏆', tier: 'gold',   reward: 800, goal: 50,  metric: (a) => a.stats.wins },
   { id: 'matches-100', name: 'Veteran',    desc: 'Finish 100 matches', icon: '🎖️', tier: 'silver', reward: 500, goal: 100, metric: (a) => a.stats.matches },
 
@@ -78,12 +81,17 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'wm-ar-200',     name: 'Rifle Master',   desc: 'Get 200 kills with the AR',      icon: '🔫', tier: 'silver', reward: 400, goal: 200, metric: (a) => a.weaponKillsFor('ar') },
   { id: 'wm-sniper-150', name: 'One Shot One Kill', desc: 'Get 150 kills with the Sniper', icon: '🎯', tier: 'silver', reward: 400, goal: 150, metric: (a) => a.weaponKillsFor('sniper') },
   { id: 'wm-railgun-100',name: 'Line Em Up',     desc: 'Get 100 kills with the Railgun', icon: '⚡', tier: 'gold',   reward: 600, goal: 100, metric: (a) => a.weaponKillsFor('railgun') },
+  { id: 'wm-breacher-100', name: 'Door Kicker',  desc: 'Get 100 kills with the Breacher', icon: '🚪', tier: 'silver', reward: 400, goal: 100, metric: (a) => a.weaponKillsFor('breacher') },
   { id: 'wm-knife-25',   name: 'Up Close',       desc: 'Get 25 melee kills',             icon: '🔪', tier: 'bronze', reward: 250, goal: 25,  metric: (a) => a.weaponKillsFor('knife') },
   { id: 'wm-grenade-25', name: 'Boom',           desc: 'Get 25 grenade kills',           icon: '💣', tier: 'bronze', reward: 250, goal: 25,  metric: (a) => a.weaponKillsFor('grenade') },
 
   // ── Mode bests (challenge modes) ─────────────────────────────────────────
   { id: 'onslaught-10', name: 'Wave Breaker', desc: 'Survive to Onslaught wave 10', icon: '🌊', tier: 'silver', reward: 500, goal: 10, metric: () => lsBest('ilc.onslaught.best') },
   { id: 'duel-5',       name: 'Duelist',      desc: 'Win 5 duels in one gauntlet',  icon: '🤺', tier: 'silver', reward: 500, goal: 5,  metric: () => lsBest('ilc.duel.best') },
+  { id: 'duel-10',      name: 'Gladiator',    desc: 'Win 10 duels in one gauntlet', icon: '⚔️', tier: 'gold',   reward: 900, goal: 10, metric: () => lsBest('ilc.duel.best') },
+  // Hardpoint best is a clear TIME (lower = better); any value > 0 means you've
+  // secured at least one hill. Treat "a clear exists" as the milestone.
+  { id: 'hardpoint-win', name: 'Hill Master', desc: 'Secure a Hardpoint', icon: '⛳', tier: 'silver', reward: 500, goal: 1, metric: () => (lsBest('ilc.hardpoint.best') > 0 ? 1 : 0) },
 
   // ── Dedication (playtime) ────────────────────────────────────────────────
   { id: 'time-1h', name: 'Just One More', desc: 'Play for 1 hour total',   icon: '⏱️', tier: 'bronze', reward: 150, goal: 3600,  metric: (a) => a.stats.playSeconds },

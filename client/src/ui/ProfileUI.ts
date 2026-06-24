@@ -8,6 +8,7 @@
 
 import type { Account } from '../account/Account';
 import { DRILLS, type DrillId } from '../modes/AimLab';
+import { ACHIEVEMENT_COUNT } from '../account/Achievements';
 
 export class ProfileUI {
   private account: Account;
@@ -89,6 +90,19 @@ export class ProfileUI {
         <div class="stat-cell">
           <span class="stat-val">${duelBest}</span>
           <span class="stat-label">Duel Streak</span>
+        </div>`);
+    // Hardpoint best clear time (seconds; lower is better). 0 = none yet.
+    const kothBest = Number(localStorage.getItem('ilc.hardpoint.best')) || 0;
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${kothBest > 0 ? `${kothBest}s` : '—'}</span>
+          <span class="stat-label">Hardpoint Time</span>
+        </div>`);
+    // Career medals earned — links the Awards tab into the Profile at a glance.
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${this.account.achievementCount}/${ACHIEVEMENT_COUNT}</span>
+          <span class="stat-label">Medals</span>
         </div>`);
     this.aimlabBests.innerHTML = cells.join('');
   }
