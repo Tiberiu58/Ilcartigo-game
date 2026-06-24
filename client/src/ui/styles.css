@@ -3014,6 +3014,22 @@ body.no-speedlines #speed-lines { display: none; }
 .menu-rank .rb-glyph { grid-row: 1 / 3; font-size: 24px; }
 .menu-rank .rb-prog { grid-column: 1 / 3; }
 
+/* Next-unlock chase line on the main menu. */
+.menu-nextunlock {
+  margin: -8px auto 18px;
+  font: 600 12px/1.4 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 0.4px;
+  color: var(--muted, #8893a5);
+}
+.menu-nextunlock.hidden { display: none; }
+.menu-nextunlock b { color: #fff; font-weight: 700; }
+.menu-nextunlock .mnu-cat {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
 /* Level-up banner — center screen, above the announcer's vertical slot. */
 #levelup-banner {
   --lu-color: var(--accent);

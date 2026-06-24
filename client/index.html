@@ -302,9 +302,12 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.40</p>
+          <p class="subtitle">Browser arena shooter · v0.41</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
+          <!-- Next-unlock chase line — cheapest still-locked cosmetic + XP to go.
+               Populated by main.ts (renderMenuNextUnlock) on boot + account change. -->
+          <div id="menu-nextunlock" class="menu-nextunlock hidden"></div>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -399,7 +402,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.40.0 — Prestige cosmetics · Next-unlock teaser · Combat audio · Crossbow · 9 weapons</div>
+          <div>v0.41.0 — Menu unlock chase · Prestige cosmetics · Combat audio · Crossbow · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

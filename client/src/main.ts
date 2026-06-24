@@ -857,12 +857,9 @@ function renderWeaponStats(id: WeaponId) {
 // post-match screen ends on a "one more game and it's yours" hook (retention →
 // ad impressions). Scans every XP-gated axis (skins / kill effects / tracers /
 // finishes) for the lowest-cost item the player hasn't unlocked yet.
-const pmNextUnlock = document.getElementById('pm-nextunlock')!;
-const pmNuName = document.getElementById('pm-nu-name')!;
-const pmNuCat = document.getElementById('pm-nu-cat')!;
-const pmNuFill = document.getElementById('pm-nu-fill') as HTMLElement;
-const pmNuSub = document.getElementById('pm-nu-sub')!;
-function renderNextUnlock() {
+type NextUnlock = { name: string; cat: string; cost: number } | null;
+/** Cheapest still-locked XP cosmetic across every axis, or null if all owned. */
+function computeNextUnlock(): NextUnlock {
   const acc = game.account;
   type Cand = { name: string; cat: string; cost: number };
   const cands: Cand[] = [];
@@ -870,7 +867,19 @@ function renderNextUnlock() {
   for (const e of KILL_EFFECTS) if (e.cost > 0 && !acc.isEffectUnlocked(e.id)) cands.push({ name: e.displayName, cat: 'Kill FX', cost: e.cost });
   for (const t of TRACERS) if (t.cost > 0 && !acc.isTracerUnlocked(t.id)) cands.push({ name: t.displayName, cat: 'Tracer', cost: t.cost });
   for (const f of FINISHES) if (f.cost > 0 && !acc.isFinishUnlocked(f.id)) cands.push({ name: f.displayName, cat: 'Finish', cost: f.cost });
-  if (cands.length === 0) {
+  if (cands.length === 0) return null;
+  cands.sort((a, b) => a.cost - b.cost);
+  return cands[0];
+}
+
+const pmNextUnlock = document.getElementById('pm-nextunlock')!;
+const pmNuName = document.getElementById('pm-nu-name')!;
+const pmNuCat = document.getElementById('pm-nu-cat')!;
+const pmNuFill = document.getElementById('pm-nu-fill') as HTMLElement;
+const pmNuSub = document.getElementById('pm-nu-sub')!;
+function renderNextUnlock() {
+  const next = computeNextUnlock();
+  if (!next) {
     pmNuName.textContent = 'All cosmetics unlocked';
     pmNuCat.textContent = '★';
     pmNuFill.style.width = '100%';
@@ -878,9 +887,7 @@ function renderNextUnlock() {
     pmNextUnlock.classList.remove('hidden');
     return;
   }
-  cands.sort((a, b) => a.cost - b.cost);
-  const next = cands[0];
-  const xp = acc.xp;
+  const xp = game.account.xp;
   const remaining = Math.max(0, next.cost - xp);
   pmNuName.textContent = next.name;
   pmNuCat.textContent = next.cat;
@@ -888,6 +895,20 @@ function renderNextUnlock() {
   pmNuSub.textContent = remaining > 0 ? `${remaining.toLocaleString()} XP to go` : 'Ready to unlock — open Cosmetics!';
   pmNextUnlock.classList.remove('hidden');
 }
+
+// Menu variant — a compact one-line chase prompt on the main menu (most-viewed
+// screen). Refreshed on boot + every account change (XP gain / unlock).
+const menuNextUnlock = document.getElementById('menu-nextunlock')!;
+function renderMenuNextUnlock() {
+  const next = computeNextUnlock();
+  if (!next) { menuNextUnlock.classList.add('hidden'); return; }
+  const remaining = Math.max(0, next.cost - game.account.xp);
+  menuNextUnlock.innerHTML = remaining > 0
+    ? `Next unlock: <b>${next.name}</b> <span class="mnu-cat">${next.cat}</span> · <b>${remaining.toLocaleString()}</b> XP to go`
+    : `<b>${next.name}</b> ready to unlock — open Cosmetics!`;
+  menuNextUnlock.classList.remove('hidden');
+}
+renderMenuNextUnlock();
 
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.
@@ -1397,6 +1418,7 @@ if (resetBtn) {
 game.account.onChange(() => {
   game.mp?.sendHello();
   game.applyEquippedFinish();
+  renderMenuNextUnlock();
 });
 
 // ─── Post-match overlay ────────────────────────────────────────────────────

@@ -1470,3 +1470,27 @@ registries, so the new items appear / unlock / equip with no logic change.
   README status updated.
 
 ### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 41 — Menu unlock-chase line (autonomous build, v0.41.0)
+
+Extends the Phase 39 next-unlock hook to the **main menu** — the screen players
+see every session and between matches — so the "one more game and it's yours"
+pull is always visible, not just on the post-match overlay.
+
+- **Refactor.** Extracted `computeNextUnlock()` (cheapest still-locked XP
+  cosmetic across skins/kill-effects/tracers/finishes, or null when all owned),
+  now shared by the post-match teaser (`renderNextUnlock`) and the menu line.
+- **`#menu-nextunlock`** under the rank badge: "Next unlock: **{name}**
+  {CATEGORY} · **{N}** XP to go" (or "ready to unlock — open Cosmetics!" when
+  affordable; hidden when everything's owned). Refreshed on boot and on every
+  `account.onChange` (XP gain / unlock / equip). New compact mono CSS.
+
+### Status log
+- ✅ Phase 41 — Menu unlock-chase line. DONE (client + server tsc + client build
+  green; app chunk ~90.7 KB gzip). `computeNextUnlock` extraction +
+  `renderMenuNextUnlock` (boot + onChange), `#menu-nextunlock` DOM + CSS.
+  Versions bumped to v0.41.0 (+ menu subtitle/footer); README status updated.
+
+### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.
