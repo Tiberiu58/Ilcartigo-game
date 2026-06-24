@@ -82,6 +82,9 @@ interface AccountData {
   daily: DailyState;
   /** Daily-login streak (show-up reward, separate from the in-match challenges). */
   login: LoginState;
+  /** Unlocked career-achievement (medal) ids. Generic string set so the medal
+   *  catalogue can grow without touching this storage shape. */
+  unlockedAchievements: string[];
 }
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
@@ -183,6 +186,7 @@ function freshData(): AccountData {
     name: '',
     daily: freshDaily(freshStats()),
     login: { last: '', streak: 0 },
+    unlockedAchievements: [],
   };
 }
 
@@ -246,6 +250,9 @@ export class Account {
           && typeof (parsed.login as LoginState).streak === 'number')
           ? parsed.login as LoginState
           : fresh.login,
+        unlockedAchievements: Array.isArray(parsed.unlockedAchievements)
+          ? parsed.unlockedAchievements.filter((x): x is string => typeof x === 'string')
+          : fresh.unlockedAchievements,
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
@@ -587,6 +594,29 @@ export class Account {
     this.data.xp += st.reward;
     this.save();
     return { day: st.day, reward: st.reward };
+  }
+
+  // ── Career achievements (medals) ──────────────────────────────────────────
+
+  /** True if the given medal id has been earned. */
+  isAchievementUnlocked(id: string): boolean {
+    return this.data.unlockedAchievements.includes(id);
+  }
+
+  /** Number of medals earned so far. */
+  get achievementCount(): number { return this.data.unlockedAchievements.length; }
+
+  /**
+   * Unlock a medal: record its id + grant the bonus XP, once. Returns true if it
+   * was newly unlocked (false if already earned). Evaluation lives in
+   * AchievementTracker; Account only owns the storage + reward grant.
+   */
+  unlockAchievement(id: string, reward: number): boolean {
+    if (this.data.unlockedAchievements.includes(id)) return false;
+    this.data.unlockedAchievements.push(id);
+    if (reward > 0) this.data.xp += reward;
+    this.save();
+    return true;
   }
 
   /** Reset to fresh state. Wipes XP, cosmetics, AND lifetime stats. */

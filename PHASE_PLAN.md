@@ -1213,3 +1213,58 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 36 — Career Achievements & Medals (autonomous build, v0.36.0)
+
+A long-horizon **rewards** loop layered on the existing lifetime stats — the
+"constant desire to improve" pillar made explicit. 24 permanent **medals**
+(milestones across kills, headshots, streaks, wins, weapon mastery, mode bests,
+level, and playtime) that, when earned, grant bonus XP and pop a flashy
+"MEDAL UNLOCKED" banner. Players chase them across many sessions, and every
+Awards-panel visit lands on the ad-bearing menu (retention → ad impressions).
+Pure-client, migration-safe, **no protocol change** — solo + MP both intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **`account/Achievements.ts`** — the medal catalogue (`ACHIEVEMENTS`, 24 defs:
+  id / name / desc / emoji icon / rarity tier / reward XP / goal / a `metric(a)`
+  reading only public `Account` accessors + mode bests in localStorage) plus the
+  **`AchievementTracker`**: subscribes to `account.onChange`, and on every change
+  unlocks any medal whose metric crossed its goal — granting the bonus XP and
+  invoking `onUnlock` for the toast. Re-entrancy-guarded (granting XP fires
+  `onChange` again, but already-unlocked medals are skipped, so a reward that
+  also crosses a *level* medal unlocks both in one pass and then terminates).
+  Decoupled from `Account` (type-only import) so there's no cycle.
+- **`Account` extension (migration-safe).** New `unlockedAchievements: string[]`
+  (generic id set so the catalogue can grow without touching storage), defensive
+  load-merge, `isAchievementUnlocked` / `achievementCount` / `unlockAchievement(id,
+  reward)` (records + grants XP once). On the first boot after the feature lands
+  the tracker does a **silent** retroactive pass — veterans get the medals (and
+  XP) they've already earned, with no toast spam.
+- **`ui/AchievementToast.ts`** — a prominent, **queued** (one-at-a-time)
+  slide-in banner with the medal icon, name, desc + bonus XP, tier-coloured
+  (bronze / silver / gold / elite). Mounted top-level (`#achievement-toasts`,
+  outside `#hud`) so a medal earned on the menu / post-match screen still shows.
+  Plays the `level_up` sting + a `buff`-themed ScorePopup on appear.
+- **`ui/AchievementsUI.ts` + Awards settings tab.** A new 7th settings tab
+  rendering every medal with icon / name / desc / progress bar (earned ones
+  highlighted + tier-glowing, locked dimmed with `current / goal`), a header
+  showing `earned / total · %` with a fill bar. Re-renders on `account.onChange`
+  (a mid-session unlock updates live). Earned medals sort to the top.
+- **Wiring (`main.ts`).** `AchievementsUI` + `AchievementTracker` instantiated
+  next to ProfileUI/CosmeticsUI; the tracker's `onUnlock` fires the toast + sting.
+
+### Status log
+- ✅ Phase 36 — Career Achievements & Medals. DONE (client + server tsc + client
+  build green; app chunk ~89 KB gzip, 102 modules). Headless logic test confirmed:
+  empty boot = 0 unlocks/no toast, threshold-crossing unlock + reward XP + toast,
+  silent retroactive unlock on a stat-heavy fresh tracker (no toast spam), and the
+  reward-XP→level-medal cascade resolving in one guarded pass. New
+  `account/Achievements.ts`, `ui/AchievementToast.ts`, `ui/AchievementsUI.ts`;
+  `Account.unlockedAchievements` (+ accessors); Awards tab + `#achievement-toasts`
+  DOM + CSS. Versions bumped to v0.36.0 (+ menu subtitle/footer).
+
+### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.
