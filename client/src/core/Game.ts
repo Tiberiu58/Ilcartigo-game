@@ -1182,7 +1182,16 @@ export class Game {
     // its reload state, regardless of *why* (manual R press OR auto-reload
     // when firing an empty mag).
     const isReloading = this.inventory.current.isReloading;
-    if (isReloading && !this.lastReloadingState) this.audio.play('reload');
+    if (isReloading && !this.lastReloadingState) {
+      this.audio.play('reload');
+      // Play the weapon-specific reload animation, timed to its real reload
+      // window (so the motion fills exactly the reload duration).
+      const w = this.inventory.current;
+      this.viewmodel.playReload(
+        w.config.id as WeaponId,
+        w.config.reloadTime * w.reloadMultiplier,
+      );
+    }
     this.lastReloadingState = isReloading;
 
     // MP respawn edge: in MP the server flips HP back from 0 inside a snapshot;

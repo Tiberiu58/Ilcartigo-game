@@ -59,6 +59,17 @@ function colorForMaterialName(name: string): THREE.Color | null {
   return null;
 }
 
+/**
+ * Some models (e.g. the P90) ship with generic material names (`Material.001`…)
+ * AND white colours, so the name-map can't help — they'd render as a flat grey
+ * blob. For those, colour by material INDEX with a hand-picked weapon palette
+ * (biggest group = body). Keyed by FBX file name.
+ */
+const MATERIAL_INDEX_COLORS: Record<string, number[]> = {
+  // P90 — compact polymer SMG: dark olive/black body, steel accents, black optic.
+  'P90.fbx': [0x3a4038 /*body*/, 0x14161a /*black trim*/, 0x2b2f35 /*receiver*/, 0x6a727a /*steel*/],
+};
+
 /** Per-weapon FBX file + how to place it in the viewmodel's local space. */
 interface ModelDef {
   /** File under public/assets/models/weapons/. */
@@ -147,15 +158,16 @@ const inflight = new Map<string, Promise<THREE.Group | null>>();
  *
  * Returns a fresh Group containing the de-rigged meshes (bones discarded).
  */
-function staticizeAndNormalizeMaterials(root: THREE.Object3D): THREE.Group {
-  const convertMat = (m: THREE.Material): THREE.MeshLambertMaterial => {
+function staticizeAndNormalizeMaterials(root: THREE.Object3D, file: string): THREE.Group {
+  const indexPalette = MATERIAL_INDEX_COLORS[file];
+  const convertMat = (m: THREE.Material, idx: number): THREE.MeshLambertMaterial => {
     const anyM = m as unknown as { color?: THREE.Color; map?: THREE.Texture | null; name?: string };
-    // These FBX exports ship with all-white materials (no diffuse colour, no
-    // texture) — only the material NAME carries the intent (LightWood, Metal,
-    // Barrels…). Reconstruct a sensible colour from the name so each part reads
-    // distinctly (and a rifle stops looking like a grey blob == a shotgun).
+    // Colour priority: (1) name-derived (LightWood/Metal/Barrels…), (2) a
+    // per-file index palette for models with generic material names (P90), then
+    // (3) the FBX's own non-white diffuse, else (4) a neutral gunmetal fallback.
     const named = colorForMaterialName(anyM.name ?? '');
-    const baseColor = named ?? (anyM.color && anyM.color.getHex() !== 0xffffff
+    const byIndex = indexPalette && indexPalette[idx] !== undefined ? new THREE.Color(indexPalette[idx]) : null;
+    const baseColor = named ?? byIndex ?? (anyM.color && anyM.color.getHex() !== 0xffffff
       ? anyM.color.clone()
       : new THREE.Color(0x8a929c));   // neutral gunmetal fallback
     return new THREE.MeshLambertMaterial({
@@ -173,7 +185,9 @@ function staticizeAndNormalizeMaterials(root: THREE.Object3D): THREE.Group {
     if ((n as THREE.Mesh).isMesh) meshes.push(n as THREE.Mesh);
   });
   for (const src of meshes) {
-    const mat = Array.isArray(src.material) ? src.material.map(convertMat) : convertMat(src.material);
+    const mat = Array.isArray(src.material)
+      ? src.material.map((m, i) => convertMat(m, i))
+      : convertMat(src.material, 0);
     // Bake the mesh's world transform into a fresh geometry so we can drop the
     // bone hierarchy entirely and still keep each part in the right place.
     const geom = src.geometry.clone();
@@ -275,7 +289,7 @@ export async function ensureLoaded(id: WeaponId): Promise<THREE.Group | null> {
       const raw = await loader.load(`${MODEL_DIR}${def.file}`);
       // De-rig (SkinnedMesh → plain Mesh) + flatten materials. The result is a
       // clone-safe static group; cache THAT (not the raw rigged FBX).
-      const staticGroup = staticizeAndNormalizeMaterials(raw);
+      const staticGroup = staticizeAndNormalizeMaterials(raw, def.file);
       cache.set(def.file, staticGroup);
       readyListeners.forEach((cb) => cb(id));
       return staticGroup;

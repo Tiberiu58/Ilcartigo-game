@@ -34,6 +34,11 @@ export class Viewmodel {
   private recoilOffset = 0;
   // Melee swing animation timer (seconds remaining). 0 = idle.
   private meleeTime = 0;
+  // Reload animation: 0..1 normalized progress, -1 = idle. `reloadDur` is the
+  // weapon's actual reload time so the motion fills exactly that window.
+  private reloadPhase = -1;
+  private reloadDur = 1.5;
+  private reloadKind: ReloadKind = 'mag';
   private restPos = new THREE.Vector3(0.32, -0.28, -0.55);
   private restRot = new THREE.Euler(0, Math.PI, 0); // -Z forward
 
@@ -159,6 +164,19 @@ export class Viewmodel {
     this.meleeTime = MELEE_ANIM;
   }
 
+  /**
+   * Start a reload animation for the given weapon, filling `duration` seconds
+   * (the weapon's real reload time). Picks a mechanism-appropriate motion:
+   * mag-swap, bolt-cycle, pump, slide-rack, or cell-swap. No-op while swapping
+   * or hidden (sniper scoped).
+   */
+  playReload(id: WeaponId, duration: number) {
+    if (this.swapPhase >= 0 || this.hidden) return;
+    this.reloadKind = RELOAD_KINDS[id] ?? 'mag';
+    this.reloadDur = Math.max(0.3, duration);
+    this.reloadPhase = 0;
+  }
+
   update(dt: number, playerSpeed: number, isGrounded: boolean) {
     // Swap progression.
     let swapDip = 0;
@@ -197,13 +215,28 @@ export class Viewmodel {
       meleeRotZ = -arc * 0.9;
     }
 
+    // Reload — a per-weapon mechanism animation that fills the reload window.
+    const r = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+    if (this.reloadPhase >= 0) {
+      this.reloadPhase += dt / this.reloadDur;
+      if (this.reloadPhase >= 1) {
+        this.reloadPhase = -1;
+      } else {
+        reloadOffset(this.reloadKind, this.reloadPhase, r);
+      }
+    }
+
     this.group.position.set(
-      this.restPos.x + bobX + meleeX,
-      this.restPos.y - bobY - swapDip + meleeY,
-      this.restPos.z + this.recoilOffset,
+      this.restPos.x + bobX + meleeX + r.x,
+      this.restPos.y - bobY - swapDip + meleeY + r.y,
+      this.restPos.z + this.recoilOffset + r.z,
     );
-    // Roll the model during the swing (idle = restRot, so this is a no-op when not meleeing).
-    this.group.rotation.z = this.restRot.z + meleeRotZ;
+    // Compose roll/pitch/yaw from rest + melee swing + reload motion.
+    this.group.rotation.set(
+      this.restRot.x + r.rx,
+      this.restRot.y + r.ry,
+      this.restRot.z + meleeRotZ + r.rz,
+    );
 
     // Flash fade.
     const flashMat = this.flashMesh.material as THREE.MeshBasicMaterial;
@@ -271,6 +304,107 @@ export class Viewmodel {
     if (tint !== undefined) mat.color.setHex(tint);
     // No "else reset" needed — buildFor always rebuilds fresh stock materials
     // before applyTint runs, so the default look is whatever the builder set.
+  }
+}
+
+// ─── Reload animations ──────────────────────────────────────────────────────
+// Each weapon plays a mechanism-appropriate motion that fills its reload window.
+// Offsets are added to the viewmodel group's rest pose (position metres,
+// rotation radians) and composed with bob/recoil/melee in update().
+
+type ReloadKind = 'mag' | 'bolt' | 'pump' | 'slide' | 'cell';
+
+/** Which mechanism each weapon reloads with. */
+const RELOAD_KINDS: Record<WeaponId, ReloadKind> = {
+  ar: 'mag',
+  smg: 'mag',
+  marksman: 'mag',
+  lmg: 'mag',        // box-mag swap (heavier — see longer dur via reloadTime)
+  sniper: 'bolt',
+  shotgun: 'pump',
+  pistol: 'slide',
+  railgun: 'cell',
+};
+
+interface ReloadOut { x: number; y: number; z: number; rx: number; ry: number; rz: number; }
+
+/** Smoothstep 0..1. */
+function smooth(t: number): number { return t * t * (3 - 2 * t); }
+/** A 0→1→0 hump that peaks at `at` (0..1). */
+function hump(p: number, at = 0.5): number {
+  const t = p < at ? p / at : 1 - (p - at) / (1 - at);
+  return smooth(Math.max(0, Math.min(1, t)));
+}
+
+/**
+ * Write the reload offset for `kind` at normalized progress `p` (0..1) into
+ * `o`. Motions are tuned to *feel* like the real action without needing a rig:
+ *  - mag:   tilt the gun inward+down to "present the mag well", a dip where the
+ *           old mag drops + new one slaps in, then rock back up.
+ *  - bolt:  lower + cant, then a sharp back→forward jerk mid-cycle (bolt throw).
+ *  - pump:  two rhythmic fore-grip racks (gun jolts back then snaps forward).
+ *  - slide: quick inward tilt + a snappy rearward slide pull near the start.
+ *  - cell:  slow smooth tilt-down + a gentle settle (sci-fi power-cell swap).
+ */
+function reloadOffset(kind: ReloadKind, p: number, o: ReloadOut): void {
+  o.x = o.y = o.z = o.rx = o.ry = o.rz = 0;
+  switch (kind) {
+    case 'mag': {
+      // Tilt the muzzle up + cant the gun toward the off-hand for the whole
+      // reload, with a downward dip in the middle (mag out → mag in).
+      const present = hump(p, 0.5);
+      o.rz = present * 0.55;          // cant (roll) toward off-hand
+      o.rx = present * 0.30;          // pitch muzzle up a touch
+      o.x = present * -0.06;          // bring it inward
+      o.y = -present * 0.10;          // drop while swapping
+      // Two quick taps: mag drop (~0.35) + mag seat (~0.62).
+      o.y += -hump(p, 0.35) * 0.05 - hump(p, 0.62) * 0.06;
+      break;
+    }
+    case 'bolt': {
+      // Lower + cant, with a sharp bolt cycle (back then forward) at mid.
+      const base = hump(p, 0.5);
+      o.rz = base * 0.40;
+      o.y = -base * 0.08;
+      o.x = base * -0.04;
+      // Bolt throw: a fast +z (toward camera) then -z snap around p=0.45..0.6.
+      const cycle = Math.sin(Math.max(0, Math.min(1, (p - 0.40) / 0.25)) * Math.PI);
+      o.z = cycle * 0.10;
+      o.rx = base * 0.15 + cycle * 0.10;
+      break;
+    }
+    case 'pump': {
+      // Two pump racks: the gun jerks back (+z) then snaps forward (-z) twice.
+      const rack = (center: number) => {
+        const t = Math.max(0, Math.min(1, (p - center + 0.10) / 0.20));
+        return Math.sin(t * Math.PI) * (t > 0 && t < 1 ? 1 : 0);
+      };
+      const r1 = rack(0.30), r2 = rack(0.65);
+      o.z = (r1 + r2) * 0.12;         // racking motion toward/away from camera
+      o.y = -(r1 + r2) * 0.04;
+      o.rx = (r1 + r2) * 0.12;        // slight muzzle bob with each rack
+      break;
+    }
+    case 'slide': {
+      // Quick inward tilt; a snappy rearward slide pull early, settle fast.
+      const base = hump(p, 0.45);
+      o.rz = base * 0.45;
+      o.x = base * -0.05;
+      o.y = -base * 0.05;
+      const pull = Math.sin(Math.max(0, Math.min(1, (p - 0.15) / 0.25)) * Math.PI);
+      o.z = pull * 0.07;
+      break;
+    }
+    case 'cell': {
+      // Slow smooth tilt-down to swap a power cell, then settle. No snap.
+      const base = hump(p, 0.5);
+      o.rz = base * 0.50;
+      o.rx = base * 0.35;
+      o.x = base * -0.05;
+      o.y = -base * 0.09;
+      o.z = base * 0.03;
+      break;
+    }
   }
 }
 
