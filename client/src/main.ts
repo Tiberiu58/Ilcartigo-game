@@ -22,6 +22,7 @@ import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
 import { Duel, type DuelResult } from './modes/Duel';
+import { Hardpoint, type HardpointResult, type ZoneState } from './modes/Hardpoint';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
@@ -75,6 +76,7 @@ const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement
 const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
 const menuDuel = document.getElementById('menu-duel') as HTMLButtonElement;
+const menuKoth = document.getElementById('menu-koth') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -106,6 +108,7 @@ const game = new Game(canvas);
 game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
 game.duel = new Duel(game);
+game.hardpoint = new Hardpoint(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
@@ -350,6 +353,91 @@ durQuit.addEventListener('click', () => {
   quitToMenu();
 });
 
+// ─── Hardpoint (King of the Hill) mode ─────────────────────────────────────
+const kothTicker = document.getElementById('koth-ticker')!;
+const kothPct = document.getElementById('koth-pct')!;
+const kothBarFill = document.getElementById('koth-bar-fill')!;
+const kothStateEl = document.getElementById('koth-state')!;
+const kothTimeEl = document.getElementById('koth-time')!;
+const kothBanner = document.getElementById('koth-banner')!;
+const kothResults = document.getElementById('koth-results')!;
+const korTime = document.getElementById('kor-time')!;
+const korKills = document.getElementById('kor-kills')!;
+const korBest = document.getElementById('kor-best')!;
+const korNewBest = document.getElementById('kor-newbest')!;
+const korRetry = document.getElementById('kor-retry') as HTMLButtonElement;
+const korQuit = document.getElementById('kor-quit') as HTMLButtonElement;
+let kothBannerTimer = 0;
+
+const KOTH_STATE_LABEL: Record<ZoneState, string> = {
+  open: 'MOVE TO ZONE',
+  holding: 'HOLDING',
+  contested: 'CONTESTED',
+};
+
+game.hardpoint!.onState = (pct, elapsed, state, _enemies) => {
+  kothPct.textContent = String(pct);
+  kothBarFill.style.width = `${pct}%`;
+  kothStateEl.textContent = KOTH_STATE_LABEL[state];
+  kothTicker.dataset.state = state;
+  kothTimeEl.textContent = `${Math.floor(elapsed)}s`;
+};
+game.hardpoint!.onZoneMove = () => {
+  kothBanner.classList.remove('hidden');
+  kothBanner.style.animation = 'none';
+  void kothBanner.offsetWidth;   // reflow so the pop animation restarts
+  kothBanner.style.animation = '';
+  game.audio.play('jump_pad');
+  window.clearTimeout(kothBannerTimer);
+  kothBannerTimer = window.setTimeout(() => kothBanner.classList.add('hidden'), 1400);
+};
+game.hardpoint!.onEnd = (r: HardpointResult) => {
+  kothTicker.classList.add('hidden');
+  kothBanner.classList.add('hidden');
+  showKothResults(r);
+};
+
+function fmtTime(sec: number): string {
+  if (sec <= 0) return '—';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}:${String(Math.floor(s)).padStart(2, '0')}` : `${s.toFixed(1)}s`;
+}
+
+function showKothResults(r: HardpointResult) {
+  game.audio.play('match_end');
+  game.input.exitPointerLock();
+  korTime.textContent = fmtTime(r.time);
+  korKills.textContent = String(r.kills);
+  korBest.textContent = fmtTime(r.best);
+  korNewBest.classList.toggle('hidden', !r.isNewBest);
+  kothResults.classList.remove('hidden');
+  hud.classList.add('hidden');
+  Ads.refreshSlot('koth');
+}
+
+function stopHardpoint() {
+  if (game.hardpoint?.active) game.hardpoint.stop();
+  window.clearTimeout(kothBannerTimer);
+  kothTicker.classList.add('hidden');
+  kothBanner.classList.add('hidden');
+  kothResults.classList.add('hidden');
+}
+
+korRetry.addEventListener('click', () => {
+  kothResults.classList.add('hidden');
+  hud.classList.remove('hidden');
+  kothTicker.classList.remove('hidden');
+  game.resetMatchScore();
+  announcer.reset();
+  game.hardpoint!.start();
+  game.input.requestPointerLock();
+});
+korQuit.addEventListener('click', () => {
+  kothResults.classList.add('hidden');
+  quitToMenu();
+});
+
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
 const savedSens = Number(localStorage.getItem('ilc.sens') ?? 0.5);
@@ -569,10 +657,11 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' | 'koth' = 'combat') {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopHardpoint();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -619,6 +708,14 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
     duelTicker.classList.add('hidden');
   }
 
+  // Hardpoint: hand the roster to the King-of-the-Hill controller + show ticker.
+  if (mode === 'koth') {
+    game.hardpoint!.start();
+    kothTicker.classList.remove('hidden');
+  } else {
+    kothTicker.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -634,6 +731,7 @@ function startOnline() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopHardpoint();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -683,6 +781,7 @@ function quitToMenu() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopHardpoint();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -699,8 +798,10 @@ function quitToMenu() {
   tdmTicker.classList.add('hidden');
   onsTicker.classList.add('hidden');
   duelTicker.classList.add('hidden');
+  kothTicker.classList.add('hidden');
   refreshOnslaughtButton();
   refreshDuelButton();
+  refreshKothButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
   // Refresh the loadout card so mastery progress earned this match shows.
@@ -847,6 +948,7 @@ menuGungame.addEventListener('click', () => startGame('gungame'));
 menuTdm.addEventListener('click', () => startGame('tdm'));
 menuOnslaught.addEventListener('click', () => startGame('onslaught'));
 menuDuel.addEventListener('click', () => startGame('duel'));
+menuKoth.addEventListener('click', () => startGame('koth'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -892,6 +994,15 @@ function refreshDuelButton() {
   menuDuel.textContent = best > 0 ? `🎯 Duel · best streak ${best}` : '🎯 Duel (1v1 Gauntlet)';
 }
 refreshDuelButton();
+
+/** Surface the Hardpoint best clear time on the menu button (lower = better). */
+function refreshKothButton() {
+  const best = Hardpoint.personalBest();
+  menuKoth.textContent = best > 0
+    ? `⛳ Hardpoint · best ${fmtTime(best)}`
+    : '⛳ Hardpoint (King of the Hill)';
+}
+refreshKothButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {

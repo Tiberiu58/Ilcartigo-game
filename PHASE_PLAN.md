@@ -1268,3 +1268,60 @@ build green, never break solo / MP / the audit fixes.
   DOM + CSS. Versions bumped to v0.36.0 (+ menu subtitle/footer).
 
 ### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 37 — Hardpoint / King of the Hill mode (autonomous build, v0.37.0)
+
+A new **objective** mode — the first since the roster filled with frag-race
+variants (FFA / TDM / Gun Game / Onslaught / Duel). **Hardpoint** is a solo
+King-of-the-Hill time-attack: a glowing capture zone appears, you stand in it
+*alone* to bank control (an enemy inside CONTESTS it — nobody banks), the zone
+relocates every 26 s to force a fresh fight, and banking the full meter wins →
+a results card showing your clear TIME vs your persistent personal best. A race
+against the clock and a roomful of bots: map-control pressure + a beat-your-best
+hook, infinitely replayable. Pure-client, **no protocol change** — solo + MP
+both intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **The Onslaught/Duel pattern, reused.** Hardpoint owns the bot roster only
+  while it runs (`setSurvivalActive` parks the base bots; its own pressure bots
+  are ephemeral). Bots hunt the player, so they naturally crowd whatever zone
+  you're holding → real contest with **zero new AI**. Every bot death is an
+  ordinary player frag (XP / stats / killfeed / announcer / mastery all "just
+  work"), and a replacement respawns ~3 s later so the pressure never lets up
+  (a 4-bot pool). The player respawns through the **normal** solo loop — death
+  never ends the run (so `koth` is deliberately *not* added to the auto-respawn
+  exclusion list).
+- **Capture loop.** Each tick: player-in-zone? enemies-in-zone? → `holding`
+  (bank `dt` of control, gold) / `contested` (paused, red) / `open` (cyan). Win
+  at 60 s banked control; PB = fastest real-time clear (`ilc.hardpoint.best`,
+  lower is better). Pressure difficulty ramps with elapsed time so a slow hold
+  gets meaner. A chunky +300 XP objective bonus on the win, on top of frag XP.
+- **Zone anchors** derive from the map's FFA spawns (guaranteed clear of solids)
+  pulled 40% toward centre + the arena centre, de-duplicated to a spread of up to
+  5 — so a future map can never embed the hardpoint in geometry.
+- **Juicy zone mesh.** A translucent floor disc + a bright spinning perimeter
+  torus + a faint vertical light shaft, recoloured live by state (cyan → gold →
+  red) and spun faster while contested; built into `game.scene`, disposed on
+  stop. A `jump_pad` whoosh + a "ZONE MOVED" banner on each relocation.
+- **Wiring.** New `'koth'` GameMode (`isCombatMode` includes it) + `game.hardpoint`
+  field + tick. New `modes/Hardpoint.ts`, a `#koth-ticker` (HOLD % bar + state +
+  timer, state-coloured via `[data-state]`), a `#koth-banner`, a "HARDPOINT
+  SECURED" results card (+ a new `koth` ad slot), a `⛳ Hardpoint` menu button
+  surfacing the best time, and `start/stop` hooks across `startGame` /
+  `startOnline` / `quitToMenu` mirroring Onslaught/Duel.
+
+### Status log
+- ✅ Phase 37 — Hardpoint (King of the Hill). DONE (client + server tsc + client
+  build green; app chunk ~91 KB gzip, 103 modules). Headless logic test confirmed:
+  perfect-hold win at ~60 s with +300 XP and PB stored, an enemy in the zone
+  pausing control at 0 (contested), zone rotation at 26 s relocating the centre,
+  and a slower second clear correctly NOT overwriting a faster PB. New
+  `modes/Hardpoint.ts`, `'koth'` GameMode + tick + `game.hardpoint`, full UI
+  (ticker / banner / results / menu button + best time), `koth` ad slot. Versions
+  bumped to v0.37.0 (+ menu subtitle/footer).
+
+### Phase 37 COMPLETE — solo objective mode, no protocol change, solo + MP intact.
