@@ -1470,3 +1470,34 @@ read-only UI line — no protocol change, solo + MP intact.
   (+ menu subtitle/footer).
 
 ### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 42 — Multi-kill screen punch (autonomous build, v0.42.0)
+
+A pure-client combat-juice round on the brief's "flashy hit/kill feedback"
+pillar. The Announcer already pops escalating banners + stings for multi-kills
+(DOUBLE → MONSTER KILL), streak milestones and specials — but they had no
+*physical* impact. Now every big banner also **punches the screen**: a brief
+tinted edge flash (in the banner's own colour) + a screen-shake, both scaled by
+the tier's prominence, so the escalation is felt, not just read. No protocol
+change — solo + MP intact.
+
+- **Single, generic hook.** The Announcer's `show()` (the one funnel every
+  banner passes through) gains an `onBanner?(color, scale)` callback. main.ts
+  wires it to a `game.applyShake` (0.018→0.05 by scale) + a `#bigkill-flash`
+  overlay whose colour + peak opacity (0.18→0.4) are set inline and animated via
+  a `.show` class — mirroring the proven `#powerup-flash` pattern. One callback
+  covers multi-kills, streak milestones AND specials (First Blood / Revenge /
+  skill-shots) with no per-event wiring.
+- Banners are relatively rare (chained frags / milestone counts), so the punch
+  reads as a reward beat, not visual spam.
+
+### Status log
+- ✅ Phase 42 — Multi-kill screen punch. DONE (client + server tsc + client build
+  green; app chunk ~93 KB gzip). `Announcer.onBanner` fired in `show()`,
+  `#bigkill-flash` overlay + `bigkill-fade` keyframe (intensity via `--bk-op`),
+  main.ts wiring (shake + tinted flash scaled by tier). Versions bumped to
+  v0.42.0 (+ menu subtitle/footer).
+
+### Phase 42 COMPLETE — pure client, no protocol change, solo + MP intact.

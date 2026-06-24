@@ -97,6 +97,9 @@ export class Announcer {
   /** Optional resolver (injected by main.ts) that inspects a local kill + the
    *  live game state and returns a skill-shot style to call out, or null. */
   resolveKillStyle?: (e: KillEvent) => KillStyle | null;
+  /** Fired whenever a center banner shows (multi-kill / streak / special) so the
+   *  HUD can punch a screen flash + shake scaled by the tier's prominence. */
+  onBanner?: (color: string, scale: number) => void;
 
   private streak = 0;
   /** Highest streak reached this match — surfaced on the post-match summary. */
@@ -223,6 +226,8 @@ export class Announcer {
     this.mainEl.style.color = tier.color;
     this.mainEl.style.setProperty('--ann-scale', String(tier.scale));
     this.subEl.textContent = sub;
+    // Punch a screen flash + shake scaled by how big this banner is.
+    this.onBanner?.(tier.color, tier.scale);
 
     this.root.classList.remove('hidden');
     // Restart the pop animation by forcing a reflow.

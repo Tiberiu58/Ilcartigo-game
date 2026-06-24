@@ -511,6 +511,22 @@ body.kill-flash #app::after {
 }
 #powerup-flash.show { animation: kill-flash-fade 0.42s ease-out forwards; }
 
+/* Multi-kill / streak punch — a brief tinted edge flash. Colour + peak opacity
+   are set inline by main.ts (announcer.onBanner), scaled by the banner tier. */
+#bigkill-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, var(--bk-flash, #ffd23f) 130%);
+  opacity: 0;
+  z-index: 6;
+}
+#bigkill-flash.show { animation: bigkill-fade 0.46s ease-out forwards; }
+@keyframes bigkill-fade {
+  0%   { opacity: var(--bk-op, 0.3); }
+  100% { opacity: 0; }
+}
+
 /* Active power-up tray — pills stacked at the left edge, mid-height. Each pill
    has an icon+name row and a draining timer bar in the buff colour. */
 #buff-tray {

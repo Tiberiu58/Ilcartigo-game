@@ -114,6 +114,22 @@ const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
 const rampage = new RampageFX();
 announcer.onStreakChange = (streak) => rampage.setStreak(streak);
+// Multi-kill / streak punch — a brief tinted edge flash + a shake scaled by the
+// banner's prominence, so a DOUBLE → MONSTER KILL escalates physically too.
+const bigkillFlash = document.getElementById('bigkill-flash');
+let bigkillTimer = 0;
+announcer.onBanner = (color, scale) => {
+  // Shake grows with the tier (subtle on a Double, punchy on a Monster Kill).
+  game.applyShake(Math.min(0.018 + scale * 0.012, 0.05), 11);
+  if (!bigkillFlash) return;
+  bigkillFlash.style.setProperty('--bk-flash', color);
+  bigkillFlash.style.setProperty('--bk-op', String(Math.min(0.18 + scale * 0.10, 0.4)));
+  bigkillFlash.classList.remove('show');
+  void bigkillFlash.offsetWidth;   // reflow so the animation restarts
+  bigkillFlash.classList.add('show');
+  window.clearTimeout(bigkillTimer);
+  bigkillTimer = window.setTimeout(() => bigkillFlash.classList.remove('show'), 460);
+};
 // Skill-shot callouts — inspect the live player/weapon state at kill time.
 announcer.resolveKillStyle = (e) => {
   // NO SCOPE: a sniper kill landed without being scoped.
