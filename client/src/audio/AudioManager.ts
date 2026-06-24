@@ -33,6 +33,7 @@ export const SOUND_FILES = {
   fire_marksman: 'fire_marksman.wav',
   fire_lmg:      'fire_lmg.wav',
   fire_railgun:  'fire_railgun.wav',
+  fire_crossbow: 'fire_crossbow.wav',
   fire_pistol:   'fire_pistol.wav',
   reload:        'reload.wav',
   empty_click:   'empty_click.wav',

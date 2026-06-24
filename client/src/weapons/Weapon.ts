@@ -279,6 +279,34 @@ export const PISTOL_CONFIG: WeaponConfig = {
   slot: 'secondary',
 };
 
+// Crossbow — the skill weapon. Silent, pinpoint, very slow, 2-bolt mag, but a
+// one-shot BODY kill (100 dmg) at any range. No scope, no falloff. High
+// risk/reward: miss and you're caught mid-reload; land it and they're gone.
+// All-config (no new fire mechanic) so it's MP-safe like the LMG/Railgun.
+export const CROSSBOW_CONFIG: WeaponConfig = {
+  id: 'crossbow',
+  displayName: 'Crossbow',
+  fireRate: 1.1,
+  automatic: false,
+  magSize: 2,
+  reloadTime: 1.6,
+  reserveAmmo: -1,
+  baseDamage: 100,             // one-shot body at 100 HP (Vanguard's 115 survives)
+  headshotMultiplier: 2.0,
+  maxRange: 220,
+  falloffStart: 240,           // effectively no falloff in-arena
+  falloffEnd: 260,
+  falloffMinMultiplier: 0.95,
+  baseSpread: 0.0,             // pinpoint
+  maxSpread: 0.0,
+  spreadPerShot: 0.0,
+  spreadDecay: 0.2,
+  recoilPitch: 0.022,
+  recoilYaw: 0.004,
+  recoilDecay: 0.7,
+  slot: 'primary',
+};
+
 export const WEAPON_LIBRARY = {
   ar: AR_CONFIG,
   smg: SMG_CONFIG,
@@ -287,6 +315,7 @@ export const WEAPON_LIBRARY = {
   marksman: MARKSMAN_CONFIG,
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
+  crossbow: CROSSBOW_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;

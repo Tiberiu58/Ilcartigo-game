@@ -196,6 +196,11 @@ export class SynthEngine {
         this.tone(dest, t, 700, 0.3, 'square', g * 0.3, 0.004, 90);
         this.noise(dest, t, 0.12, g * 0.5, 'bandpass', 3000, 3, 900);
         break;
+      case 'fire_crossbow':
+        // Bowstring thwip + a soft bolt-release tick — quiet and snappy.
+        this.tone(dest, t, 320, 0.1, 'triangle', g * 0.5, 0.002, 140);
+        this.noise(dest, t, 0.05, g * 0.4, 'highpass', 2600, 0.8);
+        break;
 
       case 'reload':
         this.click(dest, t, g * 0.7, 2400);

@@ -283,8 +283,22 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   marksman: buildMarksman,
   lmg: buildLMG,
   railgun: buildRailgun,
+  crossbow: buildCrossbow,
   pistol: buildPistol,
 };
+
+function buildCrossbow(p: THREE.Group): number {
+  p.add(box(0.05, 0.055, 0.64, 0x5c3a1e, 0, 0, -0.02));        // wooden rail/stock
+  p.add(box(0.10, 0.11, 0.18, 0x4a3322, 0, -0.04, 0.20));      // stock rear
+  p.add(box(0.07, 0.14, 0.10, 0x2a2018, 0, -0.13, 0.18));      // grip
+  p.add(box(0.58, 0.035, 0.05, 0x2b2f34, 0, 0.02, -0.30));     // bow limbs (wide on X)
+  p.add(box(0.06, 0.05, 0.05, 0x14181f, 0.28, 0.02, -0.30));   // left limb tip
+  p.add(box(0.06, 0.05, 0.05, 0x14181f, -0.28, 0.02, -0.30));  // right limb tip
+  p.add(box(0.52, 0.014, 0.014, 0xb8b8b8, 0, 0.02, -0.12));    // drawn string
+  p.add(box(0.035, 0.035, 0.42, 0xc9b07a, 0, 0.035, -0.26));   // loaded bolt shaft
+  p.add(box(0.03, 0.03, 0.06, 0xf5d442, 0, 0.035, -0.50));     // bolt tip (steel/gold)
+  return -0.54;
+}
 
 function buildRailgun(p: THREE.Group): number {
   p.add(box(0.15, 0.13, 0.46, 0x202a36, 0, 0, 0));            // sleek body (steel-blue)

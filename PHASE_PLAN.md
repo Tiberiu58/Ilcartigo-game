@@ -1340,3 +1340,50 @@ files). Two tracks, switched by game state.
 
 ### Phase 36 COMPLETE — synthesized menu + combat music, pure client, no protocol
 ### change, solo + MP intact.
+
+---
+
+## Phase 37 — Crossbow (9th weapon) (autonomous build, v0.37.0)
+
+Weapon variety is an explicit brief pillar, and all 8 existing weapons are
+hitscan/pierce. The **Crossbow** adds a recognizable Krunker-style *skill
+weapon* — and, crucially, an **all-config** one (no new fire mechanic), so it
+stays MP-safe exactly like the LMG/Railgun precedent (a `SERVER_WEAPONS` profile
+mirrors it; no protocol change). A burst-fire weapon was considered + rejected
+because per-trigger burst would need client/server protocol changes.
+
+- **Identity.** Silent, pinpoint (zero spread), very slow (1.1 RPS), 2-bolt mag,
+  1.6 s reload, **100 dmg body (one-shot kill at 100 HP)** + ×2.0 head, no
+  in-arena falloff. High risk/reward: a miss leaves you reloading; a hit deletes.
+  Vanguard's 115 HP / an OVERSHIELD survive a body bolt, so it's not strictly
+  unconditional. `slot: 'primary'`.
+- **Full integration (LMG/Railgun touch-point checklist):**
+  - `Weapon.ts`: `CROSSBOW_CONFIG` + `WEAPON_LIBRARY` entry (extends `WeaponId`).
+  - `Viewmodel.ts`: `buildCrossbow` procedural model (wooden rail/stock + wide
+    bow limbs + drawn string + loaded bolt) + `WEAPON_BUILDERS` entry — no FBX,
+    so it uses the procedural builder fallback. (`WEAPON_BUILDERS` is
+    `Record<WeaponId,…>`, so TS forced this.)
+  - `AudioManager.ts`: `fire_crossbow` SoundId; `SynthEngine.ts`: a quiet
+    bowstring-thwip + bolt-release recipe.
+  - `Cosmetics.ts`: 3 mastery skins (Hunter / Mahogany / Venom) +
+    `WEAPON_SKIN_ORDER`.
+  - `GunGame.ts` `WEAPON_LABEL` + `main.ts` `WEAPON_ARCHETYPE` ('Silent
+    One-Shot') — both `Record<WeaponId,…>`, TS-enforced.
+  - `index.html`: loadout button (auto-picked up by the existing selector;
+    `setPrimary`/persist/`renderWeaponStats` all generic).
+  - `server/src/Room.ts`: `SERVER_WEAPONS.crossbow` (100/×2/no-falloff) +
+    `VALID_WEAPONS`.
+- **Not on the Gun Game ladder** (kept at its fixed rungs, like LMG/Railgun).
+- **Verified.** Client + server tsc green (the exhaustive `Record<WeaponId,…>`
+  maps confirm every required surface was covered), client build green; grep
+  confirmed no untyped weapon-id list was missed. App chunk ~90 KB gzip.
+
+### Status log
+- ✅ Phase 37 — Crossbow. DONE (client + server tsc + client build green; app
+  chunk ~90 KB gzip, no new deps). Config + procedural viewmodel + synth shot +
+  mastery skins + Gun Game label + archetype + loadout button + server damage
+  profile. Versions bumped to v0.37.0 (+ menu subtitle/footer); README status
+  updated. "8 weapons" → "9 weapons" in the footer.
+
+### Phase 37 COMPLETE — additive weapon, MP-safe (server profile mirrors it),
+### no protocol change, solo + MP intact.

@@ -812,6 +812,7 @@ const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
   marksman: 'Precision DMR',
   lmg: 'Suppressive Fire',
   railgun: 'Piercing Beam',
+  crossbow: 'Silent One-Shot',
   pistol: 'Sidearm',
 };
 const wsName = document.getElementById('ws-name')!;
