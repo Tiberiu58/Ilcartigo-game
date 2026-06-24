@@ -555,6 +555,32 @@ audioTestBtn.addEventListener('click', () => {
   window.setTimeout(() => game.audio.play('hit_confirm'), 90);
 });
 
+// ─── Music settings ───────────────────────────────────────────────────────
+const audioMusicOn = document.getElementById('audio-music-on') as HTMLInputElement;
+const audioMusicOnVal = document.getElementById('audio-music-on-val')!;
+const audioMusic = document.getElementById('audio-music') as HTMLInputElement;
+const audioMusicVal = document.getElementById('audio-music-val')!;
+
+audioMusicOn.checked = game.audio.music.enabled;
+audioMusicOnVal.textContent = game.audio.music.enabled ? 'On' : 'Off';
+audioMusic.value = String(game.audio.music.volume);
+audioMusicVal.textContent = `${Math.round(game.audio.music.volume * 100)}%`;
+
+audioMusicOn.addEventListener('change', () => {
+  game.audio.music.setEnabled(audioMusicOn.checked);
+  audioMusicOnVal.textContent = audioMusicOn.checked ? 'On' : 'Off';
+  game.audio.play('ui_click');
+});
+audioMusic.addEventListener('input', () => {
+  const v = Number(audioMusic.value);
+  game.audio.music.setVolume(v);
+  audioMusicVal.textContent = `${Math.round(v * 100)}%`;
+});
+
+// Start the menu theme. The audio context stays suspended until the first
+// user gesture (autoplay policy); MusicEngine hooks that and begins playback.
+game.audio.music.setTrack('menu');
+
 // ─── Graphics quality ───────────────────────────────────────────────────────
 const gfxSeg = document.getElementById('gfx-quality')!;
 const savedGfx = (localStorage.getItem('ilc.gfx') ?? 'medium') as 'low' | 'medium' | 'high';
@@ -623,6 +649,9 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
+  // Drive into the combat music track (the click is a user gesture → resume).
+  game.audio.resume();
+  game.audio.music.setTrack('combat');
   // Pointer-lock request must come from a user gesture — the click counts.
   game.input.requestPointerLock();
 }
@@ -660,6 +689,7 @@ function startOnline() {
     // not THIS client clicked Play Again) and drop back into play.
     hidePostMatch();
     announcer.reset();
+    game.audio.music.setTrack('combat');
     pmPlayAgain.disabled = false;
     pmPlayAgain.textContent = 'Play Again';
     game.input.requestPointerLock();
@@ -677,6 +707,8 @@ function startOnline() {
   tdmTicker.classList.add('hidden');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
+  game.audio.resume();
+  game.audio.music.setTrack('combat');
   game.input.requestPointerLock();
 }
 
@@ -691,6 +723,7 @@ function quitToMenu() {
     game.onMpChanged();
   }
   game.input.exitPointerLock();
+  game.audio.music.setTrack('menu');
   pauseOverlay.classList.add('hidden');
   mainMenu.classList.remove('hidden');
   hud.classList.add('hidden');
@@ -1363,6 +1396,8 @@ function accoladeFor(youWon: boolean, rank: number, kills: number, deaths: numbe
 
 function showPostMatch(winnerId: string) {
   game.audio.play('match_end');
+  // Ease back to the calmer menu theme over the results/ad screen.
+  game.audio.music.setTrack('menu');
   game.input.exitPointerLock();
   // Build scoreboard from game.matchKills + matchDeaths (Game tracks both).
   const allIds = new Set<string>();
@@ -1475,6 +1510,7 @@ pmPlayAgain.addEventListener('click', () => {
   } else {
     // Solo: no server — reset locally and resume immediately.
     hidePostMatch();
+    game.audio.music.setTrack('combat');
     game.resetMatchScore();
     announcer.reset();
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.

@@ -1296,3 +1296,47 @@ browser API), typecheck + build green, never break solo / MP / the audit fixes.
 
 ### Phase 35 COMPLETE — the game is audible. Pure client, no protocol change,
 ### solo + MP intact. Drop-in `.wav` pipeline preserved via `FILE_BACKED`.
+
+---
+
+## Phase 36 — Procedural music (autonomous build, v0.36.0)
+
+With the v0.35 synth proving Web Audio is the right tool, this adds the other
+half of the Krunker vibe: **background music**, also fully synthesized (no audio
+files). Two tracks, switched by game state.
+
+- **New `audio/MusicEngine.ts`.** A classic **lookahead scheduler** — a 25 ms
+  timer wakes up, looks 0.2 s into the future, and schedules every 16th-note that
+  falls in the window sample-accurately against `ctx.currentTime`. The timer only
+  runs while a track is active **and** audible (enabled, non-zero volume, not
+  master-muted), so an idle/off MusicEngine costs nothing. Its own
+  `AudioContext` (master gain → lowpass softener → destination) resumes on the
+  first user gesture (autoplay policy).
+- **Two tracks, generated from per-bar chord arrays** (A-minor flavoured):
+  - **menu** — 92 BPM, Am–F–C–G, soft triangle bass on beats 1+3, a gentle
+    eighth-note arpeggio, and a sustained saw pad per bar. Calm,
+    hopeful-melancholy.
+  - **combat** — 132 BPM, Am–Am–F–G, a pulsing square bass on every quarter,
+    off-beat stabs, a driving saw arpeggio, and a darker sustained pad. Ducked
+    under the SFX so gunfire still cuts through.
+- **State-driven switching (main.ts).** Boot + `quitToMenu` + `showPostMatch`
+  (results/ad screen) → **menu** theme; `startGame` / `startOnline` / Play-Again /
+  MP MatchReset → **combat**. Track switches are idempotent crossfades (gain ramps).
+- **Exposed via `AudioManager.music`** (a `readonly MusicEngine`).
+  `AudioManager.setMuted` forwards to it; `AudioManager.resume()` resumes both
+  contexts. New Settings → Audio controls: a **Music on/off** checkbox + a
+  **Music volume** slider (persisted to `ilc.audio.music` / `ilc.audio.music.on`).
+  The audio-settings note now explains everything is synthesized with an optional
+  `.wav` override.
+
+### Status log
+- ✅ Phase 36 — Procedural music. DONE (client + server tsc + client build green;
+  app chunk ~89.7 KB gzip, +~1 KB, no new deps). New `audio/MusicEngine.ts`
+  (lookahead scheduler, menu + combat tracks, gesture-resume, gain-ramped
+  switching), `AudioManager.music` + mute/resume forwarding, main.ts track wiring
+  at every menu↔combat↔post-match transition, Settings → Audio music toggle +
+  volume slider. Versions bumped to v0.36.0 (+ menu subtitle/footer); README
+  status updated.
+
+### Phase 36 COMPLETE — synthesized menu + combat music, pure client, no protocol
+### change, solo + MP intact.

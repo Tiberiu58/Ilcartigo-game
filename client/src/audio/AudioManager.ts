@@ -19,6 +19,7 @@
 import { Howl } from 'howler';
 import type * as THREE from 'three';
 import { SynthEngine } from './SynthEngine';
+import { MusicEngine } from './MusicEngine';
 
 const SOUND_BASE = '/assets/sounds/';
 
@@ -125,6 +126,8 @@ export class AudioManager {
   private missingNoted = new Set<SoundId>();
   /** Procedural fallback so the game is audible without any .wav assets. */
   private synth = new SynthEngine();
+  /** Procedural background music (menu theme + combat track). */
+  readonly music = new MusicEngine();
 
   /** 0..1; multiplied into every play. Set from settings UI. */
   masterVolume = 0.8;
@@ -154,6 +157,7 @@ export class AudioManager {
 
   setMuted(m: boolean) {
     this.muted = m;
+    this.music.setMasterMuted(m);
   }
 
   /** Lazy-load a Howl on first request. Tolerant of missing files. */
@@ -206,9 +210,10 @@ export class AudioManager {
     if (rate !== 1.0) h.rate(rate, playId);
   }
 
-  /** Resume the synth's audio context after a known user gesture. */
+  /** Resume the audio contexts after a known user gesture. */
   resume() {
     this.synth.resume();
+    this.music.resume();
   }
 
   /**
