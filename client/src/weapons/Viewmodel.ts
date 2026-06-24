@@ -322,6 +322,7 @@ const RELOAD_KINDS: Record<WeaponId, ReloadKind> = {
   lmg: 'mag',        // box-mag swap (heavier — see longer dur via reloadTime)
   sniper: 'bolt',
   shotgun: 'pump',
+  breacher: 'pump',  // drum-fed auto shotgun — pump-style rack reads right
   pistol: 'slide',
   railgun: 'cell',
 };
@@ -414,11 +415,26 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   smg: buildSMG,
   sniper: buildSniper,
   shotgun: buildShotgun,
+  breacher: buildBreacher,
   marksman: buildMarksman,
   lmg: buildLMG,
   railgun: buildRailgun,
   pistol: buildPistol,
 };
+
+// Breacher — a chunky automatic combat shotgun: boxy receiver, drum mag, a fat
+// perforated shroud over a single wide bore + a tactical foregrip.
+function buildBreacher(p: THREE.Group): number {
+  p.add(box(0.17, 0.14, 0.44, 0x2b3138, 0, 0, 0));            // receiver
+  p.add(box(0.10, 0.11, 0.22, 0x3a434d, 0, -0.02, 0.30));     // collapsible stock
+  p.add(box(0.075, 0.075, 0.48, 0x14181f, 0, 0.02, -0.40));   // heat shroud (fat bore)
+  p.add(box(0.05, 0.05, 0.10, 0x0a0c10, 0, 0.02, -0.66));     // muzzle
+  p.add(box(0.17, 0.17, 0.13, 0x232931, 0, -0.15, 0.04));     // drum magazine
+  p.add(box(0.08, 0.14, 0.10, 0x232931, 0, -0.12, 0.20));     // grip
+  p.add(box(0.07, 0.12, 0.08, 0x1c2128, 0, -0.11, -0.26));    // tactical foregrip
+  p.add(box(0.10, 0.05, 0.16, 0x18181d, 0, 0.10, -0.06));     // top rail
+  return -0.70;
+}
 
 function buildRailgun(p: THREE.Group): number {
   p.add(box(0.15, 0.13, 0.46, 0x202a36, 0, 0, 0));            // sleek body (steel-blue)

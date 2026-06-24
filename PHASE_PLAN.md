@@ -1403,3 +1403,42 @@ sixth with a distinct identity: **a cyberpunk night district.**
   bumped to v0.39.0 (+ menu subtitle/footer).
 
 ### Phase 39 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — Breacher (auto-shotgun, 9th weapon) (autonomous build, v0.40.0)
+
+A ninth weapon — straight at the brief's first pillar (weapon variety /
+satisfying shooting). The **Breacher** is a fully-automatic combat shotgun: where
+the pump Shotgun is one brutal high-burst blast on a slow trigger, the Breacher
+trades per-shot punch for a fast automatic stream of lighter pellets — it wins
+close-quarters duels through *sustained DPS*, not a single decisive blast, but a
+wide cone + harsh falloff make it useless past brawling range. A distinct
+hold-the-trigger CQB archetype the roster didn't have.
+
+- **`BREACHER_CONFIG`** — 3.6 RPS automatic, 7 pellets × 8 dmg (56 close),
+  10-round drum, 2.6 s reload, wide 0.075 cone blooming under sustained fire,
+  brutal 5→18 m falloff (×0.22 min). Reuses the existing pellet + automatic fire
+  paths (no engine change). Added to `WEAPON_LIBRARY` (so `WeaponId` includes it,
+  which the compiler then forces complete across every `Record<WeaponId,…>`).
+- **Full integration:** a chunky `buildBreacher` viewmodel (boxy receiver, drum
+  mag, fat heat-shroud bore, tactical foregrip) + `WEAPON_BUILDERS`; a `pump`
+  reload-animation kind; `WEAPON_LABEL` (Gun Game) + `WEAPON_ARCHETYPE`
+  ("Auto Shotgun"); a loadout button; three mastery skins (Riot / Hazard /
+  Crimson) + `WEAPON_SKIN_ORDER`. No dedicated FBX model → it cleanly uses the
+  box viewmodel via the existing `Partial<Record<WeaponId, ModelDef>>` fallback.
+- **MP-safe.** A `SERVER_WEAPONS['breacher']` profile (30 single-ray dmg — the
+  server models spread as one ray, so it's the on-target pellet sum, lower than
+  the pump but fired far faster client-side) + a `VALID_WEAPONS` entry, mirroring
+  the LMG/Marksman/Railgun precedent. No protocol change.
+
+### Status log
+- ✅ Phase 40 — Breacher auto-shotgun. DONE (client + server tsc + client build
+  green; app chunk ~92 KB gzip, 104 modules). `BREACHER_CONFIG` + library,
+  `buildBreacher` viewmodel + builder + `pump` reload kind, GunGame label,
+  archetype, loadout button, server `SERVER_WEAPONS`/`VALID_WEAPONS`, three
+  mastery skins + skin order. The compiler-enforced `Record<WeaponId>` maps
+  (builders, labels, archetypes, reload kinds) all updated. Versions bumped to
+  v0.40.0 (+ menu subtitle/footer).
+
+### Phase 40 COMPLETE — additive weapon, no protocol change, solo + MP intact.

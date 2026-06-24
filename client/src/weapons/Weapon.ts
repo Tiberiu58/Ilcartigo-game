@@ -170,6 +170,36 @@ export const SHOTGUN_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Breacher — a fully-automatic combat shotgun. Where the pump Shotgun is one
+// brutal high-burst blast on a slow trigger, the Breacher trades per-shot punch
+// for a fast automatic stream of lighter pellets: it wins close-quarters duels
+// through sustained DPS, not a single decisive blast — but the wide cone + harsh
+// falloff make it useless past brawling range. 7 pellets × 8 = 56 close per pull.
+export const BREACHER_CONFIG: WeaponConfig = {
+  id: 'breacher',
+  displayName: 'Breacher',
+  fireRate: 3.6,               // automatic — a rapid pellet stream
+  automatic: true,
+  magSize: 10,
+  reloadTime: 2.6,
+  reserveAmmo: -1,
+  baseDamage: 8,
+  headshotMultiplier: 1.3,
+  maxRange: 50,
+  falloffStart: 5,
+  falloffEnd: 18,
+  falloffMinMultiplier: 0.22,  // melts up close, near-useless at range
+  baseSpread: 0.075,           // wider cone than the pump (0.055)
+  maxSpread: 0.10,
+  spreadPerShot: 0.006,        // blooms under sustained fire — tap to stay tight
+  spreadDecay: 0.28,
+  recoilPitch: 0.034,
+  recoilYaw: 0.010,
+  recoilDecay: 0.7,
+  pellets: 7,
+  slot: 'primary',
+};
+
 // Marksman — semi-auto precision rifle (DMR). Fills the gap between the AR's
 // auto spray and the Sniper's scoped one-shot: hard-hitting per-click, pinpoint
 // when paced, but punishing bloom if you spam. No scope — handles fast, rewards
@@ -284,6 +314,7 @@ export const WEAPON_LIBRARY = {
   smg: SMG_CONFIG,
   sniper: SNIPER_CONFIG,
   shotgun: SHOTGUN_CONFIG,
+  breacher: BREACHER_CONFIG,
   marksman: MARKSMAN_CONFIG,
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
