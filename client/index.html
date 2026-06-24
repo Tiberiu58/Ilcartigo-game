@@ -302,7 +302,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.38</p>
+          <p class="subtitle">Browser arena shooter · v0.39</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -399,7 +399,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.38.0 — Combat audio depth · Crossbow · Procedural audio + music · 6 maps · 9 weapons</div>
+          <div>v0.39.0 — Next-unlock teaser · Combat audio · Crossbow · Procedural audio + music · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -455,6 +455,16 @@
           <div class="pm-rewards">
             <div class="pm-xp">+<span id="pm-xp-earned">0</span> XP</div>
             <div id="pm-unlocks"></div>
+          </div>
+
+          <!-- Next-unlock teaser — surfaces the cheapest still-locked cosmetic +
+               progress toward it, to pull players into "one more game". Populated
+               by main.ts (renderNextUnlock) from the cosmetics registries. -->
+          <div id="pm-nextunlock" class="pm-nextunlock hidden">
+            <div class="pm-nu-head">NEXT UNLOCK</div>
+            <div class="pm-nu-name"><span id="pm-nu-name">—</span> <span class="pm-nu-cat" id="pm-nu-cat"></span></div>
+            <div class="pm-nu-bar"><div class="pm-nu-fill" id="pm-nu-fill"></div></div>
+            <div class="pm-nu-sub" id="pm-nu-sub">— XP to go</div>
           </div>
 
           <!-- Ad slot — post-match is a natural breakpoint (player is paused,

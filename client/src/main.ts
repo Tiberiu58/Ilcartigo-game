@@ -34,7 +34,7 @@ import { ScorePopup } from './ui/ScorePopup';
 import { preloadWeaponModels } from './weapons/WeaponModels';
 import { LOGIN_REWARDS } from './account/Account';
 import { WEAPON_LIBRARY, type WeaponId } from './weapons/Weapon';
-import { weaponSkinsFor } from './account/Cosmetics';
+import { weaponSkinsFor, SKINS, KILL_EFFECTS, TRACERS, FINISHES } from './account/Cosmetics';
 
 // ─── Device gate — abort early on touch/mobile or browsers without pointer-lock.
 // FPS games are unplayable without a mouse. Show a friendly notice instead of
@@ -852,6 +852,43 @@ function renderWeaponStats(id: WeaponId) {
   }
 }
 
+// ─── Next-unlock teaser ───────────────────────────────────────────────────
+// Surfaces the cheapest still-locked XP cosmetic + progress toward it, so the
+// post-match screen ends on a "one more game and it's yours" hook (retention →
+// ad impressions). Scans every XP-gated axis (skins / kill effects / tracers /
+// finishes) for the lowest-cost item the player hasn't unlocked yet.
+const pmNextUnlock = document.getElementById('pm-nextunlock')!;
+const pmNuName = document.getElementById('pm-nu-name')!;
+const pmNuCat = document.getElementById('pm-nu-cat')!;
+const pmNuFill = document.getElementById('pm-nu-fill') as HTMLElement;
+const pmNuSub = document.getElementById('pm-nu-sub')!;
+function renderNextUnlock() {
+  const acc = game.account;
+  type Cand = { name: string; cat: string; cost: number };
+  const cands: Cand[] = [];
+  for (const s of SKINS) if (s.cost > 0 && !acc.isSkinUnlocked(s.id)) cands.push({ name: s.displayName, cat: 'Skin', cost: s.cost });
+  for (const e of KILL_EFFECTS) if (e.cost > 0 && !acc.isEffectUnlocked(e.id)) cands.push({ name: e.displayName, cat: 'Kill FX', cost: e.cost });
+  for (const t of TRACERS) if (t.cost > 0 && !acc.isTracerUnlocked(t.id)) cands.push({ name: t.displayName, cat: 'Tracer', cost: t.cost });
+  for (const f of FINISHES) if (f.cost > 0 && !acc.isFinishUnlocked(f.id)) cands.push({ name: f.displayName, cat: 'Finish', cost: f.cost });
+  if (cands.length === 0) {
+    pmNuName.textContent = 'All cosmetics unlocked';
+    pmNuCat.textContent = '★';
+    pmNuFill.style.width = '100%';
+    pmNuSub.textContent = 'Master collector';
+    pmNextUnlock.classList.remove('hidden');
+    return;
+  }
+  cands.sort((a, b) => a.cost - b.cost);
+  const next = cands[0];
+  const xp = acc.xp;
+  const remaining = Math.max(0, next.cost - xp);
+  pmNuName.textContent = next.name;
+  pmNuCat.textContent = next.cat;
+  pmNuFill.style.width = `${Math.max(4, Math.min(100, Math.round((xp / next.cost) * 100)))}%`;
+  pmNuSub.textContent = remaining > 0 ? `${remaining.toLocaleString()} XP to go` : 'Ready to unlock — open Cosmetics!';
+  pmNextUnlock.classList.remove('hidden');
+}
+
 // Loadout selector — clicking a weapon button updates the primary slot and
 // triggers a viewmodel swap so the player sees the change preview on PLAY.
 const loadoutBtns = document.querySelectorAll<HTMLButtonElement>('.loadout-btn:not([data-map]):not([data-diff])');
@@ -1485,6 +1522,10 @@ function showPostMatch(winnerId: string) {
   const isNewBest = myKills > prevBest && myKills > 0;
   if (isNewBest) localStorage.setItem(BEST_MATCH_KILLS_KEY, String(myKills));
   pmNewBest.classList.toggle('hidden', !isNewBest);
+
+  // Next-unlock teaser — computed after XP is awarded so it reflects the new
+  // total (the player may have just crossed an unlock threshold this match).
+  renderNextUnlock();
 
   postmatchOverlay.classList.remove('hidden');
   hud.classList.add('hidden');

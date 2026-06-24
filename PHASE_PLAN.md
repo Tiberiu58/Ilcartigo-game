@@ -1419,3 +1419,33 @@ synthesized (silent-`.wav`-override still available via `FILE_BACKED`).
   subtitle/footer); README status updated.
 
 ### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — "Next Unlock" progression teaser (autonomous build, v0.39.0)
+
+A retention/revenue micro-feature on the post-match overlay (the main natural
+ad breakpoint). The screen showed your result + XP but nothing pulling you
+toward the next reward; this adds a teaser that ends every match on a "one more
+game and it's yours" hook → more replays → more ad impressions. Pure client,
+no protocol change.
+
+- **`renderNextUnlock()` (main.ts).** Scans all four XP-gated cosmetic axes
+  (`SKINS` / `KILL_EFFECTS` / `TRACERS` / `FINISHES`) for items with `cost > 0`
+  the account hasn't unlocked, picks the **cheapest** one, and renders its name,
+  category (Skin / Kill FX / Tracer / Finish), a progress bar (`xp / cost`), and
+  the exact remaining XP (or "Ready to unlock — open Cosmetics!" when already
+  affordable). When everything is unlocked it shows a "Master collector" ★ state.
+- **Computed after match XP is awarded** in `showPostMatch`, so it reflects the
+  player's post-match total (they may have just crossed a threshold).
+- New `#pm-nextunlock` block + CSS (gradient progress bar) between the rewards
+  line and the post-match ad slot.
+
+### Status log
+- ✅ Phase 39 — Next-unlock teaser. DONE (client + server tsc + client build
+  green; app chunk ~90.5 KB gzip, no new deps). `renderNextUnlock` (cheapest
+  locked cosmetic across all axes + progress), `#pm-nextunlock` DOM + CSS, wired
+  into `showPostMatch` after XP award. Versions bumped to v0.39.0 (+ menu
+  subtitle/footer); README status updated.
+
+### Phase 39 COMPLETE — pure client, no protocol change, solo + MP intact.
