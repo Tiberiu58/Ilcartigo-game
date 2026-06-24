@@ -1501,3 +1501,26 @@ change — solo + MP intact.
   v0.42.0 (+ menu subtitle/footer).
 
 ### Phase 42 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 43 — Cosmetics drop v2 (autonomous build, v0.43.0)
+
+A pure-data cosmetics expansion — the roadmap's "more to grind for → longer
+engagement → more ad impressions" lever, and the lowest-risk phase shape (the
+Cosmetics UI auto-iterates the registries, so new items appear, unlock and equip
+with zero logic change). No protocol change.
+
+- **+3 kill effects** (Azure Pulse / Rose Bloom / Gold Flare, 1800–3600 XP) →
+  11 buyable + 1 medal-exclusive.
+- **+3 tracers** (Rose / Azure / Sunfire, 2900–3800 XP) → 13 buyable + 2
+  medal-exclusive.
+- **+2 finishes** (Rosegold / Azure, 2800/3600 XP) → 10 buyable + 1
+  medal-exclusive.
+
+### Status log
+- ✅ Phase 43 — Cosmetics drop v2. DONE (client + server tsc + client build
+  green). Data-only additions to `Cosmetics.ts` (KILL_EFFECTS / TRACERS /
+  FINISHES). Versions bumped to v0.43.0 (+ menu subtitle/footer).
+
+### Phase 43 COMPLETE — pure client, no protocol change, solo + MP intact.
