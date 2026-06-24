@@ -1524,3 +1524,33 @@ with zero logic change). No protocol change.
   FINISHES). Versions bumped to v0.43.0 (+ menu subtitle/footer).
 
 ### Phase 43 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 44 — Marketing site refresh (autonomous build, site-only)
+
+The landing site (`/website/`) — the AdSense-bearing, SEO-facing front door —
+had drifted badly out of date: it still advertised "five weapons, two maps" and
+listed no game modes, while the game has grown to **9 weapons, 7 maps and 8 game
+modes**. This refresh brings the marketing copy back in line with the product so
+the page converts honestly and ranks for what the game actually offers. No game
+code changed (no client/server version bump) — static HTML/CSS only.
+
+- **`index.html`** — meta description + OG tags + hero tagline + footer updated
+  to "nine weapons, seven maps, eight game modes." The **Weapons** section now
+  lists all 9 (added Breacher, Marksman, LMG, Railgun with stat sublines); the
+  **Maps** section now lists all 7 (added Cobalt, Overpass, Frostline, Neon
+  District). A brand-new **Game modes** section (8 cards: FFA, TDM, Gun Game,
+  Hardpoint, Onslaught, Duel, Aim Lab, Progression) — the biggest selling point,
+  previously absent — plus a nav link to it.
+- **`about.html`** — the "What's in it" list updated to the current 9 weapons /
+  7 maps / 8 modes, and the footer blurb.
+- **`site.css`** — a `.card.mode` accent (cyan) so the new section matches the
+  weapon/map card styling.
+
+### Status log
+- ✅ Phase 44 — Site refresh. DONE (static; HTML section tags balanced, only
+  `/website` touched). Marketing copy now matches the live game. No game version
+  bump (no client/server code change).
+
+### Phase 44 COMPLETE — site-only, no game change.

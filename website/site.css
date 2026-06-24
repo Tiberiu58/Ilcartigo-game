@@ -232,6 +232,9 @@ section h2 + .section-sub {
 .card.map      { border-top-color: var(--accent-warm); }
 .card.map h3   { color: var(--accent-warm); }
 
+.card.mode     { border-top-color: #37e0ff; }
+.card.mode h3  { color: #37e0ff; }
+
 /* ── Article pages (Privacy, Terms, About) ────────────────────────────── */
 
 .article {
