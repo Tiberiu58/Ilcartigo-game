@@ -1424,3 +1424,26 @@ XP so the results-card total stays exact — no double-count). Pure client.
   `capXp` (immediate award on capture, folded into the results-card total),
   `ScorePopup.pop('+SECURED','buff')` in main.ts's `onEvent`. Versions bumped to
   v0.40.1.
+
+---
+
+## Phase 41 — Reduce-camera-shake accessibility setting (autonomous build, v0.41.0)
+
+A small accessibility / preference win that **broadens the audience** (motion
+sensitivity is a real reason players bounce off shooters → longer sessions → more
+ad impressions). A new Settings → General toggle, **"Reduce camera shake"**,
+dampens the screen punch from firing, hits, deaths and explosions to 35% without
+removing the feedback entirely.
+
+- New `Game.shakeScale` (1 = full, 0.35 = reduced) multiplied into every
+  `applyShake` call — one choke point covers fire, hit, death, grenade, ability
+  and proximity shake. Pure client, persisted to `ilc.reduceshake` (default off),
+  applied on boot + live on toggle. No gameplay impact.
+
+### Status log
+- ✅ Phase 41 — Reduce camera shake. DONE (client + server tsc + client build
+  green; app chunk ~91.4 KB gzip). `Game.shakeScale` + `applyShake` multiply,
+  `#opt-reduceshake` checkbox + main.ts wiring (persisted/boot/live). Versions
+  bumped to v0.41.0 (+ menu subtitle/footer).
+
+### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.

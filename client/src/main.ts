@@ -497,6 +497,16 @@ optNameplates.addEventListener('change', () => {
   localStorage.setItem('ilc.nameplates', String(optNameplates.checked));
 });
 
+// Reduce camera shake — dampens the screen punch from fire/hits/deaths/explosions.
+const optReduceShake = document.getElementById('opt-reduceshake') as HTMLInputElement;
+const savedReduceShake = (localStorage.getItem('ilc.reduceshake') ?? 'false') === 'true';
+optReduceShake.checked = savedReduceShake;
+game.shakeScale = savedReduceShake ? 0.35 : 1;
+optReduceShake.addEventListener('change', () => {
+  game.shakeScale = optReduceShake.checked ? 0.35 : 1;
+  localStorage.setItem('ilc.reduceshake', String(optReduceShake.checked));
+});
+
 let speedLinesEnabled = (localStorage.getItem('ilc.speedlines') ?? 'true') === 'true';
 optSpeedlines.checked = speedLinesEnabled;
 document.body.classList.toggle('no-speedlines', !speedLinesEnabled);

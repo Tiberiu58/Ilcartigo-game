@@ -942,9 +942,13 @@ export class Game {
     cancelAnimationFrame(this.rafHandle);
   }
 
+  /** Camera-shake intensity multiplier (Settings → General). 1 = full,
+   *  0.35 = "reduce camera shake". Applied in applyShake. */
+  shakeScale = 1;
+
   /** Public so feature modules (e.g. GrenadeManager) can punch the camera. */
   applyShake(intensity: number, decay: number) {
-    this.shake.intensity = Math.max(this.shake.intensity, intensity);
+    this.shake.intensity = Math.max(this.shake.intensity, intensity * this.shakeScale);
     this.shake.decay = decay;
   }
 
