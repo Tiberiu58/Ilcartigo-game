@@ -1474,3 +1474,16 @@ deliberately MP-safe (a normal single-target hitscan gun, no new mechanic).
   damage/valid-weapon. Versions bumped to v0.42.0 (+ menu subtitle/footer).
 
 ### Phase 42 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 42.1 — King of the Hill bests in Profile (patch, v0.42.1)
+
+Surfaces the new objective mode's progression where the other modes' bests already
+live: the Profile → Bests grid now shows a **Hardpoint Wins** cell
+(`ilc.koth.wins`), alongside Aim Lab PBs, Onslaught best wave and Duel best streak
+— closing the progression-visibility loop on King of the Hill (a reason to chase
+the count → retention). Pure client.
+
+- ✅ DONE (client + server tsc + client build green). One cell added to
+  `ProfileUI.renderAimlabBests`. Versions bumped to v0.42.1.
