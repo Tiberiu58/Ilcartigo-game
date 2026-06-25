@@ -315,6 +315,34 @@ export const BURST_CONFIG: WeaponConfig = {
   slot: 'primary',
 };
 
+// Hand Cannon — a heavy revolver primary. Big per-shot damage (2-shot body,
+// 1-shot head), but a slow fire rate, a 6-round cylinder and a chunky reload:
+// a high-risk/high-reward precision sidearm-class brawler that punishes a missed
+// shot with a long recovery. Distinct from the light Pistol secondary.
+export const HANDCANNON_CONFIG: WeaponConfig = {
+  id: 'handcannon',
+  displayName: 'Hand Cannon',
+  fireRate: 2.2,
+  automatic: false,
+  magSize: 6,
+  reloadTime: 1.9,
+  reserveAmmo: -1,
+  baseDamage: 55,              // 2-shot body; head (×1.9 = 104.5) is a one-shot kill
+  headshotMultiplier: 1.9,
+  maxRange: 140,
+  falloffStart: 26,
+  falloffEnd: 70,
+  falloffMinMultiplier: 0.5,
+  baseSpread: 0.004,
+  maxSpread: 0.06,
+  spreadPerShot: 0.02,         // heavy bloom — you can't spam it accurately
+  spreadDecay: 0.35,
+  recoilPitch: 0.03,           // big kick per shot
+  recoilYaw: 0.008,
+  recoilDecay: 0.7,
+  slot: 'primary',
+};
+
 export const WEAPON_LIBRARY = {
   ar: AR_CONFIG,
   smg: SMG_CONFIG,
@@ -324,6 +352,7 @@ export const WEAPON_LIBRARY = {
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
   burst: BURST_CONFIG,
+  handcannon: HANDCANNON_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;

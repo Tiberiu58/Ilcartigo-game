@@ -30,7 +30,7 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'railgun', 'burst', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'railgun', 'burst', 'handcannon', 'pistol']);
 
 /**
  * Server-authoritative per-weapon damage. MIRRORS the client's WeaponConfig
@@ -67,6 +67,8 @@ const SERVER_WEAPONS: Record<string, ServerWeapon> = {
   // scheduler calls sendFire per round), so the server applies this single-round
   // profile 3× per trigger pull — mirrors the client's 30 dmg/round burst.
   burst:   { baseDamage: 30, headMul: 1.7,  falloffStart: 35,  falloffEnd: 85,  falloffMin: 0.6  },
+  // Hand Cannon: heavy revolver — 2-shot body, 1-shot head; mirrors the client.
+  handcannon: { baseDamage: 55, headMul: 1.9, falloffStart: 26, falloffEnd: 70, falloffMin: 0.5 },
   pistol:  { baseDamage: 22, headMul: 1.7,  falloffStart: 18,  falloffEnd: 55,  falloffMin: 0.55 },
 };
 

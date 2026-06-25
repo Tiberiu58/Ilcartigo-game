@@ -321,6 +321,7 @@ const RELOAD_KINDS: Record<WeaponId, ReloadKind> = {
   marksman: 'mag',
   lmg: 'mag',        // box-mag swap (heavier — see longer dur via reloadTime)
   burst: 'mag',      // standard mag swap
+  handcannon: 'slide',  // snappy cylinder snap-shut
   sniper: 'bolt',
   shotgun: 'pump',
   pistol: 'slide',
@@ -419,8 +420,19 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   lmg: buildLMG,
   railgun: buildRailgun,
   burst: buildBurst,
+  handcannon: buildHandCannon,
   pistol: buildPistol,
 };
+
+function buildHandCannon(p: THREE.Group): number {
+  p.add(box(0.10, 0.16, 0.20, 0x2a2e36, 0, -0.02, 0.10));     // frame
+  p.add(box(0.09, 0.20, 0.10, 0x23272e, 0.0, -0.12, 0.16));   // grip
+  p.add(box(0.07, 0.09, 0.40, 0x14171c, 0, 0.02, -0.20));     // heavy barrel
+  p.add(box(0.10, 0.11, 0.12, 0x3a3f48, 0, 0.0, 0.0));        // cylinder (fat)
+  p.add(box(0.04, 0.05, 0.05, 0xc7a14a, 0, 0.06, -0.40));     // brass front sight
+  p.add(box(0.075, 0.075, 0.06, 0x0d0f13, 0, 0.02, -0.42));   // muzzle
+  return -0.46;
+}
 
 function buildBurst(p: THREE.Group): number {
   p.add(box(0.12, 0.13, 0.50, 0x33414d, 0, 0, 0.02));          // receiver (slate)

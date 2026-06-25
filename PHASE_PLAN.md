@@ -1447,3 +1447,30 @@ removing the feedback entirely.
   bumped to v0.41.0 (+ menu subtitle/footer).
 
 ### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 42 — Hand Cannon (10th weapon) (autonomous build, v0.42.0)
+
+Another weapon-variety drop on the brief's first pillar. A **10th weapon** — the
+**Hand Cannon**, a heavy revolver primary: huge per-shot damage (2-shot body,
+**1-shot head**), but a slow 2.2 RPS fire rate, a 6-round cylinder, heavy bloom
+and a big recoil kick. A high-risk/high-reward precision brawler that punishes a
+missed shot with a long recovery — distinct from the light Pistol secondary, and
+deliberately MP-safe (a normal single-target hitscan gun, no new mechanic).
+
+- **Additive config + the standard new-weapon checklist** (LMG/Burst precedent):
+  `HANDCANNON_CONFIG` + `WEAPON_LIBRARY` entry, a chunky `buildHandCannon`
+  procedural viewmodel (box fallback, no FBX), `slide` reload animation,
+  `WEAPON_ARCHETYPE` (Hand Cannon) + loadout button + stat card, Gun Game
+  `WEAPON_LABEL`, three mastery skins (Gunslinger / Nickel / Magnum) +
+  `WEAPON_SKIN_ORDER`, and the server `SERVER_WEAPONS` + `VALID_WEAPONS` rows so
+  it's authoritative in MP (2-shot body / 1-shot head online too).
+
+### Status log
+- ✅ Phase 42 — Hand Cannon. DONE (client + server tsc + client build green; app
+  chunk ~91.8 KB gzip). `HANDCANNON_CONFIG`, `buildHandCannon` viewmodel + reload
+  kind, archetype + loadout button + Gun Game label + mastery skins + server
+  damage/valid-weapon. Versions bumped to v0.42.0 (+ menu subtitle/footer).
+
+### Phase 42 COMPLETE — additive weapon, no protocol change, solo + MP intact.
