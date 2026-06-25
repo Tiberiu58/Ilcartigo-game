@@ -177,6 +177,23 @@ export class Minimap {
       ctx.fill();
     });
 
+    // King of the Hill hardpoint — a hollow ring tinted by control state, so the
+    // objective reads at a glance alongside the enemy dots.
+    const hp = this.game.koth?.hardpoint();
+    if (hp) {
+      const hx = this.toX(hp.x);
+      const hy = this.toY(hp.z);
+      const hr = Math.max(4, hp.radius * this.scale);
+      const col = hp.control === 'you' ? '#39d0c8'
+        : hp.control === 'enemy' ? '#ff5a5a'
+        : hp.control === 'contested' ? '#ffc24d' : '#9aa6b2';
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     // Enemies — red dots. Solo bots, or MP remotes (skip cloaked + dead).
     ctx.fillStyle = '#ff5a5a';
     if (this.game.mp) {

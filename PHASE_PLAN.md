@@ -1213,3 +1213,62 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 36 — King of the Hill (hardpoint objective mode) (autonomous build, v0.36.0)
+
+The first **objective** mode in ILCARTIGO. Every prior mode is frag-count (FFA /
+TDM / Gun Game / Duel) or survival (Onslaught / Aim Lab) — none rewards *holding
+ground*. King of the Hill closes that gap with the most-played CoD/Krunker
+objective format: a glowing capture zone you score for holding **alone**, a
+rotating hardpoint that forces constant repositioning, and a clean win condition
+→ results card (a natural ad breakpoint). It's a genuinely new way to play that
+reuses the entire combat sandbox. Pure client, **no protocol/server change**;
+solo + MP + every prior mode intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **The Onslaught/Duel controller pattern, reused.** New `modes/KingOfTheHill.ts`
+  (Game-coupled, started/stopped by main.ts, ticked from `Game.tick`). Runs on
+  top of the **ordinary FFA combat bots** (`'koth'` is an `isCombatMode`), so
+  kills feed XP / lifetime stats / killfeed / announcer / weapon mastery with no
+  special-casing, and the player auto-respawns (koth is *not* in the
+  single-elimination respawn-gate list, unlike Onslaught/Duel).
+- **Hold-the-zone scoring.** Each tick resolves who stands in the zone: you alone
+  → teal, **+1 point per 0.5 s**; an enemy bot alone → red, points for them; both
+  → amber **CONTESTED** (no score); empty → neutral. First side to **100** wins.
+  A center callout fires on every control flip (ZONE CAPTURED / ZONE LOST /
+  CONTESTED) and the HUD ticker shows YOU · state-pill · ENEMY · goal.
+- **Rotating hardpoint.** The zone relocates every **42 s** (⚑ HARDPOINT MOVED)
+  among anchors derived from each map's FFA spawns pulled 55 % toward map centre
+  (+ the dead centre), each solid-overlap-checked so a zone can never spawn inside
+  geometry — works on all 6 combat maps with zero per-map curation.
+- **The only Bot touch is additive + safe.** A new optional `Bot.objective`
+  attract point: when set, an un-engaged bot walks to the hardpoint and loiters on
+  it (contesting the zone) instead of cycling waypoints; `null` in every other
+  mode → **identical behaviour**. The controller sets it on the active roster on
+  start / relocate and clears it on stop.
+- **Flashy, readable feedback.** A 3D capture zone (translucent floor disc +
+  pulsing ground ring + a tall additive **light column** visible across the map),
+  recoloured live by control state (teal / red / amber / grey), pulsing faster
+  while contested. A minimap **hardpoint ring** tinted by the same state. Results
+  card: HARDPOINT SECURED/LOST, your-vs-enemy score, captures, bonus XP, NEW
+  PERSONAL BEST (best captures in a run), career-wins line.
+- **XP economy.** +2 XP per point you personally score, +150 on a victory, banked
+  + shown on the results card. Career hardpoint wins persist
+  (`ilc.koth.wins`) and surface on the menu button (`👑 King of the Hill · N
+  wins`); best-captures PB in `ilc.koth.bestcaps`. New `koth` ad slot in `Ads.ts`.
+
+### Status log
+- ✅ Phase 36 — King of the Hill. DONE (client + server tsc + client build green;
+  app chunk ~89.8 KB gzip, 100 modules). New `modes/KingOfTheHill.ts` (zone
+  meshes + scoring + rotation + anchor placement), `'koth'` GameMode +
+  `isCombatMode` + `Game.koth` field + tick, additive `Bot.objective` attract
+  point + `patrolToObjective`, full UI (ticker / capture banner / results card /
+  menu button / minimap ring), `koth` ad slot. Versions bumped to v0.36.0
+  (+ menu subtitle/footer). Solo + MP + all prior modes untouched (the only
+  shared-code change, `Bot.objective`, is null everywhere but koth).
+
+### Phase 36 COMPLETE — first objective mode, no protocol change, solo + MP intact.

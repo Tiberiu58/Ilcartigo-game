@@ -129,6 +129,19 @@
           <div class="dub-sub" id="dub-sub">ROOKIE</div>
         </div>
 
+        <!-- King of the Hill ticker — top-center. Your score · control state ·
+             enemy score. Populated by main.ts via KingOfTheHill.onState. -->
+        <div id="koth-ticker" class="hidden">
+          <span class="koth-you">YOU <span id="koth-you-n">0</span></span>
+          <span class="koth-pill neutral" id="koth-state">NEUTRAL</span>
+          <span class="koth-enemy"><span id="koth-enemy-n">0</span> ENEMY</span>
+          <span class="koth-goal">to <span id="koth-goal-n">100</span></span>
+        </div>
+
+        <!-- King of the Hill capture callout — "ZONE CAPTURED" / "ZONE LOST" /
+             "CONTESTED" / "HARDPOINT MOVED". Flashed by main.ts on control flips. -->
+        <div id="koth-banner" class="hidden neutral">ZONE CAPTURED</div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -302,7 +315,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.35</p>
+          <p class="subtitle">Browser arena shooter · v0.36</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -389,6 +402,7 @@
             <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
             <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
             <button class="menu-btn duel" id="menu-duel">🎯 Duel (1v1 Gauntlet)</button>
+            <button class="menu-btn koth" id="menu-koth">👑 King of the Hill</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
@@ -398,7 +412,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.35.0 — Reload animations & weapon colours · 3D weapon models · Duel · Railgun · Power-ups · Daily rewards · 6 maps · 8 weapons</div>
+          <div>v0.36.0 — King of the Hill · Reload animations & weapon colours · 3D weapon models · Duel · Railgun · Power-ups · 6 maps · 8 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -574,6 +588,34 @@
           <div class="alr-buttons">
             <button class="menu-btn primary" id="dur-retry">▸ Play Again</button>
             <button class="menu-btn" id="dur-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- King of the Hill results card. Shown when a side reaches the goal. -->
+      <div id="koth-results" class="hidden">
+        <div class="aimlab-card koth-card">
+          <h2 id="kor-title" class="won">HARDPOINT SECURED</h2>
+          <p class="alr-sub" id="kor-sub">you held the hill</p>
+
+          <div class="koth-score-row">
+            <div class="koth-score you"><span id="kor-you">0</span><label>YOU</label></div>
+            <div class="koth-score-vs">vs</div>
+            <div class="koth-score enemy"><span id="kor-enemy">0</span><label>ENEMY</label></div>
+          </div>
+          <div class="alr-newbest hidden" id="kor-newbest">★ NEW PERSONAL BEST ★</div>
+
+          <div class="alr-stats">
+            <div class="alr-stat"><span id="kor-caps">0</span><label>Captures</label></div>
+            <div class="alr-stat"><span id="kor-xp">+0</span><label>Bonus XP</label></div>
+          </div>
+
+          <!-- Ad slot — end-of-run is a natural breakpoint. -->
+          <div class="ad-slot" id="ad-koth" data-ad-slot="koth"></div>
+
+          <div class="alr-buttons">
+            <button class="menu-btn primary" id="kor-retry">▸ Play Again</button>
+            <button class="menu-btn" id="kor-quit">Quit to Menu</button>
           </div>
         </div>
       </div>

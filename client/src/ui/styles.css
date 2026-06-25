@@ -1492,6 +1492,109 @@ body.no-speedlines #speed-lines { display: none; }
 }
 #duel-results.hidden { display: none; }
 .duel-card { border-top-color: #ffb454 !important; }
+
+/* ─── King of the Hill (hardpoint) ──────────────────────────────────────── */
+.menu-btn.koth { border-left: 3px solid #39d0c8; }
+.menu-btn.koth:hover { border-left-color: #39d0c8; color: #7fe8e0; }
+
+#koth-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(14, 22, 26, 0.84);
+  padding: 7px 14px;
+  border-radius: 4px;
+  border-left: 3px solid #39d0c8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#koth-ticker.hidden { display: none; }
+.koth-you, .koth-enemy {
+  font: 800 15px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+}
+.koth-you { color: #5fe8e0; }
+.koth-you #koth-you-n { color: #fff; }
+.koth-enemy { color: #ff8a8a; }
+.koth-enemy #koth-enemy-n { color: #fff; }
+.koth-goal {
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.koth-pill {
+  font: 800 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  color: #0b0e12;
+}
+.koth-pill.neutral   { background: #9aa6b2; }
+.koth-pill.you       { background: #39d0c8; box-shadow: 0 0 12px rgba(57, 208, 200, 0.6); }
+.koth-pill.enemy     { background: #ff5a5a; box-shadow: 0 0 12px rgba(255, 90, 90, 0.6); }
+.koth-pill.contested { background: #ffc24d; box-shadow: 0 0 12px rgba(255, 194, 77, 0.6); }
+
+#koth-banner {
+  position: absolute;
+  left: 50%; top: 33%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 14;
+  pointer-events: none;
+  font: 900 44px/1 'Segoe UI', sans-serif;
+  letter-spacing: 5px;
+  animation: onb-pop 0.45s ease-out;
+}
+#koth-banner.hidden { display: none; }
+#koth-banner.good { color: #39d0c8; text-shadow: 0 0 28px rgba(57, 208, 200, 0.65), 0 2px 6px rgba(0,0,0,0.6); }
+#koth-banner.bad { color: #ff5a5a; text-shadow: 0 0 28px rgba(255, 90, 90, 0.6), 0 2px 6px rgba(0,0,0,0.6); }
+#koth-banner.neutral { color: #ffc24d; text-shadow: 0 0 24px rgba(255, 194, 77, 0.55), 0 2px 6px rgba(0,0,0,0.6); }
+
+#koth-results {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 26;
+}
+#koth-results.hidden { display: none; }
+.koth-card { border-top-color: #39d0c8 !important; }
+#kor-title.won  { color: #39d0c8; }
+#kor-title.lost { color: #ff6a6a; }
+.koth-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  margin: 14px 0 6px;
+}
+.koth-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.koth-score span {
+  font: 900 52px/1 'Segoe UI', sans-serif;
+}
+.koth-score.you span { color: #5fe8e0; }
+.koth-score.enemy span { color: #ff8a8a; }
+.koth-score label {
+  margin-top: 4px;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.koth-score-vs {
+  font: 700 16px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+}
 .duel-card h2 { color: #ffb454; letter-spacing: 8px; }
 .duel-card .alr-score { color: #ffca7a; }
 

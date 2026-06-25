@@ -152,6 +152,11 @@ export class Bot implements Damageable {
   private baseHeadColor: number;
   /** TDM respawn anchor (team's spawn area). null = FFA waypoint respawn. */
   homeSpawn: THREE.Vector3 | null = null;
+  /** Optional attract point (King of the Hill hardpoint). When set, an
+   *  un-engaged bot walks toward it (and loiters once there) instead of cycling
+   *  waypoints, so it contests the objective. null = normal waypoint patrol
+   *  (every other mode → behaviour unchanged). */
+  objective: THREE.Vector3 | null = null;
 
   // Re-used vectors.
   private _bodyMin = new THREE.Vector3();
@@ -382,6 +387,9 @@ export class Bot implements Damageable {
   }
 
   private patrol(dt: number) {
+    // King of the Hill: when an attract point is set, head for the hardpoint
+    // and loiter on it (contesting the zone) instead of cycling waypoints.
+    if (this.objective) { this.patrolToObjective(dt); return; }
     const wp = WAYPOINTS[this.currentWaypoint];
     const toX = wp.x - this.position.x;
     const toZ = wp.z - this.position.z;
@@ -401,6 +409,31 @@ export class Bot implements Damageable {
     while (delta > Math.PI) delta -= Math.PI * 2;
     while (delta < -Math.PI) delta += Math.PI * 2;
     this.yaw += delta * Math.min(1, dt * 5);
+  }
+
+  /** King-of-the-Hill steering: walk toward the hardpoint, then loiter on it
+   *  with a small lateral wander so the bot keeps the zone hot. */
+  private patrolToObjective(dt: number) {
+    const obj = this.objective!;
+    const toX = obj.x - this.position.x;
+    const toZ = obj.z - this.position.z;
+    const dist = Math.hypot(toX, toZ);
+    if (dist > 2.5) {
+      const speed = WALK_SPEED * 0.7 * dt;
+      const stepX = (toX / dist) * speed;
+      const stepZ = (toZ / dist) * speed;
+      this.tryStep(_STEP.set(stepX, 0, stepZ));
+      const targetYaw = Math.atan2(-stepX, -stepZ);
+      let delta = targetYaw - this.yaw;
+      while (delta > Math.PI) delta -= Math.PI * 2;
+      while (delta < -Math.PI) delta += Math.PI * 2;
+      this.yaw += delta * Math.min(1, dt * 5);
+    } else {
+      this.sidestepPhase += dt * 1.1;
+      const side = Math.sin(this.sidestepPhase) * WALK_SPEED * 0.4;
+      const sideDir = _SIDE.set(Math.cos(this.yaw + Math.PI / 2), 0, -Math.sin(this.yaw + Math.PI / 2));
+      this.tryStep(sideDir.multiplyScalar(side * dt));
+    }
   }
 
   /** Move by `step` if the destination is clear; else nudge by axis. */
