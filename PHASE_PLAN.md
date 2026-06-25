@@ -1312,3 +1312,38 @@ live with it, the classic Krunker/Halo burst-rifle feel.
   damage/valid-weapon. Versions bumped to v0.37.0 (+ menu subtitle/footer).
 
 ### Phase 37 COMPLETE — additive weapon + burst mechanic, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Equippable hit markers (cosmetic axis) (autonomous build, v0.38.0)
+
+A pure-client, zero-protocol cosmetic round on the "flashy feedback + cosmetics +
+rewards" pillars. The hit marker (the X that flashes the instant you land a hit)
+is the **highest-frequency** feedback in the game — you see it on every connecting
+shot — and Krunker famously sells custom ones. This adds an **8th cosmetic axis**:
+unlockable hit-marker colours, deepening the unlock chase (retention → ad
+impressions) while reusing the proven tracer-cosmetic plumbing end to end.
+
+- **8 hit markers** (Classic White free, then Gold / Cyan / Toxic Lime / Hot
+  Magenta / Violet / Amber / Ice Blue, 300–4000 XP). Only the **normal body-hit**
+  colour changes; the headshot (red) and kill-confirm (glowing red) markers stay
+  fixed so they always read at a glance — readability over flash where it counts.
+- **Exact mirror of the `TRACERS` pattern.** New `HITMARKERS` registry +
+  `findHitmarker` / `DEFAULT_HITMARKER` in `Cosmetics.ts`; `Account` extended
+  migration-safe (`unlockedHitmarkers` + `equippedHitmarker`, default always kept
+  unlocked on old saves) with `isHitmarkerUnlocked` / `equippedHitmarker` /
+  `equippedHitmarkerCss` / `tryUnlockHitmarker` / `equipHitmarker`.
+- **HUD applies it via a CSS variable.** `HUD.flashHitmarker` sets
+  `--hm-color` from `account.equippedHitmarkerCss()`; `.hm` now reads
+  `var(--hm-color, #f2f2f2)`, and the `.headshot`/`.kill` rules still hard-override
+  to red. Zero per-frame cost (set only on the hit flash).
+- **New "Hit Marker" grid** in the Cosmetics tab (a mini-X swatch in each colour),
+  auto-rendered by `CosmeticsUI` alongside the existing grids.
+
+### Status log
+- ✅ Phase 38 — Hit markers. DONE (client + server tsc + client build green; app
+  chunk ~90.6 KB gzip). `HITMARKERS` registry, `Account` hit-marker state +
+  methods (migration-safe), `HUD` `--hm-color` application, `CosmeticsUI` grid +
+  swatch CSS, index section. Versions bumped to v0.38.0 (+ menu subtitle/footer).
+
+### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.

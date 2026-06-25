@@ -415,6 +415,9 @@ export class HUD {
   }
 
   private flashHitmarker(isHeadshot: boolean) {
+    // Apply the equipped hit-marker colour (cosmetic). Headshot/kill CSS rules
+    // still override to red so those always read; this only tints body hits.
+    this.hitmarker.style.setProperty('--hm-color', this.game.account.equippedHitmarkerCss());
     this.hitmarker.classList.remove('fade', 'kill');
     this.hitmarker.classList.toggle('headshot', isHeadshot);
     // Force reflow so re-adding the class restarts the transition.

@@ -181,6 +181,39 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
 
+// ─── Hit markers ────────────────────────────────────────────────────────────
+// The colour of the X that flashes the instant you land a hit — seen on every
+// single shot that connects, so it's the highest-frequency cosmetic in the game
+// (the Krunker "custom hitmarker" staple). Only the normal body-hit colour
+// changes; headshot (red) + kill (glowing red) stay fixed so they always read.
+
+export type HitmarkerId = string;     // e.g. 'hm-white', 'hm-cyan'
+
+export interface HitmarkerConfig {
+  id: HitmarkerId;
+  displayName: string;
+  /** Colour of the normal body-hit marker (hex). */
+  color: number;
+  cost: number;
+}
+
+export const HITMARKERS: ReadonlyArray<HitmarkerConfig> = [
+  { id: 'hm-white',   displayName: 'Classic White', color: 0xf2f2f2, cost: 0    },
+  { id: 'hm-gold',    displayName: 'Gold',          color: 0xffd24a, cost: 300  },
+  { id: 'hm-cyan',    displayName: 'Cyan',          color: 0x5fe8e0, cost: 600  },
+  { id: 'hm-lime',    displayName: 'Toxic Lime',    color: 0xaaff3a, cost: 1000 },
+  { id: 'hm-magenta', displayName: 'Hot Magenta',   color: 0xff4ad6, cost: 1500 },
+  { id: 'hm-violet',  displayName: 'Violet',        color: 0xb060ff, cost: 2200 },
+  { id: 'hm-amber',   displayName: 'Amber',         color: 0xffb020, cost: 3000 },
+  { id: 'hm-ice',     displayName: 'Ice Blue',      color: 0xbfe9ff, cost: 4000 },
+];
+
+export const DEFAULT_HITMARKER: HitmarkerId = 'hm-white';
+
+export function findHitmarker(id: HitmarkerId): HitmarkerConfig | undefined {
+  return HITMARKERS.find((h) => h.id === id);
+}
+
 export type WeaponSkinId = string;    // e.g. 'ar-midas', 'sniper-dragon'
 
 export interface WeaponSkinConfig {

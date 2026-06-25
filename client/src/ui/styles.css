@@ -186,7 +186,7 @@ html, body, #app {
   position: absolute;
   width: 7px;
   height: 2px;
-  background: #f2f2f2;
+  background: var(--hm-color, #f2f2f2);
   box-shadow: 0 0 0 1px rgba(0,0,0,0.6);
 }
 .hm-tl { left: 2px;  top: 9px;  transform: rotate(45deg);  }
@@ -2210,6 +2210,23 @@ body.no-speedlines #speed-lines { display: none; }
   background: var(--body-c);
   box-shadow: 0 0 6px 1px var(--body-c);
 }
+/* Hit-marker swatch — a mini X in the marker's colour (4 corner bars). */
+.cos-card .cos-swatch-hm {
+  position: relative;
+  background: #0d0f14;
+  align-items: center;
+}
+.cos-card .cos-swatch-hm span {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 8px; height: 2px;
+  background: var(--hm-c);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6);
+}
+.cos-card .cos-swatch-hm span:nth-child(1) { transform: translate(-9px, -7px) rotate(45deg); }
+.cos-card .cos-swatch-hm span:nth-child(2) { transform: translate(1px, -7px) rotate(-45deg); }
+.cos-card .cos-swatch-hm span:nth-child(3) { transform: translate(-9px, 5px) rotate(-45deg); }
+.cos-card .cos-swatch-hm span:nth-child(4) { transform: translate(1px, 5px) rotate(45deg); }
 .cos-card .cos-name {
   font: 700 11px/1.2 'Segoe UI', sans-serif;
   letter-spacing: 1px;

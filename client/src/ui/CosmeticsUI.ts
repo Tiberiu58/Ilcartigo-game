@@ -13,9 +13,10 @@
 
 import type { Account } from '../account/Account';
 import {
-  KILL_EFFECTS, TRACERS, FINISHES, skinsForClass, findKillEffect, findTracer, findFinish,
+  KILL_EFFECTS, TRACERS, FINISHES, HITMARKERS, skinsForClass, findKillEffect, findTracer, findFinish, findHitmarker,
   WEAPON_SKIN_ORDER, weaponSkinsFor,
   type SkinConfig, type KillEffectConfig, type TracerConfig, type FinishConfig, type WeaponSkinConfig,
+  type HitmarkerConfig,
 } from '../account/Cosmetics';
 import { CLASS_LIBRARY, CLASS_ORDER, type ClassId } from '../classes/types';
 
@@ -26,6 +27,7 @@ export class CosmeticsUI {
   private effectsEl: HTMLElement;
   private tracersEl: HTMLElement;
   private finishesEl: HTMLElement;
+  private hitmarkersEl: HTMLElement;
   private weaponTabsEl: HTMLElement;
   private weaponSkinsEl: HTMLElement;
   private levelEl: HTMLElement;
@@ -41,6 +43,7 @@ export class CosmeticsUI {
     this.effectsEl = document.getElementById('cos-effects')!;
     this.tracersEl = document.getElementById('cos-tracers')!;
     this.finishesEl = document.getElementById('cos-finishes')!;
+    this.hitmarkersEl = document.getElementById('cos-hitmarkers')!;
     this.weaponTabsEl = document.getElementById('cos-weapon-tabs')!;
     this.weaponSkinsEl = document.getElementById('cos-weapon-skins')!;
     this.levelEl = document.getElementById('cos-level')!;
@@ -57,6 +60,7 @@ export class CosmeticsUI {
     this.renderEffects();
     this.renderTracers();
     this.renderFinishes();
+    this.renderHitmarkers();
     this.renderWeaponSkins();
   }
 
@@ -242,6 +246,38 @@ export class CosmeticsUI {
       if (!this.account.tryUnlockTracer(id, cfg.cost)) return;
     }
     this.account.equipTracer(id);
+  }
+
+  private renderHitmarkers() {
+    if (!this.hitmarkersEl) return;
+    this.hitmarkersEl.innerHTML = HITMARKERS.map((h) => this.hitmarkerCardHtml(h)).join('');
+    this.hitmarkersEl.querySelectorAll<HTMLElement>('[data-hitmarker-id]').forEach((el) => {
+      const id = el.dataset.hitmarkerId!;
+      el.addEventListener('click', () => this.handleHitmarkerClick(id));
+    });
+  }
+
+  private hitmarkerCardHtml(h: HitmarkerConfig): string {
+    const unlocked = this.account.isHitmarkerUnlocked(h.id);
+    const equipped = this.account.equippedHitmarker() === h.id;
+    const status = !unlocked ? `${h.cost} XP` : equipped ? 'EQUIPPED' : 'EQUIP';
+    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    const hex = '#' + h.color.toString(16).padStart(6, '0');
+    // Render a mini hit-marker X in the swatch via the four corner bars.
+    return `<div class="${cls}" data-hitmarker-id="${h.id}" style="--hm-c: ${hex}">
+      <div class="cos-swatch cos-swatch-hm"><span></span><span></span><span></span><span></span></div>
+      <div class="cos-name">${escape(h.displayName)}</div>
+      <div class="cos-status">${status}</div>
+    </div>`;
+  }
+
+  private handleHitmarkerClick(id: string) {
+    if (!this.account.isHitmarkerUnlocked(id)) {
+      const cfg = findHitmarker(id);
+      if (!cfg) return;
+      if (!this.account.tryUnlockHitmarker(id, cfg.cost)) return;
+    }
+    this.account.equipHitmarker(id);
   }
 
   private handleSkinClick(id: string) {

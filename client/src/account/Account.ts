@@ -13,10 +13,10 @@
  */
 
 import {
-  findSkin, findTracer, findFinish, findWeaponSkin,
+  findSkin, findTracer, findFinish, findWeaponSkin, findHitmarker,
   defaultSkinForClass, defaultWeaponSkin, weaponSkinsFor,
-  DEFAULT_KILL_EFFECT, DEFAULT_TRACER, DEFAULT_FINISH,
-  type SkinId, type KillEffectId, type TracerId, type FinishId,
+  DEFAULT_KILL_EFFECT, DEFAULT_TRACER, DEFAULT_FINISH, DEFAULT_HITMARKER,
+  type SkinId, type KillEffectId, type TracerId, type FinishId, type HitmarkerId,
   type WeaponSkinId, type WeaponSkinConfig,
 } from './Cosmetics';
 import type { ClassId } from '../classes/types';
@@ -65,11 +65,13 @@ interface AccountData {
   unlockedEffects: KillEffectId[];
   unlockedTracers: TracerId[];
   unlockedFinishes: FinishId[];
+  unlockedHitmarkers: HitmarkerId[];
   /** Per-class equipped skin. If a class isn't here, the default is used. */
   equippedSkin: Partial<Record<ClassId, SkinId>>;
   equippedKillEffect: KillEffectId;
   equippedTracer: TracerId;
   equippedFinish: FinishId;
+  equippedHitmarker: HitmarkerId;
   /** Lifetime kills per weapon id — drives weapon mastery + skin unlocks. */
   weaponKills: Record<string, number>;
   /** Per-weapon equipped skin id. Missing = the weapon's default skin. */
@@ -173,10 +175,12 @@ function freshData(): AccountData {
     unlockedEffects: [DEFAULT_KILL_EFFECT],
     unlockedTracers: [DEFAULT_TRACER],
     unlockedFinishes: [DEFAULT_FINISH],
+    unlockedHitmarkers: [DEFAULT_HITMARKER],
     equippedSkin: {},
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
     equippedFinish: DEFAULT_FINISH,
+    equippedHitmarker: DEFAULT_HITMARKER,
     weaponKills: {},
     equippedWeaponSkin: {},
     stats: freshStats(),
@@ -216,6 +220,10 @@ export class Account {
         unlockedFinishes: Array.isArray(parsed.unlockedFinishes)
           ? Array.from(new Set([DEFAULT_FINISH, ...parsed.unlockedFinishes]))
           : fresh.unlockedFinishes,
+        // Always keep the default hit marker unlocked even on an older save.
+        unlockedHitmarkers: Array.isArray(parsed.unlockedHitmarkers)
+          ? Array.from(new Set([DEFAULT_HITMARKER, ...parsed.unlockedHitmarkers]))
+          : fresh.unlockedHitmarkers,
         equippedSkin: (parsed.equippedSkin && typeof parsed.equippedSkin === 'object')
           ? parsed.equippedSkin as Partial<Record<ClassId, SkinId>>
           : fresh.equippedSkin,
@@ -228,6 +236,9 @@ export class Account {
         equippedFinish: typeof parsed.equippedFinish === 'string'
           ? parsed.equippedFinish
           : fresh.equippedFinish,
+        equippedHitmarker: typeof parsed.equippedHitmarker === 'string'
+          ? parsed.equippedHitmarker
+          : fresh.equippedHitmarker,
         weaponKills: (parsed.weaponKills && typeof parsed.weaponKills === 'object')
           ? parsed.weaponKills as Record<string, number>
           : fresh.weaponKills,
@@ -290,6 +301,9 @@ export class Account {
   isFinishUnlocked(id: FinishId): boolean {
     return this.data.unlockedFinishes.includes(id);
   }
+  isHitmarkerUnlocked(id: HitmarkerId): boolean {
+    return this.data.unlockedHitmarkers.includes(id);
+  }
 
   /** Equipped skin for the given class, falling back to default. */
   equippedSkinFor(classId: ClassId): SkinId {
@@ -312,6 +326,19 @@ export class Account {
   /** Equipped tracer colour (hex number) — read by Game for local tracers. */
   equippedTracerColor(): number {
     return findTracer(this.equippedTracer())?.color ?? 0xfff0a0;
+  }
+
+  /** Equipped hit marker id, falling back to default if invalid. */
+  equippedHitmarker(): HitmarkerId {
+    const id = this.data.equippedHitmarker;
+    if (this.isHitmarkerUnlocked(id) && findHitmarker(id)) return id;
+    return DEFAULT_HITMARKER;
+  }
+
+  /** Equipped hit-marker colour as a CSS hex string — read by the HUD. */
+  equippedHitmarkerCss(): string {
+    const n = findHitmarker(this.equippedHitmarker())?.color ?? 0xf2f2f2;
+    return '#' + n.toString(16).padStart(6, '0');
   }
 
   /** Equipped weapon finish id, falling back to default if invalid. */
@@ -419,6 +446,24 @@ export class Account {
   equipFinish(id: FinishId): boolean {
     if (!this.isFinishUnlocked(id)) return false;
     this.data.equippedFinish = id;
+    this.save();
+    return true;
+  }
+
+  // ── Hit markers ───────────────────────────────────────────────────────────
+
+  tryUnlockHitmarker(id: HitmarkerId, cost: number): boolean {
+    if (this.isHitmarkerUnlocked(id)) return true;
+    if (this.data.xp < cost) return false;
+    this.data.xp -= cost;
+    this.data.unlockedHitmarkers.push(id);
+    this.save();
+    return true;
+  }
+
+  equipHitmarker(id: HitmarkerId): boolean {
+    if (!this.isHitmarkerUnlocked(id)) return false;
+    this.data.equippedHitmarker = id;
     this.save();
     return true;
   }
