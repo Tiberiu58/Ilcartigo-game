@@ -61,4 +61,11 @@ export const PICKUPS_BY_MAP: Record<string, readonly PickupDef[]> = {
     { id: 3, type: 'health', pos: [  0, 0.6,  16] },
     { id: 4, type: 'health', pos: [  0, 0.6, -16] },
   ],
+  // Voltgrid — solo-only map (same symmetric skeleton); kept for parity.
+  voltgrid: [
+    { id: 1, type: 'health', pos: [ 14, 0.6,   0] },
+    { id: 2, type: 'health', pos: [-14, 0.6,   0] },
+    { id: 3, type: 'health', pos: [  0, 0.6,  16] },
+    { id: 4, type: 'health', pos: [  0, 0.6, -16] },
+  ],
 };

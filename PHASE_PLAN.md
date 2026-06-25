@@ -1347,3 +1347,39 @@ impressions) while reusing the proven tracer-cosmetic plumbing end to end.
   swatch CSS, index section. Versions bumped to v0.38.0 (+ menu subtitle/footer).
 
 ### Phase 38 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — Voltgrid (7th combat map) (autonomous build, v0.39.0)
+
+Fresh content is the highest-leverage "one more game" lever, and a new map
+deepens **every** solo combat mode at once — FFA / TDM / Gun Game / Onslaught /
+Duel / **King of the Hill** + the map selector. ILCARTIGO had six combat maps;
+Phase 39 adds a seventh with a striking new identity: **a neon-night / synthwave
+arena**.
+
+- **Voltgrid** — a near-black floor laced with a glowing magenta grid, dark slate
+  structures rimmed in electric-cyan + neon-magenta, translucent neon-glass cover,
+  low moody lighting so the emissive accents pop. The most striking-looking map,
+  for instant contrast with warm Sandstone, rusty Industrial, steel Cobalt, dusk
+  Overpass and icy Frostline — the Krunker/Tron look.
+- **Built on the proven symmetric Cobalt/Frostline skeleton, verbatim.** Same
+  spawn anchors, central platform, team decks, diagonal cover and jump-pad ring —
+  **byte-for-byte identical collision geometry** (the only new floor detail, the
+  neon grid lines, is non-colliding decoration). So spawn-clearance + TDM fairness
+  carry over from the already-verified skeleton with zero new risk; the identity
+  is pure palette + lighting.
+- **Solo-selectable, zero MP risk.** New `maps/VoltgridMap.ts` registered in
+  `MapId` / `MAPS` + the `COMBAT_MAPS` validation list + a loadout button; health
+  pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in
+  sync). The MP server still defaults to Sandstone and clients adopt the server's
+  map, so Voltgrid needs no protocol/server change.
+
+### Status log
+- ✅ Phase 39 — Voltgrid map. DONE (client + server tsc + client build green; app
+  chunk ~91.2 KB gzip). New `maps/VoltgridMap.ts` (synthwave palette + neon grid
+  + glass cover, identical collision skeleton to the verified Frostline), full
+  wiring (MapId/MAPS/COMBAT_MAPS/loadout), Voltgrid pickups mirrored client +
+  server. Versions bumped to v0.39.0 (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — additive map, no protocol change, solo + MP intact.
