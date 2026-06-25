@@ -686,6 +686,9 @@ export class Game {
     return id;
   }
   private _waveBotSeq = 0;
+  /** Burst-weapon scheduler state — rounds left in the current burst + timer. */
+  private _burstQueue = 0;
+  private _burstTimer = 0;
 
   /** Dispose + drop every ephemeral (wave) bot, leaving the base roster intact. */
   clearSurvivalBots() {
@@ -1303,10 +1306,38 @@ export class Game {
         // Note: in MP, the local damage handler still fires (predicted hit) —
         // the server's Damage event will reconcile if our prediction was wrong.
         this.mp?.sendFire(wpn.config.id, this._eyePos, this._aimDir);
+        // Burst weapons: queue the remaining rounds (Game schedules them below).
+        if (wpn.config.burst && wpn.config.burst > 1) {
+          this._burstQueue = wpn.config.burst - 1;
+          this._burstTimer = wpn.config.burstDelay ?? 0.05;
+        }
       } else if (this.inventory.tryAutoSwapToPistol()) {
         // Primary was empty — auto-swap to pistol, do NOT fire this frame so
         // the user sees the swap animation. Next fire press fires the pistol.
         this.viewmodel.swapTo('pistol');
+      }
+    }
+
+    // Burst scheduler — fire the remaining rounds of a 3-round burst over the
+    // next few ms. Each is a FULL fire (re-read aim, camera recoil, MP sendFire)
+    // so the burst registers all rounds online (single-target/round server-side).
+    if (this._burstQueue > 0) {
+      const bw = this.inventory.current;
+      if (bw.config.burst && !this.playerActor.health.dead && !this.inventory.isSwapping) {
+        this._burstTimer -= dt;
+        while (this._burstQueue > 0 && this._burstTimer <= 0) {
+          this.player.eyePos(this._eyePos);
+          this.player.aimDir(this._aimDir);
+          const kick = bw.fireBurstRound(this._eyePos, this._aimDir, this.player.stanceAccuracyPenalty());
+          if (kick) {
+            this.player.applyRecoil(kick.pitch, kick.yaw);
+            this.mp?.sendFire(bw.config.id, this._eyePos, this._aimDir);
+          }
+          this._burstQueue--;
+          this._burstTimer += bw.config.burstDelay ?? 0.05;
+        }
+      } else {
+        this._burstQueue = 0;   // swapped away / died — abort the burst
       }
     }
 

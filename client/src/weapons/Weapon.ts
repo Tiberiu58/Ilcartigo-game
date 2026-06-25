@@ -63,6 +63,12 @@ export interface WeaponConfig {
   /** If true, shots pierce every enemy in a line until they hit a wall (Railgun).
    *  Solo-only — MP damage is server-authoritative (single-target). */
   pierce?: boolean;
+  /** Rounds fired per trigger pull as a fast burst (Burst Rifle = 3). The first
+   *  round fires on tryFire; Game schedules the rest `burstDelay` apart, each a
+   *  full fire (recoil + MP sendFire) so MP stays correct (single-target/round). */
+  burst?: number;
+  /** Seconds between the rounds of a burst. */
+  burstDelay?: number;
   /** Display class shown in HUD (PRIMARY / SECONDARY). Pistol = SECONDARY. */
   slot: 'primary' | 'secondary';
 }
@@ -279,6 +285,36 @@ export const PISTOL_CONFIG: WeaponConfig = {
   slot: 'secondary',
 };
 
+// Burst Rifle — a 3-round-burst battle rifle. One trigger pull spits a fast,
+// tight 3-round burst (30 dmg/round): a clean burst with a head is lethal, pure
+// body needs a follow-up — the skill-gated precision archetype between the
+// full-auto AR and the semi-auto Marksman. Slow burst cadence rewards commitment.
+export const BURST_CONFIG: WeaponConfig = {
+  id: 'burst',
+  displayName: 'Burst Rifle',
+  fireRate: 3.2,               // BURSTS per second (cooldown between trigger pulls)
+  automatic: false,            // one burst per click
+  magSize: 21,                 // 7 bursts
+  reloadTime: 2.0,
+  reserveAmmo: -1,
+  baseDamage: 30,              // 3×30=90 body (needs a head or a follow-up), head+2body lethal
+  headshotMultiplier: 1.7,
+  maxRange: 200,
+  falloffStart: 35,
+  falloffEnd: 85,
+  falloffMinMultiplier: 0.6,
+  baseSpread: 0.003,           // very tight — precision burst
+  maxSpread: 0.05,
+  spreadPerShot: 0.010,
+  spreadDecay: 0.4,
+  recoilPitch: 0.013,
+  recoilYaw: 0.004,
+  recoilDecay: 0.85,
+  burst: 3,
+  burstDelay: 0.05,
+  slot: 'primary',
+};
+
 export const WEAPON_LIBRARY = {
   ar: AR_CONFIG,
   smg: SMG_CONFIG,
@@ -287,6 +323,7 @@ export const WEAPON_LIBRARY = {
   marksman: MARKSMAN_CONFIG,
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
+  burst: BURST_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;
@@ -426,6 +463,26 @@ export class Weapon {
     }
 
     return { hit: firstHit, recoilKick: kick };
+  }
+
+  /**
+   * Fire one follow-up round of a burst — driven by Game's burst scheduler so
+   * each round re-reads the current aim AND notifies the server (MP-correct).
+   * Bypasses the inter-burst cooldown (that gates trigger *pulls*, not the
+   * rounds within a burst). No-op (returns null) if the mag emptied or a reload
+   * started mid-burst. Returns the per-round camera kick.
+   */
+  fireBurstRound(origin: THREE.Vector3, aim: THREE.Vector3, spreadMultiplier = 1.0): { pitch: number; yaw: number } | null {
+    if (this.reloadRemaining > 0 || this.ammoInMag <= 0) return null;
+    this.ammoInMag--;
+    this.shotIndex++;
+    const yawDir = (this.shotIndex % 2 === 0) ? 1 : -1;
+    const kick = { pitch: this.config.recoilPitch, yaw: this.config.recoilYaw * yawDir };
+    this.recoilPitchAccum += kick.pitch;
+    this.recoilYawAccum += kick.yaw;
+    this.firePellet(origin, aim, spreadMultiplier);
+    this.currentSpread = Math.min(this.config.maxSpread, this.currentSpread + this.config.spreadPerShot);
+    return kick;
   }
 
   /**

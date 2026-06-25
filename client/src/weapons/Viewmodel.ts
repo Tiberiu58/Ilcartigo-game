@@ -320,6 +320,7 @@ const RELOAD_KINDS: Record<WeaponId, ReloadKind> = {
   smg: 'mag',
   marksman: 'mag',
   lmg: 'mag',        // box-mag swap (heavier — see longer dur via reloadTime)
+  burst: 'mag',      // standard mag swap
   sniper: 'bolt',
   shotgun: 'pump',
   pistol: 'slide',
@@ -417,8 +418,21 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   marksman: buildMarksman,
   lmg: buildLMG,
   railgun: buildRailgun,
+  burst: buildBurst,
   pistol: buildPistol,
 };
+
+function buildBurst(p: THREE.Group): number {
+  p.add(box(0.12, 0.13, 0.50, 0x33414d, 0, 0, 0.02));          // receiver (slate)
+  p.add(box(0.09, 0.10, 0.24, 0x232d36, 0, -0.01, 0.32));      // stock
+  p.add(box(0.05, 0.05, 0.60, 0x14181d, 0, 0.02, -0.46));      // barrel
+  p.add(box(0.07, 0.05, 0.20, 0x1c242c, 0, 0.10, -0.02));      // carry handle / sight rail
+  p.add(box(0.05, 0.035, 0.05, 0x6fe3d2, 0, 0.145, -0.10));    // front sight (teal accent)
+  p.add(box(0.07, 0.16, 0.10, 0x202830, 0.0, -0.14, 0.06));    // pistol grip
+  p.add(box(0.08, 0.17, 0.11, 0x2a343d, 0, -0.15, -0.10));     // 3-round mag
+  p.add(box(0.05, 0.05, 0.07, 0x0d1116, 0, 0.02, -0.78));      // muzzle brake
+  return -0.80;
+}
 
 function buildRailgun(p: THREE.Group): number {
   p.add(box(0.15, 0.13, 0.46, 0x202a36, 0, 0, 0));            // sleek body (steel-blue)

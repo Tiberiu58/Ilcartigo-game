@@ -1272,3 +1272,43 @@ build green, never break solo / MP / the audit fixes.
   shared-code change, `Bot.objective`, is null everywhere but koth).
 
 ### Phase 36 COMPLETE — first objective mode, no protocol change, solo + MP intact.
+
+---
+
+## Phase 37 — Burst Rifle (9th weapon, burst-fire mechanic) (autonomous build, v0.37.0)
+
+Back to the brief's first pillar (satisfying shooting / weapon variety). A **9th
+weapon** with the first new firing mechanic since the Railgun's pierce: the
+**Burst Rifle**, a 3-round-burst battle rifle. One trigger pull spits a fast,
+tight 3-round burst (30 dmg/round) — a clean burst with a head is lethal, pure
+body needs a follow-up. It's the skill-gated precision archetype that sits
+between the full-auto AR and the semi-auto Marksman: you commit to a burst and
+live with it, the classic Krunker/Halo burst-rifle feel.
+
+- **MP-correct burst scheduler in `Game`.** The first round fires on `tryFire`;
+  the remaining two are scheduled by a small Game-side burst loop (`_burstQueue`/
+  `_burstTimer`), each a **full fire** — it re-reads current aim, applies camera
+  recoil, and (crucially) calls `mp.sendFire` — so online the server registers
+  **all three** rounds (single-target per round via `SERVER_WEAPONS['burst']`),
+  not just the first. New `Weapon.fireBurstRound` fires one round bypassing the
+  inter-burst cooldown (which gates trigger *pulls*, not rounds), and no-ops if
+  the mag empties mid-burst. The burst aborts cleanly on weapon swap / death.
+- **Additive config only.** New `WeaponConfig.burst` / `burstDelay` (undefined on
+  every other weapon → unchanged), `BURST_CONFIG` + `WEAPON_LIBRARY` entry. The
+  two movement controllers are untouched; the only server change is the additive
+  `burst` damage row + `VALID_WEAPONS` entry (LMG/Railgun precedent).
+- **Full integration:** procedural `buildBurst` viewmodel (no FBX → graceful box
+  fallback like the documented path), `mag` reload animation, `WEAPON_ARCHETYPE`
+  (Burst Rifle) + loadout button + stat card, Gun Game `WEAPON_LABEL`, three
+  mastery skins (Tactical / Vanguard / Crimson) + `WEAPON_SKIN_ORDER`, and a
+  `fire_burst` sound id (silent until an asset lands).
+
+### Status log
+- ✅ Phase 37 — Burst Rifle. DONE (client + server tsc + client build green; app
+  chunk ~90.2 KB gzip). `WeaponConfig.burst`/`burstDelay`, `BURST_CONFIG`,
+  `Weapon.fireBurstRound`, Game burst scheduler (`_burstQueue`/`_burstTimer`,
+  MP-correct per-round `sendFire`), `buildBurst` viewmodel + reload kind,
+  archetype + loadout button + Gun Game label + mastery skins + server
+  damage/valid-weapon. Versions bumped to v0.37.0 (+ menu subtitle/footer).
+
+### Phase 37 COMPLETE — additive weapon + burst mechanic, no protocol change, solo + MP intact.
