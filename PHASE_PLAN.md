@@ -1213,3 +1213,64 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 36 — King of the Hill (zone-control mode) (this round, v0.36.0)
+
+The ninth mode — and the first **objective** mode (every prior combat mode is
+either elimination or survival). King of the Hill is the classic arena-shooter
+hook the roster was missing: a glowing **capture zone** ("the hill") on the map;
+stand inside it *alone* to bank control points toward YOUR score; if only enemies
+are inside, they bank toward the ENEMY score; if both sides are inside it's
+**CONTESTED** and nobody scores. First side to **100** wins → a results card (a
+natural ad breakpoint). The hill **relocates every 22 s**, forcing constant map
+movement and a fresh fight for position — the "constant desire to win the next
+duel" pillar made spatial.
+
+Why it's low-risk + self-contained (mirrors the Onslaught/Duel pattern exactly):
+- **SOLO only, no protocol / server / controller change.** KOTH is a normal
+  combat mode (`isCombatMode('koth')` is true), so the base bot roster runs,
+  bots + player respawn on the usual loops, and every frag flows through the
+  existing kill bus (XP, mastery, killfeed, announcer, scoreboard all "just
+  work").
+- The zone is the ONLY new state: a render marker added to the scene (a
+  translucent capture cylinder + ground ring + central beam, **recoloured by
+  control state** — white neutral / teal-green YOU / red ENEMY / amber
+  CONTESTED) plus a score tally the controller owns. It never touches damage,
+  networking, or the two movement controllers.
+- **Fields the full 5-bot roster** as FFA enemies (KOTH activates the two
+  TDM-only bots too) so the hill is genuinely contested, not a walkover.
+
+**Details**
+- New `modes/KingOfTheHill.ts` (controller: occupancy test each frame → control
+  resolution → point banking → relocation → win check; owns a `zoneInfo()` for
+  the minimap). `GOAL 100`, `SCORE_RATE 7/s` (~14 s clean cap), `RELOCATE_SEC 22`,
+  `HILL_RADIUS 5`. **Banked score persists across relocations** — a clean hold
+  can win a single zone; contesting enemies are what stretch a match out.
+- Zone anchors are derived from the map's FFA spawns pulled half-way to centre
+  (contested space), filtered clear of solids (same `clearOf` test as the
+  power-up pads) — so any map works and the hill can never embed in geometry.
+  Each relocation jumps to the candidate FARTHEST from the current spot so the
+  zone visibly travels.
+- `'koth'` added to `GameMode` + `isCombatMode`; `Game.koth` field + tick hook;
+  `syncBotState` fields all 5 bots as FFA for KOTH. Wiring in `main.ts`: a
+  top-center YOU/ENEMY/status ticker, a center-screen capture/relocate banner
+  (ZONE CAPTURED / ZONE LOST / ⚑ ZONE RELOCATED), a royal-purple **results card**
+  (HILL CAPTURED / HILL LOST + final score + eliminations + match time + bonus
+  XP + ★ NEW FASTEST WIN), a `♛ King of the Hill` menu button (shows lifetime
+  win count), a new `koth` ad slot, and a minimap zone circle coloured by
+  control. Completion XP: **+120 win / +30 loss** (on top of per-kill XP).
+- Persistence: `ilc.koth.wins` (menu badge) + `ilc.koth.best` (fastest win
+  seconds → NEW FASTEST WIN chase). No new sound ids — reuses
+  `pickup_powerup` / `ui_click` / `match_end`.
+
+### Status log
+- ✅ Phase 36 — King of the Hill. DONE (client + server tsc + client build green;
+  app chunk ~89.5 KB gzip). Headless logic smoke verified all three paths: clean
+  hold wins at ~14 s (+120 XP, NEW BEST), sustained contest banks nothing, bot
+  hold drives an enemy win. New `modes/KingOfTheHill.ts`, GameMode/isCombatMode/
+  syncBotState wiring, full main.ts + index.html + styles.css + Minimap + Ads
+  wiring. Versions bumped to v0.36.0 (+ menu subtitle/footer).
+
+### Phase 36 COMPLETE — new objective mode, no protocol change, solo + MP intact.

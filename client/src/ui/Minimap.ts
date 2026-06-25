@@ -177,6 +177,25 @@ export class Minimap {
       ctx.fill();
     });
 
+    // King of the Hill — the capture zone as a coloured circle (control state).
+    const zone = this.game.koth?.zoneInfo();
+    if (zone) {
+      const zx = this.toX(zone.x);
+      const zy = this.toY(zone.z);
+      const zr = Math.max(4, zone.radius * this.scale);
+      const zc = zone.control === 'you' ? '57, 224, 160'
+        : zone.control === 'enemy' ? '255, 77, 77'
+        : zone.control === 'contested' ? '255, 194, 58'
+        : '223, 231, 255';
+      ctx.beginPath();
+      ctx.arc(zx, zy, zr, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${zc}, 0.18)`;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(${zc}, 0.9)`;
+      ctx.stroke();
+    }
+
     // Enemies — red dots. Solo bots, or MP remotes (skip cloaked + dead).
     ctx.fillStyle = '#ff5a5a';
     if (this.game.mp) {
