@@ -1383,3 +1383,29 @@ arena**.
   server. Versions bumped to v0.39.0 (+ menu subtitle/footer).
 
 ### Phase 39 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — Cosmetics expansion (autonomous build, v0.40.0)
+
+A content drop deepening the unlock chase across **four** cosmetic axes (more to
+grind for → longer engagement → more ad impressions). Pure data: the Cosmetics
+UI auto-iterates every registry and `Account`'s default-unlock + migration logic
+is untouched, so the new items appear, unlock and equip with no logic change.
+
+- **+3 kill effects** (Ice Nova / Rose Burst / Voltaic, 5500–8000 XP) → 11 total —
+  seen on every kill.
+- **+3 weapon finishes** (Plasma / Voltline / Obsidian, 5000–7500 XP) → 11 total —
+  seen on the viewmodel the whole time you hold a gun.
+- **+2 tracers** (Rose / Voltaic, 4200/5000 XP) → 12 total — seen on every shot.
+- **+2 hit markers** (Rose / Voltaic, 5000/6500 XP) → 10 total — seen on every hit
+  (the Phase-38 axis, now extended). The synthwave-leaning palette ties into the
+  new Voltgrid map's neon look.
+
+### Status log
+- ✅ Phase 40 — Cosmetics expansion. DONE (client + server tsc + client build
+  green; app chunk ~91.4 KB gzip). Data-only additions to `KILL_EFFECTS` /
+  `FINISHES` / `TRACERS` / `HITMARKERS` in `Cosmetics.ts`. Versions bumped to
+  v0.40.0 (+ menu subtitle/footer).
+
+### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.

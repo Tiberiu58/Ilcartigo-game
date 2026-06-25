@@ -159,6 +159,9 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
   { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
   { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
+  { id: 'nova-ice',      displayName: 'Ice Nova',       particleColor: 0xbfe9ff, tintColor: 0x102838, cost: 5500 },
+  { id: 'burst-rose',    displayName: 'Rose Burst',     particleColor: 0xff7ac0, tintColor: 0x2c0a1e, cost: 6500 },
+  { id: 'shock-volt',    displayName: 'Voltaic',        particleColor: 0x29f0ff, tintColor: 0x06222a, cost: 8000 },
 ];
 
 /**
@@ -177,6 +180,8 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
   { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
   { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
+  { id: 'tracer-rose',    displayName: 'Rose',         color: 0xff7ac0, cost: 4200 },
+  { id: 'tracer-volt',    displayName: 'Voltaic',      color: 0x29f0ff, cost: 5000 },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -206,6 +211,8 @@ export const HITMARKERS: ReadonlyArray<HitmarkerConfig> = [
   { id: 'hm-violet',  displayName: 'Violet',        color: 0xb060ff, cost: 2200 },
   { id: 'hm-amber',   displayName: 'Amber',         color: 0xffb020, cost: 3000 },
   { id: 'hm-ice',     displayName: 'Ice Blue',      color: 0xbfe9ff, cost: 4000 },
+  { id: 'hm-rose',    displayName: 'Rose',          color: 0xff7ac0, cost: 5000 },
+  { id: 'hm-volt',    displayName: 'Voltaic',       color: 0x29f0ff, cost: 6500 },
 ];
 
 export const DEFAULT_HITMARKER: HitmarkerId = 'hm-white';
@@ -343,6 +350,9 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
   { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
   { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
+  { id: 'finish-plasma',   displayName: 'Plasma',     emissive: 0x2a0a3a, swatch: 0xff5ad6, cost: 5000 },
+  { id: 'finish-volt',     displayName: 'Voltline',   emissive: 0x06303a, swatch: 0x29f0ff, cost: 6000 },
+  { id: 'finish-obsidian', displayName: 'Obsidian',   emissive: 0x101018, swatch: 0x6a708a, cost: 7500 },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';
