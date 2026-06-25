@@ -31,6 +31,7 @@ const ROTATE_SEC = 42;          // hardpoint relocates on this cadence
 const ZONE_RADIUS = 5.5;
 const WIN_XP = 150;             // bonus banked on a victory
 const HOLD_XP = 2;              // bonus per point you personally score
+const CAP_XP = 12;             // immediate reward each time you secure the zone
 const WINS_KEY = 'ilc.koth.wins';      // career hardpoint victories (menu badge)
 const BESTCAPS_KEY = 'ilc.koth.bestcaps';  // best captures in a single run (PB)
 
@@ -63,7 +64,8 @@ export class KingOfTheHill {
   private youScore = 0;
   private enemyScore = 0;
   private captures = 0;
-  private runXp = 0;
+  private runXp = 0;            // hold XP (awarded at end)
+  private capXp = 0;            // capture XP (awarded immediately, tracked for the card)
   private control: KothControl = 'neutral';
   private holdAccum = 0;
   private rotateTimer = 0;
@@ -98,6 +100,7 @@ export class KingOfTheHill {
     this.enemyScore = 0;
     this.captures = 0;
     this.runXp = 0;
+    this.capXp = 0;
     this.control = 'neutral';
     this.holdAccum = 0;
     this.anchorIdx = 0;
@@ -162,6 +165,10 @@ export class KingOfTheHill {
       this.recolor();
       if (control === 'you' && prev !== 'you') {
         this.captures++;
+        // Immediate reward for securing the zone — makes each capture feel good
+        // in real time (not just at match end).
+        this.game.account.awardXP(CAP_XP);
+        this.capXp += CAP_XP;
         this.onEvent?.('ZONE CAPTURED', 'good');
       } else if (control === 'enemy') {
         this.onEvent?.('ZONE LOST', 'bad');
@@ -323,9 +330,11 @@ export class KingOfTheHill {
     const isNewBest = this.captures > prevBestCaps;
     if (isNewBest) localStorage.setItem(BESTCAPS_KEY, String(this.captures));
 
-    let xp = this.runXp;
-    if (youWon) xp += WIN_XP;
-    this.game.account.awardXP(xp);
+    // Capture XP was already awarded in real time; award the held-time XP + the
+    // win bonus now. The results card shows the full run total.
+    let endXp = this.runXp;
+    if (youWon) endXp += WIN_XP;
+    this.game.account.awardXP(endXp);
 
     // Stop awarding / animating but leave the meshes for the results card beat;
     // main.ts calls stop() on quit/retry which disposes them.
@@ -334,7 +343,7 @@ export class KingOfTheHill {
       youScore: this.youScore,
       enemyScore: this.enemyScore,
       captures: this.captures,
-      xpEarned: xp,
+      xpEarned: this.runXp + this.capXp + (youWon ? WIN_XP : 0),
       wins,
       isNewBest,
     });

@@ -1409,3 +1409,18 @@ is untouched, so the new items appear, unlock and equip with no logic change.
   v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40.1 — King of the Hill capture juice (patch, v0.40.1)
+
+A small reward-loop polish on the Phase-36 objective mode: securing the zone now
+pays an **immediate +12 XP** (real-time reward, not just at match end) and pops a
+gold **"+SECURED"** toast, so each capture lands with a satisfying beat. Capture
+XP is awarded the moment you flip the zone (tracked separately from the held-time
+XP so the results-card total stays exact — no double-count). Pure client.
+
+- ✅ DONE (client + server tsc + client build green). `KingOfTheHill` `CAP_XP` +
+  `capXp` (immediate award on capture, folded into the results-card total),
+  `ScorePopup.pop('+SECURED','buff')` in main.ts's `onEvent`. Versions bumped to
+  v0.40.1.

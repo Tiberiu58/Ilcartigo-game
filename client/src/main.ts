@@ -394,8 +394,12 @@ game.koth!.onState = (you, enemy, goal, control) => {
 };
 game.koth!.onEvent = (text, kind) => {
   flashKothBanner(text, kind);
-  if (kind === 'good') game.audio.play('kill_feedback');
-  else if (kind === 'bad') game.audio.play('death');
+  if (kind === 'good') {
+    game.audio.play('kill_feedback');
+    ScorePopup.pop('+SECURED', 'buff');   // instant reward feedback on a capture
+  } else if (kind === 'bad') {
+    game.audio.play('death');
+  }
 };
 game.koth!.onEnd = (r: KothResult) => {
   kothTicker.classList.add('hidden');
