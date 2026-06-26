@@ -373,6 +373,7 @@ const kothrRetry = document.getElementById('kothr-retry') as HTMLButtonElement;
 const kothrQuit = document.getElementById('kothr-quit') as HTMLButtonElement;
 let kothBannerTimer = 0;
 
+let lastKothControl = 'neutral';
 game.hardpoint!.onState = (you, enemy, goal, control, rotateIn) => {
   kothYouScore.textContent = String(you);
   kothEnemyScore.textContent = String(enemy);
@@ -384,6 +385,12 @@ game.hardpoint!.onState = (you, enemy, goal, control, rotateIn) => {
     : control === 'contested' ? 'CONTESTED' : 'NEUTRAL';
   kothState.textContent = label;
   kothState.className = `koth-state koth-${control}`;
+  // Control-flip juice: a toast + SFX when you take or lose the zone.
+  if (control !== lastKothControl) {
+    if (control === 'you') { ScorePopup.pop('⚑ ZONE CAPTURED', 'buff'); game.audio.play('pickup_powerup'); }
+    else if (lastKothControl === 'you') { ScorePopup.pop('ZONE LOST', 'xp'); }
+    lastKothControl = control;
+  }
 };
 game.hardpoint!.onHillMove = () => {
   game.audio.play('spawn_protect');
@@ -417,6 +424,7 @@ function showKothResults(r: HardpointResult) {
 function stopHardpoint() {
   if (game.hardpoint?.active) game.hardpoint.stop();
   window.clearTimeout(kothBannerTimer);
+  lastKothControl = 'neutral';
   kothTicker.classList.add('hidden');
   kothBanner.classList.add('hidden');
   kothResults.classList.add('hidden');

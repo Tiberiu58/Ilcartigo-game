@@ -1499,3 +1499,21 @@ bests board. Pure-client, no protocol change.
   (+ menu subtitle/footer).
 
 ### Phase 43 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 44 — KotH zone callouts (autonomous build, v0.44.0)
+
+A tiny feel polish on the newest mode: King of the Hill's only moment-to-moment
+feedback was the ticker quietly changing colour. Now a **control flip** pops a
+callout — "⚑ ZONE CAPTURED" (+ SFX) when you take the zone, "ZONE LOST" when you
+lose it — so holding the hill has the same instant juice the kill-based modes
+have. Pure-client: control-transition detection in the `Hardpoint.onState`
+consumer (`main.ts`), reset to neutral on match start/stop. No protocol change.
+
+### Status log
+- ✅ Phase 44 — KotH zone callouts. DONE (client tsc + build green). `lastKothControl`
+  transition detection → ScorePopup + SFX on capture / loss; reset in
+  `stopHardpoint`. Versions bumped to v0.44.0 (+ menu subtitle/footer).
+
+### Phase 44 COMPLETE — pure client, no protocol change, solo + MP intact.
