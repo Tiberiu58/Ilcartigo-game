@@ -1455,3 +1455,24 @@ grudge concrete + visible.
   footer).
 
 ### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 42 — Cosmetics content drop (autonomous build, v0.42.0)
+
+A pure-data content drop on the "cosmetics / rewards" pillar — more to grind for
+→ longer engagement → more ad impressions. The Cosmetics UI already auto-iterates
+`KILL_EFFECTS` / `TRACERS` / `FINISHES`, and `Account`'s default-unlock +
+migration logic is untouched, so the new items just appear / unlock / equip.
+
+- **+3 kill effects** (Frost Shatter / Golden Nova / Shadow Pulse, 5500–9000 XP)
+  → 11 total — seen on every kill.
+- **+2 tracers** (Sunset / Mint, 4200/5000 XP) → 12 total — seen on every shot.
+- **+2 finishes** (Obsidian / Prismatic, 5000/6500 XP) → 10 total — seen on the
+  viewmodel constantly.
+
+### Status log
+- ✅ Phase 42 — Cosmetics content drop. DONE (client tsc + build green). Data-only
+  additions to `Cosmetics.ts`. Versions bumped to v0.42.0 (+ menu subtitle/footer).
+
+### Phase 42 COMPLETE — pure client, no protocol change, solo + MP intact.

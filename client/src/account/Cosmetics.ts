@@ -159,6 +159,9 @@ export const KILL_EFFECTS: ReadonlyArray<KillEffectConfig> = [
   { id: 'nova-white',    displayName: 'Pure Nova',      particleColor: 0xffffff, tintColor: 0x404050, cost: 2500 },
   { id: 'rift-violet',   displayName: 'Violet Rift',    particleColor: 0xb060ff, tintColor: 0x1c0a30, cost: 3200 },
   { id: 'inferno-red',   displayName: 'Inferno',        particleColor: 0xff4530, tintColor: 0x300a06, cost: 4500 },
+  { id: 'shatter-ice',   displayName: 'Frost Shatter',  particleColor: 0xbfe9ff, tintColor: 0x10303a, cost: 5500 },
+  { id: 'nova-gold',     displayName: 'Golden Nova',    particleColor: 0xffd24a, tintColor: 0x2a2000, cost: 7000 },
+  { id: 'pulse-shadow',  displayName: 'Shadow Pulse',   particleColor: 0x9a6cff, tintColor: 0x140a26, cost: 9000 },
 ];
 
 /**
@@ -177,6 +180,8 @@ export const TRACERS: ReadonlyArray<TracerConfig> = [
   { id: 'tracer-white',   displayName: 'Phase White',  color: 0xffffff, cost: 2000 },
   { id: 'tracer-amber',   displayName: 'Amber',        color: 0xffb020, cost: 2600 },
   { id: 'tracer-ice',     displayName: 'Ice Blue',     color: 0xbfe9ff, cost: 3400 },
+  { id: 'tracer-sunset',  displayName: 'Sunset',       color: 0xff7a3a, cost: 4200 },
+  { id: 'tracer-mint',    displayName: 'Mint',         color: 0x6dffc0, cost: 5000 },
 ];
 
 export const DEFAULT_TRACER: TracerId = 'tracer-gold';
@@ -310,6 +315,8 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
   { id: 'finish-void',     displayName: 'Voidlight',  emissive: 0x2a0a40, swatch: 0xb060ff, cost: 2500 },
   { id: 'finish-verdant',  displayName: 'Verdant',    emissive: 0x0a3318, swatch: 0x36e08a, cost: 3200 },
   { id: 'finish-solar',    displayName: 'Solar Flare',emissive: 0x3a2400, swatch: 0xffb020, cost: 4000 },
+  { id: 'finish-obsidian', displayName: 'Obsidian',   emissive: 0x101018, swatch: 0x2a2e3a, cost: 5000 },
+  { id: 'finish-prism',    displayName: 'Prismatic',  emissive: 0x203038, swatch: 0x7af0ff, cost: 6500 },
 ];
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';
