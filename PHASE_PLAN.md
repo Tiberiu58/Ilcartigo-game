@@ -1397,3 +1397,31 @@ sat between the AR and the Marksman.
   (+ menu subtitle/footer).
 
 ### Phase 39 COMPLETE — additive weapon + new burst mechanic, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — Weapon inspect (autonomous build, v0.40.0)
+
+A small, pure-client feel touch on the brief's "cosmetics / show off" pillar:
+press **T** to **inspect your weapon** — a cosmetic twirl that pulls the gun in
++ up and rotates it so the side faces the camera, giving the earned weapon
+skins / finishes a beauty shot (the Krunker/CS inspect every shooter has).
+
+- New `Viewmodel.playInspect()` + an `inspectPhase` driven in `update()` with a
+  sine envelope (ease in → hold → ease out): position pull-in + lift, a yaw turn
+  to show the side, a muzzle-up tilt and slight roll, layered additively
+  alongside bob/recoil/reload/melee. ~1.3 s.
+- **Never fights combat.** It's a no-op while swapping / reloading / mid-melee /
+  scoped, and firing / reloading / swapping / melee all cancel an in-flight
+  inspect (so it can't desync the pose). Pointer-lock gated at the call site.
+- New `inspect` input `Action` bound to `KeyT`, consumed in `Game.tick`. How-to
+  card + README controls updated.
+
+### Status log
+- ✅ Phase 40 — Weapon inspect. DONE (client + server tsc + client build green).
+  `Viewmodel.playInspect`/`isInspecting` + `inspectPhase` compose in update;
+  cancel hooks in onFire/swapTo/playReload/meleeSwing; `inspect` action (KeyT) +
+  Game.tick consume; howto/README controls. Versions bumped to v0.40.0 (+ menu
+  subtitle/footer).
+
+### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.

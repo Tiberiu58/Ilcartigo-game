@@ -21,6 +21,7 @@ import { getWeaponModel, modelMuzzleZ, onModelReady } from './WeaponModels';
 const SWAP_DURATION = 0.32;       // total time gun is offscreen during swap
 const SWAP_DROP = 0.35;           // y-offset at full swap
 const MELEE_ANIM = 0.22;          // melee swing duration (seconds)
+const INSPECT_ANIM = 1.3;         // cosmetic weapon-inspect twirl duration (seconds)
 
 export class Viewmodel {
   readonly group: THREE.Group;
@@ -39,6 +40,10 @@ export class Viewmodel {
   private reloadPhase = -1;
   private reloadDur = 1.5;
   private reloadKind: ReloadKind = 'mag';
+  // Weapon-inspect animation: 0..1 normalized progress, -1 = idle. A purely
+  // cosmetic "show off the gun" twirl (so earned skins/finishes get a beauty
+  // shot); interrupted by fire / reload / swap / melee.
+  private inspectPhase = -1;
   private restPos = new THREE.Vector3(0.32, -0.28, -0.55);
   private restRot = new THREE.Euler(0, Math.PI, 0); // -Z forward
 
@@ -149,6 +154,7 @@ export class Viewmodel {
     if (id === this.currentId && this.swapPhase < 0) return;
     this.swapPending = id;
     this.swapPhase = 0;
+    this.inspectPhase = -1;   // swapping interrupts an inspect
   }
 
   /** Call on fire — triggers flash + visual kick. No-op while swapping. */
@@ -156,13 +162,26 @@ export class Viewmodel {
     if (this.swapPhase >= 0 || this.hidden) return;
     this.flashTime = 0.06;
     this.recoilOffset = 0.05;
+    this.inspectPhase = -1;   // firing interrupts an inspect
   }
 
   /** Call on melee — triggers a quick slash swing. No-op while swapping. */
   meleeSwing() {
     if (this.swapPhase >= 0 || this.hidden) return;
     this.meleeTime = MELEE_ANIM;
+    this.inspectPhase = -1;
   }
+
+  /** Start a cosmetic weapon-inspect twirl. No-op if busy (swap/reload/melee/
+   *  scoped) so it never fights another animation or interrupts combat. */
+  playInspect() {
+    if (this.swapPhase >= 0 || this.hidden) return;
+    if (this.reloadPhase >= 0 || this.meleeTime > 0 || this.inspectPhase >= 0) return;
+    this.inspectPhase = 0;
+  }
+
+  /** True while an inspect twirl is playing (so a re-press doesn't restart it). */
+  get isInspecting(): boolean { return this.inspectPhase >= 0; }
 
   /**
    * Start a reload animation for the given weapon, filling `duration` seconds
@@ -175,6 +194,7 @@ export class Viewmodel {
     this.reloadKind = RELOAD_KINDS[id] ?? 'mag';
     this.reloadDur = Math.max(0.3, duration);
     this.reloadPhase = 0;
+    this.inspectPhase = -1;   // reloading interrupts an inspect
   }
 
   update(dt: number, playerSpeed: number, isGrounded: boolean) {
@@ -223,6 +243,24 @@ export class Viewmodel {
         this.reloadPhase = -1;
       } else {
         reloadOffset(this.reloadKind, this.reloadPhase, r);
+      }
+    }
+
+    // Inspect — a cosmetic twirl: pull the gun in + up and rotate it so the
+    // side faces the camera (showing off skins/finishes), then return to rest.
+    if (this.inspectPhase >= 0) {
+      this.inspectPhase += dt / INSPECT_ANIM;
+      if (this.inspectPhase >= 1) {
+        this.inspectPhase = -1;
+      } else {
+        // Ease amplitude in/out with a sine envelope (0→1→0).
+        const env = Math.sin(this.inspectPhase * Math.PI);
+        r.x += -0.05 * env;        // pull toward centre-screen
+        r.y += 0.05 * env;         // lift
+        r.z += 0.10 * env;         // bring closer to the camera
+        r.ry += -1.15 * env;       // turn to show the side (skins/finishes)
+        r.rx += 0.35 * env;        // tilt the muzzle up
+        r.rz += -0.25 * env;       // slight roll
       }
     }
 
