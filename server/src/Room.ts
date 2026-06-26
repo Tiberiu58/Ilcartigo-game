@@ -30,7 +30,7 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'railgun', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'railgun', 'burst', 'pistol']);
 
 /**
  * Server-authoritative per-weapon damage. MIRRORS the client's WeaponConfig
@@ -63,6 +63,9 @@ const SERVER_WEAPONS: Record<string, ServerWeapon> = {
   // Railgun online is single-target (no pierce in the protocol — that's a solo
   // bonus); the per-shot damage profile still mirrors the client so it hits hard.
   railgun: { baseDamage: 75, headMul: 2.0,  falloffStart: 240, falloffEnd: 260, falloffMin: 0.9  },
+  // Burst Rifle — each burst shot arrives as its own Fire event, so the server
+  // just applies the per-shot profile (mirrors the client WeaponConfig).
+  burst:   { baseDamage: 28, headMul: 1.9,  falloffStart: 35,  falloffEnd: 85,  falloffMin: 0.6  },
   pistol:  { baseDamage: 22, headMul: 1.7,  falloffStart: 18,  falloffEnd: 55,  falloffMin: 0.55 },
 };
 

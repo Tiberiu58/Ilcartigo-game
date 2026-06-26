@@ -115,6 +115,9 @@ export class WeaponInventory {
   /** Select a specific slot. Returns true if we actually moved. */
   selectSlot(slot: Slot): boolean {
     if (slot === this.active) return false;
+    // Abort any in-flight burst on the weapon we're leaving so it can't resume
+    // firing if we swap back to it later.
+    this.current.cancelBurst();
     this.last = this.active;
     this.active = slot;
     this.scoped = false;

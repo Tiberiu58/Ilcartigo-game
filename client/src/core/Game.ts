@@ -1382,6 +1382,20 @@ export class Game {
       }
     }
 
+    // Burst weapons: drive the queued intra-burst shots automatically (one
+    // trigger pull → a tight burst). No-op for every non-burst weapon.
+    if (!this.playerActor.health.dead) {
+      this.player.eyePos(this._eyePos);
+      this.player.aimDir(this._aimDir);
+      const burstRes = wpn.tickBurst(dt, this._eyePos, this._aimDir, this.player.stanceAccuracyPenalty());
+      if (burstRes) {
+        this.player.applyRecoil(burstRes.recoilKick.pitch, burstRes.recoilKick.yaw);
+        this.applyShake(0.012, 14);
+        this.abilities.notifyPlayerFired();
+        this.mp?.sendFire(wpn.config.id, this._eyePos, this._aimDir);
+      }
+    }
+
     // --- 3. Bots --- (skipped in Practice and MP modes)
     this.player.eyePos(this._eyePos);
     if (!this.mp) {

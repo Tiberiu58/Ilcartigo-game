@@ -1356,3 +1356,44 @@ map with a distinct identity: **a molten steel mill**.
   footer).
 
 ### Phase 38 COMPLETE — additive map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — Burst Rifle (9th weapon) (autonomous build, v0.39.0)
+
+Back to the brief's first pillar (weapon variety / satisfying shooting). A 9th
+weapon and the first new *firing mechanic* since the Railgun's pierce: the
+**Burst Rifle** fires a tight 3-round burst per trigger pull — the
+trigger-discipline archetype every shooter has (Krunker/Halo BR, CS famas) that
+sat between the AR and the Marksman.
+
+- **Identity.** One trigger pull → a 3-shot burst (`burstDelay` 55 ms apart);
+  `fireRate` (3.2) governs the gap between *bursts*. 28 dmg/shot → a clean body
+  burst is 84 (not a kill), so landing a headshot in the burst finishes it —
+  rewards aim + pacing over spray. Tight first shot, mild per-shot bloom + climb.
+- **Mechanic (contained + MP-safe).** New `WeaponConfig.burst`/`burstDelay`;
+  `tryFire` fires shot 1 and queues the rest; new `Weapon.tickBurst(dt, origin,
+  aim, spreadMul)` — driven by `Game.tick` each frame with the live aim — fires
+  the queued shots, returning a `FireResult` so recoil / shake / **MP fire
+  events** all flow through the same paths as a normal shot. The burst aborts
+  cleanly on empty mag (auto-reload), mid-burst reload, or weapon swap
+  (`cancelBurst`, called from `WeaponInventory.selectSlot`). Every **non-burst**
+  weapon is untouched (the burst branch is gated on `config.burst`).
+- **MP.** Each burst shot arrives as its own authoritative `Fire` event (the
+  server has no fire-rate cap), so a new `SERVER_WEAPONS['burst']` profile +
+  `VALID_WEAPONS` entry makes it hit correctly online — no protocol change.
+- **Full integration.** `BURST_CONFIG` + `WEAPON_LIBRARY` entry, a battle-rifle
+  `buildBurst` viewmodel (carry handle + amber sights) + `RELOAD_KINDS` (mag),
+  `WEAPON_ARCHETYPE` ("Burst Rifle") + `WEAPON_LABEL` (Gun Game) + loadout
+  button, and three mastery skins (Tactical / Ember / Royal) + `WEAPON_SKIN_ORDER`.
+
+### Status log
+- ✅ Phase 39 — Burst Rifle. DONE (client + server tsc + client build green;
+  11-assertion headless firing test passed — full 3-round burst over time,
+  inter-burst cooldown gating, swap-cancel, non-burst no-op). `WeaponConfig.burst`/
+  `burstDelay`, `Weapon.tickBurst`/`cancelBurst`, Game.tick burst driver,
+  inventory swap-cancel, viewmodel + reload-kind + archetype + label + loadout +
+  mastery skins, server profile + valid-weapon. Versions bumped to v0.39.0
+  (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — additive weapon + new burst mechanic, no protocol change, solo + MP intact.
