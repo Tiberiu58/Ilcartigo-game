@@ -29,6 +29,15 @@ export class Viewmodel {
   private flashMesh: THREE.Mesh;
   private flashTime = 0;
 
+  // First-person arms — two low-poly arms whose hands grip the gun. Parented to
+  // `group` so they bob/recoil/swap with the weapon. The right hand sits at the
+  // grip, the left at the foregrip; per-weapon Z anchors place them along the
+  // gun. `armSwayPhase` drives a subtle idle/walk sway.
+  private arms: THREE.Group;
+  private rightArm: THREE.Group;     // grip hand (trigger)
+  private leftArm: THREE.Group;      // foregrip hand
+  private armSwayPhase = 0;
+
   private currentId: WeaponId = 'ar';
   private bobPhase = 0;
   private recoilOffset = 0;
@@ -85,6 +94,14 @@ export class Viewmodel {
     this.flashMesh = new THREE.Mesh(flashGeom, flashMat);
     this.group.add(this.flashMesh);
 
+    // First-person arms (built once, repositioned per weapon in buildFor).
+    this.arms = new THREE.Group();
+    this.rightArm = buildArm('right');
+    this.leftArm = buildArm('left');
+    this.arms.add(this.rightArm);
+    this.arms.add(this.leftArm);
+    this.group.add(this.arms);
+
     // When a weapon's FBX model finishes loading, rebuild if it's the one
     // currently held (and we're not mid-swap) so the box is replaced live.
     onModelReady((id) => {
@@ -105,9 +122,8 @@ export class Viewmodel {
    * each MeshLambertMaterial's transparent + opacity. Opacity=1.0 restores.
    */
   setOpacity(o: number) {
-    this.content.traverse((n) => {
-      const m = n as THREE.Mesh;
-      const mat = m.material as THREE.MeshLambertMaterial | undefined;
+    const apply = (n: THREE.Object3D) => {
+      const mat = (n as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined;
       if (!mat) return;
       if (o < 1.0) {
         mat.transparent = true;
@@ -118,7 +134,9 @@ export class Viewmodel {
         mat.opacity = 1;
         mat.depthWrite = true;
       }
-    });
+    };
+    this.content.traverse(apply);
+    this.arms.traverse(apply);   // fade the hands too (Ghost cloak)
   }
 
   /**
@@ -202,6 +220,19 @@ export class Viewmodel {
     const bobX = Math.sin(this.bobPhase * 2) * bobAmp;
     const bobY = Math.abs(Math.cos(this.bobPhase * 2)) * bobAmp * 0.6;
 
+    // Arm walk/idle sway — a gentle secondary motion ON the arms (separate from
+    // the whole-gun bob) so the hands feel like they're riding the stride. Idle
+    // breathes slowly; walking adds a stronger stride sway that ramps with speed.
+    this.armSwayPhase += dt * (1.4 + playerSpeed * 0.35);
+    const moveAmt = Math.min(1, playerSpeed / 7.0);
+    const idleBreath = Math.sin(this.armSwayPhase * 0.8) * 0.006;
+    const strideY = Math.abs(Math.sin(this.armSwayPhase)) * 0.022 * moveAmt;
+    const strideRoll = Math.sin(this.armSwayPhase) * 0.06 * moveAmt;
+    const strideX = Math.cos(this.armSwayPhase) * 0.012 * moveAmt;
+    this.arms.position.set(strideX, idleBreath - strideY, 0);
+    this.arms.rotation.z = strideRoll;
+    this.arms.rotation.x = Math.sin(this.armSwayPhase * 2) * 0.03 * moveAmt;
+
     // Recoil offset decays exponentially.
     this.recoilOffset *= Math.exp(-dt * 18);
 
@@ -274,6 +305,12 @@ export class Viewmodel {
     }
     this.muzzleAnchor.position.set(0, 0.02, muzzleZ);
     this.flashMesh.position.copy(this.muzzleAnchor.position);
+
+    // Position the gripping hands at this weapon's grip anchors.
+    const grips = WEAPON_GRIPS[id];
+    this.rightArm.position.set(grips.rear[0], grips.rear[1], grips.rear[2]);
+    this.leftArm.position.set(grips.front[0], grips.front[1], grips.front[2]);
+
     // Re-apply cosmetics to the freshly-built meshes: skin tint (body colour)
     // and finish (emissive sheen). Both survive weapon swaps this way.
     this.applyTint();
@@ -519,6 +556,56 @@ function box(w: number, h: number, d: number, color: number, x: number, y: numbe
   m.position.set(x, y, z);
   return m;
 }
+
+// ─── First-person arms ──────────────────────────────────────────────────────
+// Low-poly forearm + hand for each side. The arm is built so its HAND sits at
+// the group's local origin (z=0, y=0), with the forearm trailing back+down
+// toward the shoulder (off-screen). buildFor() then just positions each arm
+// group at the weapon's grip anchor and the geometry falls into place.
+
+const SKIN = 0x9c6b4a;        // forearm/hand tone (warm, fits the low-poly look)
+const SLEEVE = 0x394452;      // a short sleeve cuff so it's not all skin
+
+function buildArm(side: 'left' | 'right'): THREE.Group {
+  const g = new THREE.Group();
+  const s = side === 'left' ? -1 : 1;   // left arm comes from the left, etc.
+
+  // Hand — a compact low-poly fist at the origin (grips the gun here), sitting
+  // just under/around the gun.
+  g.add(box(0.07, 0.085, 0.11, SKIN, 0, -0.01, 0));
+  // Knuckles wrapping up over the top of the gun for a "gripping" read.
+  g.add(box(0.075, 0.04, 0.10, SKIN, 0, 0.045, 0));
+  // Thumb on the inboard side.
+  g.add(box(0.028, 0.04, 0.06, SKIN, -s * 0.045, 0.02, 0.0));
+
+  // Forearm — a slim limb angling down + outward + back toward the shoulder
+  // (off the bottom corner of the screen). Built as a child group so we can
+  // rotate the whole limb from the wrist.
+  const limb = new THREE.Group();
+  limb.position.set(0, -0.04, 0.04);
+  limb.rotation.set(0.65, s * 0.30, s * 0.12);   // pitch down + splay outward
+  const forearm = box(0.06, 0.06, 0.34, SKIN, 0, 0, 0.20);
+  limb.add(forearm);
+  // Sleeve cuff partway down.
+  limb.add(box(0.08, 0.08, 0.12, SLEEVE, 0, 0, 0.34));
+  g.add(limb);
+
+  return g;
+}
+
+/** Per-weapon hand grip anchors in viewmodel-local space: where the right
+ *  (trigger) hand and left (foregrip) hand sit. Tuned to each gun's length. */
+interface Grips { rear: [number, number, number]; front: [number, number, number]; }
+const WEAPON_GRIPS: Record<WeaponId, Grips> = {
+  ar:       { rear: [0.0, -0.10, 0.16], front: [-0.02, -0.06, -0.22] },
+  smg:      { rear: [0.0, -0.10, 0.12], front: [-0.02, -0.06, -0.14] },
+  sniper:   { rear: [0.0, -0.10, 0.16], front: [-0.02, -0.06, -0.34] },
+  shotgun:  { rear: [0.0, -0.10, 0.18], front: [-0.02, -0.06, -0.26] },
+  marksman: { rear: [0.0, -0.10, 0.18], front: [-0.02, -0.06, -0.30] },
+  lmg:      { rear: [0.0, -0.10, 0.18], front: [-0.02, -0.08, -0.28] },
+  railgun:  { rear: [0.0, -0.10, 0.14], front: [-0.02, -0.06, -0.30] },
+  pistol:   { rear: [0.0, -0.10, 0.04], front: [0.06, -0.12, 0.02] },  // 2-hand grip near rear
+};
 
 function disposeRecursive(o: THREE.Object3D) {
   o.traverse((n) => {
