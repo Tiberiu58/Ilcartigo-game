@@ -177,6 +177,23 @@ export class Minimap {
       ctx.fill();
     });
 
+    // King-of-the-Hill capture zone — a ring tinted by who controls it.
+    const hp = this.game.hardpoint;
+    if (hp && hp.active) {
+      const hx = this.toX(hp.pos.x);
+      const hy = this.toY(hp.pos.z);
+      const col = hp.control === 'you' ? '#4ce0c0'
+        : hp.control === 'enemy' ? '#ff4a5a'
+        : hp.control === 'contested' ? '#ffd24a' : '#8aa0b0';
+      ctx.beginPath();
+      ctx.arc(hx, hy, 6, 0, Math.PI * 2);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = col + '33';
+      ctx.fill();
+    }
+
     // Enemies — red dots. Solo bots, or MP remotes (skip cloaked + dead).
     ctx.fillStyle = '#ff5a5a';
     if (this.game.mp) {

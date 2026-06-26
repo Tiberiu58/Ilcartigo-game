@@ -1264,3 +1264,55 @@ intact.
   (+ menu subtitle/footer).
 
 ### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 37 — King of the Hill / Hardpoint mode (autonomous build, v0.37.0)
+
+The mode roster was deep but **every** mode was elimination/score-based — there
+was no **objective** mode, the format that creates map-control tension instead
+of pure aim duels. Phase 37 adds **King of the Hill (Hardpoint)**: a rotating
+capture zone you hold to bank points, with the hunting bots naturally crowding
+in to contest it. Mode variety is repeatedly the #1 replay driver in this
+roadmap, and an objective mode is genuinely new ground. Pure-client, **no
+protocol change**, solo + MP intact.
+
+- **The hold-and-contest loop.** A glowing zone (radius 5.2) sits on the map.
+  Stand in it alone → you bank capture points (9/s); a bot in it with you →
+  **CONTESTED** (no one scores); the hill **relocates every 26 s** to the
+  farthest spawn anchor, so you're always repositioning. First side to 100
+  points wins. The enemy is the whole bot pool scored as one — a clean solo
+  "you vs the room" race.
+- **Reuses the FFA combat roster verbatim.** Unlike Onslaught/Duel (which take
+  ownership of the roster), KotH is just `isCombatMode` FFA combat with a
+  scoring zone overlaid — bots spawn, hunt, respawn and die exactly as in solo
+  FFA, so every frag still flows through the kill bus (XP / lifetime stats /
+  killfeed / announcer / **killstreak rewards**). The controller never touches
+  the bots; it only reads positions each frame.
+- **`modes/Hardpoint.ts`** (Game-coupled controller like Onslaught/Duel/AimLab):
+  per-frame presence test (horizontal distance + vertical tolerance so
+  decks/bridges don't false-trigger), exclusive scoring, timed relocation
+  (farthest clear spawn anchor), win check, win-bonus XP (120 win / 30 loss on
+  top of per-kill XP). Hill positions come from `game.mapSpawns` (guaranteed
+  clear of solids — no per-map curation).
+- **Feel / UI.** A translucent 3D capture cylinder + ground disc recoloured by
+  control (teal you / red enemy / gold contested / grey neutral) with a gentle
+  opacity pulse; a HUD ticker (YOU n vs n ENEMY + a split progress bar +
+  CONTESTED/CAPTURING/LOSING pill + relocation countdown); a "⚑ HILL MOVED"
+  banner + SFX on each relocation; a minimap ring tinted by control; a bespoke
+  results card (HILL HELD / OUTHELD + score + eliminations + hill moves + bonus
+  XP) with a `koth` ad slot; and a "⚑ King of the Hill" menu button.
+- **Plumbing.** `'koth'` added to `GameMode` + `isCombatMode` (so bots/respawn/
+  spawn-protection all work) + the killstreak-reward gating; `Game.hardpoint`
+  field + tick; new `koth` ad slot. The solo-FFA kill-goal match-end is gated to
+  `mode==='combat'`, so KotH ends only on capture points.
+
+### Status log
+- ✅ Phase 37 — King of the Hill. DONE (client + server tsc + client build green;
+  headless state-machine test passed — solo-capture win + 120 XP, contested
+  freeze, enemy-alone win, hill relocation). New `modes/Hardpoint.ts`, `'koth'`
+  GameMode + `isCombatMode` + tick + reward gating, full UI (ticker/banner/
+  results/menu/minimap) + `koth` ad slot. Versions bumped to v0.37.0 (+ menu
+  subtitle/footer).
+
+### Phase 37 COMPLETE — solo objective mode, no protocol change, solo + MP intact.

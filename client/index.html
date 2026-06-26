@@ -129,6 +129,23 @@
           <div class="dub-sub" id="dub-sub">ROOKIE</div>
         </div>
 
+        <!-- King-of-the-Hill ticker — top-center. Your capture vs the enemy's,
+             a contested-state pill, and the seconds until the hill relocates.
+             Populated by main.ts via Hardpoint.onState. -->
+        <div id="koth-ticker" class="hidden">
+          <span class="koth-side koth-you">YOU <b id="koth-you-score">0</b></span>
+          <div class="koth-bar"><div id="koth-bar-you"></div><div id="koth-bar-enemy"></div></div>
+          <span class="koth-side koth-enemy"><b id="koth-enemy-score">0</b> ENEMY</span>
+          <span class="koth-state" id="koth-state">NEUTRAL</span>
+          <span class="koth-move">moves in <b id="koth-move-n">26</b>s</span>
+        </div>
+
+        <!-- King-of-the-Hill "HILL MOVED" relocation banner. -->
+        <div id="koth-banner" class="hidden">
+          <div class="kothb-main">⚑ HILL MOVED</div>
+          <div class="kothb-sub">capture the new zone</div>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -302,7 +319,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.36</p>
+          <p class="subtitle">Browser arena shooter · v0.37</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -389,6 +406,7 @@
             <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
             <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
             <button class="menu-btn duel" id="menu-duel">🎯 Duel (1v1 Gauntlet)</button>
+            <button class="menu-btn koth" id="menu-koth">⚑ King of the Hill (vs Bots)</button>
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
@@ -398,7 +416,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.36.0 — Killstreak rewards · Reload animations & weapon colours · 3D weapon models · Duel · Railgun · Power-ups · 6 maps · 8 weapons</div>
+          <div>v0.37.0 — King of the Hill · Killstreak rewards · 3D weapon models · Duel · Railgun · Power-ups · 6 maps · 8 weapons · 9 modes</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -574,6 +592,33 @@
           <div class="alr-buttons">
             <button class="menu-btn primary" id="dur-retry">▸ Play Again</button>
             <button class="menu-btn" id="dur-quit">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- King-of-the-Hill results card. Shown when someone reaches the goal. -->
+      <div id="koth-results" class="hidden">
+        <div class="aimlab-card koth-card">
+          <h2 id="kothr-title">HILL HELD</h2>
+          <p class="alr-sub" id="kothr-sub">you controlled the zone</p>
+
+          <div class="alr-score-wrap">
+            <div class="alr-score" id="kothr-score">0 – 0</div>
+            <div class="alr-score-label">capture points · you vs enemy</div>
+          </div>
+
+          <div class="alr-stats">
+            <div class="alr-stat"><span id="kothr-kills">0</span><label>Eliminations</label></div>
+            <div class="alr-stat"><span id="kothr-captures">0</span><label>Hill Moves</label></div>
+            <div class="alr-stat"><span id="kothr-xp">+0</span><label>Bonus XP</label></div>
+          </div>
+
+          <!-- Ad slot — end-of-match is a natural breakpoint. -->
+          <div class="ad-slot" id="ad-koth" data-ad-slot="koth"></div>
+
+          <div class="alr-buttons">
+            <button class="menu-btn primary" id="kothr-retry">▸ Play Again</button>
+            <button class="menu-btn" id="kothr-quit">Quit to Menu</button>
           </div>
         </div>
       </div>
