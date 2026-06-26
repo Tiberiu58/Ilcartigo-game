@@ -108,6 +108,9 @@ const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
 const rampage = new RampageFX();
 announcer.onStreakChange = (streak) => rampage.setStreak(streak);
+// Killstreak rewards — milestone streaks hand the hot player a tangible perk
+// (resupply / overcharge / heal / haste). Game gates it to solo combat modes.
+announcer.onStreakMilestone = (streak) => game.grantStreakReward(streak);
 // Skill-shot callouts — inspect the live player/weapon state at kill time.
 announcer.resolveKillStyle = (e) => {
   // NO SCOPE: a sniper kill landed without being scoped.

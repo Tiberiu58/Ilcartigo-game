@@ -79,6 +79,11 @@ export class WeaponInventory {
     for (const w of this.weapons) w.reloadMultiplier = m;
   }
 
+  /** Instantly refill both weapons' mags (killstreak RESUPPLY reward). */
+  refillAll() {
+    for (const w of this.weapons) w.refill();
+  }
+
   /** Arena OVERCHARGE power-up — scale outgoing damage on both weapons. */
   setDamageMultiplier(m: number) {
     this.damageMultiplier = m;

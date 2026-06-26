@@ -94,6 +94,9 @@ export class Announcer {
   /** Fired whenever the local killstreak changes (kill / death / reset). Drives
    *  the persistent "ON FIRE" rampage aura. */
   onStreakChange?: (streak: number) => void;
+  /** Fired when the streak hits a milestone tier (3/5/7/10/15/20). Drives the
+   *  killstreak-reward perks (resupply / overcharge / heal / haste). */
+  onStreakMilestone?: (streak: number) => void;
   /** Optional resolver (injected by main.ts) that inspects a local kill + the
    *  live game state and returns a skill-shot style to call out, or null. */
   resolveKillStyle?: (e: KillEvent) => KillStyle | null;
@@ -185,6 +188,9 @@ export class Announcer {
     // Multi-kill (>=2) and streak milestones, as before.
     const multiTier = this.multiCount >= 2 ? tierFor(MULTIKILL_TIERS, this.multiCount) : null;
     const streakTier = STREAK_TIERS[this.streak] ?? null;
+    // Hitting a streak milestone grants a tangible perk (the listener decides
+    // what + whether the current mode fields rewards at all).
+    if (streakTier) this.onStreakMilestone?.(this.streak);
 
     if (special) {
       // Special headline; the multi/streak (if any) rides the subline.

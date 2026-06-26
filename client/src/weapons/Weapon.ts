@@ -358,6 +358,14 @@ export class Weapon {
     this.reloadRemaining = this.config.reloadTime * this.reloadMultiplier;
   }
 
+  /** Instantly top the mag off and cancel any in-flight reload. Used by the
+   *  killstreak RESUPPLY reward (no animation — it's a perk, not a manual
+   *  reload). */
+  refill() {
+    this.reloadRemaining = 0;
+    this.ammoInMag = this.config.magSize;
+  }
+
   update(dt: number) {
     if (this.cooldown > 0) this.cooldown = Math.max(0, this.cooldown - dt);
     if (this.reloadRemaining > 0) {

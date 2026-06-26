@@ -1094,6 +1094,76 @@ export class Game {
     }
   }
 
+  // ── Killstreak rewards (solo-only) ──────────────────────────────────────────
+
+  /** Granted when the Announcer reports a streak milestone (3/5/7/10/15/20).
+   *  Each tier hands the hot player a tangible perk so a streak is worth
+   *  protecting — the core "snowball, then sweat losing it" arena loop. Gated
+   *  to solo combat modes (MP damage/HP is server-authoritative; a client-side
+   *  perk would mislead; Gun Game/Practice keep their own identity). */
+  grantStreakReward(streak: number) {
+    if (this.mp) return;
+    const m = this.mode;
+    if (!(m === 'combat' || m === 'tdm' || m === 'onslaught')) return;
+    if (this.playerActor.health.dead) return;
+
+    let label = '';
+    let color = 0xffd24a;
+    let sound: 'pickup_powerup' | 'pickup_health' = 'pickup_powerup';
+    const now = performance.now();
+    const until = now + Game.POWERUP_DURATION_MS;
+
+    switch (streak) {
+      case 3: // RESUPPLY — top both mags off, no reload needed.
+        this.inventory.refillAll();
+        label = '⚡ RESUPPLY'; color = 0xffd24a;
+        break;
+      case 5: // OVERCHARGE — damage buff (reuses the power-up weapon layer).
+        this.buffDamageUntil = until;
+        this.inventory.setDamageMultiplier(Game.POWERUP_DAMAGE_MULT);
+        label = '🔥 OVERCHARGE'; color = 0xff3b54;
+        break;
+      case 7: // FIELD MEDIC — full heal.
+        this.playerActor.health.heal(this.playerActor.health.max);
+        label = '✚ FIELD MEDIC'; color = 0x6bff8f; sound = 'pickup_health';
+        break;
+      case 10: // RAPID FIRE — fire-rate buff.
+        this.buffHasteUntil = until;
+        this.inventory.setFireRateMultiplier(Game.POWERUP_HASTE_MULT);
+        label = '✦ RAPID FIRE'; color = 0xffc23a;
+        break;
+      case 15: // SECOND WIND — full heal + resupply.
+        this.playerActor.health.heal(this.playerActor.health.max);
+        this.inventory.refillAll();
+        label = '✦ SECOND WIND'; color = 0x6bff8f; sound = 'pickup_health';
+        break;
+      default: // 20+ — OVERDRIVE: everything at once.
+        this.playerActor.health.heal(this.playerActor.health.max);
+        this.inventory.refillAll();
+        this.buffDamageUntil = until;
+        this.inventory.setDamageMultiplier(Game.POWERUP_DAMAGE_MULT);
+        this.buffHasteUntil = until;
+        this.inventory.setFireRateMultiplier(Game.POWERUP_HASTE_MULT);
+        label = '☠ OVERDRIVE'; color = 0xc84aff;
+        break;
+    }
+
+    // Feedback: SFX + a player burst + a screen-edge flash + a perk toast.
+    this.audio.play(sound);
+    this.player.eyePos(this._eyePos);
+    this.castFX.flash(this._eyePos, color, 0.5, 1.8, 0.4);
+    ScorePopup.pop(label, 'buff');
+    this.applyShake(0.018, 11);
+    const el = document.getElementById('powerup-flash');
+    if (el) {
+      el.style.setProperty('--pu-flash', `#${color.toString(16).padStart(6, '0')}`);
+      el.classList.remove('show');
+      void el.offsetWidth;
+      el.classList.add('show');
+      window.setTimeout(() => el.classList.remove('show'), 420);
+    }
+  }
+
   /** Active power-up buffs for the HUD tray (kind + remaining fraction 0..1). */
   powerupBuffs(): Array<{ kind: PowerupType; frac: number; seconds: number }> {
     const now = performance.now();

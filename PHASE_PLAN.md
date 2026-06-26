@@ -1213,3 +1213,54 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 34 — 3D weapon models (v0.34.0) · Phase 35 — reload animations + weapon colours (v0.35.0)
+
+(See README "3D weapon models (v0.34.0)" + the v0.35.0 status banner for the full
+write-ups — real FBX viewmodels, de-rigging, auto-normalize/orient, per-weapon
+reload motions timed to the reload window, and material-name-derived colours.)
+
+---
+
+## Phase 36 — Killstreak Rewards (autonomous build, v0.36.0)
+
+The streak system popped escalating *banners* (KILLING SPREE → LEGENDARY) and a
+persistent "ON FIRE" aura, but a streak paid out nothing tangible — so dying
+cost only bragging rights. Phase 36 closes the core arena-shooter loop:
+**milestones now hand the hot player a real perk**, so a streak is worth
+protecting and losing it stings — exactly the "snowball, then sweat the next
+duel" tension the brief asks for. Pure-client, **no protocol change**, solo + MP
+intact.
+
+- **Perks per milestone** (the Announcer already owns the streak count):
+  - **3 — ⚡ RESUPPLY**: both mags topped off instantly (no reload).
+  - **5 — 🔥 OVERCHARGE**: ×1.7 weapon damage (reuses the power-up weapon layer).
+  - **7 — ✚ FIELD MEDIC**: full heal to max HP.
+  - **10 — ✦ RAPID FIRE**: ×1.55 fire rate.
+  - **15 — ✦ SECOND WIND**: full heal + resupply.
+  - **20 — ☠ OVERDRIVE**: heal + resupply + overcharge + rapid fire at once.
+- **Clean wiring.** New `Announcer.onStreakMilestone(streak)` fires when a
+  `STREAK_TIERS` entry pops; `main.ts` routes it to a new
+  `Game.grantStreakReward(streak)` that owns the gating + reward + feedback.
+  Reuses the existing buff timers (so perks clear on death / fresh match through
+  the same `clearBuffs` edges — you lose your snowball when you die), plus new
+  `Weapon.refill()` / `WeaponInventory.refillAll()` for the resupply.
+- **Gated to solo combat modes** (`combat` / `tdm` / `onslaught`): MP damage + HP
+  are server-authoritative (a client perk would mislead), Gun Game keeps its
+  ladder identity, Practice/Aim Lab/Duel don't field it (Duel is single-elim so
+  streaks never build). Dead-player guard so a perk can't fire post-mortem.
+- **Feedback.** Each perk plays an SFX (`pickup_powerup`/`pickup_health`), a
+  `CastFX` burst at the player, a coloured `#powerup-flash` screen-edge pulse,
+  screen-shake, and a perk-coloured `ScorePopup` toast — riding alongside the
+  existing streak banner.
+
+### Status log
+- ✅ Phase 36 — Killstreak Rewards. DONE (client + server tsc + client build
+  green). `Announcer.onStreakMilestone`, `Game.grantStreakReward` (mode/MP/dead
+  gating + 6 perk tiers + reused buff timers + feedback), `Weapon.refill` +
+  `WeaponInventory.refillAll`, main.ts wiring. Versions bumped to v0.36.0
+  (+ menu subtitle/footer).
+
+### Phase 36 COMPLETE — pure client, no protocol change, solo + MP intact.
