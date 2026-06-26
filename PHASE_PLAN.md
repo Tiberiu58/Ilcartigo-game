@@ -1316,3 +1316,43 @@ protocol change**, solo + MP intact.
   subtitle/footer).
 
 ### Phase 37 COMPLETE — solo objective mode, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Foundry (7th combat map) (autonomous build, v0.38.0)
+
+Fresh content is the highest-leverage "one more game" lever in an arena shooter,
+and a new map deepens **every** solo combat mode at once (FFA / TDM / Gun Game /
+Onslaught / Duel / King of the Hill + the map selector). Phase 38 adds a seventh
+map with a distinct identity: **a molten steel mill**.
+
+- **Foundry** — dark plate-metal structures, a scorched-steel floor, glowing
+  orange **lava channels** (decoration-only — non-colliding thin emissive strips,
+  so they read as hazard but never trap movement), warm-orange neon trim, a
+  furnace-haze fog and warm key lighting. The hottest-looking map, for instant
+  contrast with warm Sandstone, rusty Industrial, steel-blue Cobalt, dusk
+  Overpass and frozen Frostline.
+- **Built on the proven symmetric Cobalt/Frostline skeleton** — the collision
+  geometry (perimeter, central platform + core pillar, N/S team decks with
+  parapets, diagonal slag cover, E/W flank walls, low steppable mounds, 8 jump
+  pads) mirrors the already-verified TDM-fair layout, then fully re-themed +
+  re-materialled. So the map is known-safe by construction; verticality stays
+  jump-pad-driven (no step-up-snagging ledges).
+- **Solo-selectable, zero MP risk.** New `maps/FoundryMap.ts` registered in
+  `MapId` / `MAPS` / the loadout map grid / the `COMBAT_MAPS` validation list;
+  health pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts`
+  (kept in sync). The MP server still defaults to Sandstone and clients adopt
+  the server's map, so Foundry needs no protocol/server change.
+- **Verified geometry headlessly** — a mock-World harness ran the real `build()`
+  and asserted **all 4 FFA + 2 TDM spawns sit clear of every solid** (and 8 jump
+  pads built).
+
+### Status log
+- ✅ Phase 38 — Foundry map. DONE (client + server tsc + client build green;
+  headless spawn-clearance test passed — all spawns clear, 8 pads). New
+  `maps/FoundryMap.ts` (molten steel-mill palette, non-colliding lava channels,
+  ember-orange accents), full wiring (MapId/MAPS/menu/COMBAT_MAPS), Foundry
+  pickups mirrored client+server. Versions bumped to v0.38.0 (+ menu subtitle/
+  footer).
+
+### Phase 38 COMPLETE — additive map, no protocol change, solo + MP intact.
