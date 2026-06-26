@@ -1213,3 +1213,79 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phases 34–35 (shipped on branch, between v0.33.0 and here)
+
+These landed directly on the working branch (logged in README, summarized here for
+the plan's record):
+- **v0.34.0 — real 3D weapon models.** First-person viewmodel shows detailed FBX
+  guns instead of procedural boxes (lazy-loaded, de-rigged SkinnedMesh→static
+  Mesh, auto-normalized + muzzle-forward, graceful box fallback).
+- **v0.35.0 — per-weapon reload animations + weapon colours.** Mechanism-correct
+  reload motions per weapon, FBX colours reconstructed from material names + a
+  per-file index palette.
+
+---
+
+## Phase 36 — Procedural audio (the game now has sound) (autonomous build, v0.36.0)
+
+The single biggest gap between ILCARTIGO and Krunker was that **the shipped build
+was completely silent.** Every one of the 48 sound ids in `AudioManager` mapped to
+a `.wav` file that doesn't exist (the directory `client/public/assets/sounds/`
+isn't even present), and the manager is "silent if missing" by design — so combat
+had **no audio at all.** For a game whose entire pitch is *satisfying shooting
+mechanics + flashy hit/kill feedback*, the missing audio channel was the
+highest-leverage fix available. Phase 36 closes it with **runtime synthesis** —
+real, juicy SFX with **zero asset files** — pure-client, no protocol change, solo
++ MP both intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **New `client/src/audio/SynthEngine.ts`** — a Web Audio synthesizer. ONE lazily
+  created `AudioContext` (resumed on the first user gesture per autoplay policy),
+  a master gain, and a single shared white-noise buffer back every sound. Cheap
+  per-voice nodes (oscillator / buffer-source / biquad filter / gain envelope) are
+  scheduled and auto-freed when they stop. Low-level voice helpers (`tone` with
+  optional pitch ramp, filtered `noise` burst, `blip`, `arp`), then a `render(id)`
+  switch mapping **all 48 sound ids** to hand-tuned recipes:
+  - **Per-weapon gunshots** via a shared `gun()` shape parameterised by body
+    pitch / noise band / decay / level — AR punchy, SMG light+fast, sniper +
+    shotgun big with a low rumble tail, pistol short crack, LMG chug; the
+    **railgun** is a bespoke sci-fi pitch-sweep + crackle; the **grenade** is a
+    low boom + broadband blast + rumble.
+  - **Hitmarkers** — bright two-tone tick (body) / higher ding (headshot), and the
+    pitch **rises with the hit-confirm chain** via the existing `rate` arg.
+  - Reload clicks (mag-out / mag-in), empty click, footsteps, jump / land /
+    jump-pad, the six ability whooshes, death / respawn / spawn-protect, kill
+    confirm, level-up, match-end fanfare, UI click, heartbeat, health + power-up
+    pickups, melee whoosh, and **escalating announcer stings** (first-blood /
+    revenge / comeback + multi-double→monster + streak_3→20 as rising arpeggios).
+- **Wired at the one chokepoint.** `AudioManager` now owns a `SynthEngine` and
+  routes `play()` / `playSpatial()` through it by default, so **every existing
+  call site got sound for free** — no Game/HUD/main.ts changes. Spatial events
+  pass the already-computed stereo pan to a `StereoPannerNode`; the rising
+  hitmarker passes `rate`. Volumes + mute still apply (the synth receives the
+  already-multiplied master·sfx·falloff gain).
+- **Authored-audio path preserved via a manifest.** A dropped-in `.wav` still
+  wins, but only if its id is listed in an optional
+  `/assets/sounds/manifest.json` (JSON array of sound ids). `AudioManager`
+  best-effort-fetches it on boot; listed ids lazily load their Howl and override
+  the synth once ready, while the first play still synthesizes instantly. With no
+  manifest (the default) there are **zero 404s** — 100% synth. README audio guide
+  updated to document the new workflow.
+
+### Status log
+- ✅ Phase 36 — Procedural audio. DONE (client + server tsc + client build green;
+  app chunk ~89.5 KB gzip, +2.2 KB for the whole engine — no new deps). New
+  `audio/SynthEngine.ts` (all 48 ids covered — cross-checked, none fall to the
+  neutral-tick default), `AudioManager` synth routing + wav-override manifest +
+  `wavCandidates`/`wavReady` tracking. Web Audio node graph (oscillators, biquad
+  filters, exponential ramps, StereoPanner, noise buffer) validated in real
+  headless Chromium — context runs at 44.1 kHz, voices schedule, panner created,
+  zero errors. Versions bumped to v0.36.0 (+ menu subtitle/footer). README status
+  + audio asset guide updated.
+
+### Phase 36 COMPLETE — full procedural SFX, no protocol change, no new deps, solo + MP intact.
