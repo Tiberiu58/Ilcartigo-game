@@ -10,6 +10,7 @@ import type { WeaponInventory } from '../weapons/WeaponInventory';
 import type { AbilityRunner } from '../classes/AbilityRunner';
 import type { PlayerController } from '../entities/PlayerController';
 import { Game } from '../core/Game';
+import { ScorePopup } from './ScorePopup';
 
 const KILLFEED_MAX = 5;
 const KILLFEED_TTL = 5000; // ms
@@ -40,6 +41,9 @@ export class HUD {
   private msYouKills: HTMLElement;
   private msGoal: HTMLElement;
   private msLeader: HTMLElement;
+  /** Whether the local player currently leads the FFA race (for a one-shot
+   *  "TOOK THE LEAD" callout on the rising edge). */
+  private leadIsMine = false;
   private respawnCountdown: HTMLElement;
   private rcTimer: HTMLElement;
   private rcRecap: HTMLElement;
@@ -373,17 +377,29 @@ export class HUD {
     this.msYouKills.textContent = String(myKills);
     this.msGoal.textContent = String(Game.MATCH_KILL_GOAL);
 
-    // Find current leader.
+    // Find current leader + the best score among everyone else (for a strict
+    // "am I leading?" test that doesn't fire on ties).
     let leaderId = myId;
     let leaderKills = myKills;
+    let maxOther = 0;
     for (const [id, k] of this.game.matchKills) {
       if (k > leaderKills) { leaderId = id; leaderKills = k; }
+      if (id !== myId && k > maxOther) maxOther = k;
     }
     if (leaderId === myId) {
       this.msLeader.textContent = 'you lead';
     } else {
       this.msLeader.textContent = `leader: ${this.game.displayNameFor(leaderId)} (${leaderKills})`;
     }
+
+    // One-shot "TOOK THE LEAD" callout on the rising edge (strictly ahead, with
+    // at least one kill). Self-resets when kills clear on a fresh match.
+    const iLead = myKills > maxOther && myKills > 0;
+    if (iLead && !this.leadIsMine) {
+      ScorePopup.pop('★ TOOK THE LEAD', 'buff');
+      this.game.audio.play('kill_feedback');
+    }
+    this.leadIsMine = iLead;
   }
 
   /**

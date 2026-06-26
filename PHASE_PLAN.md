@@ -1517,3 +1517,25 @@ consumer (`main.ts`), reset to neutral on match start/stop. No protocol change.
   `stopHardpoint`. Versions bumped to v0.44.0 (+ menu subtitle/footer).
 
 ### Phase 44 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 45 — "Took the lead" callout (autonomous build, v0.45.0)
+
+A small competitive-drama beat on the kill-race (the "win the next duel" pillar):
+in FFA combat (solo + online) the moment you pull **strictly ahead** of the
+whole field, a "★ TOOK THE LEAD" toast + sting fires. Makes the standings feel
+alive and pushes you to stay on top → longer sessions. Pure-client, no protocol
+change.
+
+- Rising-edge detection in `HUD.tickMatchScore` (it already computes the FFA
+  leader): tracks `leadIsMine`; fires once when `myKills > maxOther && myKills >
+  0` becomes true. Self-resets when kills clear on a fresh match. Works in solo
+  and MP (both populate `game.matchKills`).
+
+### Status log
+- ✅ Phase 45 — Took-the-lead callout. DONE (client tsc + build green).
+  `HUD.leadIsMine` edge + `maxOther` strict-lead test → ScorePopup + sting.
+  Versions bumped to v0.45.0 (+ menu subtitle/footer).
+
+### Phase 45 COMPLETE — pure client, no protocol change, solo + MP intact.
