@@ -29,6 +29,7 @@ const SCORE_RATE = 9;           // points/sec while you hold it uncontested
 const ROTATE_SEC = 26;          // the hill relocates this often
 const HILL_RADIUS = 5.2;        // capture radius (horizontal, world units)
 const HILL_VTOL = 4.5;          // vertical tolerance so decks/bridges don't false-trigger
+const WINS_KEY = 'ilc.koth.wins';  // lifetime KotH wins (a persistent "improve" hook)
 
 export type HillControl = 'neutral' | 'you' | 'enemy' | 'contested';
 
@@ -227,6 +228,10 @@ export class Hardpoint {
     const bonus = youWon ? 120 : 30;
     this.game.account.awardXP(bonus);
     this.runXp += bonus;
+    // Persist a lifetime win count — the KotH "improve" hook (menu + Profile).
+    if (youWon) {
+      localStorage.setItem(WINS_KEY, String(Hardpoint.totalWins() + 1));
+    }
     if (this.group) this.group.visible = false;
     this.onEnd?.({
       youWon,
@@ -235,6 +240,11 @@ export class Hardpoint {
       captures: this.captures,
       xpEarned: this.runXp,
     });
+  }
+
+  /** Lifetime King-of-the-Hill wins (for the menu button + Profile). */
+  static totalWins(): number {
+    return Number(localStorage.getItem(WINS_KEY) ?? 0);
   }
 
   private emit() {

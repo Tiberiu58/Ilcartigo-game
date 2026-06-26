@@ -798,6 +798,7 @@ function quitToMenu() {
   kothTicker.classList.add('hidden');
   refreshOnslaughtButton();
   refreshDuelButton();
+  refreshKothButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
   // Refresh the loadout card so mastery progress earned this match shows.
@@ -991,6 +992,13 @@ function refreshDuelButton() {
   menuDuel.textContent = best > 0 ? `🎯 Duel · best streak ${best}` : '🎯 Duel (1v1 Gauntlet)';
 }
 refreshDuelButton();
+
+/** Surface the lifetime King-of-the-Hill win count on its menu button. */
+function refreshKothButton() {
+  const wins = Hardpoint.totalWins();
+  menuKoth.textContent = wins > 0 ? `⚑ King of the Hill · ${wins} wins` : '⚑ King of the Hill (vs Bots)';
+}
+refreshKothButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {

@@ -1476,3 +1476,26 @@ migration logic is untouched, so the new items just appear / unlock / equip.
   additions to `Cosmetics.ts`. Versions bumped to v0.42.0 (+ menu subtitle/footer).
 
 ### Phase 42 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 43 — KotH records + Profile bests polish (autonomous build, v0.43.0)
+
+A small follow-up that gives the new King-of-the-Hill mode the same persistent
+"beat your record" hook every other solo mode has, and rounds out the Profile
+bests board. Pure-client, no protocol change.
+
+- **KotH lifetime wins** persisted (`ilc.koth.wins`, incremented in
+  `Hardpoint.endRun` on a win; `Hardpoint.totalWins()` reader), surfaced on the
+  "⚑ King of the Hill · N wins" menu button (new `refreshKothButton`, called on
+  boot + quit-to-menu) and in the Profile → Bests grid.
+- **Profile bests** also now shows **Match Kills** (`ilc.bestMatchKills`, already
+  set on the post-match overlay) alongside Aim Lab / Onslaught / Duel / KotH.
+
+### Status log
+- ✅ Phase 43 — KotH records. DONE (client tsc + build green). `Hardpoint`
+  `WINS_KEY`/`totalWins`/win-persist, `refreshKothButton` (boot + quit),
+  ProfileUI bests grid +KotH Wins +Match Kills. Versions bumped to v0.43.0
+  (+ menu subtitle/footer).
+
+### Phase 43 COMPLETE — pure client, no protocol change, solo + MP intact.

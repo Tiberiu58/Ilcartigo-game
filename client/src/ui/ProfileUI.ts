@@ -90,6 +90,20 @@ export class ProfileUI {
           <span class="stat-val">${duelBest}</span>
           <span class="stat-label">Duel Streak</span>
         </div>`);
+    // King of the Hill lifetime wins.
+    const kothWins = Number(localStorage.getItem('ilc.koth.wins')) || 0;
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${kothWins}</span>
+          <span class="stat-label">KotH Wins</span>
+        </div>`);
+    // Most kills in a single match (set on the post-match overlay).
+    const bestKills = Number(localStorage.getItem('ilc.bestMatchKills')) || 0;
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${bestKills}</span>
+          <span class="stat-label">Match Kills</span>
+        </div>`);
     this.aimlabBests.innerHTML = cells.join('');
   }
 
