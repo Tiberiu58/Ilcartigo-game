@@ -1539,3 +1539,23 @@ change.
   Versions bumped to v0.45.0 (+ menu subtitle/footer).
 
 ### Phase 45 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 46 — Prestige player skins (autonomous build, v0.46.0)
+
+A premium top tier for the most-visible cosmetic — your character, seen by every
+other player in MP. Adds a 7th skin to each of the 6 classes (a new
+`SKIN_COSTS[6] = 6000` tier): Eclipse Lord (Phantom), Phoenix Lord (Rush), Aegis
+Lord (Vanguard), Phantom Lord (Ghost), Forge Lord (Engineer), Apex Lord (Hunter)
+— 36 → 42 player skins. A real long-grind chase target. Pure data: the Cosmetics
+tab auto-iterates `SKINS` and `Account`'s default-unlock + migration logic is
+untouched, so the new skins appear / unlock / equip with no logic change and old
+saves load cleanly.
+
+### Status log
+- ✅ Phase 46 — Prestige player skins. DONE (client tsc + build green).
+  `SKIN_COSTS` +6000 tier + one prestige variant per class in `SKINS`. Versions
+  bumped to v0.46.0 (+ menu subtitle/footer).
+
+### Phase 46 COMPLETE — pure client, no protocol change, solo + MP intact.
