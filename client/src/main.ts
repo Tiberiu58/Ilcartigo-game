@@ -32,6 +32,7 @@ import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
 import { preloadWeaponModels } from './weapons/WeaponModels';
+import { preloadCharacter } from './networking/CharacterModel';
 import { LOGIN_REWARDS } from './account/Account';
 import { WEAPON_LIBRARY, type WeaponId } from './weapons/Weapon';
 import { weaponSkinsFor } from './account/Cosmetics';
@@ -1492,6 +1493,8 @@ Ads.init();
 // Warm the FBX weapon models off the critical path. The viewmodel falls back to
 // box geometry until each lands, then swaps the real model in (onModelReady).
 preloadWeaponModels();
+// Warm the rigged character model (remote MP players). Box figure until ready.
+preloadCharacter();
 
 game.start();
 

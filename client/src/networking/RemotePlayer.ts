@@ -13,6 +13,7 @@
 import * as THREE from 'three';
 import type { PlayerSnapshot } from './Protocol';
 import { findSkin } from '../account/Cosmetics';
+import { createCharacterInstance, type CharacterInstance } from './CharacterModel';
 
 const INTERP_DELAY_MS = 100;
 const BUFFER_MS = 1000;       // keep 1s of history
@@ -35,7 +36,16 @@ export class RemotePlayer {
   readonly group: THREE.Group;
   private body: THREE.Mesh;
   private head: THREE.Mesh;
+  private eye: THREE.Mesh;
   private buffer: BufferedSnap[] = [];
+
+  // Animated character model (loaded async). While null, the box figure shows;
+  // once ready the box is hidden and this drives Idle/Run/Death animations.
+  private character: CharacterInstance | null = null;
+  private charClip: 'Idle' | 'Run' | 'Death' = 'Idle';
+  /** Interpolated horizontal speed (units/s), for Idle↔Run switching. */
+  private interpSpeed = 0;
+  private prevPos: [number, number, number] | null = null;
 
   /** Mutable state read by HUD / damage numbers / cloak check. */
   hp = 100;
@@ -73,14 +83,26 @@ export class RemotePlayer {
     this.group.add(this.head);
 
     // Eye band so facing reads from across the map.
-    const eye = new THREE.Mesh(
+    this.eye = new THREE.Mesh(
       new THREE.BoxGeometry(0.24, 0.05, 0.02),
       new THREE.MeshBasicMaterial({ color: 0xfff0a0 }),
     );
-    eye.position.set(0, HEAD_OFFSET + HEAD_SIZE / 2, -HEAD_SIZE / 2 - 0.01);
-    this.group.add(eye);
+    this.eye.position.set(0, HEAD_OFFSET + HEAD_SIZE / 2, -HEAD_SIZE / 2 - 0.01);
+    this.group.add(this.eye);
 
     scene.add(this.group);
+
+    // Try to upgrade to the animated character model. Until it resolves (or if
+    // it fails) the box figure above stays. Once ready, hide the box parts and
+    // add the character; re-apply any skin tint that already arrived.
+    void createCharacterInstance().then((inst) => {
+      if (!inst) return;
+      this.character = inst;
+      this.body.visible = false;
+      this.head.visible = false;
+      this.eye.visible = false;
+      this.group.add(inst.group);
+    });
   }
 
   /** Buffer a snapshot from the server. */
@@ -111,7 +133,7 @@ export class RemotePlayer {
   }
 
   /** Apply interpolated transform at `nowMs`. Called once per render frame. */
-  render(nowMs: number) {
+  render(nowMs: number, dt = 1 / 60) {
     const target = nowMs - INTERP_DELAY_MS;
     const b = this.buffer;
     if (b.length === 0) return;
@@ -142,13 +164,41 @@ export class RemotePlayer {
       }
     }
 
-    // Cloak opacity — drop when cloaked.
+    // Cloak opacity — drop when cloaked. Applies to whichever figure is shown.
     const targetOpacity = this.cloaked ? 0.25 : 1.0;
     const bodyMat = this.body.material as THREE.MeshLambertMaterial;
     const headMat = this.head.material as THREE.MeshLambertMaterial;
     if (Math.abs(bodyMat.opacity - targetOpacity) > 0.01) {
       bodyMat.opacity += (targetOpacity - bodyMat.opacity) * 0.2;
       headMat.opacity = bodyMat.opacity;
+      this.character?.setOpacity(bodyMat.opacity);
+    }
+
+    // ── Character animation ──────────────────────────────────────────────────
+    // Estimate interpolated horizontal speed from the per-frame position delta,
+    // smoothed, then drive Idle/Run; play Death once on death, Idle on respawn.
+    if (this.character) {
+      const cur: [number, number, number] = [
+        this.group.position.x, this.group.position.y, this.group.position.z,
+      ];
+      if (this.prevPos && dt > 0) {
+        const d = Math.hypot(cur[0] - this.prevPos[0], cur[2] - this.prevPos[2]);
+        // Drop teleport-sized jumps so a Blink doesn't spike the run anim.
+        const inst = d < 2.0 ? d / dt : 0;
+        this.interpSpeed += (inst - this.interpSpeed) * 0.25;
+      }
+      this.prevPos = cur;
+
+      const dead = this.hp <= 0;
+      let want: 'Idle' | 'Run' | 'Death';
+      if (dead) want = 'Death';
+      else if (this.interpSpeed > 1.6) want = 'Run';
+      else want = 'Idle';
+      if (want !== this.charClip) {
+        this.charClip = want;
+        this.character.play(want);
+      }
+      this.character.update(dt);
     }
 
     // Footstep cadence from interpolated horizontal travel. Cloaked players
@@ -187,6 +237,7 @@ export class RemotePlayer {
     (this.body.material as THREE.Material).dispose();
     this.head.geometry.dispose();
     (this.head.material as THREE.Material).dispose();
+    this.character?.dispose();
   }
 
   private applyTransform(pos: [number, number, number], yaw: number) {

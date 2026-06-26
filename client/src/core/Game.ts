@@ -1318,7 +1318,7 @@ export class Game {
     // --- 3b. Multiplayer: send input + interpolate remotes ---
     if (this.mp) {
       this.mp.sendFrameInput(dt);
-      this.mp.renderRemotes(Date.now());
+      this.mp.renderRemotes(Date.now(), dt);
     }
 
     // --- 4. Viewmodel ---

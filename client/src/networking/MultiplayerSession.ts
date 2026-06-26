@@ -248,12 +248,12 @@ export class MultiplayerSession {
   }
 
   /** Tick remote players' interpolation. Called once per render frame. */
-  renderRemotes(nowMs: number) {
+  renderRemotes(nowMs: number, dt: number) {
     const eye = _FS_EYE;
     this.game.player.eyePos(eye);
     const yaw = this.game.camera.rotation.y;
     for (const rp of this.remotes.values()) {
-      rp.render(nowMs);
+      rp.render(nowMs, dt);
       // Spatial footsteps — hear other players approaching. Cloaked players
       // are silent (handled inside RemotePlayer.consumeFootstep via cloaked).
       if (rp.consumeFootstep(_FS_POS)) {
