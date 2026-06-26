@@ -78,8 +78,12 @@ export class SynthEngine {
     }
   }
 
-  /** Entry point from AudioManager. Tolerant of a not-yet-unlocked context. */
-  play(id: string, vol = 1, rate = 1, pan = 0): void {
+  /**
+   * Entry point from AudioManager. Tolerant of a not-yet-unlocked context.
+   * `lpfHz` (>0) routes the voice through a low-pass for distance muffling —
+   * distant spatial sounds lose their highs, reading as farther away.
+   */
+  play(id: string, vol = 1, rate = 1, pan = 0, lpfHz = 0): void {
     if (vol <= 0.0005) return;
     if (!this.ensureCtx() || !this.ctx || !this.master) return;
     if (this.ctx.state === 'suspended') {
@@ -89,7 +93,7 @@ export class SynthEngine {
       this.ctx.resume().catch(() => {});
     }
     const t = this.ctx.currentTime + 0.001;
-    const dest = this.panNode(pan);
+    const dest = this.outputChain(pan, lpfHz);
     try {
       this.render(id, t, vol, rate <= 0 ? 1 : rate, dest);
     } catch {
@@ -97,16 +101,28 @@ export class SynthEngine {
     }
   }
 
-  /** Build a stereo-pan node feeding master (or master directly if centred). */
-  private panNode(pan: number): AudioNode {
+  /**
+   * Build the per-voice output chain → master: an optional distance low-pass
+   * feeding an optional stereo panner. Returns the node voices should connect
+   * to (master directly if centred + unfiltered).
+   */
+  private outputChain(pan: number, lpfHz: number): AudioNode {
     if (!this.ctx || !this.master) return this.ctx!.destination;
-    if (Math.abs(pan) < 0.02 || typeof this.ctx.createStereoPanner !== 'function') {
-      return this.master;
+    let tail: AudioNode = this.master;
+    if (Math.abs(pan) >= 0.02 && typeof this.ctx.createStereoPanner === 'function') {
+      const p = this.ctx.createStereoPanner();
+      p.pan.value = Math.max(-1, Math.min(1, pan));
+      p.connect(tail);
+      tail = p;
     }
-    const p = this.ctx.createStereoPanner();
-    p.pan.value = Math.max(-1, Math.min(1, pan));
-    p.connect(this.master);
-    return p;
+    if (lpfHz > 0 && lpfHz < 19000) {
+      const lp = this.ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = Math.max(300, lpfHz);
+      lp.connect(tail);
+      tail = lp;
+    }
+    return tail;
   }
 
   // ---- low-level voice helpers -------------------------------------------
@@ -326,13 +342,19 @@ export class SynthEngine {
     dest: AudioNode,
     p: { body: number; noiseHz: number; q: number; dur: number; lvl: number; tail?: boolean },
   ): void {
-    const lvl = v * p.lvl;
+    // Per-shot micro-variance so sustained automatic fire sounds organic
+    // instead of a single looped click — pitch ±4.5%, level ±8%, like the
+    // round-to-round variation of a real gun.
+    const pitchJ = 1 + (Math.random() * 2 - 1) * 0.045;
+    const lvl = v * p.lvl * (1 + (Math.random() * 2 - 1) * 0.08);
+    const body = p.body * pitchJ;
+    const noiseHz = p.noiseHz * pitchJ;
     // Crack: a bright noise burst, filter sweeping down for a "pew" tail.
-    this.noise(t, p.dur, lvl * 0.85, 'bandpass', p.noiseHz, p.q, dest, p.noiseHz * 0.4);
+    this.noise(t, p.dur, lvl * 0.85, 'bandpass', noiseHz, p.q, dest, noiseHz * 0.4);
     // Body: a low pitched thump dropping fast — the chest-punch.
-    this.tone(t, p.body, 'sine', p.dur * 0.9, lvl * 0.7, dest, p.body * 0.45);
+    this.tone(t, body, 'sine', p.dur * 0.9, lvl * 0.7, dest, body * 0.45);
     // Click transient up top for snap.
-    this.blip(t, 2600, 0.012, lvl * 0.3, dest, 'square');
+    this.blip(t, 2600 * pitchJ, 0.012, lvl * 0.3, dest, 'square');
     // Big guns get a low-frequency rumble tail.
     if (p.tail) this.noise(t + p.dur * 0.4, p.dur, lvl * 0.4, 'lowpass', 360, 0.6, dest, 120);
   }

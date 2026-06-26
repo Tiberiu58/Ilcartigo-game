@@ -1335,3 +1335,33 @@ nothing regresses for anyone who never opens the tab.
   footer). README status updated.
 
 ### Phase 37 COMPLETE — audio cosmetics, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 38 — Combat audio realism (autonomous build, v0.38.0)
+
+A small, everyone-benefits polish pass on the brief's #1 pillar — *satisfying
+shooting mechanics*. Two contained tweaks to the synth audio layer, no protocol
+change, no new deps, no gameplay change.
+
+- **Per-shot fire variance.** The shared `gun()` recipe now jitters pitch (±4.5%)
+  and level (±8%) on every shot (body thump, noise band, and click transient all
+  scale by the same per-shot pitch factor). Sustained automatic fire (SMG / LMG /
+  AR) stops sounding like one looped click and reads as a stream of distinct
+  rounds — the round-to-round variation of a real gun.
+- **Distance low-pass on spatial audio.** `SynthEngine.play` gained an optional
+  `lpfHz`; the per-voice output chain now inserts a low-pass before the stereo
+  panner when set. `AudioManager.playSpatial` derives the cutoff from distance
+  (~19 kHz within the reference distance → ~1.8 kHz at max range), so distant
+  gunfire/footsteps lose their highs and read as farther away — clearer 3D
+  positioning in MP on top of the existing pan + volume falloff. (Authored-wav
+  spatial path is unchanged; the filter applies to the synth path.)
+
+### Status log
+- ✅ Phase 38 — Combat audio realism. DONE (client + server tsc + client build
+  green; app chunk ~90.6 KB gzip, negligible delta, no new deps). `gun()`
+  per-shot pitch/level variance; `SynthEngine.outputChain(pan, lpfHz)` (replaces
+  `panNode`) + `play(..., lpfHz)`; `AudioManager.playSpatial` distance→cutoff.
+  Versions bumped to v0.38.0 (+ menu subtitle/footer). README status updated.
+
+### Phase 38 COMPLETE — audio-layer only, no protocol change, solo + MP intact.

@@ -287,8 +287,14 @@ export class AudioManager {
     if (vol <= 0.001) return;
     const h = this.resolveWav(id);
     if (!h) {
-      // Default path: synth with stereo pan.
-      this.synth.play(id, vol, 1.0, pan);
+      // Default path: synth with stereo pan + distance low-pass (distant
+      // sounds lose their highs → read as farther / muffled).
+      let lpfHz = 0;
+      if (dist > REF_DISTANCE) {
+        const f = (dist - REF_DISTANCE) / (MAX_DISTANCE - REF_DISTANCE); // 0..1
+        lpfHz = 19000 - f * 17200; // ~19 kHz (open) → ~1.8 kHz (muffled)
+      }
+      this.synth.play(id, vol, 1.0, pan, lpfHz);
       return;
     }
     // (See play() for why we don't gate on state() — same reasoning.)
