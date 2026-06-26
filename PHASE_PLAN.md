@@ -1425,3 +1425,33 @@ skins / finishes a beauty shot (the Krunker/CS inspect every shooter has).
   subtitle/footer).
 
 ### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 41 — Nemesis system (autonomous build, v0.41.0)
+
+A pure-client combat-narrative hook on the brief's "constant desire to win the
+next duel" pillar. The Announcer already popped a one-shot REVENGE banner, but
+the rival was invisible between the death and the payback. Phase 41 makes the
+grudge concrete + visible.
+
+- **Nemesis.** In solo, the bot that kills you becomes your **nemesis**: a ☠
+  crimson **nameplate** flag + a pulsing red **minimap ring** so you can pick it
+  out and hunt it down. Avenging it (`targetId === nemesisId`) pays **+25 bonus
+  XP** and a "☠ NEMESIS DOWN" `ScorePopup` (the Announcer separately pops its
+  REVENGE banner). The nemesis persists across its own respawns until you get it.
+- **Minimal, safe surface.** New public `Game.nemesisId` set in the kill
+  handler's `youDied` branch (solo only; ignores falls / self / MP ids), cleared
+  on the avenging kill and on `resetMatchScore` (fresh match / mode switch).
+  `Nameplates` flags + recolours the nemesis (added to its redraw-trigger);
+  `Minimap` rings the nemesis dot. No protocol change, MP untouched (it reads
+  bot ids that only exist in solo).
+
+### Status log
+- ✅ Phase 41 — Nemesis system. DONE (client tsc + build green; server tsc
+  green/unchanged). `Game.nemesisId` (set on death, cleared on revenge / reset)
+  + revenge bonus XP + toast; `Nemesis` nameplate skull/red-name + redraw
+  trigger; minimap crimson ring. Versions bumped to v0.41.0 (+ menu subtitle/
+  footer).
+
+### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.

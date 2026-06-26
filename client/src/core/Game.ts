@@ -246,6 +246,9 @@ export class Game {
   /** Local player's current consecutive-kill streak (resets on death). Feeds
    *  the lifetime best-streak stat. */
   localStreak = 0;
+  /** Solo nemesis — the bot that last killed you, marked on its nameplate +
+   *  minimap until you avenge it (revenge → bonus XP). null = no nemesis. */
+  nemesisId: string | null = null;
   /** Rising-hitmarker chain: consecutive landed hits + the timestamp of the
    *  last one, used to escalate the hit-confirm SFX pitch. */
   private _hitChain = 0;
@@ -491,6 +494,13 @@ export class Game {
         this.account.recordStreak(this.localStreak);
         this.playKillEffect(e.hitPoint ?? null);
         this.audio.play('kill_feedback');
+        // Nemesis avenged — you killed the bot that last killed you. Bonus XP +
+        // a callout (the Announcer separately pops REVENGE). Solo only.
+        if (this.nemesisId && e.targetId === this.nemesisId) {
+          this.nemesisId = null;
+          this.account.awardXP(25);
+          ScorePopup.pop('☠ NEMESIS DOWN', 'buff');
+        }
       }
 
       if (youDied) {
@@ -498,6 +508,12 @@ export class Game {
         this.account.recordDeath();
         this.localStreak = 0;
         this.audio.play('death');
+        // Nemesis — in solo, the bot that killed you becomes your marked rival
+        // (nameplate skull + minimap ring) until you avenge it. Ignore falls
+        // (self/attacker-less) and anything in MP (ids aren't bots there).
+        if (!this.mp && e.attackerId && e.attackerId !== e.targetId && !this.isLocalPlayer(e.attackerId)) {
+          this.nemesisId = e.attackerId;
+        }
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
         // Onslaught owns respawn timing (lives system) — it decides whether to
         // bring the player back or end the run, so skip the auto-loop there.
@@ -973,6 +989,7 @@ export class Game {
     this.matchKills.clear();
     this.matchDeaths.clear();
     this.matchEnded = false;
+    this.nemesisId = null;
     this.teamScore[0] = 0;
     this.teamScore[1] = 0;
     // Power-ups: restore all pads + drop any active buff on a fresh match.

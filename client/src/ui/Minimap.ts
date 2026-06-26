@@ -210,7 +210,16 @@ export class Minimap {
           ? (bot.team === this.game.playerActor.team ? '#5a9cff' : '#ff5a5a')
           : '#ff5a5a';
         const pos = bot.group.position;
-        dot(ctx, this.toX(pos.x), this.toY(pos.z), 3);
+        const bx = this.toX(pos.x), by = this.toY(pos.z);
+        dot(ctx, bx, by, 3);
+        // Your nemesis gets a pulsing crimson ring so you can hunt it down.
+        if (bot.id === this.game.nemesisId) {
+          ctx.beginPath();
+          ctx.arc(bx, by, 6, 0, Math.PI * 2);
+          ctx.strokeStyle = '#ff3b3b';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
       }
     }
 

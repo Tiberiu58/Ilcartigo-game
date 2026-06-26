@@ -32,6 +32,7 @@ interface Plate {
   lastHpBucket: number;       // redraw trigger
   lastTeam: number;
   lastName: string;
+  lastNemesis: boolean;
 }
 
 export class Nameplates {
@@ -69,7 +70,7 @@ export class Nameplates {
     sprite.scale.set(2.0, 0.625, 1);
     sprite.renderOrder = 996;
     this.game.scene.add(sprite);
-    return { bot, sprite, canvas, ctx, texture, material, lastHpBucket: -1, lastTeam: -1, lastName: '' };
+    return { bot, sprite, canvas, ctx, texture, material, lastHpBucket: -1, lastTeam: -1, lastName: '', lastNemesis: false };
   }
 
   /** Called each frame from Game.onFrame (cheap). */
@@ -92,11 +93,13 @@ export class Nameplates {
       // Redraw the canvas only when the visible content changes.
       const hp = bot.health.current;
       const bucket = Math.ceil(hp);
-      if (bucket !== p.lastHpBucket || bot.team !== p.lastTeam || bot.name !== p.lastName) {
+      const isNemesis = this.game.nemesisId === bot.id;
+      if (bucket !== p.lastHpBucket || bot.team !== p.lastTeam || bot.name !== p.lastName || isNemesis !== p.lastNemesis) {
         p.lastHpBucket = bucket;
         p.lastTeam = bot.team;
         p.lastName = bot.name;
-        drawPlate(p.ctx, p.canvas, bot.name, hp / bot.health.max, this.game.mode === 'tdm' ? bot.team : -1);
+        p.lastNemesis = isNemesis;
+        drawPlate(p.ctx, p.canvas, bot.name, hp / bot.health.max, this.game.mode === 'tdm' ? bot.team : -1, isNemesis);
         p.texture.needsUpdate = true;
       }
 
@@ -116,21 +119,25 @@ function drawPlate(
   name: string,
   hpFrac: number,
   teamTint: number,
+  isNemesis = false,
 ) {
   const w = canvas.width;
   const h = canvas.height;
   ctx.clearRect(0, 0, w, h);
 
-  // Callsign — team-tinted in TDM, light neutral in FFA.
-  const nameColor = teamTint === 0 ? '#9cc0ff' : teamTint === 1 ? '#ffa49e' : '#eef1f6';
+  // Callsign — your nemesis is flagged with a skull + crimson name; otherwise
+  // team-tinted in TDM, light neutral in FFA.
+  const label = isNemesis ? `☠ ${name}` : name;
+  const nameColor = isNemesis ? '#ff5a52'
+    : teamTint === 0 ? '#9cc0ff' : teamTint === 1 ? '#ffa49e' : '#eef1f6';
   ctx.font = 'bold 34px "Segoe UI", system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 6;
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-  ctx.strokeText(name, w / 2, 24);
+  ctx.strokeText(label, w / 2, 24);
   ctx.fillStyle = nameColor;
-  ctx.fillText(name, w / 2, 24);
+  ctx.fillText(label, w / 2, 24);
 
   // HP bar — rounded track + green→amber→red fill by fraction.
   const barW = 180;
