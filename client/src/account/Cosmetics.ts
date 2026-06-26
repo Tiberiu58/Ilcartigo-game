@@ -309,6 +309,41 @@ export const FINISHES: ReadonlyArray<FinishConfig> = [
 
 export const DEFAULT_FINISH: FinishId = 'finish-standard';
 
+export type SoundPackId = string;     // e.g. 'sound-arcade'
+
+export interface SoundPackConfig {
+  id: SoundPackId;
+  displayName: string;
+  /** Variant key the SynthEngine understands for hit / headshot / kill audio. */
+  variant: string;
+  /** One-line description of the flavour, shown on the card. */
+  blurb: string;
+  /** Swatch colour for the cosmetics grid. */
+  swatch: number;
+  cost: number;
+}
+
+/**
+ * Hit-sound packs (Phase 37) — re-flavour your hitmarker, headshot ding, and
+ * kill confirm. Possible because v0.36 made every SFX synthesized: each pack is
+ * just a `variant` string the SynthEngine branches on. Default ('classic')
+ * equals today's audio, so equipping nothing changes nothing. An audio
+ * cosmetic axis you HEAR on every single hit — pure feel, deepens the chase.
+ */
+export const SOUND_PACKS: ReadonlyArray<SoundPackConfig> = [
+  { id: 'sound-classic', displayName: 'Classic',  variant: 'classic', blurb: 'The original ticks',     swatch: 0x9aa4b2, cost: 0    },
+  { id: 'sound-arcade',  displayName: 'Arcade',    variant: 'arcade',  blurb: '8-bit coin blips',       swatch: 0xffd23a, cost: 500  },
+  { id: 'sound-crystal', displayName: 'Crystal',   variant: 'crystal', blurb: 'Bright glassy bells',    swatch: 0x6ce0ff, cost: 1200 },
+  { id: 'sound-punch',   displayName: 'Punch',     variant: 'punch',   blurb: 'Deep thocky impact',     swatch: 0xff6a4a, cost: 2000 },
+  { id: 'sound-laser',   displayName: 'Laser',     variant: 'laser',   blurb: 'Sci-fi zap confirms',    swatch: 0xb060ff, cost: 3000 },
+];
+
+export const DEFAULT_SOUND_PACK: SoundPackId = 'sound-classic';
+
+export function findSoundPack(id: SoundPackId): SoundPackConfig | undefined {
+  return SOUND_PACKS.find((p) => p.id === id);
+}
+
 /** Lookup helpers. */
 export function findFinish(id: FinishId): FinishConfig | undefined {
   return FINISHES.find((f) => f.id === id);

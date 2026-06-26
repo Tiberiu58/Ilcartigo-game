@@ -1300,7 +1300,12 @@ game.onFrame = ({ fps, speed, state, pos }) => {
 };
 
 // ─── Cosmetics + Profile tabs + account-linked behavior ────────────────────
-const cosmeticsUI = new CosmeticsUI(game.account);
+const cosmeticsUI = new CosmeticsUI(game.account, () => {
+  // Preview the equipped hit-sound pack: a body hit, a headshot ding, a kill.
+  game.audio.play('hit_confirm');
+  window.setTimeout(() => game.audio.play('hit_headshot'), 130);
+  window.setTimeout(() => game.audio.play('kill_feedback'), 280);
+});
 void cosmeticsUI;
 const profileUI = new ProfileUI(game.account);
 void profileUI;
@@ -1322,6 +1327,7 @@ if (resetBtn) {
 game.account.onChange(() => {
   game.mp?.sendHello();
   game.applyEquippedFinish();
+  game.applyEquippedSoundPack();
 });
 
 // ─── Post-match overlay ────────────────────────────────────────────────────

@@ -13,9 +13,9 @@
 
 import type { Account } from '../account/Account';
 import {
-  KILL_EFFECTS, TRACERS, FINISHES, skinsForClass, findKillEffect, findTracer, findFinish,
+  KILL_EFFECTS, TRACERS, FINISHES, SOUND_PACKS, skinsForClass, findKillEffect, findTracer, findFinish, findSoundPack,
   WEAPON_SKIN_ORDER, weaponSkinsFor,
-  type SkinConfig, type KillEffectConfig, type TracerConfig, type FinishConfig, type WeaponSkinConfig,
+  type SkinConfig, type KillEffectConfig, type TracerConfig, type FinishConfig, type WeaponSkinConfig, type SoundPackConfig,
 } from '../account/Cosmetics';
 import { CLASS_LIBRARY, CLASS_ORDER, type ClassId } from '../classes/types';
 
@@ -26,6 +26,7 @@ export class CosmeticsUI {
   private effectsEl: HTMLElement;
   private tracersEl: HTMLElement;
   private finishesEl: HTMLElement;
+  private soundsEl: HTMLElement;
   private weaponTabsEl: HTMLElement;
   private weaponSkinsEl: HTMLElement;
   private levelEl: HTMLElement;
@@ -34,13 +35,18 @@ export class CosmeticsUI {
   /** Which weapon's skins the Weapon Skins grid is currently showing. */
   private selectedWeapon: string = 'ar';
 
-  constructor(account: Account) {
+  /** Optional preview hook — plays the equipped hit-sound pack on click. */
+  private previewSound?: () => void;
+
+  constructor(account: Account, previewSound?: () => void) {
     this.account = account;
+    this.previewSound = previewSound;
     this.root = document.querySelector('[data-pane="cosmetics"]') as HTMLElement;
     this.skinsEl = document.getElementById('cos-skins')!;
     this.effectsEl = document.getElementById('cos-effects')!;
     this.tracersEl = document.getElementById('cos-tracers')!;
     this.finishesEl = document.getElementById('cos-finishes')!;
+    this.soundsEl = document.getElementById('cos-sounds')!;
     this.weaponTabsEl = document.getElementById('cos-weapon-tabs')!;
     this.weaponSkinsEl = document.getElementById('cos-weapon-skins')!;
     this.levelEl = document.getElementById('cos-level')!;
@@ -57,6 +63,7 @@ export class CosmeticsUI {
     this.renderEffects();
     this.renderTracers();
     this.renderFinishes();
+    this.renderSounds();
     this.renderWeaponSkins();
   }
 
@@ -219,6 +226,40 @@ export class CosmeticsUI {
       if (!this.account.tryUnlockFinish(id, cfg.cost)) return;
     }
     this.account.equipFinish(id);
+  }
+
+  private renderSounds() {
+    if (!this.soundsEl) return;
+    this.soundsEl.innerHTML = SOUND_PACKS.map((p) => this.soundCardHtml(p)).join('');
+    this.soundsEl.querySelectorAll<HTMLElement>('[data-sound-id]').forEach((el) => {
+      const id = el.dataset.soundId!;
+      el.addEventListener('click', () => this.handleSoundClick(id));
+    });
+  }
+
+  private soundCardHtml(p: SoundPackConfig): string {
+    const unlocked = this.account.isSoundPackUnlocked(p.id);
+    const equipped = this.account.equippedSoundPack() === p.id;
+    const status = !unlocked ? `${p.cost} XP` : equipped ? 'EQUIPPED' : 'EQUIP';
+    const cls = equipped ? 'cos-card equipped' : !unlocked ? 'cos-card locked' : 'cos-card';
+    const hex = '#' + p.swatch.toString(16).padStart(6, '0');
+    return `<div class="${cls}" data-sound-id="${p.id}" style="--body-c: ${hex}; --head-c: ${hex}">
+      <div class="cos-swatch cos-swatch-sound"><div class="wave"></div></div>
+      <div class="cos-name">${escape(p.displayName)}</div>
+      <div class="cos-sound-blurb">${escape(p.blurb)}</div>
+      <div class="cos-status">${status}</div>
+    </div>`;
+  }
+
+  private handleSoundClick(id: string) {
+    if (!this.account.isSoundPackUnlocked(id)) {
+      const cfg = findSoundPack(id);
+      if (!cfg) return;
+      if (!this.account.tryUnlockSoundPack(id, cfg.cost)) return;
+    }
+    this.account.equipSoundPack(id);
+    // Account change applies the pack to the synth synchronously; preview it.
+    this.previewSound?.();
   }
 
   private tracerCardHtml(t: TracerConfig): string {

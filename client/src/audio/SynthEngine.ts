@@ -28,6 +28,13 @@ export class SynthEngine {
   private master: GainNode | null = null;
   private noiseBuf: AudioBuffer | null = null;
 
+  /**
+   * Active hit-sound pack variant (Phase 37 audio cosmetic). Re-flavours the
+   * hitmarker / headshot / kill confirm only. 'classic' = the original ticks.
+   */
+  private hitPack = 'classic';
+  setHitPack(variant: string): void { this.hitPack = variant || 'classic'; }
+
   constructor() {
     // Resume the context on the first user gesture (autoplay policy). The game
     // starts behind menu clicks / pointer-lock, so this fires well before
@@ -193,8 +200,9 @@ export class SynthEngine {
       case 'empty_click':   { this.blip(t, 1800, 0.03, v * 0.4, dest, 'square'); return; }
 
       // Hitmarker — bright short tick; rate climbs with the hit-chain.
-      case 'hit_confirm':   { this.blip(t, 880 * rate, 0.05, v * 0.55, dest, 'square'); this.blip(t, 1300 * rate, 0.035, v * 0.3, dest, 'triangle'); return; }
-      case 'hit_headshot':  { this.blip(t, 1500 * rate, 0.07, v * 0.6, dest, 'square'); this.blip(t + 0.01, 2100 * rate, 0.05, v * 0.35, dest, 'triangle'); return; }
+      // Flavoured by the equipped sound pack (audio cosmetic).
+      case 'hit_confirm':   return this.hitMarker(t, v, rate, dest, false);
+      case 'hit_headshot':  return this.hitMarker(t, v, rate, dest, true);
 
       case 'jump':          { this.tone(t, 320, 'sine', 0.12, v * 0.5, dest, 540); return; }
       case 'land':          { this.tone(t, 150, 'sine', 0.13, v * 0.55, dest, 70); this.noise(t, 0.08, v * 0.3, 'lowpass', 600, 0.6, dest); return; }
@@ -212,7 +220,7 @@ export class SynthEngine {
       case 'respawn':       { this.arp(t, [400, 600, 900], 0.05, 0.16, v * 0.4, dest, 'sine'); return; }
       case 'spawn_protect': { this.tone(t, 700, 'sine', 0.3, v * 0.3, dest, 1100); return; }
 
-      case 'kill_feedback': { this.blip(t, 1046, 0.07, v * 0.55, dest, 'square'); this.blip(t + 0.05, 1568, 0.1, v * 0.5, dest, 'square'); return; }
+      case 'kill_feedback': return this.killConfirm(t, v, dest);
       case 'match_end':     return this.fanfare(t, v, dest);
       case 'ui_click':      { this.blip(t, 660, 0.025, v * 0.35, dest, 'square'); return; }
       case 'level_up':      { this.arp(t, [523, 659, 784, 1046], 0.08, 0.2, v * 0.5, dest, 'triangle'); return; }
@@ -246,6 +254,67 @@ export class SynthEngine {
       default:
         // Unknown id → a soft neutral tick so nothing is silent-by-typo.
         this.blip(t, 700, 0.03, v * 0.25, dest, 'sine');
+    }
+  }
+
+  // ---- hit-sound packs (audio cosmetic) -----------------------------------
+
+  /** Hitmarker / headshot tick, re-flavoured by the active pack. `rate` is the
+   *  rising-hit-chain pitch multiplier; `head` selects the headshot variant. */
+  private hitMarker(t: number, v: number, rate: number, dest: AudioNode, head: boolean): void {
+    const r = rate;
+    switch (this.hitPack) {
+      case 'arcade':
+        // 8-bit coin: two stacked square blips, headshot an octave up.
+        this.blip(t, (head ? 1320 : 988) * r, 0.04, v * 0.5, dest, 'square');
+        this.blip(t + 0.03, (head ? 1760 : 1318) * r, 0.06, v * 0.45, dest, 'square');
+        return;
+      case 'crystal':
+        // Bright glassy bell — sine partials, longer shimmer on a headshot.
+        this.tone(t, (head ? 1760 : 1318) * r, 'sine', head ? 0.16 : 0.11, v * 0.5, dest);
+        this.tone(t, (head ? 2640 : 1976) * r, 'sine', head ? 0.12 : 0.08, v * 0.28, dest);
+        return;
+      case 'punch':
+        // Deep thock — low square body + a short noise tick.
+        this.blip(t, (head ? 420 : 300) * r, 0.07, v * 0.6, dest, 'square');
+        this.noise(t, 0.04, v * 0.35, 'bandpass', (head ? 1400 : 1000) * r, 1.2, dest);
+        return;
+      case 'laser':
+        // Sci-fi zap — a fast pitch sweep, headshot sweeps higher.
+        this.tone(t, (head ? 1400 : 1000) * r, 'sawtooth', head ? 0.1 : 0.07, v * 0.5, dest, (head ? 2600 : 1900) * r);
+        this.blip(t, (head ? 2600 : 2000) * r, 0.02, v * 0.3, dest, 'square');
+        return;
+      default: // 'classic' — the original two-tone tick.
+        if (head) {
+          this.blip(t, 1500 * r, 0.07, v * 0.6, dest, 'square');
+          this.blip(t + 0.01, 2100 * r, 0.05, v * 0.35, dest, 'triangle');
+        } else {
+          this.blip(t, 880 * r, 0.05, v * 0.55, dest, 'square');
+          this.blip(t, 1300 * r, 0.035, v * 0.3, dest, 'triangle');
+        }
+    }
+  }
+
+  /** Kill confirm, re-flavoured by the active pack. */
+  private killConfirm(t: number, v: number, dest: AudioNode): void {
+    switch (this.hitPack) {
+      case 'arcade':
+        this.arp(t, [784, 1046, 1568], 0.045, 0.12, v * 0.5, dest, 'square');
+        return;
+      case 'crystal':
+        this.arp(t, [1318, 1760, 2637], 0.05, 0.18, v * 0.45, dest, 'sine');
+        return;
+      case 'punch':
+        this.blip(t, 330, 0.09, v * 0.62, dest, 'square');
+        this.noise(t, 0.08, v * 0.4, 'lowpass', 700, 0.7, dest, 200);
+        return;
+      case 'laser':
+        this.tone(t, 700, 'sawtooth', 0.18, v * 0.5, dest, 1900);
+        this.blip(t + 0.06, 2400, 0.05, v * 0.4, dest, 'square');
+        return;
+      default: // 'classic'
+        this.blip(t, 1046, 0.07, v * 0.55, dest, 'square');
+        this.blip(t + 0.05, 1568, 0.1, v * 0.5, dest, 'square');
     }
   }
 

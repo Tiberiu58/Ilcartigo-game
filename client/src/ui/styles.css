@@ -2107,6 +2107,22 @@ body.no-speedlines #speed-lines { display: none; }
   background: var(--body-c);
   box-shadow: 0 0 6px 1px var(--body-c);
 }
+/* Hit-sound pack swatch — a stylised speaker/waveform glyph. */
+.cos-card .cos-swatch-sound {
+  align-items: center;
+  background: #0d0f14;
+}
+.cos-card .cos-swatch-sound .wave {
+  width: 60%; height: 60%;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--body-c) 0%, var(--body-c) 22%, transparent 26%, transparent 42%, var(--body-c) 46%, transparent 52%, transparent 68%, var(--body-c) 72%, transparent 78%);
+  opacity: 0.9;
+}
+.cos-card .cos-sound-blurb {
+  font: 500 9px/1.2 'Segoe UI', sans-serif;
+  color: var(--muted);
+  text-align: center;
+}
 .cos-card .cos-name {
   font: 700 11px/1.2 'Segoe UI', sans-serif;
   letter-spacing: 1px;

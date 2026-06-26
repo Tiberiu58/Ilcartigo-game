@@ -187,6 +187,11 @@ export class AudioManager {
     this.muted = m;
   }
 
+  /** Set the equipped hit-sound pack variant (audio cosmetic). */
+  setHitPack(variant: string) {
+    this.synth.setHitPack(variant);
+  }
+
   /** Lazy-load a Howl on first request. Tolerant of missing files. */
   private getHowl(id: SoundId): Howl {
     let h = this.howls.get(id);

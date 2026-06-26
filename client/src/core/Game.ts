@@ -330,6 +330,7 @@ export class Game {
     this.inventory = new WeaponInventory('ar', this.world, this.bus, 'player');
     this.viewmodel = new Viewmodel(this.camera);
     this.viewmodel.setFinish(this.account.equippedFinishEmissive());
+    this.audio.setHitPack(this.account.equippedSoundPackVariant());
     this.tracers = new TracerPool(this.scene, 32);
     this.impacts = new ImpactFX(this.scene, 36);
     this.castFX = new CastFX(this.scene);
@@ -870,6 +871,12 @@ export class Game {
    *  any account change (equip) from main.ts. */
   applyEquippedFinish() {
     this.viewmodel.setFinish(this.account.equippedFinishEmissive());
+  }
+
+  /** Re-apply the equipped hit-sound pack to the synth. Called on any account
+   *  change (equip) from main.ts. */
+  applyEquippedSoundPack() {
+    this.audio.setHitPack(this.account.equippedSoundPackVariant());
   }
 
   /** Change class — called from the main menu or on respawn (we allow now). */

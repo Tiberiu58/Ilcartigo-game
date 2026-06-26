@@ -1289,3 +1289,49 @@ build green, never break solo / MP / the audit fixes.
   + audio asset guide updated.
 
 ### Phase 36 COMPLETE — full procedural SFX, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 37 — Hit-sound packs (audio cosmetics) (autonomous build, v0.37.0)
+
+A natural follow-on to Phase 36: now that every SFX is synthesized, **audio is a
+cosmetic surface.** This adds an unlockable **hit-sound pack** axis that
+re-flavours the three sounds you hear most — hitmarker, headshot ding, kill
+confirm — deepening the unlock chase (the brief's cosmetics / rewards pillar)
+with something you perceive on *every single hit*. Pure-client, no protocol
+change, no new deps; the default pack is byte-identical to today's audio, so
+nothing regresses for anyone who never opens the tab.
+
+- **5 packs** in `Cosmetics.ts` (`SOUND_PACKS`): **Classic** (free), **Arcade**
+  (8-bit coin blips, 500 XP), **Crystal** (glassy bells, 1200), **Punch** (deep
+  thock, 2000), **Laser** (sci-fi zap, 3000). Each is just a `variant` string +
+  swatch + blurb + cost.
+- **SynthEngine variant recipes.** New `SynthEngine.hitPack` + `setHitPack`; the
+  `hit_confirm` / `hit_headshot` / `kill_feedback` cases now dispatch to
+  `hitMarker()` / `killConfirm()` which switch on the active variant (the rising
+  hit-chain `rate` still applies on top). `'classic'` reproduces the original
+  ticks exactly.
+- **Account state, migration-safe.** `unlockedSoundPacks` / `equippedSoundPack`
+  mirror the tracer/finish pattern (default always kept unlocked on old saves),
+  with `isSoundPackUnlocked` / `equippedSoundPack` / `equippedSoundPackVariant`
+  / `tryUnlockSoundPack` / `equipSoundPack`. Covered by `reset()` (freshData).
+- **Cosmetics UI + live apply.** New "Hit Sound" grid (`#cos-sounds`) in the
+  Cosmetics tab rendered by `CosmeticsUI.renderSounds` (mirrors the finish grid;
+  speaker-glyph swatch + blurb). Clicking unlocks-if-affordable + equips, then
+  **previews** the pack (a body hit → headshot → kill, 130/280 ms apart) via a
+  callback wired in `main.ts`. The equipped pack applies to the synth on boot
+  (`Game` ctor) and on every account change (`Game.applyEquippedSoundPack`,
+  added next to `applyEquippedFinish` in the `account.onChange` handler).
+
+### Status log
+- ✅ Phase 37 — Hit-sound packs. DONE (client + server tsc + client build green;
+  app chunk ~90.5 KB gzip, +~1 KB, no new deps). `SOUND_PACKS` registry,
+  `SynthEngine` variant-aware `hitMarker`/`killConfirm` + `setHitPack`,
+  `AudioManager.setHitPack`, `Account` sound-pack state (migration-safe),
+  `CosmeticsUI` Hit-Sound grid + preview, `Game.applyEquippedSoundPack` boot +
+  onChange wiring, `#cos-sounds` DOM + CSS swatch/blurb. Browser DOM smoke test
+  confirmed all 5 cards render with zero JS errors; Web Audio variant primitives
+  validated in headless Chromium. Versions bumped to v0.37.0 (+ menu subtitle/
+  footer). README status updated.
+
+### Phase 37 COMPLETE — audio cosmetics, pure client, no protocol change, solo + MP intact.

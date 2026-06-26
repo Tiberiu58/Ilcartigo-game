@@ -13,10 +13,10 @@
  */
 
 import {
-  findSkin, findTracer, findFinish, findWeaponSkin,
+  findSkin, findTracer, findFinish, findWeaponSkin, findSoundPack,
   defaultSkinForClass, defaultWeaponSkin, weaponSkinsFor,
-  DEFAULT_KILL_EFFECT, DEFAULT_TRACER, DEFAULT_FINISH,
-  type SkinId, type KillEffectId, type TracerId, type FinishId,
+  DEFAULT_KILL_EFFECT, DEFAULT_TRACER, DEFAULT_FINISH, DEFAULT_SOUND_PACK,
+  type SkinId, type KillEffectId, type TracerId, type FinishId, type SoundPackId,
   type WeaponSkinId, type WeaponSkinConfig,
 } from './Cosmetics';
 import type { ClassId } from '../classes/types';
@@ -65,11 +65,13 @@ interface AccountData {
   unlockedEffects: KillEffectId[];
   unlockedTracers: TracerId[];
   unlockedFinishes: FinishId[];
+  unlockedSoundPacks: SoundPackId[];
   /** Per-class equipped skin. If a class isn't here, the default is used. */
   equippedSkin: Partial<Record<ClassId, SkinId>>;
   equippedKillEffect: KillEffectId;
   equippedTracer: TracerId;
   equippedFinish: FinishId;
+  equippedSoundPack: SoundPackId;
   /** Lifetime kills per weapon id — drives weapon mastery + skin unlocks. */
   weaponKills: Record<string, number>;
   /** Per-weapon equipped skin id. Missing = the weapon's default skin. */
@@ -173,10 +175,12 @@ function freshData(): AccountData {
     unlockedEffects: [DEFAULT_KILL_EFFECT],
     unlockedTracers: [DEFAULT_TRACER],
     unlockedFinishes: [DEFAULT_FINISH],
+    unlockedSoundPacks: [DEFAULT_SOUND_PACK],
     equippedSkin: {},
     equippedKillEffect: DEFAULT_KILL_EFFECT,
     equippedTracer: DEFAULT_TRACER,
     equippedFinish: DEFAULT_FINISH,
+    equippedSoundPack: DEFAULT_SOUND_PACK,
     weaponKills: {},
     equippedWeaponSkin: {},
     stats: freshStats(),
@@ -216,6 +220,10 @@ export class Account {
         unlockedFinishes: Array.isArray(parsed.unlockedFinishes)
           ? Array.from(new Set([DEFAULT_FINISH, ...parsed.unlockedFinishes]))
           : fresh.unlockedFinishes,
+        // Always keep the default sound pack unlocked even on an older save.
+        unlockedSoundPacks: Array.isArray(parsed.unlockedSoundPacks)
+          ? Array.from(new Set([DEFAULT_SOUND_PACK, ...parsed.unlockedSoundPacks]))
+          : fresh.unlockedSoundPacks,
         equippedSkin: (parsed.equippedSkin && typeof parsed.equippedSkin === 'object')
           ? parsed.equippedSkin as Partial<Record<ClassId, SkinId>>
           : fresh.equippedSkin,
@@ -228,6 +236,9 @@ export class Account {
         equippedFinish: typeof parsed.equippedFinish === 'string'
           ? parsed.equippedFinish
           : fresh.equippedFinish,
+        equippedSoundPack: typeof parsed.equippedSoundPack === 'string'
+          ? parsed.equippedSoundPack
+          : fresh.equippedSoundPack,
         weaponKills: (parsed.weaponKills && typeof parsed.weaponKills === 'object')
           ? parsed.weaponKills as Record<string, number>
           : fresh.weaponKills,
@@ -419,6 +430,40 @@ export class Account {
   equipFinish(id: FinishId): boolean {
     if (!this.isFinishUnlocked(id)) return false;
     this.data.equippedFinish = id;
+    this.save();
+    return true;
+  }
+
+  // ── Sound packs (hitmarker / kill audio cosmetics) ────────────────────────
+
+  isSoundPackUnlocked(id: SoundPackId): boolean {
+    return this.data.unlockedSoundPacks.includes(id);
+  }
+
+  /** Equipped sound pack id, falling back to default if the saved one is invalid. */
+  equippedSoundPack(): SoundPackId {
+    const id = this.data.equippedSoundPack;
+    if (this.isSoundPackUnlocked(id) && findSoundPack(id)) return id;
+    return DEFAULT_SOUND_PACK;
+  }
+
+  /** Equipped sound pack variant key — read by the SynthEngine. */
+  equippedSoundPackVariant(): string {
+    return findSoundPack(this.equippedSoundPack())?.variant ?? 'classic';
+  }
+
+  tryUnlockSoundPack(id: SoundPackId, cost: number): boolean {
+    if (this.isSoundPackUnlocked(id)) return true;
+    if (this.data.xp < cost) return false;
+    this.data.xp -= cost;
+    this.data.unlockedSoundPacks.push(id);
+    this.save();
+    return true;
+  }
+
+  equipSoundPack(id: SoundPackId): boolean {
+    if (!this.isSoundPackUnlocked(id)) return false;
+    this.data.equippedSoundPack = id;
     this.save();
     return true;
   }
