@@ -13,7 +13,7 @@
 import type * as THREE from 'three';
 import type { World } from '../core/World';
 
-export type MapId = 'practice' | 'sandstone' | 'industrial' | 'cobalt' | 'overpass' | 'frostline';
+export type MapId = 'practice' | 'sandstone' | 'industrial' | 'cobalt' | 'overpass' | 'frostline' | 'foundry';
 
 export interface MapMeta {
   id: MapId;
