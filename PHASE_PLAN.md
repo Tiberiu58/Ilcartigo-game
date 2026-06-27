@@ -1272,3 +1272,56 @@ change; solo + MP both intact.
   violations. Versions bumped to v0.38.0 (+ menu subtitle/footer).
 
 ### Phase 38 COMPLETE — the game has sound. Pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 39 — King of the Hill (zone-control mode) (v0.39.0)
+
+Mode variety is the #1 replay driver in arena shooters, and the one classic
+format ILCARTIGO was missing was an **objective** mode. **King of the Hill** is
+a solo zone-control fight: a glowing hill sits on the map and whoever stands in
+it *alone* banks control time — you vs the bots, first side to the target hold
+time wins. The hill **relocates every ~30 s** (you can't just camp), the bots are
+**lured to contest it**, and it ends on a results card (a natural ad breakpoint)
+with your longest single hold + a persistent best. Pure client, no protocol
+change; solo + MP + every prior mode intact.
+
+- **Runs as a COMBAT mode (`'koth'` ∈ `isCombatMode`)** — so the base 3-bot
+  roster, normal kills/XP/announcer/respawn all "just work" with no
+  special-casing. KOTH only *adds* the scored zone on top.
+- **Bots contest the zone** via one additive `Bot.lurePoint` field: when set,
+  `patrol()` heads for the hill (and holds it) instead of cycling waypoints;
+  null in every other mode → patrol behaviour is byte-for-byte unchanged. Game's
+  `setBotLure(center)` points the whole roster at the shared hill-centre vector,
+  so moving the hill re-routes everyone for free.
+- **Control logic** (`modes/KingOfTheHill.ts`): each frame classifies the zone
+  as **you** (you're in it alone → bank time + grow your current-hold streak),
+  **enemy** (only bots → they bank time), **contested** (both inside → nobody
+  scores), or **empty**. Win at `TARGET_SECONDS` of your control; lose if the
+  bots' control reaches it first. `longestHold` (best uninterrupted hold) is the
+  persisted PB (`ilc.koth.bestHold`).
+- **Visual:** a translucent light pillar + a flat ground ring at the hill,
+  recoloured live by control state — teal (yours) · red (theirs) · gold
+  (contested) · grey (empty) — added to / disposed from the scene by the
+  controller. Hill positions are drawn from the map's FFA spawn anchors (known
+  clear of geometry), spread out so successive hills aren't adjacent.
+- **UI:** a top-center `#koth-ticker` (YOU 42s · CAPTURING/CONTESTED/LOSING IT ·
+  18s ENEMY, live-tinted), a "⚑ HILL MOVED" relocation banner, a WON/LOST
+  results card (longest hold · time held · eliminations · bonus XP · NEW
+  PERSONAL BEST, with a `koth` ad slot), a **👑 King of the Hill** main-menu
+  button surfacing the best hold, and a "Hill Hold" cell in Profile → Bests.
+- **XP economy:** a win banks `120 + ⌊your-hold⌋` XP (a loss still banks a small
+  consolation), on top of the normal 10-XP-per-kill from the firefights.
+
+### Status log
+- ✅ Phase 39 — King of the Hill. DONE (client + server tsc + client build green;
+  app chunk ~93.8 KB gzip). `Bot.lurePoint` + patrol steering; `'koth'` GameMode
+  + `isCombatMode`; `Game.koth` field + tick + `setBotLure`/`mapAnchors`; new
+  `modes/KingOfTheHill.ts` (control/scoring/relocation/win + ring+pillar visual);
+  ticker/banner/results DOM + CSS + main.ts wiring; `koth` ad slot; menu button +
+  Profile bests cell. Validated the control/scoring/relocation/win state machine
+  with a mock-Game + THREE-stub harness (you/contested/enemy/empty transitions,
+  dead-player gating, win-by-hold, relocation, XP, lure-cleanup) — all pass.
+  Versions bumped to v0.39.0 (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — solo zone-control mode, no protocol change, solo + MP intact.

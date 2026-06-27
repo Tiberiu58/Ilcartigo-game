@@ -49,6 +49,7 @@ import { CLASS_LIBRARY, type ClassId } from '../classes/types';
 import type { AimLab } from '../modes/AimLab';
 import type { Onslaught } from '../modes/Onslaught';
 import type { Duel } from '../modes/Duel';
+import type { KingOfTheHill } from '../modes/KingOfTheHill';
 
 const MAX_DT = 1 / 30;
 const SPAWN_PROTECTION_SECONDS = 2;
@@ -63,14 +64,14 @@ const MAPS: Record<MapId, GameMap> = {
   frostline: FROSTLINE_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' | 'koth';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game + TDM play like Combat with extra
  *  rules layered on top; Onslaught is wave survival vs escalating bot packs;
  *  Duel is a 1v1 gauntlet vs a single escalating opponent. */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel';
+  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel' || m === 'koth';
 }
 
 /** TDM team identity colours (figures + HUD). Blue = the player's team. */
@@ -152,6 +153,9 @@ export class Game {
   /** Optional Duel (1v1 gauntlet) controller — null unless launched from the
    *  menu. Created + wired by main.ts; ticked here for intro/intermission pacing. */
   duel: Duel | null = null;
+  /** Optional King of the Hill (zone-control) controller — null unless launched
+   *  from the menu. Created + wired by main.ts; ticked here for hold scoring. */
+  koth: KingOfTheHill | null = null;
   /** Local progression — XP, unlocks, equipped cosmetics. Always present. */
   readonly account = new Account();
 
@@ -707,6 +711,20 @@ export class Game {
 
   /** Spawn points for wave bots — the map's FFA spawns, shuffled, avoiding the
    *  one nearest the player so nobody materialises in your face. */
+  // ─── King of the Hill helpers ─────────────────────────────────────────────
+
+  /** This map's FFA spawn anchors (known clear of solids) — used by KOTH as the
+   *  set of candidate hill positions. Returns the live array (read-only use). */
+  mapAnchors(): THREE.Vector3[] {
+    return this.currentMap.meta.ffaSpawns;
+  }
+
+  /** Point every active base bot at `p` (the contested hill) so they fight over
+   *  it; pass null to restore normal waypoint patrol. KOTH-only. */
+  setBotLure(p: THREE.Vector3 | null) {
+    for (const b of this.bots) b.lurePoint = p;
+  }
+
   survivalSpawns(count: number): THREE.Vector3[] {
     const spawns = this.currentMap.meta.ffaSpawns;
     if (spawns.length === 0) return [];
@@ -1336,6 +1354,7 @@ export class Game {
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
     if (this.onslaught) this.onslaught.update(dt);  // wave pacing + respawn timing
     if (this.duel) this.duel.update(dt);            // duel intro/intermission pacing
+    if (this.koth) this.koth.update(dt);            // KOTH hold scoring + relocation
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

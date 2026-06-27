@@ -153,6 +153,12 @@ export class Bot implements Damageable {
   /** TDM respawn anchor (team's spawn area). null = FFA waypoint respawn. */
   homeSpawn: THREE.Vector3 | null = null;
 
+  /** King of the Hill: when set, the bot patrols toward this world point (the
+   *  contested hill) instead of cycling waypoints, so it contests the objective.
+   *  A shared reference — moving the hill (copy in place) re-routes every bot.
+   *  null everywhere but KOTH → patrol behaviour is identical in other modes. */
+  lurePoint: THREE.Vector3 | null = null;
+
   // Re-used vectors.
   private _bodyMin = new THREE.Vector3();
   private _bodyMax = new THREE.Vector3();
@@ -382,12 +388,20 @@ export class Bot implements Damageable {
   }
 
   private patrol(dt: number) {
-    const wp = WAYPOINTS[this.currentWaypoint];
-    const toX = wp.x - this.position.x;
-    const toZ = wp.z - this.position.z;
+    // KOTH: head for the hill and hold it; otherwise cycle the patrol waypoints.
+    let tx: number, tz: number, arrive: number;
+    if (this.lurePoint) {
+      tx = this.lurePoint.x; tz = this.lurePoint.z; arrive = 3.0;
+    } else {
+      const wp = WAYPOINTS[this.currentWaypoint];
+      tx = wp.x; tz = wp.z; arrive = 0.8;
+    }
+    const toX = tx - this.position.x;
+    const toZ = tz - this.position.z;
     const dist = Math.hypot(toX, toZ);
-    if (dist < 0.8) {
-      this.currentWaypoint = (this.currentWaypoint + 1) % WAYPOINTS.length;
+    if (dist < arrive) {
+      // Reached it: advance the waypoint, or (lured) stand on the objective.
+      if (!this.lurePoint) this.currentWaypoint = (this.currentWaypoint + 1) % WAYPOINTS.length;
       return;
     }
     const speed = (this.state === 'reposition' ? WALK_SPEED * 1.2 : WALK_SPEED * 0.55) * dt;

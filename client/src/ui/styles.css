@@ -1480,6 +1480,86 @@ body.no-speedlines #speed-lines { display: none; }
 #duel-banner.won .dub-main { color: #5ce08a; text-shadow: 0 0 30px rgba(60, 220, 120, 0.7), 0 2px 6px rgba(0,0,0,0.6); }
 #duel-banner.won .dub-sub { color: rgba(180, 255, 200, 0.9); }
 
+/* ─── King of the Hill (regal violet accent) ──────────────────────────────── */
+.menu-btn.koth { border-left: 3px solid #b388ff; }
+.menu-btn.koth:hover { border-left-color: #b388ff; color: #ceb3ff; }
+
+#koth-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(22, 18, 32, 0.84);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #b388ff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#koth-ticker.hidden { display: none; }
+.koth-you, .koth-enemy {
+  font: 800 14px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.koth-you #koth-you-n { color: #5ce0d4; }
+.koth-enemy #koth-enemy-n { color: #ff7a72; }
+.koth-state {
+  font: 800 13px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ceb3ff;
+  text-transform: uppercase;
+  min-width: 110px;
+  text-align: center;
+}
+/* Live control-state colouring (set by main.ts). */
+.koth-state.you       { color: #5ce0d4; text-shadow: 0 0 12px rgba(80, 220, 200, 0.6); }
+.koth-state.enemy     { color: #ff7a72; text-shadow: 0 0 12px rgba(255, 90, 80, 0.6); }
+.koth-state.contested { color: #ffd24a; text-shadow: 0 0 12px rgba(255, 200, 60, 0.6); }
+.koth-state.empty     { color: #9fb0c6; }
+
+#koth-banner {
+  position: absolute;
+  left: 50%; top: 32%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 14;
+  pointer-events: none;
+  animation: onb-pop 0.5s ease-out;
+}
+#koth-banner.hidden { display: none; }
+.kob-main {
+  font: 900 48px/1 'Segoe UI', sans-serif;
+  letter-spacing: 5px;
+  color: #b388ff;
+  text-shadow: 0 4px 30px rgba(150, 110, 255, 0.5), 0 2px 6px rgba(0,0,0,0.6);
+}
+.kob-sub {
+  margin-top: 6px;
+  font: 700 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(206, 179, 255, 0.85);
+}
+
+#koth-results {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+#koth-results.hidden { display: none; }
+.koth-card { border-top: 3px solid #b388ff; }
+/* A loss reads red; a win keeps the violet/gold royal tone. */
+#koth-results.lost .koth-card { border-top-color: #ff5a52; }
+#koth-results.lost #kor-title { color: #ff7a72; }
+
 #duel-results {
   position: fixed;
   inset: 0;

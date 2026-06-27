@@ -22,6 +22,7 @@ import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
 import { Duel, type DuelResult } from './modes/Duel';
+import { KingOfTheHill, type KothResult, type HillControl } from './modes/KingOfTheHill';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
@@ -73,6 +74,7 @@ const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement
 const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
 const menuDuel = document.getElementById('menu-duel') as HTMLButtonElement;
+const menuKoth = document.getElementById('menu-koth') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -104,6 +106,7 @@ const game = new Game(canvas);
 game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
 game.duel = new Duel(game);
+game.koth = new KingOfTheHill(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
@@ -348,6 +351,84 @@ durQuit.addEventListener('click', () => {
   quitToMenu();
 });
 
+// ─── King of the Hill (zone control) mode ──────────────────────────────────
+const kothTicker = document.getElementById('koth-ticker')!;
+const kothYouN = document.getElementById('koth-you-n')!;
+const kothEnemyN = document.getElementById('koth-enemy-n')!;
+const kothStateEl = document.getElementById('koth-state')!;
+const kothBanner = document.getElementById('koth-banner')!;
+const kothResults = document.getElementById('koth-results')!;
+const korTitle = document.getElementById('kor-title')!;
+const korSub = document.getElementById('kor-sub')!;
+const korHold = document.getElementById('kor-hold')!;
+const korYou = document.getElementById('kor-you')!;
+const korKills = document.getElementById('kor-kills')!;
+const korXp = document.getElementById('kor-xp')!;
+const korNewbest = document.getElementById('kor-newbest')!;
+const korRetry = document.getElementById('kor-retry') as HTMLButtonElement;
+const korQuit = document.getElementById('kor-quit') as HTMLButtonElement;
+
+const KOTH_STATE_LABEL: Record<HillControl, string> = {
+  you: 'CAPTURING', enemy: 'LOSING IT', contested: 'CONTESTED', empty: 'HOLD THE HILL',
+};
+let kothBannerTimer = 0;
+
+game.koth!.onState = (youSec, enemySec, _target, control) => {
+  kothYouN.textContent = String(Math.floor(youSec));
+  kothEnemyN.textContent = String(Math.floor(enemySec));
+  kothStateEl.textContent = KOTH_STATE_LABEL[control];
+  kothStateEl.className = `koth-state ${control}`;
+};
+game.koth!.onRelocate = () => {
+  kothBanner.classList.remove('hidden');
+  kothBanner.style.animation = 'none';
+  void kothBanner.offsetWidth;   // reflow so the pop animation restarts
+  kothBanner.style.animation = '';
+  window.clearTimeout(kothBannerTimer);
+  kothBannerTimer = window.setTimeout(() => kothBanner.classList.add('hidden'), 1400);
+};
+game.koth!.onEnd = (r: KothResult) => {
+  kothTicker.classList.add('hidden');
+  kothBanner.classList.add('hidden');
+  showKothResults(r);
+};
+
+function showKothResults(r: KothResult) {
+  korTitle.textContent = r.won ? 'HILL SECURED' : 'OVERRUN';
+  korSub.textContent = r.won ? 'you held the hill — long live the king' : 'the hill slipped away';
+  korHold.textContent = `${r.longestHold.toFixed(0)}s`;
+  korYou.textContent = `${r.youHeld.toFixed(0)}s`;
+  korKills.textContent = String(r.kills);
+  korXp.textContent = `+${r.xpEarned}`;
+  korNewbest.classList.toggle('hidden', !r.isNewBest);
+  kothResults.classList.toggle('lost', !r.won);
+  hud.classList.add('hidden');
+  kothResults.classList.remove('hidden');
+  Ads.refreshSlot('koth');
+}
+
+function stopKoth() {
+  if (game.koth?.active) game.koth.stop();
+  window.clearTimeout(kothBannerTimer);
+  kothTicker.classList.add('hidden');
+  kothBanner.classList.add('hidden');
+  kothResults.classList.add('hidden');
+}
+
+korRetry.addEventListener('click', () => {
+  kothResults.classList.add('hidden');
+  hud.classList.remove('hidden');
+  kothTicker.classList.remove('hidden');
+  game.resetMatchScore();
+  announcer.reset();
+  game.koth!.start();
+  game.input.requestPointerLock();
+});
+korQuit.addEventListener('click', () => {
+  kothResults.classList.add('hidden');
+  quitToMenu();
+});
+
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
 const savedSens = Number(localStorage.getItem('ilc.sens') ?? 0.5);
@@ -583,10 +664,11 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' | 'koth' = 'combat') {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -633,6 +715,15 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
     duelTicker.classList.add('hidden');
   }
 
+  // King of the Hill: start the zone controller + show its ticker. Started
+  // AFTER setMode so the base bots are live on the selected map.
+  if (mode === 'koth') {
+    game.koth!.start();
+    kothTicker.classList.remove('hidden');
+  } else {
+    kothTicker.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -648,6 +739,7 @@ function startOnline() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -697,6 +789,7 @@ function quitToMenu() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -715,6 +808,7 @@ function quitToMenu() {
   duelTicker.classList.add('hidden');
   refreshOnslaughtButton();
   refreshDuelButton();
+  refreshKothButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
   game.setPlayerPrimaryWeapon((localStorage.getItem('ilc.primary') ?? 'ar') as WeaponId);
   // Refresh the loadout card so mastery progress earned this match shows.
@@ -861,6 +955,7 @@ menuGungame.addEventListener('click', () => startGame('gungame'));
 menuTdm.addEventListener('click', () => startGame('tdm'));
 menuOnslaught.addEventListener('click', () => startGame('onslaught'));
 menuDuel.addEventListener('click', () => startGame('duel'));
+menuKoth.addEventListener('click', () => startGame('koth'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -906,6 +1001,13 @@ function refreshDuelButton() {
   menuDuel.textContent = best > 0 ? `🎯 Duel · best streak ${best}` : '🎯 Duel (1v1 Gauntlet)';
 }
 refreshDuelButton();
+
+/** Surface the longest-hold personal best on the King of the Hill menu button. */
+function refreshKothButton() {
+  const best = KingOfTheHill.personalBest();
+  menuKoth.textContent = best > 0 ? `👑 King of the Hill · best hold ${best}s` : '👑 King of the Hill (vs Bots)';
+}
+refreshKothButton();
 
 /** Show the drill picker (from the main menu). */
 function openAimlabSelect() {

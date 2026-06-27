@@ -90,6 +90,13 @@ export class ProfileUI {
           <span class="stat-val">${duelBest}</span>
           <span class="stat-label">Duel Streak</span>
         </div>`);
+    // King of the Hill longest single hold shares this "Bests" grid too.
+    const kothBest = Number(localStorage.getItem('ilc.koth.bestHold')) || 0;
+    cells.push(`
+        <div class="stat-cell">
+          <span class="stat-val">${kothBest}s</span>
+          <span class="stat-label">Hill Hold</span>
+        </div>`);
     this.aimlabBests.innerHTML = cells.join('');
   }
 
