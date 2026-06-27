@@ -510,9 +510,9 @@ export class HUD {
     e.className = 'kf-entry';
     e.innerHTML = `
       <span class="kf-killer">${killer}</span>
-      <span class="kf-wpn">[${weaponId}]</span>
+      <span class="kf-wpn">${killfeedWeapon(weaponId)}</span>
       <span class="kf-victim">${victim}</span>
-      ${isHeadshot ? '<span class="kf-head">HS</span>' : ''}
+      ${isHeadshot ? '<span class="kf-head">⊕ HS</span>' : ''}
     `;
     this.killfeed.appendChild(e);
     while (this.killfeed.children.length > KILLFEED_MAX) {
@@ -521,6 +521,21 @@ export class HUD {
     window.setTimeout(() => {
       if (e.parentElement) e.parentElement.removeChild(e);
     }, KILLFEED_TTL);
+  }
+}
+
+/** Killfeed weapon label — a distinct icon + name for the "signature" kills
+ *  players brag about (knife / grenade / railgun / sniper), a plain uppercase
+ *  name for the rest. Reads at a glance, the Krunker/CoD killfeed staple. */
+function killfeedWeapon(weaponId: string): string {
+  switch (weaponId) {
+    case 'knife':    return '🔪 KNIFE';
+    case 'grenade':  return '💣 NADE';
+    case 'railgun':  return '⚡ RAILGUN';
+    case 'sniper':   return '🎯 SNIPER';
+    case 'shotgun':  return '💥 SHOTGUN';
+    case 'marksman': return 'DMR';
+    default:         return weaponId.toUpperCase();
   }
 }
 
