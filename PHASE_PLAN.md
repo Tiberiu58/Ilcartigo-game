@@ -1424,3 +1424,28 @@ rewards aim over spray. Follows the proven LMG/Railgun add pattern.
   v0.42.0 (+ menu subtitle/footer).
 
 ### Phase 42 COMPLETE — additive weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 43 — Cosmetics drop (v0.43.0)
+
+A pure-data content drop deepening the long-tail unlock chase (more to grind for
+→ longer engagement → more menu/post-match ad impressions — the brief's cosmetics
++ retention pillars). The Cosmetics UI already auto-iterates the registries, so
+the new items appear, unlock and equip with no logic change, and `Account`'s
+default-unlock/migration logic is untouched.
+
+- **+2 kill effects** (Frostbite 6000 · Golden Nova 8000 XP) → **10 total** —
+  seen on every kill.
+- **+2 tracers** (Rose Gold 4200 · Voidbeam 5500 XP) → **12 total** — seen on
+  every shot.
+- **+2 weapon finishes** (Rose Gold 5200 · Abyssal 6500 XP) → **10 total** —
+  seen on the viewmodel the whole time you hold a gun.
+
+### Status log
+- ✅ Phase 43 — Cosmetics drop. DONE (client + server tsc + client build green).
+  Data-only additions to `Cosmetics.ts` (2 kill effects, 2 tracers, 2 finishes
+  at the high end of the XP curve). Versions bumped to v0.43.0 (+ menu
+  subtitle/footer).
+
+### Phase 43 COMPLETE — pure client (data only), no protocol change, solo + MP intact.
