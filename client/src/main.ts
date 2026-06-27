@@ -1377,6 +1377,7 @@ function accoladeFor(youWon: boolean, rank: number, kills: number, deaths: numbe
 }
 
 function showPostMatch(winnerId: string) {
+  clearFinalBlow();   // tidy up the win cinematic before the scoreboard appears
   game.audio.play('match_end');
   game.input.exitPointerLock();
   // Build scoreboard from game.matchKills + matchDeaths (Game tracks both).
@@ -1476,6 +1477,26 @@ function hidePostMatch() {
 }
 
 game.onMatchEnded = (winnerId) => showPostMatch(winnerId);
+
+// "Final Blow" win cinematic — flash the banner + a slow-mo vignette while the
+// game eases into bullet-time (Game owns the time-scale + the delayed
+// post-match). Cleared defensively when the overlay actually shows.
+const finalBlowBanner = document.getElementById('finalblow-banner')!;
+let finalBlowTimer = 0;
+function clearFinalBlow() {
+  window.clearTimeout(finalBlowTimer);
+  finalBlowBanner.classList.add('hidden');
+  document.body.classList.remove('slowmo');
+}
+game.onWinCinematic = () => {
+  document.body.classList.add('slowmo');
+  finalBlowBanner.classList.remove('hidden');
+  // Restart the pop animation on each trigger.
+  finalBlowBanner.classList.remove('fb-pop');
+  void finalBlowBanner.offsetWidth;
+  finalBlowBanner.classList.add('fb-pop');
+  finalBlowTimer = window.setTimeout(clearFinalBlow, Math.round(Game.CINEMATIC_DUR * 1000) + 60);
+};
 
 pmPlayAgain.addEventListener('click', () => {
   if (game.mp) {

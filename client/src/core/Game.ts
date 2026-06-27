@@ -272,6 +272,16 @@ export class Game {
   private grenadeCooldown = 0;
   static readonly GRENADE_COOLDOWN = 6;
 
+  // Win cinematic — a brief slow-mo on the local player's match-winning kill
+  // (solo only; MP's sim must never be time-scaled). Countdown uses real dt; the
+  // sim dt is multiplied by timeScale while it runs. onWinCinematic lets main.ts
+  // flash the "FINAL BLOW" banner; the post-match overlay is delayed until the
+  // slow-mo finishes so the moment lands before the scoreboard.
+  private timeScale = 1;
+  private cinematicRemaining = 0;
+  static readonly CINEMATIC_DUR = 1.25;
+  onWinCinematic?: () => void;
+
   // Burst-weapon follow-up scheduler. When a burst weapon fires, tryFire returns
   // the rounds still owed; we fire them over the next frames with live aim so the
   // burst tracks the crosshair. Cleared if the player dies / swaps / quits.
@@ -464,7 +474,7 @@ export class Game {
         this.teamScore[t]++;
         if (!this.matchEnded && this.teamScore[t] >= Game.TDM_GOAL) {
           this.matchEnded = true;
-          this.onMatchEnded?.(`team:${t}`);
+          this.endMatch(`team:${t}`);
         }
       }
 
@@ -474,7 +484,7 @@ export class Game {
       if (this.mode === 'combat' && !this.mp && !this.matchEnded && e.attackerId !== e.targetId) {
         if ((this.matchKills.get(e.attackerId) ?? 0) >= Game.MATCH_KILL_GOAL) {
           this.matchEnded = true;
-          this.onMatchEnded?.(e.attackerId);
+          this.endMatch(e.attackerId);
         }
       }
 
@@ -995,6 +1005,9 @@ export class Game {
     this.nemesisId = null;
     this.teamScore[0] = 0;
     this.teamScore[1] = 0;
+    // Clear any in-progress win cinematic so a fresh match runs at full speed.
+    this.cinematicRemaining = 0;
+    this.timeScale = 1;
     // Power-ups: restore all pads + drop any active buff on a fresh match.
     this.powerups?.resetAll();
     this.clearBuffs();
@@ -1096,6 +1109,30 @@ export class Game {
       this.mp?.sendFire(wpn.config.id, this._eyePos, this._aimDir);
       this.burstRemaining--;
       this.burstTimer += this.burstIntervalMs / 1000;
+    }
+  }
+
+  /**
+   * Solo match-end gateway. If the LOCAL player (or local team) won, play the
+   * brief slow-mo "Final Blow" cinematic and delay the post-match overlay until
+   * it finishes; otherwise show post-match immediately. MP never routes through
+   * here (the server owns match-end → MultiplayerSession fires onMatchEnded
+   * directly), so the sim is never time-scaled online.
+   */
+  private endMatch(winnerId: string) {
+    const localWon = winnerId.startsWith('team:')
+      ? this.playerActor.team === Number(winnerId.slice(5))
+      : this.isLocalPlayer(winnerId);
+    if (localWon && !this.mp) {
+      this.cinematicRemaining = Game.CINEMATIC_DUR;
+      this.onWinCinematic?.();
+      setTimeout(() => {
+        // Guard against a quit / fresh match during the cinematic window
+        // (resetMatchScore clears matchEnded) so we never pop post-match over a menu.
+        if (this.matchEnded && this.running) this.onMatchEnded?.(winnerId);
+      }, Math.round(Game.CINEMATIC_DUR * 1000) + 60);
+    } else {
+      this.onMatchEnded?.(winnerId);
     }
   }
 
@@ -1217,6 +1254,17 @@ export class Game {
     // Lifetime playtime — only counts while actively in a match (pointer
     // locked), not while paused or sitting in a menu. Persisted coarsely.
     if (this.input.pointerLocked) this.account.addPlaytime(dt);
+
+    // Win cinematic slow-mo (solo only). The countdown uses real dt; everything
+    // below runs on the scaled dt so the whole sim eases into bullet-time. Look
+    // is mouse-delta-driven (not dt), so you can still pan around the moment.
+    if (this.cinematicRemaining > 0) {
+      this.cinematicRemaining = Math.max(0, this.cinematicRemaining - dt);
+      const t = this.cinematicRemaining;
+      // Hold slow, then ease back to full speed over the last 0.4 s.
+      this.timeScale = t > 0.4 ? 0.32 : 0.32 + 0.68 * (1 - t / 0.4);
+      dt *= this.timeScale;
+    }
 
     // --- 1. Player movement + look ---
     this.player.update(dt);
