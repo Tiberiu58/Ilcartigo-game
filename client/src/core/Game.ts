@@ -1300,6 +1300,10 @@ export class Game {
 
     if (this.input.consumeAction('reload')) this.inventory.current.startReload();
 
+    // Weapon inspect (T) — cosmetic twirl to show off the equipped skin/finish.
+    // Pointer-lock gated; the Viewmodel ignores it while busy (reload/swap/etc).
+    if (this.input.pointerLocked && this.input.consumeAction('inspect')) this.viewmodel.playInspect();
+
     // Quick melee (V / F) — edge-triggered, solo-only (MP damage is server-
     // authoritative and there's no melee in the protocol; a client-only hit
     // would mislead). The cooldown ticks regardless so the timer stays sane.
