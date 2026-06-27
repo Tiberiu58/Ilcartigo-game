@@ -28,6 +28,9 @@ import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
+import { AchievementsUI } from './ui/AchievementsUI';
+import { AchievementTracker } from './account/Achievements';
+import { AchievementToast } from './ui/AchievementToast';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
@@ -1307,6 +1310,19 @@ const cosmeticsUI = new CosmeticsUI(game.account);
 void cosmeticsUI;
 const profileUI = new ProfileUI(game.account);
 void profileUI;
+const achievementsUI = new AchievementsUI(game.account);
+void achievementsUI;
+
+// Career achievements (medals): the tracker watches the account and unlocks
+// medals as their metric crosses the goal, popping a flashy toast + sting. The
+// Awards panel (achievementsUI) re-renders via account.onChange.
+const achievementTracker = new AchievementTracker(game.account, (def) => {
+  AchievementToast.show(def, () => {
+    game.audio.play('level_up');
+    ScorePopup.pop(`${def.icon} ${def.name}`, 'buff');
+  });
+});
+void achievementTracker;
 
 // Reset progression button — wipes XP + unlocks + equipped cosmetics after a
 // confirm prompt. Useful for testing the unlock loop or for players who want

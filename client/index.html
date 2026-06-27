@@ -400,7 +400,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.38.0 — Procedural audio · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
+          <div>v0.38.0 — Procedural audio · Career medals · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -631,6 +631,7 @@
               <button class="settings-tab" data-tab="general">General</button>
               <button class="settings-tab" data-tab="crosshair">Crosshair</button>
               <button class="settings-tab" data-tab="audio">Audio</button>
+              <button class="settings-tab" data-tab="awards">Awards</button>
               <button class="settings-tab" data-tab="cosmetics">Cosmetics</button>
               <button class="settings-tab" data-tab="graphics">Graphics</button>
             </nav>
@@ -791,6 +792,17 @@
               </p>
             </section>
 
+            <section class="settings-pane" data-pane="awards">
+              <h3>Awards</h3>
+              <p class="set-note">Career medals — permanent milestones that grant bonus XP. Chase them across every mode.</p>
+              <div class="ach-summary" id="ach-summary">
+                <!-- Populated by AchievementsUI -->
+              </div>
+              <div class="ach-grid" id="ach-grid">
+                <!-- Populated by AchievementsUI -->
+              </div>
+            </section>
+
             <section class="settings-pane" data-pane="cosmetics">
               <h3>Cosmetics</h3>
               <div class="cosmetics-summary">
@@ -847,6 +859,11 @@
         </div>
       </div>
     </div>
+
+    <!-- Career-achievement "MEDAL UNLOCKED" banners. Top-level (not inside #hud)
+         so a medal earned on the menu / post-match screen still shows. -->
+    <div id="achievement-toasts"></div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
