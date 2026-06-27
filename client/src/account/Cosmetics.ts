@@ -45,7 +45,7 @@ export interface TracerConfig {
   cost: number;
 }
 
-const SKIN_COSTS = [0, 200, 500, 1000, 2000, 4000];
+const SKIN_COSTS = [0, 200, 500, 1000, 2000, 4000, 6000];
 
 /**
  * Skin authoring helper — builds the 6 entries for one class. The default
@@ -92,6 +92,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Ash Phantom',  bodyColor: 0x6a6080, headColor: 0x3d3650 },
       { displayName: 'Plasma',       bodyColor: 0xd060ff, headColor: 0x8a30b8 },
       { displayName: 'Void Rift',    bodyColor: 0x2a0a5c, headColor: 0x110530 },
+      { displayName: 'Eclipse Lord', bodyColor: 0xe0b0ff, headColor: 0x6a1ad0 },
     ],
   ),
   ...makeClassSkins('rush',
@@ -102,6 +103,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Crimson Run',  bodyColor: 0xd4291a, headColor: 0x7a120a },
       { displayName: 'Copper Wire',  bodyColor: 0xc66c2a, headColor: 0x6d3414 },
       { displayName: 'Solar Flare',  bodyColor: 0xff3000, headColor: 0xb01800 },
+      { displayName: 'Phoenix Lord', bodyColor: 0xffae3a, headColor: 0xd23000 },
     ],
   ),
   ...makeClassSkins('vanguard',
@@ -112,6 +114,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Glacier',      bodyColor: 0xa0e8d8, headColor: 0x4a8478 },
       { displayName: 'Forest',       bodyColor: 0x2f6e3a, headColor: 0x143820 },
       { displayName: 'Emerald Edge', bodyColor: 0x00c884, headColor: 0x006840 },
+      { displayName: 'Aegis Lord',   bodyColor: 0x4cf0d0, headColor: 0x1a8a78 },
     ],
   ),
   ...makeClassSkins('ghost',
@@ -122,6 +125,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Frostbite',    bodyColor: 0xb8d0e0, headColor: 0x5a7080 },
       { displayName: 'Obsidian',     bodyColor: 0x202428, headColor: 0x0a0c10 },
       { displayName: 'Spectre',      bodyColor: 0xe8e8f0, headColor: 0x8888a0 },
+      { displayName: 'Phantom Lord', bodyColor: 0xf4f8ff, headColor: 0x9aa8c0 },
     ],
   ),
   ...makeClassSkins('engineer',
@@ -132,6 +136,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Hi-Vis',       bodyColor: 0xeeff00, headColor: 0x9a9c00 },
       { displayName: 'Brass',        bodyColor: 0xc8a850, headColor: 0x705c1c },
       { displayName: 'Welder',       bodyColor: 0xff7028, headColor: 0x963810 },
+      { displayName: 'Forge Lord',   bodyColor: 0xffd24a, headColor: 0xc06a10 },
     ],
   ),
   ...makeClassSkins('hunter',
@@ -142,6 +147,7 @@ export const SKINS: ReadonlyArray<SkinConfig> = [
       { displayName: 'Wraith',       bodyColor: 0x5a2030, headColor: 0x2a0a18 },
       { displayName: 'Magenta',      bodyColor: 0xff20c8, headColor: 0xa00080 },
       { displayName: 'Blood Moon',   bodyColor: 0x8a0020, headColor: 0x400010 },
+      { displayName: 'Apex Lord',    bodyColor: 0xff5ad0, headColor: 0xc01060 },
     ],
   ),
 ];
