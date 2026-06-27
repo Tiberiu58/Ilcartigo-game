@@ -324,6 +324,11 @@ const RECIPES: Partial<Record<SoundId, Recipe>> = {
     s.noise(v, { dur: 0.18, type: 'lowpass', freq: 900, gain: 0.4, freqEnd: 300 }); // broad spread
   },
   fire_lmg:     (s, v) => gunshot(s, v, { body: 120, cutoff: 1500, dur: 0.16, bodyGain: 0.55, noiseGain: 0.46, q: 0.7 }),
+  fire_magnum:  (s, v) => {
+    // Hand cannon: a big, heavy crack with a deep punch + a short boom tail.
+    gunshot(s, v, { body: 95, cutoff: 1600, dur: 0.26, bodyGain: 0.62, noiseGain: 0.5, q: 0.6 });
+    s.tone(v, { freq: 55, type: 'sine', dur: 0.34, gain: 0.36, glideTo: 32, glideShape: 'exp' });
+  },
   fire_railgun: (s, v) => {
     // Electric zap: a fast descending bright sweep + a sparkle of HP noise.
     s.tone(v, { freq: 1400, type: 'sawtooth', dur: 0.28, gain: 0.34, glideTo: 180, glideShape: 'exp' });

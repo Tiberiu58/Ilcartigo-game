@@ -906,6 +906,7 @@ const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
   marksman: 'Precision DMR',
   lmg: 'Suppressive Fire',
   railgun: 'Piercing Beam',
+  magnum: 'Hand Cannon',
   pistol: 'Sidearm',
 };
 const wsName = document.getElementById('ws-name')!;

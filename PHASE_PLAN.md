@@ -1388,3 +1388,39 @@ client, no protocol change.
   Versions bumped to v0.41.0 (+ menu subtitle/footer).
 
 ### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 42 — Hand Cannon (9th weapon) (v0.42.0)
+
+Weapon variety is one of the brief's core pillars, and the roster had no
+high-caliber one-tap option. The **Hand Cannon** is a heavy semi-auto revolver:
+a 6-round cylinder, slow (2.2 RPS), pinpoint when paced and brutally inaccurate
+when spammed, with a heavy kick — **65 dmg** (2-shot body, and **65 × 1.7 = 110
+> 100 HP → always a one-shot headshot**). A high-skill, deliberate-fire PRIMARY
+that fills the gap between the precision Marksman and the slow Railgun, and
+rewards aim over spray. Follows the proven LMG/Railgun add pattern.
+
+- **Client:** `MAGNUM_CONFIG` + `WEAPON_LIBRARY` entry (which extends `WeaponId`,
+  so TypeScript then *enforced* exhaustive coverage of every weapon map — reload
+  kind, viewmodel builder, grip anchors, archetype, Gun Game label). A chunky
+  `buildMagnum` viewmodel (long barrel · fat cylinder · wood grip) plus a
+  `WeaponModels` entry reusing the scaled-up Pistol FBX, a `fire_magnum` synth
+  recipe (big heavy crack + deep boom tail) and sound id, three mastery skins
+  (Gunslinger / Chrome / Blackjack) + `WEAPON_SKIN_ORDER`, a loadout button, and
+  the weapon identity card picks it up automatically off `WEAPON_LIBRARY`.
+- **Server (MP-authoritative):** `SERVER_WEAPONS['magnum']` mirrors the client
+  damage/falloff (65 dmg · ×1.7 head · 30→80 falloff) + a `VALID_WEAPONS` entry,
+  so it hits identically online.
+- Not on the fixed six-rung Gun Game ladder (kept as-is); works in every other
+  mode and in MP.
+
+### Status log
+- ✅ Phase 42 — Hand Cannon. DONE (client + server tsc + client build green; app
+  chunk ~95.1 KB gzip). Config + library + viewmodel builder/grip/reload +
+  WeaponModels + synth `fire_magnum` + sound id + mastery skins + archetype +
+  Gun Game label + loadout button + server damage profile/valid-weapon.
+  Re-ran the synth harness (49 ids incl. fire_magnum) — green. Versions bumped to
+  v0.42.0 (+ menu subtitle/footer).
+
+### Phase 42 COMPLETE — additive weapon, no protocol change, solo + MP intact.

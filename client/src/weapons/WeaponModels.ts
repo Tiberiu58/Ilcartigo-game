@@ -116,6 +116,8 @@ export const WEAPON_MODELS: Partial<Record<WeaponId, ModelDef>> = {
   lmg:      { file: 'LMG.fbx',         length: 0.95, rot: [0, ZX, 0], pos: [0, -0.04, 0.10], muzzleZ: -0.70 },
   railgun:  { file: 'RayGun.fbx',      length: 0.78, rot: [0, Z0, 0], pos: [0, -0.08, 0.12], muzzleZ: -0.72 },
   pistol:   { file: 'Pistol.fbx',      length: 0.42, rot: [0, ZX, 0], pos: [0, 0.0, 0.0],   muzzleZ: -0.20 },
+  // Hand Cannon reuses the pistol model, scaled up (no dedicated revolver FBX).
+  magnum:   { file: 'Pistol.fbx',      length: 0.58, rot: [0, ZX, 0], pos: [0, -0.02, 0.04], muzzleZ: -0.28 },
 };
 
 const BASE = import.meta.env.BASE_URL || '/';

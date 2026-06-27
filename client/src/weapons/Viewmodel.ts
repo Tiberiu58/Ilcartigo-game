@@ -361,6 +361,7 @@ const RELOAD_KINDS: Record<WeaponId, ReloadKind> = {
   shotgun: 'pump',
   pistol: 'slide',
   railgun: 'cell',
+  magnum: 'slide',   // cylinder swing-out reads close enough to a slide pull
 };
 
 interface ReloadOut { x: number; y: number; z: number; rx: number; ry: number; rz: number; }
@@ -455,6 +456,7 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   lmg: buildLMG,
   railgun: buildRailgun,
   pistol: buildPistol,
+  magnum: buildMagnum,
 };
 
 function buildRailgun(p: THREE.Group): number {
@@ -549,6 +551,17 @@ function buildPistol(p: THREE.Group): number {
   return -0.22;
 }
 
+// Hand Cannon — a beefy revolver: long heavy barrel, fat cylinder, wood grip.
+function buildMagnum(p: THREE.Group): number {
+  p.add(box(0.07, 0.07, 0.30, 0x33373d, 0, 0.01, -0.06));     // long barrel
+  p.add(box(0.05, 0.05, 0.10, 0x14141a, 0, 0.02, -0.24));     // muzzle
+  p.add(box(0.11, 0.11, 0.10, 0x4a4f57, 0, 0.0, 0.06));       // cylinder (fat)
+  p.add(box(0.06, 0.05, 0.05, 0x55351c, 0, 0.05, 0.12));      // hammer/frame
+  p.add(box(0.07, 0.17, 0.09, 0x5a3a1e, 0.0, -0.12, 0.12));   // wood grip
+  p.add(box(0.025, 0.04, 0.02, 0xf5d442, 0, 0.07, -0.18));    // front sight
+  return -0.30;
+}
+
 function box(w: number, h: number, d: number, color: number, x: number, y: number, z: number): THREE.Mesh {
   const geom = new THREE.BoxGeometry(w, h, d);
   const mat = new THREE.MeshLambertMaterial({ color, flatShading: true });
@@ -605,6 +618,7 @@ const WEAPON_GRIPS: Record<WeaponId, Grips> = {
   lmg:      { rear: [0.0, -0.10, 0.18], front: [-0.02, -0.08, -0.28] },
   railgun:  { rear: [0.0, -0.10, 0.14], front: [-0.02, -0.06, -0.30] },
   pistol:   { rear: [0.0, -0.10, 0.04], front: [0.06, -0.12, 0.02] },  // 2-hand grip near rear
+  magnum:   { rear: [0.0, -0.11, 0.12], front: [0.05, -0.12, 0.02] },  // 2-hand revolver grip
 };
 
 function disposeRecursive(o: THREE.Object3D) {

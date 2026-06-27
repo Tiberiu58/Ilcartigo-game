@@ -279,6 +279,34 @@ export const PISTOL_CONFIG: WeaponConfig = {
   slot: 'secondary',
 };
 
+// Hand Cannon — a heavy semi-auto revolver. One-tap to the head (65 × 1.7 = 110
+// > 100 HP), 2-shot body, but slow, a 6-round cylinder, pinpoint when paced and
+// brutally inaccurate when spammed, with a heavy kick. A high-skill one-shot
+// sidearm-class PRIMARY that rewards precise, deliberate fire.
+export const MAGNUM_CONFIG: WeaponConfig = {
+  id: 'magnum',
+  displayName: 'Hand Cannon',
+  fireRate: 2.2,
+  automatic: false,
+  magSize: 6,
+  reloadTime: 2.2,
+  reserveAmmo: -1,
+  baseDamage: 65,
+  headshotMultiplier: 1.7,     // 110.5 > 100 → always a 1-shot headshot
+  maxRange: 130,
+  falloffStart: 30,
+  falloffEnd: 80,
+  falloffMinMultiplier: 0.7,
+  baseSpread: 0.0018,          // pinpoint when paced
+  maxSpread: 0.06,
+  spreadPerShot: 0.024,        // punishes spam hard
+  spreadDecay: 0.4,
+  recoilPitch: 0.032,          // heavy kick
+  recoilYaw: 0.012,
+  recoilDecay: 0.8,
+  slot: 'primary',
+};
+
 export const WEAPON_LIBRARY = {
   ar: AR_CONFIG,
   smg: SMG_CONFIG,
@@ -287,6 +315,7 @@ export const WEAPON_LIBRARY = {
   marksman: MARKSMAN_CONFIG,
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
+  magnum: MAGNUM_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;
