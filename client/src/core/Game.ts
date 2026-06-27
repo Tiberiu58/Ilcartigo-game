@@ -43,6 +43,7 @@ import { INDUSTRIAL_MAP } from '../maps/IndustrialMap';
 import { COBALT_MAP } from '../maps/CobaltMap';
 import { OVERPASS_MAP } from '../maps/OverpassMap';
 import { FROSTLINE_MAP } from '../maps/FrostlineMap';
+import { FOUNDRY_MAP } from '../maps/FoundryMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
@@ -61,6 +62,7 @@ const MAPS: Record<MapId, GameMap> = {
   cobalt: COBALT_MAP,
   overpass: OVERPASS_MAP,
   frostline: FROSTLINE_MAP,
+  foundry: FOUNDRY_MAP,
 };
 
 export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';
@@ -239,6 +241,9 @@ export class Game {
   /** Local player's current consecutive-kill streak (resets on death). Feeds
    *  the lifetime best-streak stat. */
   localStreak = 0;
+  /** Solo nemesis — the bot that last killed you, marked on its nameplate +
+   *  minimap until you avenge it (revenge → bonus XP). null = no nemesis. */
+  nemesisId: string | null = null;
   /** Rising-hitmarker chain: consecutive landed hits + the timestamp of the
    *  last one, used to escalate the hit-confirm SFX pitch. */
   private _hitChain = 0;
@@ -266,6 +271,24 @@ export class Game {
   // Frag-grenade throw cooldown (seconds). G, solo-only.
   private grenadeCooldown = 0;
   static readonly GRENADE_COOLDOWN = 6;
+
+  // Win cinematic — a brief slow-mo on the local player's match-winning kill
+  // (solo only; MP's sim must never be time-scaled). Countdown uses real dt; the
+  // sim dt is multiplied by timeScale while it runs. onWinCinematic lets main.ts
+  // flash the "FINAL BLOW" banner; the post-match overlay is delayed until the
+  // slow-mo finishes so the moment lands before the scoreboard.
+  private timeScale = 1;
+  private cinematicRemaining = 0;
+  static readonly CINEMATIC_DUR = 1.25;
+  onWinCinematic?: () => void;
+
+  // Burst-weapon follow-up scheduler. When a burst weapon fires, tryFire returns
+  // the rounds still owed; we fire them over the next frames with live aim so the
+  // burst tracks the crosshair. Cleared if the player dies / swaps / quits.
+  private burstRemaining = 0;
+  private burstTimer = 0;            // seconds until the next burst round
+  private burstIntervalMs = 60;
+  private burstWeaponId: string | null = null;
 
   // Arena power-ups (solo-only). performance.now() ms each buff expires at.
   private buffDamageUntil = 0;
@@ -417,6 +440,13 @@ export class Game {
       if (youTaking) {
         this.applyShake(0.06, 8);
       }
+      // Flash the bot white so landed hits read instantly (solo only; MP
+      // remotes don't broadcast per-hit damage to the mesh layer). Cheap O(1)
+      // lookup keyed by target id.
+      if (!this.mp) {
+        const bot = this.bots.find((b) => b.id === e.targetId);
+        if (bot) bot.flashHit();
+      }
     });
 
     // Hit confirm SFX. Plays unspatialized so it always reads as feedback.
@@ -451,7 +481,7 @@ export class Game {
         this.teamScore[t]++;
         if (!this.matchEnded && this.teamScore[t] >= Game.TDM_GOAL) {
           this.matchEnded = true;
-          this.onMatchEnded?.(`team:${t}`);
+          this.endMatch(`team:${t}`);
         }
       }
 
@@ -461,7 +491,7 @@ export class Game {
       if (this.mode === 'combat' && !this.mp && !this.matchEnded && e.attackerId !== e.targetId) {
         if ((this.matchKills.get(e.attackerId) ?? 0) >= Game.MATCH_KILL_GOAL) {
           this.matchEnded = true;
-          this.onMatchEnded?.(e.attackerId);
+          this.endMatch(e.attackerId);
         }
       }
 
@@ -484,6 +514,13 @@ export class Game {
         this.account.recordStreak(this.localStreak);
         this.playKillEffect(e.hitPoint ?? null);
         this.audio.play('kill_feedback');
+        // Nemesis avenged — you killed the bot that last killed you. Bonus XP +
+        // a callout (the Announcer separately pops REVENGE). Solo only.
+        if (this.nemesisId && e.targetId === this.nemesisId) {
+          this.nemesisId = null;
+          this.account.awardXP(25);
+          ScorePopup.pop('☠ NEMESIS DOWN', 'buff');
+        }
       }
 
       if (youDied) {
@@ -491,6 +528,12 @@ export class Game {
         this.account.recordDeath();
         this.localStreak = 0;
         this.audio.play('death');
+        // Nemesis — in solo, the bot that killed you becomes your marked rival
+        // (nameplate skull + minimap ring) until you avenge it. Ignore falls
+        // (self/attacker-less) and anything in MP (ids aren't bots there).
+        if (!this.mp && e.attackerId && e.attackerId !== e.targetId && !this.isLocalPlayer(e.attackerId)) {
+          this.nemesisId = e.attackerId;
+        }
         // SOLO: run the local respawn loop. MP: server respawns us, just wait.
         // Onslaught owns respawn timing (lives system) — it decides whether to
         // bring the player back or end the run, so skip the auto-loop there.
@@ -966,8 +1009,12 @@ export class Game {
     this.matchKills.clear();
     this.matchDeaths.clear();
     this.matchEnded = false;
+    this.nemesisId = null;
     this.teamScore[0] = 0;
     this.teamScore[1] = 0;
+    // Clear any in-progress win cinematic so a fresh match runs at full speed.
+    this.cinematicRemaining = 0;
+    this.timeScale = 1;
     // Power-ups: restore all pads + drop any active buff on a fresh match.
     this.powerups?.resetAll();
     this.clearBuffs();
@@ -1037,6 +1084,62 @@ export class Game {
         attackerId: 'player', targetId: hit.target.id, weaponId: 'knife',
         isHeadshot: hit.isHeadshot, hitPoint: hit.point.clone(),
       });
+    }
+  }
+
+  /**
+   * Fire the scheduled follow-up rounds of a burst weapon (rounds 2..count).
+   * Uses live eye/aim so the burst tracks the crosshair, applies per-round camera
+   * recoil, and (in MP) notifies the server of each round. Self-cancels if the
+   * player dies, swaps off the burst weapon, or is mid-swap — so a holstered or
+   * dead weapon can never fire in the background.
+   */
+  private tickBurst(dt: number) {
+    if (this.burstRemaining <= 0) return;
+    const wpn = this.inventory.current;
+    if (this.playerActor.health.dead || this.inventory.isSwapping ||
+        wpn.config.id !== this.burstWeaponId) {
+      this.burstRemaining = 0;
+      this.burstWeaponId = null;
+      return;
+    }
+    this.burstTimer -= dt;
+    // Loop in case a long frame spans more than one burst interval.
+    while (this.burstRemaining > 0 && this.burstTimer <= 0) {
+      this.player.eyePos(this._eyePos);
+      this.player.aimDir(this._aimDir);
+      const stanceMul = this.player.stanceAccuracyPenalty();
+      const res = wpn.fireBurstRound(this._eyePos, this._aimDir, stanceMul);
+      if (!res) { this.burstRemaining = 0; this.burstWeaponId = null; break; }   // mag emptied mid-burst
+      this.player.applyRecoil(res.recoilKick.pitch, res.recoilKick.yaw);
+      this.applyShake(0.01, 13);
+      this.mp?.sendFire(wpn.config.id, this._eyePos, this._aimDir);
+      this.burstRemaining--;
+      this.burstTimer += this.burstIntervalMs / 1000;
+    }
+  }
+
+  /**
+   * Solo match-end gateway. If the LOCAL player (or local team) won, play the
+   * brief slow-mo "Final Blow" cinematic and delay the post-match overlay until
+   * it finishes; otherwise show post-match immediately. MP never routes through
+   * here (the server owns match-end → MultiplayerSession fires onMatchEnded
+   * directly), so the sim is never time-scaled online.
+   */
+  private endMatch(winnerId: string) {
+    const localWon = winnerId.startsWith('team:')
+      ? this.playerActor.team === Number(winnerId.slice(5))
+      : this.isLocalPlayer(winnerId);
+    if (localWon && !this.mp) {
+      this.cinematicRemaining = Game.CINEMATIC_DUR;
+      this.onWinCinematic?.();
+      setTimeout(() => {
+        // Guard against a quit / fresh match during the cinematic window
+        // (resetMatchScore clears matchEnded) so we never pop post-match over a menu.
+        if (this.matchEnded && this.running) this.onMatchEnded?.(winnerId);
+      }, Math.round(Game.CINEMATIC_DUR * 1000) + 60);
+    } else {
+      this.onMatchEnded?.(winnerId);
     }
   }
 
@@ -1159,6 +1262,17 @@ export class Game {
     // locked), not while paused or sitting in a menu. Persisted coarsely.
     if (this.input.pointerLocked) this.account.addPlaytime(dt);
 
+    // Win cinematic slow-mo (solo only). The countdown uses real dt; everything
+    // below runs on the scaled dt so the whole sim eases into bullet-time. Look
+    // is mouse-delta-driven (not dt), so you can still pan around the moment.
+    if (this.cinematicRemaining > 0) {
+      this.cinematicRemaining = Math.max(0, this.cinematicRemaining - dt);
+      const t = this.cinematicRemaining;
+      // Hold slow, then ease back to full speed over the last 0.4 s.
+      this.timeScale = t > 0.4 ? 0.32 : 0.32 + 0.68 * (1 - t / 0.4);
+      dt *= this.timeScale;
+    }
+
     // --- 1. Player movement + look ---
     this.player.update(dt);
 
@@ -1241,6 +1355,10 @@ export class Game {
 
     if (this.input.consumeAction('reload')) this.inventory.current.startReload();
 
+    // Weapon inspect (T) — cosmetic twirl to show off the equipped skin/finish.
+    // Pointer-lock gated; the Viewmodel ignores it while busy (reload/swap/etc).
+    if (this.input.pointerLocked && this.input.consumeAction('inspect')) this.viewmodel.playInspect();
+
     // Quick melee (V / F) — edge-triggered, solo-only (MP damage is server-
     // authoritative and there's no melee in the protocol; a client-only hit
     // would mislead). The cooldown ticks regardless so the timer stays sane.
@@ -1298,12 +1416,24 @@ export class Game {
         // Note: in MP, the local damage handler still fires (predicted hit) —
         // the server's Damage event will reconcile if our prediction was wrong.
         this.mp?.sendFire(wpn.config.id, this._eyePos, this._aimDir);
+        // Burst weapon — schedule the remaining rounds (fired with live aim in
+        // tickBurst). Resets/overwrites any prior pending burst (a new pull only
+        // happens after the between-burst cooldown, so it can't clip itself).
+        if (res.burst) {
+          this.burstRemaining = res.burst.remaining;
+          this.burstIntervalMs = res.burst.intervalMs;
+          this.burstTimer = res.burst.intervalMs / 1000;
+          this.burstWeaponId = wpn.config.id;
+        }
       } else if (this.inventory.tryAutoSwapToPistol()) {
         // Primary was empty — auto-swap to pistol, do NOT fire this frame so
         // the user sees the swap animation. Next fire press fires the pistol.
         this.viewmodel.swapTo('pistol');
       }
     }
+
+    // Burst weapon — fire any scheduled follow-up rounds with live aim.
+    this.tickBurst(dt);
 
     // --- 3. Bots --- (skipped in Practice and MP modes)
     this.player.eyePos(this._eyePos);

@@ -28,6 +28,9 @@ import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
+import { AchievementsUI } from './ui/AchievementsUI';
+import { AchievementTracker } from './account/Achievements';
+import { AchievementToast } from './ui/AchievementToast';
 import { Ads } from './ads/Ads';
 import { AimLab, DRILLS, type AimLabResult, type DrillId } from './modes/AimLab';
 import { ScorePopup } from './ui/ScorePopup';
@@ -743,7 +746,7 @@ mapBtns.forEach((btn) => {
 });
 // Recover from a corrupt localStorage value. Practice is reached via its own
 // button, so it isn't a valid *combat* map selection.
-const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt', 'overpass', 'frostline'];
+const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt', 'overpass', 'frostline', 'foundry'];
 if (!COMBAT_MAPS.includes(savedMap)) {
   localStorage.setItem('ilc.map', 'sandstone');
 }
@@ -776,6 +779,7 @@ const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
   marksman: 'Precision DMR',
   lmg: 'Suppressive Fire',
   railgun: 'Piercing Beam',
+  burst: 'Burst Rifle',
   pistol: 'Sidearm',
 };
 const wsName = document.getElementById('ws-name')!;
@@ -789,8 +793,9 @@ const wsMasteryNext = document.getElementById('ws-mastery-next')!;
 const wsMasteryFill = document.getElementById('ws-mastery-fill') as HTMLElement;
 function renderWeaponStats(id: WeaponId) {
   const c = WEAPON_LIBRARY[id];
-  // Per-trigger-pull damage (shotgun fires multiple pellets at once).
-  const dmg = c.baseDamage * (c.pellets ?? 1);
+  // Per-trigger-pull damage (shotgun fires multiple pellets at once; the burst
+  // rifle fires its whole burst per pull).
+  const dmg = c.baseDamage * (c.pellets ?? 1) * (c.burst?.count ?? 1);
   const pct = (v: number, max: number) => `${Math.max(6, Math.min(100, Math.round((v / max) * 100)))}%`;
   wsName.textContent = c.displayName;
   wsArch.textContent = WEAPON_ARCHETYPE[id];
@@ -1305,6 +1310,19 @@ const cosmeticsUI = new CosmeticsUI(game.account);
 void cosmeticsUI;
 const profileUI = new ProfileUI(game.account);
 void profileUI;
+const achievementsUI = new AchievementsUI(game.account);
+void achievementsUI;
+
+// Career achievements (medals): the tracker watches the account and unlocks
+// medals as their metric crosses the goal, popping a flashy toast + sting. The
+// Awards panel (achievementsUI) re-renders via account.onChange.
+const achievementTracker = new AchievementTracker(game.account, (def) => {
+  AchievementToast.show(def, () => {
+    game.audio.play('level_up');
+    ScorePopup.pop(`${def.icon} ${def.name}`, 'buff');
+  });
+});
+void achievementTracker;
 
 // Reset progression button — wipes XP + unlocks + equipped cosmetics after a
 // confirm prompt. Useful for testing the unlock loop or for players who want
@@ -1359,6 +1377,7 @@ function accoladeFor(youWon: boolean, rank: number, kills: number, deaths: numbe
 }
 
 function showPostMatch(winnerId: string) {
+  clearFinalBlow();   // tidy up the win cinematic before the scoreboard appears
   game.audio.play('match_end');
   game.input.exitPointerLock();
   // Build scoreboard from game.matchKills + matchDeaths (Game tracks both).
@@ -1458,6 +1477,26 @@ function hidePostMatch() {
 }
 
 game.onMatchEnded = (winnerId) => showPostMatch(winnerId);
+
+// "Final Blow" win cinematic — flash the banner + a slow-mo vignette while the
+// game eases into bullet-time (Game owns the time-scale + the delayed
+// post-match). Cleared defensively when the overlay actually shows.
+const finalBlowBanner = document.getElementById('finalblow-banner')!;
+let finalBlowTimer = 0;
+function clearFinalBlow() {
+  window.clearTimeout(finalBlowTimer);
+  finalBlowBanner.classList.add('hidden');
+  document.body.classList.remove('slowmo');
+}
+game.onWinCinematic = () => {
+  document.body.classList.add('slowmo');
+  finalBlowBanner.classList.remove('hidden');
+  // Restart the pop animation on each trigger.
+  finalBlowBanner.classList.remove('fb-pop');
+  void finalBlowBanner.offsetWidth;
+  finalBlowBanner.classList.add('fb-pop');
+  finalBlowTimer = window.setTimeout(clearFinalBlow, Math.round(Game.CINEMATIC_DUR * 1000) + 60);
+};
 
 pmPlayAgain.addEventListener('click', () => {
   if (game.mp) {

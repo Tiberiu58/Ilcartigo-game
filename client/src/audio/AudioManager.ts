@@ -18,8 +18,10 @@
 
 import { Howl } from 'howler';
 import type * as THREE from 'three';
+import { SynthEngine } from './SynthEngine';
 
 const SOUND_BASE = '/assets/sounds/';
+const MANIFEST_URL = SOUND_BASE + 'manifest.json';
 
 /** All named sound events. Each maps to a single file in /assets/sounds/. */
 export const SOUND_FILES = {
@@ -79,6 +81,12 @@ export const SOUND_FILES = {
   // Quick melee (Phase 20) — knife swing whoosh.
   melee:         'melee.wav',
 
+  // Weapon inspect (Phase 35) — a soft handling/cloth rustle when you flaunt the gun.
+  inspect:       'inspect.wav',
+
+  // Burst Rifle (Phase 37) — a snappy 3-round burst crack.
+  fire_burst:    'fire_burst.wav',
+
   // Frag grenade (Phase 21) — detonation boom.
   grenade_explode: 'grenade_explode.wav',
 
@@ -114,6 +122,22 @@ export class AudioManager {
   /** True once we've logged a "missing file" warning for this id. */
   private missingNoted = new Set<SoundId>();
 
+  /**
+   * Procedural fallback. The game ships with NO .wav files, so by default
+   * every sound is synthesized here — real, juicy audio out of the box. A
+   * dropped-in .wav still wins (see the manifest mechanism below).
+   */
+  private synth = new SynthEngine();
+
+  /**
+   * SoundIds that have a real .wav available (listed in an optional
+   * `manifest.json`). Only these attempt a Howl load — so with no manifest
+   * present there are zero 404s and the synth handles everything.
+   */
+  private wavCandidates = new Set<SoundId>();
+  /** SoundIds whose .wav finished loading and should override the synth. */
+  private wavReady = new Set<SoundId>();
+
   /** 0..1; multiplied into every play. Set from settings UI. */
   masterVolume = 0.8;
   /** 0..1; multiplied into SFX-class plays (music gets its own). */
@@ -128,6 +152,31 @@ export class AudioManager {
     const sRaw = localStorage.getItem(STORAGE_SFX);
     if (mRaw !== null) this.masterVolume = clamp01(parseFloat(mRaw));
     if (sRaw !== null) this.sfxVolume = clamp01(parseFloat(sRaw));
+
+    this.loadManifest();
+  }
+
+  /**
+   * Best-effort fetch of an optional wav manifest. The manifest is a JSON
+   * array of SoundId strings that have real .wav files in /assets/sounds/.
+   * If it 404s (the default — no real audio shipped) we swallow the error and
+   * stay 100% synthesized. To go to authored audio: drop .wav files in and
+   * list their SoundIds in manifest.json.
+   */
+  private async loadManifest(): Promise<void> {
+    try {
+      const res = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+      if (!res.ok) return;
+      const ids = await res.json();
+      if (!Array.isArray(ids)) return;
+      for (const id of ids) {
+        if (typeof id === 'string' && id in SOUND_FILES) {
+          this.wavCandidates.add(id as SoundId);
+        }
+      }
+    } catch {
+      /* no manifest → pure synth, by design */
+    }
   }
 
   setMasterVolume(v: number) {
@@ -152,17 +201,30 @@ export class AudioManager {
     h = new Howl({
       src: [SOUND_BASE + file],
       volume: 1.0,
-      // 404s on load fire onloaderror — we log once and let subsequent play
-      // calls no-op silently.
+      onload: () => { this.wavReady.add(id); },
+      // 404s on load fire onloaderror — fall back to the synth (which is
+      // already what played) and log once.
       onloaderror: () => {
+        this.wavReady.delete(id);
         if (!this.missingNoted.has(id)) {
           this.missingNoted.add(id);
-          console.warn(`[audio] missing file: ${SOUND_BASE}${file} — drop a .wav at that path`);
+          console.warn(`[audio] manifest listed ${file} but it failed to load — using synth fallback`);
         }
       },
     });
     this.howls.set(id, h);
     return h;
+  }
+
+  /**
+   * Resolve whether a real .wav should play for this id. Returns the loaded
+   * Howl, or null to use the synth. Kicks off a lazy load for manifest
+   * candidates so the first play synthesizes and later plays use the wav.
+   */
+  private resolveWav(id: SoundId): Howl | null {
+    if (this.wavReady.has(id)) return this.howls.get(id) ?? null;
+    if (this.wavCandidates.has(id)) this.getHowl(id); // begin loading; synth covers this play
+    return null;
   }
 
   /**
@@ -179,9 +241,14 @@ export class AudioManager {
    */
   play(id: SoundId, volumeMul = 1.0, rate = 1.0) {
     if (this.muted) return;
-    const h = this.getHowl(id);
     const baseVol = this.masterVolume * this.sfxVolume * volumeMul;
     if (baseVol <= 0.001) return;
+    const h = this.resolveWav(id);
+    if (!h) {
+      // Default path: procedural synthesis (no asset files shipped).
+      this.synth.play(id, baseVol, rate, 0);
+      return;
+    }
     const playId = h.play();
     h.volume(baseVol, playId);
     // Optional pitch shift (e.g. the rising hitmarker chain). Only touch the
@@ -217,10 +284,15 @@ export class AudioManager {
     const rel = (dx * rightX + dz * rightZ) / Math.max(dist, 0.0001);
     const pan = Math.max(-1, Math.min(1, rel));
 
-    const h = this.getHowl(id);
-    // (See play() for why we don't gate on state() — same reasoning.)
     const vol = this.masterVolume * this.sfxVolume * falloff * volumeMul;
     if (vol <= 0.001) return;
+    const h = this.resolveWav(id);
+    if (!h) {
+      // Default path: synth with stereo pan.
+      this.synth.play(id, vol, 1.0, pan);
+      return;
+    }
+    // (See play() for why we don't gate on state() — same reasoning.)
     const playId = h.play();
     h.volume(vol, playId);
     h.stereo(pan, playId);

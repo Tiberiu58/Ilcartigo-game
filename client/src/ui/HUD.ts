@@ -62,6 +62,13 @@ export class HUD {
   private kbName: HTMLElement;
   private killBannerTimer: number | null = null;
 
+  // Hit-combo counter — mirrors the rising-hitmarker chain (consecutive landed
+  // hits within a short window) as a visible "x3"+ meter by the crosshair.
+  private hitCombo!: HTMLElement;
+  private comboCount = 0;
+  private comboLastMs = 0;
+  private comboHideTimer: number | null = null;
+
   private lastHp = -1;
   private lastAmmo = -1;
   private lastAmmoMax = -1;
@@ -124,11 +131,13 @@ export class HUD {
     this.killBanner = document.getElementById('kill-banner')!;
     this.kbTag = document.getElementById('kb-tag')!;
     this.kbName = document.getElementById('kb-name')!;
+    this.hitCombo = document.getElementById('hit-combo')!;
 
-    // Player-shot hits → hitmarker (local-only event).
+    // Player-shot hits → hitmarker (local-only event) + combo meter.
     bus.on('hitConfirm', ({ isHeadshot }) => {
       this.flashHitmarker(isHeadshot);
       this.crosshairFeedback(isHeadshot ? 'head' : 'hit');
+      this.bumpCombo();
     });
 
     // Damage taken → red vignette.
@@ -154,6 +163,7 @@ export class HUD {
       if (this.game.isLocalPlayer(e.targetId)) {
         this.deathStartedAt = performance.now();
         this.showRecap(e.attackerId, e.weaponId, e.isHeadshot);
+        this.resetCombo();   // dying breaks the hit chain
       }
     });
   }
@@ -474,6 +484,34 @@ export class HUD {
     }, kind === 'kill' ? 170 : 90);
   }
 
+  /**
+   * Hit-combo meter — counts consecutive landed hits within the same ~1.1 s
+   * window as the rising hitmarker, surfacing it as a "x3"+ counter by the
+   * crosshair (gold → hot orange ≥6 → violet blaze ≥10). Hidden below x3 so it
+   * only ever celebrates a real streak, and auto-hides after a gap.
+   */
+  private bumpCombo() {
+    const now = performance.now();
+    this.comboCount = (now - this.comboLastMs < 1100) ? this.comboCount + 1 : 1;
+    this.comboLastMs = now;
+    if (this.comboCount >= 3) {
+      this.hitCombo.textContent = `x${this.comboCount}`;
+      this.hitCombo.classList.toggle('hot', this.comboCount >= 6);
+      this.hitCombo.classList.toggle('blaze', this.comboCount >= 10);
+      this.hitCombo.classList.remove('hidden', 'hc-pop');
+      void this.hitCombo.offsetWidth;
+      this.hitCombo.classList.add('hc-pop');
+    }
+    if (this.comboHideTimer !== null) window.clearTimeout(this.comboHideTimer);
+    this.comboHideTimer = window.setTimeout(() => this.resetCombo(), 1150);
+  }
+
+  private resetCombo() {
+    this.comboCount = 0;
+    this.hitCombo.classList.add('hidden');
+    this.hitCombo.classList.remove('hot', 'blaze');
+  }
+
   private flashDamage() {
     this.damageFlash.classList.remove('show');
     void this.damageFlash.offsetWidth;
@@ -510,9 +548,9 @@ export class HUD {
     e.className = 'kf-entry';
     e.innerHTML = `
       <span class="kf-killer">${killer}</span>
-      <span class="kf-wpn">[${weaponId}]</span>
+      <span class="kf-wpn">${killfeedWeapon(weaponId)}</span>
       <span class="kf-victim">${victim}</span>
-      ${isHeadshot ? '<span class="kf-head">HS</span>' : ''}
+      ${isHeadshot ? '<span class="kf-head">⊕ HS</span>' : ''}
     `;
     this.killfeed.appendChild(e);
     while (this.killfeed.children.length > KILLFEED_MAX) {
@@ -521,6 +559,21 @@ export class HUD {
     window.setTimeout(() => {
       if (e.parentElement) e.parentElement.removeChild(e);
     }, KILLFEED_TTL);
+  }
+}
+
+/** Killfeed weapon label — a distinct icon + name for the "signature" kills
+ *  players brag about (knife / grenade / railgun / sniper), a plain uppercase
+ *  name for the rest. Reads at a glance, the Krunker/CoD killfeed staple. */
+function killfeedWeapon(weaponId: string): string {
+  switch (weaponId) {
+    case 'knife':    return '🔪 KNIFE';
+    case 'grenade':  return '💣 NADE';
+    case 'railgun':  return '⚡ RAILGUN';
+    case 'sniper':   return '🎯 SNIPER';
+    case 'shotgun':  return '💥 SHOTGUN';
+    case 'marksman': return 'DMR';
+    default:         return weaponId.toUpperCase();
   }
 }
 
