@@ -136,12 +136,19 @@
           <span class="koth-you">YOU <span id="koth-you-n">0</span>s</span>
           <span class="koth-state" id="koth-state">HOLD THE HILL</span>
           <span class="koth-enemy"><span id="koth-enemy-n">0</span>s ENEMY</span>
+          <!-- Capture progress — your hold (teal) vs the bots' (red) toward the
+               target hold time. Widths set each frame by main.ts. -->
+          <span class="koth-progress">
+            <span class="koth-bar koth-bar-you" id="koth-bar-you"></span>
+            <span class="koth-bar koth-bar-enemy" id="koth-bar-enemy"></span>
+          </span>
         </div>
 
-        <!-- KOTH "hill moved" banner — brief center-screen flash on relocation. -->
+        <!-- KOTH banner — brief center-screen flash on relocation / capture /
+             loss. Text + tone class set by main.ts via flashKothBanner. -->
         <div id="koth-banner" class="hidden">
-          <div class="kob-main">⚑ HILL MOVED</div>
-          <div class="kob-sub">take the new ground</div>
+          <div class="kob-main" id="kob-main">⚑ HILL MOVED</div>
+          <div class="kob-sub" id="kob-sub">take the new ground</div>
         </div>
 
         <!-- KOTH objective marker — pip+distance when the hill is on-screen, a
@@ -326,7 +333,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.40</p>
+          <p class="subtitle">Browser arena shooter · v0.41</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -423,7 +430,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.40.0 — King of the Hill + objective marker · Procedural audio + ambient menu music · First-person arms · Animated MP character · 3D weapon models · Duel · Railgun · 6 maps · 8 weapons</div>
+          <div>v0.41.0 — King of the Hill (capture stingers + progress) · Procedural audio + ambient menu music · First-person arms · Animated MP character · 3D weapon models · Duel · Railgun · 6 maps · 8 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

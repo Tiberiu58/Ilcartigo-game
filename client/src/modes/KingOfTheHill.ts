@@ -84,6 +84,10 @@ export class KingOfTheHill {
   onState?: (youSec: number, enemySec: number, target: number, control: HillControl) => void;
   /** Fired when the hill moves — drives a center-screen "HILL MOVED" banner. */
   onRelocate?: () => void;
+  /** Fired when you take SOLE control of the hill (gain → drives a stinger). */
+  onSecure?: () => void;
+  /** Fired when you LOSE sole control (to enemy/contested/empty). */
+  onLost?: () => void;
   /** Fired when the run ends — drives the results card. */
   onEnd?: (result: KothResult) => void;
 
@@ -155,8 +159,12 @@ export class KingOfTheHill {
     // Determine control.
     const next = this.computeControl();
     if (next !== this.control) {
+      const prev = this.control;
       this.control = next;
       this.recolor(next);
+      // Capture/loss edges (only meaningful once play has started).
+      if (next === 'you' && prev !== 'you') this.onSecure?.();
+      else if (prev === 'you' && next !== 'you') this.onLost?.();
     }
 
     if (next === 'you') {

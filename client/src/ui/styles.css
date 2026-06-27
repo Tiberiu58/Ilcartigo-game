@@ -1544,6 +1544,32 @@ body.no-speedlines #speed-lines { display: none; }
   text-transform: uppercase;
   color: rgba(206, 179, 255, 0.85);
 }
+/* Capture / loss tones — green secure, red loss (override the violet default). */
+#koth-banner.secure .kob-main { color: #5ce08a; text-shadow: 0 4px 30px rgba(80, 220, 120, 0.55), 0 2px 6px rgba(0,0,0,0.6); }
+#koth-banner.secure .kob-sub { color: rgba(180, 255, 200, 0.85); }
+#koth-banner.lost .kob-main { color: #ff6a62; text-shadow: 0 4px 30px rgba(255, 90, 80, 0.55), 0 2px 6px rgba(0,0,0,0.6); }
+#koth-banner.lost .kob-sub { color: rgba(255, 190, 185, 0.85); }
+
+/* KOTH capture progress — twin bars (yours teal, theirs red) toward the goal. */
+.koth-progress {
+  position: relative;
+  width: 90px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  border-left: 1px solid rgba(255,255,255,0.14);
+  margin-left: 2px;
+}
+.koth-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 0%;
+  transition: width 0.2s linear;
+}
+.koth-bar-you   { left: 0;  background: #35d0c4; }
+.koth-bar-enemy { right: 0; background: #ff5a52; opacity: 0.85; }
 
 #koth-results {
   position: fixed;

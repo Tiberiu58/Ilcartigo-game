@@ -357,6 +357,10 @@ const kothYouN = document.getElementById('koth-you-n')!;
 const kothEnemyN = document.getElementById('koth-enemy-n')!;
 const kothStateEl = document.getElementById('koth-state')!;
 const kothBanner = document.getElementById('koth-banner')!;
+const kobMain = document.getElementById('kob-main')!;
+const kobSub = document.getElementById('kob-sub')!;
+const kothBarYou = document.getElementById('koth-bar-you') as HTMLElement;
+const kothBarEnemy = document.getElementById('koth-bar-enemy') as HTMLElement;
 const kothResults = document.getElementById('koth-results')!;
 const korTitle = document.getElementById('kor-title')!;
 const korSub = document.getElementById('kor-sub')!;
@@ -373,19 +377,35 @@ const KOTH_STATE_LABEL: Record<HillControl, string> = {
 };
 let kothBannerTimer = 0;
 
-game.koth!.onState = (youSec, enemySec, _target, control) => {
-  kothYouN.textContent = String(Math.floor(youSec));
-  kothEnemyN.textContent = String(Math.floor(enemySec));
-  kothStateEl.textContent = KOTH_STATE_LABEL[control];
-  kothStateEl.className = `koth-state ${control}`;
-};
-game.koth!.onRelocate = () => {
+/** Flash the KOTH center banner with a tone ('' = relocation violet). */
+function flashKothBanner(main: string, sub: string, tone: '' | 'secure' | 'lost', hold: number) {
+  kobMain.textContent = main;
+  kobSub.textContent = sub;
+  kothBanner.className = tone ? tone : '';
   kothBanner.classList.remove('hidden');
   kothBanner.style.animation = 'none';
   void kothBanner.offsetWidth;   // reflow so the pop animation restarts
   kothBanner.style.animation = '';
   window.clearTimeout(kothBannerTimer);
-  kothBannerTimer = window.setTimeout(() => kothBanner.classList.add('hidden'), 1400);
+  kothBannerTimer = window.setTimeout(() => kothBanner.classList.add('hidden'), hold);
+}
+
+game.koth!.onState = (youSec, enemySec, target, control) => {
+  kothYouN.textContent = String(Math.floor(youSec));
+  kothEnemyN.textContent = String(Math.floor(enemySec));
+  kothStateEl.textContent = KOTH_STATE_LABEL[control];
+  kothStateEl.className = `koth-state ${control}`;
+  kothBarYou.style.width = `${Math.min(100, (youSec / target) * 100)}%`;
+  kothBarEnemy.style.width = `${Math.min(100, (enemySec / target) * 100)}%`;
+};
+game.koth!.onRelocate = () => flashKothBanner('⚑ HILL MOVED', 'take the new ground', '', 1400);
+game.koth!.onSecure = () => {
+  flashKothBanner('★ HILL SECURED', 'hold it', 'secure', 1000);
+  game.audio.play('pickup_powerup', 0.7);
+};
+game.koth!.onLost = () => {
+  flashKothBanner('HILL LOST', 'take it back', 'lost', 1000);
+  game.audio.play('empty_click', 0.8);
 };
 game.koth!.onEnd = (r: KothResult) => {
   kothTicker.classList.add('hidden');

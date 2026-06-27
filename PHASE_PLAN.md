@@ -1359,3 +1359,32 @@ findable. Pure client, no protocol change.
   Versions bumped to v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 41 — KOTH capture feedback (progress bar + secure/lost stingers) (v0.41.0)
+
+A small combat-juice pass making the moment you take or lose the hill *land* —
+the brief's "flashy feedback" pillar applied to the new objective mode. Pure
+client, no protocol change.
+
+- **Capture progress bar** in the KOTH ticker — twin bars (yours teal, the bots'
+  red) fill toward the target hold time, so your progress (and theirs) is a
+  glanceable race, not just two numbers.
+- **Secure / lost stingers + banners.** New `KingOfTheHill.onSecure` / `onLost`
+  callbacks fire on the control edges into / out of sole control. Taking the hill
+  pops a green "★ HILL SECURED" banner + a bright `pickup_powerup` chime; losing
+  it pops a red "HILL LOST" banner + a terse `empty_click`. The relocation banner
+  now shares one `flashKothBanner(text, tone)` helper (violet relocate / green
+  secure / red loss).
+
+### Status log
+- ✅ Phase 41 — KOTH capture feedback. DONE (client + server tsc + client build
+  green; app chunk ~94.8 KB gzip). KOTH `onSecure`/`onLost` control-edge
+  callbacks; `#koth-banner` made text/tone-driven (`flashKothBanner`); twin
+  capture-progress bars in the ticker (CSS + per-frame width in `onState`).
+  Extended the KOTH harness to assert the secure/lost edges fire exactly once on
+  capture / loss of sole control — passes alongside the full state machine.
+  Versions bumped to v0.41.0 (+ menu subtitle/footer).
+
+### Phase 41 COMPLETE — pure client, no protocol change, solo + MP intact.
