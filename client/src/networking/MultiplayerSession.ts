@@ -56,8 +56,8 @@ const INPUT_BUFFER_MAX = 120;            // ~3.75s at 32Hz
 const RECONCILE_DT = 1 / 32;
 const POS_SMOOTH = 0.18;                  // 0 = teleport on reconcile, 1 = no correction
 
-// Scratch vectors for per-frame remote footstep audio (avoid per-frame allocs).
-const _FS_EYE = new THREE.Vector3();
+// Scratch vector for draining the remote footstep latch (audio is disabled, but
+// we still consume the latch to keep the cadence accumulator in sync).
 const _FS_POS = new THREE.Vector3();
 
 export class MultiplayerSession {
@@ -249,16 +249,11 @@ export class MultiplayerSession {
 
   /** Tick remote players' interpolation. Called once per render frame. */
   renderRemotes(nowMs: number, dt: number) {
-    const eye = _FS_EYE;
-    this.game.player.eyePos(eye);
-    const yaw = this.game.camera.rotation.y;
     for (const rp of this.remotes.values()) {
       rp.render(nowMs, dt);
-      // Spatial footsteps — hear other players approaching. Cloaked players
-      // are silent (handled inside RemotePlayer.consumeFootstep via cloaked).
-      if (rp.consumeFootstep(_FS_POS)) {
-        this.game.audio.playSpatial('footstep', _FS_POS, eye, yaw);
-      }
+      // Spatial footsteps disabled per user request — still drain the latch so
+      // the cadence stays in sync if re-enabled later.
+      rp.consumeFootstep(_FS_POS);
     }
   }
 

@@ -168,11 +168,14 @@ export class SynthEngine {
     this.tone(t0, freq, type, dur, peak, dest);
   }
 
-  /** Play a rising sequence of notes (announcer stings / fanfares). */
-  private arp(t0: number, freqs: number[], step: number, dur: number, peak: number, dest: AudioNode, type: OscillatorType = 'triangle'): void {
-    for (let i = 0; i < freqs.length; i++) {
-      this.tone(t0 + i * step, freqs[i], type, dur, peak, dest);
-    }
+  /** Play a rising sequence of notes (announcer stings / fanfares).
+   *  DISABLED per user request: these melodic arpeggios read as "background
+   *  music" during play, so every arp-based SFX (kill-streak/multi-kill stings,
+   *  announcer specials, level-up, pickups, respawn) is now silent. The dry
+   *  effects (gunshots, hitmarkers, reloads, UI clicks) are unaffected. To
+   *  re-enable, restore the loop below. */
+  private arp(_t0: number, _freqs: number[], _step: number, _dur: number, _peak: number, _dest: AudioNode, _type: OscillatorType = 'triangle'): void {
+    /* intentionally silent */
   }
 
   // ---- recipe dispatch ----------------------------------------------------

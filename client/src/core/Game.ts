@@ -1282,12 +1282,10 @@ export class Game {
     if (this.player.consumeJumpedEdge())   this.audio.play('jump');
     if (this.player.consumeLandedEdge())   this.audio.play('land');
     if (this.player.consumeJumpPadEdge())  this.audio.play('jump_pad');
-    // Footsteps — scaled by the class's footstep volume passive (Phantom 0 =
-    // silent, Ghost 0.5, others full). Own steps play unspatialized.
-    if (this.player.consumeFootstepEdge()) {
-      const fsVol = this.abilities.config.passive.footstepVolume ?? 1.0;
-      this.audio.play('footstep', fsVol);
-    }
+    // Footsteps — disabled per user request. Still consume the edge so the
+    // cadence accumulator stays in sync (avoids a burst of latched steps if
+    // re-enabled later).
+    this.player.consumeFootstepEdge();
 
     // --- 2. Weapon update, slot swap, scope, reload, fire ---
     this.inventory.update(dt);
