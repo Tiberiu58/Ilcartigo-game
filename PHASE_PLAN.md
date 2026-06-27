@@ -1213,3 +1213,62 @@ the redundant `myDeaths` declaration the auto-merge produced). One cross-branch
 type fix: p4aum5's `WEAPON_ARCHETYPE` record gained `railgun` (tyoq4q's new
 weapon). Client + server typecheck + client build all green; app chunk ~85 KB
 gzip. Versions unified to **v0.33.0**. Live Fly/Vercel/AdSense wiring preserved.
+
+---
+
+## Phase 38 — Procedural audio (the game finally has sound) (v0.38.0)
+
+The single biggest game-feel gap on a "high-feedback competitive FPS" brief: the
+project shipped **zero audio assets**, so the entire SFX pipeline (gunshots, hit
+markers, kill confirms, footsteps, abilities, announcer stings, pickups,
+grenades, UI) was wired everywhere but **completely silent** — waiting on `.wav`
+files that never landed. Phase 38 makes the game audible *now* by synthesizing
+every sound in-browser via the WebAudio API. No assets, no new deps, no protocol
+change; solo + MP both intact.
+
+- **`audio/SynthAudio.ts`** — a procedural SFX engine. Each `SoundId` maps to a
+  short "recipe" that schedules oscillators + filtered white-noise bursts with
+  hand-tuned ADSR envelopes onto a per-play `gain × stereoPanner` voice:
+  - **Per-weapon gunshots** — a shared `gunshot()` (low recoil thump + a
+    filtered-noise crack + a bright snap), parameterised so each gun reads
+    distinct: punchy AR, light fast SMG, sharp pistol, mid marksman, big-boom
+    sniper (extra sub tail), broad shotgun blast, deep LMG chug, and an electric
+    descending-sweep **railgun** zap.
+  - **Hit feedback** — crisp Krunker-style two-step `hit_confirm` tick, a
+    higher `hit_headshot` ding, a rising `kill_feedback` confirm.
+  - Reload clicks, dry `empty_click`, jump/land/jump-pad/footstep, the six
+    ability casts (each a distinct sweep/shimmer), death/respawn/spawn-protect,
+    grenade boom, melee whoosh, pickup chimes, level-up fanfare, low-HP
+    heartbeat, UI click, and **escalating announcer stings** (first-blood /
+    revenge / comeback + the multi-kill chain + streak milestones) as
+    square-lead chord stabs that brighten and lengthen with the tier.
+  - Respects the AudioManager's `rate` arg (pitches the whole recipe — drives
+    the **rising-hitmarker** chain) and an optional stereo `pan` for spatial
+    (remote MP footsteps / ability casts).
+- **Synth-as-fallback wiring in `AudioManager`.** A per-id load-state machine
+  (`pending` / `loaded` / `missing`): on first touch it still attempts to load
+  the real `.wav`; until/unless one finishes loading, `play`/`playSpatial`
+  voice the sound procedurally. **Dropping a matching `.wav` into
+  `/assets/sounds/` transparently overrides the synth for that effect** — the
+  documented drop-in pipeline is preserved, just no longer silent by default.
+  AudioContext is unlocked on the first pointer/key gesture (browser autoplay
+  policy).
+- **Ambient menu music.** A calm A-minor-pentatonic arpeggio loop with a slow
+  Am–F–C–G pad/bass bed, lookahead-scheduled (60 ms timer, 0.25 s horizon) on
+  its own gain so it's independent of SFX. Driven on/off by a `MutationObserver`
+  on the main menu's visibility, so every show/hide path (start / quit / Aim Lab
+  / Duel / …) is covered without touching each call site — music plays on the
+  menu, stops the instant a match starts. New **Menu music** slider in
+  Settings → Audio (persisted; 0 stops the bed); mute silences it too.
+
+### Status log
+- ✅ Phase 38 — Procedural audio. DONE (client + server tsc + client build
+  green; app chunk ~92 KB gzip). New `audio/SynthAudio.ts` (48 SFX recipes +
+  music engine), AudioManager synth-fallback + load-state machine + music
+  control + `STORAGE_MUSIC`, `#audio-music` slider + observer wiring in main.ts,
+  refreshed Audio-tab note. Validated all 48 recipes + the music scheduler with
+  a mock-AudioContext harness that enforces WebAudio invariants
+  (exponential-ramp > 0, finite times) — 600 nodes / 228 voices, zero
+  violations. Versions bumped to v0.38.0 (+ menu subtitle/footer).
+
+### Phase 38 COMPLETE — the game has sound. Pure client, no protocol change, solo + MP intact.

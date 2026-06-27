@@ -531,12 +531,16 @@ const audioMaster = document.getElementById('audio-master') as HTMLInputElement;
 const audioMasterVal = document.getElementById('audio-master-val')!;
 const audioSfx = document.getElementById('audio-sfx') as HTMLInputElement;
 const audioSfxVal = document.getElementById('audio-sfx-val')!;
+const audioMusic = document.getElementById('audio-music') as HTMLInputElement;
+const audioMusicVal = document.getElementById('audio-music-val')!;
 const audioTestBtn = document.getElementById('audio-test-btn') as HTMLButtonElement;
 
 audioMaster.value = String(game.audio.masterVolume);
 audioMasterVal.textContent = `${Math.round(game.audio.masterVolume * 100)}%`;
 audioSfx.value = String(game.audio.sfxVolume);
 audioSfxVal.textContent = `${Math.round(game.audio.sfxVolume * 100)}%`;
+audioMusic.value = String(game.audio.musicVolume);
+audioMusicVal.textContent = `${Math.round(game.audio.musicVolume * 100)}%`;
 
 audioMaster.addEventListener('input', () => {
   const v = Number(audioMaster.value);
@@ -548,9 +552,21 @@ audioSfx.addEventListener('input', () => {
   game.audio.setSfxVolume(v);
   audioSfxVal.textContent = `${Math.round(v * 100)}%`;
 });
+audioMusic.addEventListener('input', () => {
+  const v = Number(audioMusic.value);
+  game.audio.setMusicVolume(v);
+  audioMusicVal.textContent = `${Math.round(v * 100)}%`;
+});
 audioTestBtn.addEventListener('click', () => {
   game.audio.play('ui_click');
 });
+
+// Ambient menu music: on whenever the main menu is visible, off in a match.
+// Driven by a MutationObserver so every show/hide path (start/quit/aim-lab/…)
+// is covered without touching each call site.
+const syncMenuMusic = () => game.audio.setMusicActive(!mainMenu.classList.contains('hidden'));
+new MutationObserver(syncMenuMusic).observe(mainMenu, { attributes: true, attributeFilter: ['class'] });
+syncMenuMusic(); // initial state (menu visible on boot)
 
 // ─── Graphics quality ───────────────────────────────────────────────────────
 const gfxSeg = document.getElementById('gfx-quality')!;

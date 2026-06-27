@@ -18,6 +18,7 @@
 
 import { Howl } from 'howler';
 import type * as THREE from 'three';
+import { SynthAudio } from './SynthAudio';
 
 const SOUND_BASE = '/assets/sounds/';
 
@@ -106,29 +107,59 @@ export type SoundId = keyof typeof SOUND_FILES;
 
 const STORAGE_MASTER = 'ilc.audio.master';
 const STORAGE_SFX    = 'ilc.audio.sfx';
+const STORAGE_MUSIC  = 'ilc.audio.music';
 const MAX_DISTANCE   = 80;       // beyond this, spatial sounds are inaudible
 const REF_DISTANCE   = 3;        // within this, spatial sounds are at full vol
 
+/** Per-sound asset state: have we discovered whether a real `.wav` exists? */
+type LoadState = 'pending' | 'loaded' | 'missing';
+
 export class AudioManager {
   private howls = new Map<SoundId, Howl>();
+  /** Asset load state per id — drives the synth-vs-file routing. */
+  private loadState = new Map<SoundId, LoadState>();
   /** True once we've logged a "missing file" warning for this id. */
   private missingNoted = new Set<SoundId>();
+
+  /**
+   * Procedural fallback. Voices every sound whose real `.wav` isn't present —
+   * which is currently ALL of them (the project ships no audio assets). Drop a
+   * file into /assets/sounds/ and it transparently takes over (see getHowl).
+   */
+  private synth = new SynthAudio();
 
   /** 0..1; multiplied into every play. Set from settings UI. */
   masterVolume = 0.8;
   /** 0..1; multiplied into SFX-class plays (music gets its own). */
   sfxVolume = 0.8;
+  /** 0..1; ambient menu-music level (procedural, independent of SFX). */
+  musicVolume = 0.4;
 
   /** Mute toggle (independent of volumes — restored when un-muted). */
   muted = false;
+  /** Whether the menu music bed is currently requested on. */
+  private musicWanted = false;
 
   constructor() {
     // Restore persisted volumes.
     const mRaw = localStorage.getItem(STORAGE_MASTER);
     const sRaw = localStorage.getItem(STORAGE_SFX);
+    const muRaw = localStorage.getItem(STORAGE_MUSIC);
     if (mRaw !== null) this.masterVolume = clamp01(parseFloat(mRaw));
     if (sRaw !== null) this.sfxVolume = clamp01(parseFloat(sRaw));
+    if (muRaw !== null) this.musicVolume = clamp01(parseFloat(muRaw));
+    this.synth.setMusicVolume(this.musicVolume);
+
+    // Browser autoplay policy: the AudioContext starts suspended until a user
+    // gesture. Unlock it on the first interaction so even pre-pointer-lock UI
+    // clicks make sound.
+    const unlock = () => { this.synth.resume(); };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
   }
+
+  /** Resume the synth's AudioContext — safe to call from any user gesture. */
+  unlock() { this.synth.resume(); }
 
   setMasterVolume(v: number) {
     this.masterVolume = clamp01(v);
@@ -140,29 +171,64 @@ export class AudioManager {
     localStorage.setItem(STORAGE_SFX, String(this.sfxVolume));
   }
 
-  setMuted(m: boolean) {
-    this.muted = m;
+  setMusicVolume(v: number) {
+    this.musicVolume = clamp01(v);
+    localStorage.setItem(STORAGE_MUSIC, String(this.musicVolume));
+    this.synth.setMusicVolume(this.musicVolume);
+    // Honour a 0 setting by stopping the bed outright; restart if turned up.
+    if (this.musicWanted) {
+      if (this.musicVolume <= 0.001) this.synth.stopMusic();
+      else this.synth.startMusic();
+    }
   }
 
-  /** Lazy-load a Howl on first request. Tolerant of missing files. */
+  /** Request the ambient menu music on/off (e.g. on menu show / match start). */
+  setMusicActive(on: boolean) {
+    this.musicWanted = on;
+    if (on && this.musicVolume > 0.001 && !this.muted) this.synth.startMusic();
+    else this.synth.stopMusic();
+  }
+
+  setMuted(m: boolean) {
+    this.muted = m;
+    // Mute silences the music bed too; un-mute restores it if it was wanted.
+    if (m) this.synth.stopMusic();
+    else if (this.musicWanted && this.musicVolume > 0.001) this.synth.startMusic();
+  }
+
+  /**
+   * Lazy-load a Howl on first request, tracking whether the file actually
+   * exists. While loading (or if it 404s) the synth voices the sound; once a
+   * real file loads, this Howl takes over for that id.
+   */
   private getHowl(id: SoundId): Howl {
     let h = this.howls.get(id);
     if (h) return h;
     const file = SOUND_FILES[id];
+    this.loadState.set(id, 'pending');
     h = new Howl({
       src: [SOUND_BASE + file],
       volume: 1.0,
-      // 404s on load fire onloaderror — we log once and let subsequent play
-      // calls no-op silently.
+      onload: () => { this.loadState.set(id, 'loaded'); },
+      // 404s on load fire onloaderror — mark missing so the synth voices it.
       onloaderror: () => {
+        this.loadState.set(id, 'missing');
         if (!this.missingNoted.has(id)) {
           this.missingNoted.add(id);
-          console.warn(`[audio] missing file: ${SOUND_BASE}${file} — drop a .wav at that path`);
+          // Synthesized fallback covers this — info, not a problem.
+          console.info(`[audio] no file ${SOUND_BASE}${file} — using procedural synth`);
         }
       },
     });
     this.howls.set(id, h);
     return h;
+  }
+
+  /** True only when a real `.wav` has finished loading for this id. */
+  private hasFile(id: SoundId): boolean {
+    // Kick off the load discovery on first touch (constructs the Howl).
+    if (!this.howls.has(id)) this.getHowl(id);
+    return this.loadState.get(id) === 'loaded';
   }
 
   /**
@@ -179,9 +245,14 @@ export class AudioManager {
    */
   play(id: SoundId, volumeMul = 1.0, rate = 1.0) {
     if (this.muted) return;
-    const h = this.getHowl(id);
     const baseVol = this.masterVolume * this.sfxVolume * volumeMul;
     if (baseVol <= 0.001) return;
+    // Prefer a real file if one is present; otherwise voice it procedurally.
+    if (!this.hasFile(id)) {
+      this.synth.play(id, baseVol, rate);
+      return;
+    }
+    const h = this.getHowl(id);
     const playId = h.play();
     h.volume(baseVol, playId);
     // Optional pitch shift (e.g. the rising hitmarker chain). Only touch the
@@ -217,10 +288,13 @@ export class AudioManager {
     const rel = (dx * rightX + dz * rightZ) / Math.max(dist, 0.0001);
     const pan = Math.max(-1, Math.min(1, rel));
 
-    const h = this.getHowl(id);
-    // (See play() for why we don't gate on state() — same reasoning.)
     const vol = this.masterVolume * this.sfxVolume * falloff * volumeMul;
     if (vol <= 0.001) return;
+    if (!this.hasFile(id)) {
+      this.synth.play(id, vol, 1.0, pan);
+      return;
+    }
+    const h = this.getHowl(id);
     const playId = h.play();
     h.volume(vol, playId);
     h.stereo(pan, playId);
