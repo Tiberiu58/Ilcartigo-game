@@ -562,6 +562,12 @@ function box(w: number, h: number, d: number, color: number, x: number, y: numbe
 // the group's local origin (z=0, y=0), with the forearm trailing back+down
 // toward the shoulder (off-screen). buildFor() then just positions each arm
 // group at the weapon's grip anchor and the geometry falls into place.
+//
+// IMPORTANT: the whole viewmodel group is rotated 180° on Y (restRot.y = π), so
+// in the arms' local frame +Z points AWAY from the camera. The grip anchors in
+// WEAPON_GRIPS account for that (rear hand at -Z so it lands near the camera,
+// foregrip at +Z so it lands forward on the barrel). The forearm trails toward
+// +Z in local space, which after the flip points back toward the player.
 
 const SKIN = 0x9c6b4a;        // forearm/hand tone (warm, fits the low-poly look)
 const SLEEVE = 0x394452;      // a short sleeve cuff so it's not all skin
@@ -578,16 +584,16 @@ function buildArm(side: 'left' | 'right'): THREE.Group {
   // Thumb on the inboard side.
   g.add(box(0.028, 0.04, 0.06, SKIN, -s * 0.045, 0.02, 0.0));
 
-  // Forearm — a slim limb angling down + outward + back toward the shoulder
-  // (off the bottom corner of the screen). Built as a child group so we can
-  // rotate the whole limb from the wrist.
+  // Forearm — a slim limb angling down + outward + back toward the shoulder.
+  // The group is flipped 180° on Y, so to trail toward the camera/shoulder the
+  // limb must extend toward -Z in local space (and pitch down toward the body).
   const limb = new THREE.Group();
-  limb.position.set(0, -0.04, 0.04);
-  limb.rotation.set(0.65, s * 0.30, s * 0.12);   // pitch down + splay outward
-  const forearm = box(0.06, 0.06, 0.34, SKIN, 0, 0, 0.20);
+  limb.position.set(0, -0.04, -0.04);
+  limb.rotation.set(-0.65, s * 0.30, s * 0.12);  // pitch down + splay outward
+  const forearm = box(0.06, 0.06, 0.34, SKIN, 0, 0, -0.20);
   limb.add(forearm);
   // Sleeve cuff partway down.
-  limb.add(box(0.08, 0.08, 0.12, SLEEVE, 0, 0, 0.34));
+  limb.add(box(0.08, 0.08, 0.12, SLEEVE, 0, 0, -0.34));
   g.add(limb);
 
   return g;
@@ -596,15 +602,19 @@ function buildArm(side: 'left' | 'right'): THREE.Group {
 /** Per-weapon hand grip anchors in viewmodel-local space: where the right
  *  (trigger) hand and left (foregrip) hand sit. Tuned to each gun's length. */
 interface Grips { rear: [number, number, number]; front: [number, number, number]; }
+// Z is in the arms' local frame: NEGATIVE z = toward the camera (the rear/grip,
+// because the group is flipped 180°), POSITIVE z = forward on the barrel (the
+// foregrip). Previously these were swapped, which made the hands grip the gun
+// back-to-front (the same flip the weapon models needed).
 const WEAPON_GRIPS: Record<WeaponId, Grips> = {
-  ar:       { rear: [0.0, -0.10, 0.16], front: [-0.02, -0.06, -0.22] },
-  smg:      { rear: [0.0, -0.10, 0.12], front: [-0.02, -0.06, -0.14] },
-  sniper:   { rear: [0.0, -0.10, 0.16], front: [-0.02, -0.06, -0.34] },
-  shotgun:  { rear: [0.0, -0.10, 0.18], front: [-0.02, -0.06, -0.26] },
-  marksman: { rear: [0.0, -0.10, 0.18], front: [-0.02, -0.06, -0.30] },
-  lmg:      { rear: [0.0, -0.10, 0.18], front: [-0.02, -0.08, -0.28] },
-  railgun:  { rear: [0.0, -0.10, 0.14], front: [-0.02, -0.06, -0.30] },
-  pistol:   { rear: [0.0, -0.10, 0.04], front: [0.06, -0.12, 0.02] },  // 2-hand grip near rear
+  ar:       { rear: [0.0, -0.10, -0.16], front: [-0.02, -0.06, 0.22] },
+  smg:      { rear: [0.0, -0.10, -0.12], front: [-0.02, -0.06, 0.14] },
+  sniper:   { rear: [0.0, -0.10, -0.16], front: [-0.02, -0.06, 0.34] },
+  shotgun:  { rear: [0.0, -0.10, -0.18], front: [-0.02, -0.06, 0.26] },
+  marksman: { rear: [0.0, -0.10, -0.18], front: [-0.02, -0.06, 0.30] },
+  lmg:      { rear: [0.0, -0.10, -0.18], front: [-0.02, -0.08, 0.28] },
+  railgun:  { rear: [0.0, -0.10, -0.14], front: [-0.02, -0.06, 0.30] },
+  pistol:   { rear: [0.0, -0.10, -0.04], front: [0.06, -0.12, -0.02] },  // 2-hand grip near rear
 };
 
 function disposeRecursive(o: THREE.Object3D) {
