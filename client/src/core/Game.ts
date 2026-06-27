@@ -440,6 +440,13 @@ export class Game {
       if (youTaking) {
         this.applyShake(0.06, 8);
       }
+      // Flash the bot white so landed hits read instantly (solo only; MP
+      // remotes don't broadcast per-hit damage to the mesh layer). Cheap O(1)
+      // lookup keyed by target id.
+      if (!this.mp) {
+        const bot = this.bots.find((b) => b.id === e.targetId);
+        if (bot) bot.flashHit();
+      }
     });
 
     // Hit confirm SFX. Plays unspatialized so it always reads as feedback.
