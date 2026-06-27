@@ -267,6 +267,14 @@ export class Game {
   private grenadeCooldown = 0;
   static readonly GRENADE_COOLDOWN = 6;
 
+  // Burst-weapon follow-up scheduler. When a burst weapon fires, tryFire returns
+  // the rounds still owed; we fire them over the next frames with live aim so the
+  // burst tracks the crosshair. Cleared if the player dies / swaps / quits.
+  private burstRemaining = 0;
+  private burstTimer = 0;            // seconds until the next burst round
+  private burstIntervalMs = 60;
+  private burstWeaponId: string | null = null;
+
   // Arena power-ups (solo-only). performance.now() ms each buff expires at.
   private buffDamageUntil = 0;
   private buffHasteUntil = 0;
@@ -1040,6 +1048,38 @@ export class Game {
     }
   }
 
+  /**
+   * Fire the scheduled follow-up rounds of a burst weapon (rounds 2..count).
+   * Uses live eye/aim so the burst tracks the crosshair, applies per-round camera
+   * recoil, and (in MP) notifies the server of each round. Self-cancels if the
+   * player dies, swaps off the burst weapon, or is mid-swap — so a holstered or
+   * dead weapon can never fire in the background.
+   */
+  private tickBurst(dt: number) {
+    if (this.burstRemaining <= 0) return;
+    const wpn = this.inventory.current;
+    if (this.playerActor.health.dead || this.inventory.isSwapping ||
+        wpn.config.id !== this.burstWeaponId) {
+      this.burstRemaining = 0;
+      this.burstWeaponId = null;
+      return;
+    }
+    this.burstTimer -= dt;
+    // Loop in case a long frame spans more than one burst interval.
+    while (this.burstRemaining > 0 && this.burstTimer <= 0) {
+      this.player.eyePos(this._eyePos);
+      this.player.aimDir(this._aimDir);
+      const stanceMul = this.player.stanceAccuracyPenalty();
+      const res = wpn.fireBurstRound(this._eyePos, this._aimDir, stanceMul);
+      if (!res) { this.burstRemaining = 0; this.burstWeaponId = null; break; }   // mag emptied mid-burst
+      this.player.applyRecoil(res.recoilKick.pitch, res.recoilKick.yaw);
+      this.applyShake(0.01, 13);
+      this.mp?.sendFire(wpn.config.id, this._eyePos, this._aimDir);
+      this.burstRemaining--;
+      this.burstTimer += this.burstIntervalMs / 1000;
+    }
+  }
+
   /** Grenade readiness 0..1 (1 = ready) — drives the HUD utility pill. */
   get grenadeReadyFraction(): number {
     return 1 - this.grenadeCooldown / Game.GRENADE_COOLDOWN;
@@ -1298,12 +1338,24 @@ export class Game {
         // Note: in MP, the local damage handler still fires (predicted hit) —
         // the server's Damage event will reconcile if our prediction was wrong.
         this.mp?.sendFire(wpn.config.id, this._eyePos, this._aimDir);
+        // Burst weapon — schedule the remaining rounds (fired with live aim in
+        // tickBurst). Resets/overwrites any prior pending burst (a new pull only
+        // happens after the between-burst cooldown, so it can't clip itself).
+        if (res.burst) {
+          this.burstRemaining = res.burst.remaining;
+          this.burstIntervalMs = res.burst.intervalMs;
+          this.burstTimer = res.burst.intervalMs / 1000;
+          this.burstWeaponId = wpn.config.id;
+        }
       } else if (this.inventory.tryAutoSwapToPistol()) {
         // Primary was empty — auto-swap to pistol, do NOT fire this frame so
         // the user sees the swap animation. Next fire press fires the pistol.
         this.viewmodel.swapTo('pistol');
       }
     }
+
+    // Burst weapon — fire any scheduled follow-up rounds with live aim.
+    this.tickBurst(dt);
 
     // --- 3. Bots --- (skipped in Practice and MP modes)
     this.player.eyePos(this._eyePos);

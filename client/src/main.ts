@@ -776,6 +776,7 @@ const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
   marksman: 'Precision DMR',
   lmg: 'Suppressive Fire',
   railgun: 'Piercing Beam',
+  burst: 'Burst Rifle',
   pistol: 'Sidearm',
 };
 const wsName = document.getElementById('ws-name')!;
@@ -789,8 +790,9 @@ const wsMasteryNext = document.getElementById('ws-mastery-next')!;
 const wsMasteryFill = document.getElementById('ws-mastery-fill') as HTMLElement;
 function renderWeaponStats(id: WeaponId) {
   const c = WEAPON_LIBRARY[id];
-  // Per-trigger-pull damage (shotgun fires multiple pellets at once).
-  const dmg = c.baseDamage * (c.pellets ?? 1);
+  // Per-trigger-pull damage (shotgun fires multiple pellets at once; the burst
+  // rifle fires its whole burst per pull).
+  const dmg = c.baseDamage * (c.pellets ?? 1) * (c.burst?.count ?? 1);
   const pct = (v: number, max: number) => `${Math.max(6, Math.min(100, Math.round((v / max) * 100)))}%`;
   wsName.textContent = c.displayName;
   wsArch.textContent = WEAPON_ARCHETYPE[id];
