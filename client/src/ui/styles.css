@@ -1560,6 +1560,36 @@ body.no-speedlines #speed-lines { display: none; }
 #koth-results.lost .koth-card { border-top-color: #ff5a52; }
 #koth-results.lost #kor-title { color: #ff7a72; }
 
+/* On-screen objective marker (KOTH hill). `color` is set inline per control
+   state; children inherit it via currentColor. */
+#objective-marker {
+  position: absolute;
+  z-index: 11;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 6px currentColor);
+}
+#om-arrow {
+  font-size: 22px;
+  line-height: 1;
+  color: currentColor;
+  /* rotate set inline; ▲ points up at 0rad, our angle is measured from +x so
+     the glyph is pre-rotated 90° via the inline transform's base. */
+}
+#om-pip {
+  font-size: 18px;
+  line-height: 1;
+  color: currentColor;
+  text-align: center;
+}
+#om-label {
+  margin-top: 1px;
+  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: currentColor;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
 #duel-results {
   position: fixed;
   inset: 0;

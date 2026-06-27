@@ -1325,3 +1325,37 @@ change; solo + MP + every prior mode intact.
   Versions bumped to v0.39.0 (+ menu subtitle/footer).
 
 ### Phase 39 COMPLETE — solo zone-control mode, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — KOTH objective awareness (on-screen marker + minimap hill) (v0.40.0)
+
+A focused UX pass closing the one real gap in the freshly-shipped King of the
+Hill mode: the hill **relocates** every ~30 s, but nothing told you *where* it
+went — you could spend the timer wandering. Phase 40 makes the objective always
+findable. Pure client, no protocol change.
+
+- **On-screen objective marker** (`ui/ObjectiveMarker.ts`). When the hill is in
+  view it shows a pip + the distance (`42m`); when it's off-screen or behind you
+  it clamps to the screen edge as an **arrow pointing the way**, tinted by who
+  controls the hill (teal you · red them · gold contested · grey empty). The
+  pure screen-layout math is a standalone `placeMarker()` (project → on-screen
+  pip vs. inset-edge clamp with an outward angle, incl. the behind-camera NDC
+  flip), driven each frame from `KingOfTheHill.update` via the live camera. The
+  KOTH controller owns the marker (created on start, hidden on stop).
+- **Minimap hill.** The radar now draws the zone as a filled circle in the
+  control colour (via a new `KingOfTheHill.hillInfo()` accessor read by
+  `Minimap.tick`, mirroring the existing pickup/power-up pad hooks) — so the
+  hill reads at a glance on the top-down map too.
+
+### Status log
+- ✅ Phase 40 — KOTH objective awareness. DONE (client + server tsc + client
+  build green; app chunk ~94.6 KB gzip). New `ui/ObjectiveMarker.ts`
+  (`placeMarker` + DOM driver), `#objective-marker` DOM + CSS, KOTH
+  `marker`/`hillInfo()` + per-frame `marker.update`, Minimap hill circle.
+  Validated `placeMarker` headlessly (on-screen pip, off-screen edge clamp +
+  containment, behind-camera flip, degenerate-centre, up/right directions) and
+  re-ran the KOTH state-machine harness with the marker integrated — both pass.
+  Versions bumped to v0.40.0 (+ menu subtitle/footer).
+
+### Phase 40 COMPLETE — pure client, no protocol change, solo + MP intact.

@@ -144,6 +144,15 @@
           <div class="kob-sub">take the new ground</div>
         </div>
 
+        <!-- KOTH objective marker — pip+distance when the hill is on-screen, a
+             clamped edge arrow pointing to it when off-screen. Positioned each
+             frame by ObjectiveMarker.ts; colour tracks who controls the hill. -->
+        <div id="objective-marker" style="display:none">
+          <div id="om-arrow">▲</div>
+          <div id="om-pip">⬡</div>
+          <div id="om-label">0m</div>
+        </div>
+
         <!-- Match score ticker — top-center. Shows your kills vs the match goal. -->
         <div id="match-score" class="hidden">
           <span class="ms-you" id="ms-you-kills">0</span>
@@ -317,7 +326,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.39</p>
+          <p class="subtitle">Browser arena shooter · v0.40</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -414,7 +423,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.39.0 — King of the Hill (zone-control mode) · Procedural audio + ambient menu music · First-person arms · Animated MP character · 3D weapon models · Duel · Railgun · 6 maps · 8 weapons</div>
+          <div>v0.40.0 — King of the Hill + objective marker · Procedural audio + ambient menu music · First-person arms · Animated MP character · 3D weapon models · Duel · Railgun · 6 maps · 8 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>

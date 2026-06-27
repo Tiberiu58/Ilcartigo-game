@@ -20,6 +20,7 @@
 
 import * as THREE from 'three';
 import type { Game } from '../core/Game';
+import { ObjectiveMarker } from '../ui/ObjectiveMarker';
 
 const HILL_RADIUS = 5.0;          // metres; control radius (XZ)
 const TARGET_SECONDS = 60;        // control time to win (or lose, if the bots reach it)
@@ -34,6 +35,11 @@ const CONTROL_COLOR: Record<HillControl, number> = {
   enemy:     0xff5a52, // red — the bots hold it
   contested: 0xffc24a, // gold — both inside, nobody scores
   empty:     0x88a0b8, // cool grey-blue — uncontested
+};
+
+/** CSS colour strings for the on-screen marker, mirroring CONTROL_COLOR. */
+const MARKER_COLOR: Record<HillControl, string> = {
+  you: '#35d0c4', enemy: '#ff5a52', contested: '#ffc24a', empty: '#9fb0c6',
 };
 
 export interface KothResult {
@@ -71,6 +77,9 @@ export class KingOfTheHill {
   private pillarMat: THREE.MeshBasicMaterial | null = null;
   private spin = 0;
 
+  /** On-screen "find the hill" indicator (pip / edge arrow). */
+  private marker: ObjectiveMarker | null = null;
+
   /** HUD ticker: your hold, enemy hold, target, who controls it now. */
   onState?: (youSec: number, enemySec: number, target: number, control: HillControl) => void;
   /** Fired when the hill moves — drives a center-screen "HILL MOVED" banner. */
@@ -105,6 +114,7 @@ export class KingOfTheHill {
     this.anchorIdx = Math.floor(this.anchors.length / 2) % this.anchors.length;
 
     this.buildVisual();
+    if (!this.marker) this.marker = new ObjectiveMarker(() => new THREE.Vector3());
     this.placeHill(this.anchorIdx, false);
     this.relocateTimer = RELOCATE_SECONDS;
     this.emitState();
@@ -115,7 +125,14 @@ export class KingOfTheHill {
     this.unsub?.();
     this.unsub = null;
     this.game.setBotLure(null);
+    this.marker?.hide();
     this.disposeVisual();
+  }
+
+  /** Live hill state for HUD overlays (minimap circle). null when inactive. */
+  hillInfo(): { x: number; z: number; radius: number; control: HillControl } | null {
+    if (!this.active || this.ended) return null;
+    return { x: this.center.x, z: this.center.z, radius: HILL_RADIUS, control: this.control };
   }
 
   update(dt: number) {
@@ -150,6 +167,9 @@ export class KingOfTheHill {
       this.currentHold = 0;
       if (next === 'enemy') this.enemyHeld += dt;
     }
+
+    // On-screen objective indicator (pip / edge arrow), tinted by control.
+    this.marker?.update(this.center, this.game.camera, MARKER_COLOR[next]);
 
     // Win / lose.
     if (this.youHeld >= TARGET_SECONDS) this.endRun(true);

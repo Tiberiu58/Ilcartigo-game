@@ -177,6 +177,26 @@ export class Minimap {
       ctx.fill();
     });
 
+    // King of the Hill — the contested zone as a filled circle in the control
+    // colour (teal you · red them · gold contested · grey empty).
+    const hill = this.game.koth?.hillInfo();
+    if (hill) {
+      const hx = this.toX(hill.x);
+      const hy = this.toY(hill.z);
+      const hr = Math.max(3, hill.radius * this.scale);
+      const c = hill.control === 'you' ? '53, 208, 196'
+        : hill.control === 'enemy' ? '255, 90, 82'
+        : hill.control === 'contested' ? '255, 194, 74'
+        : '159, 176, 198';
+      ctx.beginPath();
+      ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${c}, 0.22)`;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgb(${c})`;
+      ctx.stroke();
+    }
+
     // Enemies — red dots. Solo bots, or MP remotes (skip cloaked + dead).
     ctx.fillStyle = '#ff5a5a';
     if (this.game.mp) {
