@@ -112,7 +112,23 @@ const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
 const rampage = new RampageFX();
-announcer.onStreakChange = (streak) => rampage.setStreak(streak);
+// Killstreak Credit bonuses — hitting a streak milestone pays out Credits on top
+// of the per-kill ones, so a hot streak is worth chasing (and spending). Keyed to
+// the Announcer's STREAK_TIERS thresholds. Only fires once per milestone as the
+// streak climbs (the > guard); the death/reset drop to 0 re-arms it.
+const STREAK_CREDIT_BONUS: Record<number, number> = { 3: 5, 5: 10, 7: 15, 10: 25, 15: 40, 20: 60 };
+let lastStreakSeen = 0;
+announcer.onStreakChange = (streak) => {
+  rampage.setStreak(streak);
+  if (streak > lastStreakSeen) {
+    const bonus = STREAK_CREDIT_BONUS[streak];
+    if (bonus) {
+      game.account.awardCredits(bonus);
+      ScorePopup.pop(`🔥 STREAK ◈ +${bonus}`, 'buff');
+    }
+  }
+  lastStreakSeen = streak;
+};
 // Skill-shot callouts — inspect the live player/weapon state at kill time.
 announcer.resolveKillStyle = (e) => {
   // NO SCOPE: a sniper kill landed without being scoped.
@@ -1553,6 +1569,16 @@ pmPlayAgain.addEventListener('click', () => {
 pmQuit.addEventListener('click', () => {
   hidePostMatch();
   quitToMenu();
+});
+
+// "Spend Credits" — open the Armory over the post-match card (the main natural
+// ad breakpoint), turning match-end into a spend moment. The shop closes back to
+// the post-match overlay underneath.
+const pmShop = document.getElementById('pm-shop') as HTMLButtonElement;
+pmShop.addEventListener('click', () => {
+  game.audio.play('ui_click');
+  shopUI.show();
+  Ads.refreshSlot('shop');
 });
 
 // Initialize ads (mounts menu + post-match slots; loads AdSense only if a real

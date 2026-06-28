@@ -1420,3 +1420,34 @@ integration point:
   10-weapon count updated.
 
 ### Phase 41 COMPLETE — additive 10th weapon, no protocol change, solo + MP intact.
+
+---
+
+## Phase 42 — Killstreak Credit bonuses + post-match Shop shortcut (v0.42.0)
+
+A small, pure-client round wiring the Credits economy into the moment-to-moment
+combat + the main ad breakpoint — serving the brief's *rewards* + *desire to win
+the next duel* + *AdSense* pillars at once.
+
+- **Killstreak Credit bonuses.** Hitting an Announcer streak milestone (the
+  existing `STREAK_TIERS`: 3/5/7/10/15/20) pays a Credit bonus on top of the
+  per-kill 5 — `{3:5, 5:10, 7:15, 10:25, 15:40, 20:60}` — with a "🔥 STREAK ◈ +N"
+  ScorePopup. Hooked onto the Announcer's single `onStreakChange` callback
+  (alongside RampageFX, not replacing it); a `> lastStreakSeen` guard fires each
+  milestone exactly once as the streak climbs, and the death/reset drop to 0
+  re-arms it. So a hot streak is now worth chasing *and* funds the Shop.
+- **Post-match "🛒 Spend Credits".** A new button on the post-match overlay (the
+  game's main natural ad breakpoint) opens the Armory right there — match-end
+  becomes a spend moment (retention + ad dwell). Shop z-index (30) sits over the
+  post-match overlay (25), so it layers correctly and closes back to it.
+
+### Status log
+- ✅ Phase 42 — Killstreak Credit bonuses + post-match Shop. DONE (client +
+  server tsc + client build green). `STREAK_CREDIT_BONUS` + extended
+  `onStreakChange` in main.ts, `#pm-shop` button + handler.
+  **Browser-verified**: 3 emitted local kills granted +20 CR (15 per-kill + 5
+  streak-3 bonus); forcing post-match showed +65 CR earned and the "Spend
+  Credits" button opened the Shop over the overlay — no errors. Versions bumped
+  to v0.42.0 (+ menu subtitle/footer). README updated.
+
+### Phase 42 COMPLETE — pure client, no protocol change, solo + MP intact.
