@@ -250,6 +250,8 @@ export class Game {
   private _lastHitMs = 0;
   /** Win threshold for FFA matches (spec: first to 30). */
   static readonly MATCH_KILL_GOAL = 30;
+  /** Credits (Armory currency) earned per local-player kill. */
+  static readonly CREDITS_PER_KILL = 5;
   /** TDM per-team frag totals. Index = team (0 = BLUE/player, 1 = RED). */
   teamScore: [number, number] = [0, 0];
   /** First team to this many frags wins Team Deathmatch. */
@@ -498,6 +500,7 @@ export class Game {
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
         this.account.awardXP(10);
+        this.account.awardCredits(Game.CREDITS_PER_KILL);
         this.account.recordKill(e.isHeadshot);
         // Weapon mastery — bump this weapon's kill count; celebrate a fresh
         // skin unlock via the bus (ProgressionFX pops a reward chip).

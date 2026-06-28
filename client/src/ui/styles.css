@@ -1804,6 +1804,8 @@ body.no-speedlines #speed-lines { display: none; }
 .pm-xp {
   font: 700 22px/1.2 'Segoe UI', sans-serif;
   color: var(--accent);
+  display: inline-block;
+  margin: 0 10px;
 }
 #pm-unlocks {
   margin-top: 8px;
@@ -2967,6 +2969,160 @@ body.slowmo::after {
 .daily-card .menu-btn:disabled { opacity: 0.5; cursor: default; }
 .menu-btn.daily { border-left: 3px solid #ffd23f; }
 .menu-btn.daily:hover { border-left-color: #ffe27a; color: #ffe27a; }
+.menu-btn.shop { border-left: 3px solid #36e08a; }
+.menu-btn.shop:hover { border-left-color: #5cf0a8; color: #5cf0a8; }
+
+/* ── Phase 39: Credits + Armory Shop ─────────────────────────────────────── */
+
+/* Credits chip on the main menu (under the rank badge). */
+.menu-credits {
+  display: inline-block;
+  margin: 4px auto 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(54, 224, 138, 0.1);
+  border: 1px solid rgba(54, 224, 138, 0.35);
+  font: 800 13px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: #5cf0a8;
+}
+
+#shop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 24px;
+}
+#shop-overlay.hidden { display: none; }
+.shop-card {
+  background: var(--panel);
+  border-top: 4px solid #36e08a;
+  border-radius: 12px;
+  width: 820px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  padding: 22px 26px 26px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.shop-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.shop-header h2 {
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: #5cf0a8;
+  margin: 0;
+}
+.shop-balance {
+  font: 800 16px/1 'JetBrains Mono', Consolas, monospace;
+  color: #5cf0a8;
+  background: rgba(54, 224, 138, 0.12);
+  border: 1px solid rgba(54, 224, 138, 0.35);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+.shop-header .settings-close { margin-left: auto; }
+.shop-sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 2px 0 12px;
+}
+#shop-overlay .ad-slot { margin: 0 0 14px; min-height: 60px; }
+.shop-featured {
+  background: rgba(54, 224, 138, 0.06);
+  border: 1px solid rgba(54, 224, 138, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.shop-featured:empty { display: none; }
+.shop-feat-head {
+  font: 800 12px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: #ffd23f;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shop-feat-tag {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #0d0f14;
+  background: #ffd23f;
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.shop-feat-body { display: flex; align-items: center; gap: 16px; }
+.shop-feat-info { display: flex; flex-direction: column; gap: 2px; }
+.shop-feat-name {
+  font: 800 16px/1.1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.shop-feat-sub { font-size: 12px; color: var(--muted); }
+.shop-feat-old {
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted);
+  text-decoration: line-through;
+  margin-top: 2px;
+}
+.shop-body {
+  overflow-y: auto;
+  padding-right: 6px;
+  flex: 1;
+}
+.shop-section-head {
+  font: 800 11px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 14px 0 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 5px;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.shop-price {
+  font: 800 11px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 0.5px;
+  color: #5cf0a8;
+}
+.shop-price.owned { color: var(--accent); }
+.shop-price.cant { color: #ff6a6a; }
+.cos-card.shop-card.owned { border-color: var(--accent); background: rgba(245, 212, 66, 0.07); cursor: default; }
+.cos-card.shop-card.cant { opacity: 0.62; }
+.cos-card.shop-card.feat {
+  width: 74px;
+  cursor: pointer;
+  border-color: rgba(54, 224, 138, 0.5);
+}
+/* Themed scrollbar for the shop body (matches the menu scrollbar). */
+.shop-body::-webkit-scrollbar { width: 8px; }
+.shop-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 4px; }
+
+/* Post-match Credits line (sits beside the +XP line). */
+.pm-cr {
+  font: 700 22px/1.2 'Segoe UI', sans-serif;
+  color: #5cf0a8;
+  display: inline-block;
+  margin: 0 10px;
+}
 
 /* ── Phase 13: progression spectacle ─────────────────────────────────────── */
 

@@ -311,9 +311,11 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.40</p>
+          <p class="subtitle">Browser arena shooter · v0.39</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
+          <!-- Credits balance (Armory currency). Updated by main.ts. -->
+          <div id="menu-credits" class="menu-credits">◈ <span id="menu-credits-n">0</span> CR</div>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -403,13 +405,14 @@
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
+            <button class="menu-btn shop" id="menu-shop">🛒 Armory Shop</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
             <button class="menu-btn" id="menu-about">About</button>
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.38.0 — Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
+          <div>v0.39.0 — Armory Shop + Credits economy · Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · 7 maps · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -464,6 +467,7 @@
 
           <div class="pm-rewards">
             <div class="pm-xp">+<span id="pm-xp-earned">0</span> XP</div>
+            <div class="pm-cr">+<span id="pm-cr-earned">0</span> CR</div>
             <div id="pm-unlocks"></div>
           </div>
 
@@ -624,6 +628,23 @@
           <div class="daily-track" id="daily-track"></div>
           <button class="menu-btn primary" id="daily-claim">▸ Claim</button>
           <button class="menu-btn" id="daily-dismiss">Close</button>
+        </div>
+      </div>
+
+      <!-- Armory Shop — spend Credits (earned in matches) on cosmetics. A second
+           play-to-earn path to the same unlocks as the XP Cosmetics tab. Rendered
+           + wired by ui/ShopUI.ts. -->
+      <div id="shop-overlay" class="hidden">
+        <div class="shop-card">
+          <header class="shop-header">
+            <h2>🛒 ARMORY</h2>
+            <div class="shop-balance">◈ <span id="shop-credits">0</span> CR</div>
+            <button class="settings-close" id="shop-close" aria-label="Close">×</button>
+          </header>
+          <p class="shop-sub">Earn Credits every match — spend them here. Buying a cosmetic equips it. Items also unlock with XP in Settings → Cosmetics.</p>
+          <div class="ad-slot" id="ad-shop" data-ad-slot="shop"></div>
+          <div id="shop-featured" class="shop-featured"></div>
+          <div id="shop-body" class="shop-body"></div>
         </div>
       </div>
 

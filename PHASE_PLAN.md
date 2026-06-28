@@ -1289,3 +1289,60 @@ build green, never break solo / MP / the audit fixes.
   + audio asset guide updated.
 
 ### Phase 36 COMPLETE — full procedural SFX, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 39 — Credits economy + Armory Shop (autonomous build, v0.39.0)
+
+> (Numbered v0.39.0 to match the release; sits after the v0.34–38 model/audio/
+> routine-integration rounds that landed directly on `main`.)
+
+The brief's pillars are *cosmetics · rewards · the desire to keep playing*, plus
+*AdSense revenue*. The game already had deep XP-gated cosmetics, but only one
+spendable axis (XP, which also drives levels/rank — so spending it on a skin
+costs you rank progress). Krunker's pull is a **second, dedicated soft-currency**
+you *earn by playing* and *spend in a shop*. Phase 39 adds exactly that:
+**Credits (CR)** + an **Armory Shop** — a fresh reward loop and a new ad-bearing
+menu screen, with **zero protocol/server change** (pure client, migration-safe).
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+- **Earn.** `Account.credits` (migration-safe field, defaults 0 on old saves).
+  `Game.CREDITS_PER_KILL = 5` banked on every local frag (right next to the
+  existing per-kill XP award), plus end-of-match bonuses parallel to XP (50 CR
+  for a win, 20 CR for an FFA top-3). Shown live: the kill ScorePopup now reads
+  `+10 XP  ◈ +5`, the post-match card has a `+N CR` line beside `+N XP`, and a
+  Credits chip sits under the rank badge on the main menu (live via
+  `account.onChange`).
+- **Spend.** New `ui/ShopUI.ts` renders the `#shop-overlay` Armory: a balance
+  header, a **daily Featured Deal** (one item seeded by the date via FNV-1a, 35%
+  off, stable through the day), then every purchasable cosmetic bucketed into 9
+  sections (skins by class → kill effects → tracers → finishes). Prices derive
+  from each item's XP cost via `creditPrice(xpCost)` (≈1/10th, rounded to 5, min
+  15) — so a 200-XP skin is 20 CR, a 4000-XP one is 400 CR. **Weapon skins stay
+  mastery-only** (not in the shop). Buying calls `Account.buyWithCredits(kind,
+  id, price)` (validates id + ownership + affordability, deducts, unlocks) and
+  **auto-equips** so the purchase lands immediately; cosmetics are now unlockable
+  **two ways** (XP in Settings → Cosmetics *or* Credits here).
+- **Revenue.** The Shop carries its own `shop` ad slot (added to `Ads.ts`),
+  refreshed on open — a new natural menu breakpoint, never mid-combat.
+- **Feel.** Buy = `pickup_powerup` SFX; can't-afford = `empty_click`; cards reuse
+  the existing `cos-card` swatch styling; the Featured Deal is a highlighted card
+  with the struck-through old price. Green (#36e08a) CR theming throughout to read
+  distinct from the gold XP/accent.
+
+### Status log
+- ✅ Phase 39 — Credits + Armory Shop. DONE (client + server tsc + client build
+  green; app chunk ~97 KB gzip, 107 modules — no new runtime deps).
+  `Account.credits` + `awardCredits`/`buyWithCredits` + `CosmeticKind` (load
+  merge defensive), `Cosmetics.creditPrice`, `Game.CREDITS_PER_KILL` award,
+  `ui/ShopUI.ts` (catalog builder + daily featured pick + auto-equip), index.html
+  shop overlay + menu button + menu credits chip + post-match CR line, `shop` ad
+  slot, CSS, main.ts wiring. **Browser-verified** with headless Chromium: shop
+  opens with 59 cards across the 9 ordered sections + 1 featured; an affordable
+  buy deducted (500→480 CR), auto-equipped the skin, and updated the on-screen
+  balance; an unaffordable buy (600 CR vs 480) was correctly rejected (no change,
+  not owned). Versions bumped to v0.39.0 (+ menu subtitle/footer). README updated.
+
+### Phase 39 COMPLETE — Credits economy + Armory Shop, pure client, no protocol change, solo + MP intact.

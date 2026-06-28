@@ -333,6 +333,18 @@ export function defaultSkinForClass(classId: ClassId): SkinId {
 }
 export const DEFAULT_KILL_EFFECT: KillEffectId = 'puff-yellow';
 
+/**
+ * Credit price for a cosmetic, derived from its XP cost. Credits are a coarser,
+ * faster currency than XP (≈5 per kill), so a cosmetic costs roughly a tenth of
+ * its XP price, rounded to the nearest 5 with a small floor. Free items (cost 0)
+ * stay free. This keeps the Shop's numbers small + readable ("90 CR") and gives
+ * Credits a second, play-to-earn path to the same unlocks.
+ */
+export function creditPrice(xpCost: number): number {
+  if (xpCost <= 0) return 0;
+  return Math.max(15, Math.round(xpCost / 10 / 5) * 5);
+}
+
 export function skinsForClass(classId: ClassId): SkinConfig[] {
   return SKINS.filter((s) => s.classId === classId);
 }

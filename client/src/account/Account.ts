@@ -13,12 +13,15 @@
  */
 
 import {
-  findSkin, findTracer, findFinish, findWeaponSkin,
+  findSkin, findTracer, findFinish, findKillEffect, findWeaponSkin,
   defaultSkinForClass, defaultWeaponSkin, weaponSkinsFor,
   DEFAULT_KILL_EFFECT, DEFAULT_TRACER, DEFAULT_FINISH,
   type SkinId, type KillEffectId, type TracerId, type FinishId,
   type WeaponSkinId, type WeaponSkinConfig,
 } from './Cosmetics';
+
+/** The four credit-purchasable cosmetic axes (weapon skins are mastery-only). */
+export type CosmeticKind = 'skin' | 'effect' | 'tracer' | 'finish';
 import type { ClassId } from '../classes/types';
 
 const STORAGE_KEY = 'ilc.account';
@@ -60,6 +63,9 @@ function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeSt
 
 interface AccountData {
   xp: number;
+  /** Spendable soft-currency — earned in matches, spent in the Armory shop.
+   *  Separate from XP (which drives levels/rank). */
+  credits: number;
   /** Set of unlocked cosmetic IDs (we store as array for JSON). */
   unlockedSkins: SkinId[];
   unlockedEffects: KillEffectId[];
@@ -169,6 +175,7 @@ function freshDaily(stats: LifetimeStats): DailyState {
 function freshData(): AccountData {
   return {
     xp: 0,
+    credits: 0,
     unlockedSkins: [
       'phantom-default', 'rush-default', 'vanguard-default',
       'ghost-default', 'engineer-default', 'hunter-default',
@@ -210,6 +217,9 @@ export class Account {
       const fresh = freshData();
       this.data = {
         xp: typeof parsed.xp === 'number' ? parsed.xp : fresh.xp,
+        credits: (typeof parsed.credits === 'number' && Number.isFinite(parsed.credits))
+          ? parsed.credits
+          : fresh.credits,
         unlockedSkins: Array.isArray(parsed.unlockedSkins) ? parsed.unlockedSkins : fresh.unlockedSkins,
         unlockedEffects: Array.isArray(parsed.unlockedEffects) ? parsed.unlockedEffects : fresh.unlockedEffects,
         // Always keep the default tracer unlocked even on an older save.
@@ -280,6 +290,8 @@ export class Account {
   // ── Read accessors ────────────────────────────────────────────────────────
 
   get xp(): number { return this.data.xp; }
+  /** Spendable credits (Armory currency). */
+  get credits(): number { return this.data.credits; }
   get level(): number { return Math.floor(this.data.xp / XP_PER_LEVEL); }
   /** XP into the current level. 0..XP_PER_LEVEL-1. */
   get xpIntoLevel(): number { return this.data.xp % XP_PER_LEVEL; }
@@ -353,6 +365,43 @@ export class Account {
     this.data.xp += amount;
     this.save();
     return this.data.xp;
+  }
+
+  /** Add credits (Armory currency). Triggers persistence + listeners. */
+  awardCredits(amount: number): number {
+    if (amount <= 0) return this.data.credits;
+    this.data.credits += amount;
+    this.save();
+    return this.data.credits;
+  }
+
+  /**
+   * Buy a cosmetic with credits. Validates the id, that it's not already owned,
+   * and that the player can afford `price`; on success deducts the credits and
+   * adds the id to the matching unlocked set. Returns true on success. Weapon
+   * skins aren't purchasable (mastery-only) so they're not handled here.
+   */
+  buyWithCredits(kind: CosmeticKind, id: string, price: number): boolean {
+    const owned =
+      kind === 'skin'   ? this.isSkinUnlocked(id) :
+      kind === 'effect' ? this.isEffectUnlocked(id) :
+      kind === 'tracer' ? this.isTracerUnlocked(id) :
+                          this.isFinishUnlocked(id);
+    if (owned) return false;
+    const exists =
+      kind === 'skin'   ? !!findSkin(id) :
+      kind === 'effect' ? !!findKillEffect(id) :
+      kind === 'tracer' ? !!findTracer(id) :
+                          !!findFinish(id);
+    if (!exists) return false;
+    if (price <= 0 || this.data.credits < price) return false;
+    this.data.credits -= price;
+    if (kind === 'skin')        this.data.unlockedSkins.push(id);
+    else if (kind === 'effect') this.data.unlockedEffects.push(id);
+    else if (kind === 'tracer') this.data.unlockedTracers.push(id);
+    else                        this.data.unlockedFinishes.push(id);
+    this.save();
+    return true;
   }
 
   /**

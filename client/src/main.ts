@@ -27,6 +27,7 @@ import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
+import { ShopUI } from './ui/ShopUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { AchievementsUI } from './ui/AchievementsUI';
 import { AchievementTracker } from './account/Achievements';
@@ -139,7 +140,7 @@ const nameplates = new Nameplates(game);
 // effect / announcer handle the splashier feedback; this is the running tally.
 game.bus.on('kill', (e) => {
   if (game.isLocalPlayer(e.attackerId) && !game.isLocalPlayer(e.targetId)) {
-    ScorePopup.pop('+10 XP', 'xp');
+    ScorePopup.pop(`+10 XP  ◈ +${Game.CREDITS_PER_KILL}`, 'xp');
   }
 });
 
@@ -1308,6 +1309,23 @@ game.onFrame = ({ fps, speed, state, pos }) => {
 // ─── Cosmetics + Profile tabs + account-linked behavior ────────────────────
 const cosmeticsUI = new CosmeticsUI(game.account);
 void cosmeticsUI;
+
+// ─── Armory Shop ───────────────────────────────────────────────────────────
+// Spend Credits (earned in matches) on cosmetics — a second play-to-earn path
+// to the same unlocks, and another ad-bearing menu screen.
+const shopUI = new ShopUI(game.account, (id) => game.audio.play(id as Parameters<typeof game.audio.play>[0]));
+const menuShop = document.getElementById('menu-shop') as HTMLButtonElement;
+const menuCreditsN = document.getElementById('menu-credits-n');
+menuShop.addEventListener('click', () => {
+  game.audio.play('ui_click');
+  shopUI.show();
+  Ads.refreshSlot('shop');
+});
+function updateMenuCredits() {
+  if (menuCreditsN) menuCreditsN.textContent = String(game.account.credits);
+}
+game.account.onChange(updateMenuCredits);
+updateMenuCredits();
 const profileUI = new ProfileUI(game.account);
 void profileUI;
 const achievementsUI = new AchievementsUI(game.account);
@@ -1349,6 +1367,7 @@ const pmTitle = document.getElementById('pm-title')!;
 const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
+const pmCrEarned = document.getElementById('pm-cr-earned')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
 // Match-summary strip (tyoq4q) + accolade flavour (p4aum5), merged into one card.
 const pmSKills = document.getElementById('pm-s-kills')!;
@@ -1418,6 +1437,16 @@ function showPostMatch(winnerId: string) {
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
+
+  // End-of-match Credits — parallel to XP: 50 for a win, 20 for an FFA top-3.
+  // Per-kill credits were already banked as each kill happened (Game), so we add
+  // them in for the displayed total.
+  const crBefore = game.account.credits;
+  if (youWon) game.account.awardCredits(50);
+  else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardCredits(20);
+  const crDelta = game.account.credits - crBefore;
+  const crFromKills = myKills * Game.CREDITS_PER_KILL;
+  pmCrEarned.textContent = String(crDelta + crFromKills);
 
   pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null ? 'DEFEAT' : 'MATCH OVER');
   if (tdmTeam !== null) {
