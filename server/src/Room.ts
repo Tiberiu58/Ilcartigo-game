@@ -30,7 +30,7 @@ import {
 } from './Protocol.js';
 
 const VALID_CLASSES = new Set(['phantom', 'rush', 'vanguard', 'ghost', 'engineer', 'hunter']);
-const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'railgun', 'burst', 'pistol']);
+const VALID_WEAPONS = new Set(['ar', 'smg', 'sniper', 'shotgun', 'marksman', 'lmg', 'railgun', 'burst', 'magnum', 'pistol']);
 
 /**
  * Server-authoritative per-weapon damage. MIRRORS the client's WeaponConfig
@@ -67,6 +67,9 @@ const SERVER_WEAPONS: Record<string, ServerWeapon> = {
   // fire event (the timed burst is client-driven), so the per-round profile
   // mirrors the client's BURST_CONFIG.
   burst:   { baseDamage: 23, headMul: 1.75, falloffStart: 35,  falloffEnd: 95,  falloffMin: 0.55 },
+  // Magnum — heavy hand cannon: 2-shot body, one-shot any headshot. Mirrors the
+  // client MAGNUM_CONFIG so weapon identity holds online.
+  magnum:  { baseDamage: 58, headMul: 2.0,  falloffStart: 30,  falloffEnd: 80,  falloffMin: 0.6  },
   pistol:  { baseDamage: 22, headMul: 1.7,  falloffStart: 18,  falloffEnd: 55,  falloffMin: 0.55 },
 };
 

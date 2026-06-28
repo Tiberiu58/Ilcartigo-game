@@ -315,6 +315,35 @@ export const PISTOL_CONFIG: WeaponConfig = {
   slot: 'secondary',
 };
 
+// Magnum — a heavy hand-cannon revolver. The high-risk/high-reward precision
+// archetype: 6-round cylinder, slow single-action fire, a brutal per-shot punch
+// (2-shot body, one-shot any headshot) and a stiff recoil kick you must ride.
+// Rewards calm, deliberate aim over spray. A distinct primary pick from the
+// fast, light pistol. MP applies it as an authoritative single-target hit.
+export const MAGNUM_CONFIG: WeaponConfig = {
+  id: 'magnum',
+  displayName: 'Magnum',
+  fireRate: 2.0,               // slow, deliberate
+  automatic: false,
+  magSize: 6,                  // a six-shooter
+  reloadTime: 2.1,
+  reserveAmmo: -1,
+  baseDamage: 58,              // 2-shot body…
+  headshotMultiplier: 2.0,     // …one-shot any headshot (116)
+  maxRange: 120,
+  falloffStart: 30,
+  falloffEnd: 80,
+  falloffMinMultiplier: 0.6,
+  baseSpread: 0.002,           // pinpoint when paced
+  maxSpread: 0.06,
+  spreadPerShot: 0.02,         // blooms hard if you mash it
+  spreadDecay: 0.35,
+  recoilPitch: 0.05,           // a heavy kick to ride
+  recoilYaw: 0.012,
+  recoilDecay: 0.6,
+  slot: 'primary',
+};
+
 export const WEAPON_LIBRARY = {
   ar: AR_CONFIG,
   smg: SMG_CONFIG,
@@ -324,6 +353,7 @@ export const WEAPON_LIBRARY = {
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
   burst: BURST_CONFIG,
+  magnum: MAGNUM_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;

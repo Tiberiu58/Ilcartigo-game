@@ -190,6 +190,7 @@ export class SynthEngine {
       case 'fire_marksman': return this.gun(t, v, dest, { body: 120, noiseHz: 1200, q: 0.8, dur: 0.2,  lvl: 1.0, tail: true });
       case 'fire_lmg':      return this.gun(t, v, dest, { body: 110, noiseHz: 1100, q: 0.6, dur: 0.14, lvl: 0.95 });
       case 'fire_pistol':   return this.gun(t, v, dest, { body: 200, noiseHz: 1700, q: 0.7, dur: 0.1,  lvl: 0.8 });
+      case 'fire_magnum':   return this.gun(t, v, dest, { body: 95,  noiseHz: 950,  q: 0.85, dur: 0.26, lvl: 1.2, tail: true });
       case 'fire_railgun':  return this.railgun(t, v, dest);
 
       case 'reload':        return this.reload(t, v, dest);

@@ -1383,3 +1383,40 @@ flashy reward beat). Pure-client, builds straight on the Shop plumbing.
   v0.40.0 (+ menu subtitle/footer). README updated.
 
 ### Phase 40 COMPLETE — Mystery Crate, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 41 — Magnum hand-cannon (10th weapon) (autonomous build, v0.41.0)
+
+Back to the brief's first pillar — *weapon variety / satisfying shooting*. A
+**10th weapon**: the **Magnum**, a heavy revolver filling the high-risk/high-
+reward precision-pistol archetype the roster lacked (the fast light pistol is its
+only sidearm-class). 6-round cylinder, slow single-action fire (2.0 RPS), a
+brutal 58-dmg punch (2-shot body, one-shot any headshot at ×2.0), and a stiff
+recoil kick (recoilPitch 0.05) you must ride — calm deliberate aim beats spray.
+
+Wired through the established weapon recipe (LMG/Railgun/Burst precedent), with
+the exhaustive `Record<WeaponId, …>` maps making the compiler enumerate every
+integration point:
+- **Client:** `MAGNUM_CONFIG` + `WEAPON_LIBRARY` entry (→ `WeaponId` gains
+  `'magnum'`), `buildMagnum` procedural viewmodel + `WEAPON_BUILDERS` +
+  `RELOAD_KINDS` ('slide') + `WEAPON_GRIPS` (two-hand) + a scaled Pistol-FBX
+  `WEAPON_MODELS` entry, `fire_magnum` SoundId + a deep-boom `SynthEngine` gun
+  recipe, `WEAPON_LABEL` (Gun Game) + `WEAPON_ARCHETYPE` ('Hand Cannon'), a
+  🔥 MAGNUM killfeed icon, the loadout button, and three mastery skins
+  (Gunmetal / Bone / Magma) + `WEAPON_SKIN_ORDER`.
+- **Server:** `SERVER_WEAPONS['magnum']` damage profile + `VALID_WEAPONS` entry,
+  so weapon identity holds in authoritative MP (single-target hit; no protocol
+  change — `weaponId` is already a string on the wire).
+
+### Status log
+- ✅ Phase 41 — Magnum. DONE (client + server tsc + client build green; 107
+  modules). All exhaustive WeaponId maps filled (compiler-checked), server
+  profile + valid-weapon, mastery skins, killfeed icon, synth recipe.
+  **Browser-verified**: the loadout shows "Magnum · Hand Cannon"; starting a
+  solo match equips it (primary id `magnum`, baseDamage 58, mag 6) with the
+  viewmodel building error-free; the killfeed renders the 🔥 MAGNUM label. No
+  page errors. Versions bumped to v0.41.0 (+ menu subtitle/footer). README +
+  10-weapon count updated.
+
+### Phase 41 COMPLETE — additive 10th weapon, no protocol change, solo + MP intact.

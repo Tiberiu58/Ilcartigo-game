@@ -572,6 +572,7 @@ function killfeedWeapon(weaponId: string): string {
     case 'railgun':  return '⚡ RAILGUN';
     case 'sniper':   return '🎯 SNIPER';
     case 'shotgun':  return '💥 SHOTGUN';
+    case 'magnum':   return '🔥 MAGNUM';
     case 'marksman': return 'DMR';
     default:         return weaponId.toUpperCase();
   }
