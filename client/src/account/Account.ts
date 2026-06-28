@@ -375,6 +375,38 @@ export class Account {
     return this.data.credits;
   }
 
+  /** Spend credits if affordable. Returns true (and deducts) on success. Used by
+   *  the Mystery Crate, where the grant is a separate random unlock. */
+  spendCredits(amount: number): boolean {
+    if (amount <= 0 || this.data.credits < amount) return false;
+    this.data.credits -= amount;
+    this.save();
+    return true;
+  }
+
+  /** Unlock a cosmetic outright (no credit/XP cost) — e.g. a Mystery Crate prize.
+   *  No-op if already owned or the id is unknown. Returns true if newly unlocked. */
+  grantCosmetic(kind: CosmeticKind, id: string): boolean {
+    const owned =
+      kind === 'skin'   ? this.isSkinUnlocked(id) :
+      kind === 'effect' ? this.isEffectUnlocked(id) :
+      kind === 'tracer' ? this.isTracerUnlocked(id) :
+                          this.isFinishUnlocked(id);
+    if (owned) return false;
+    const exists =
+      kind === 'skin'   ? !!findSkin(id) :
+      kind === 'effect' ? !!findKillEffect(id) :
+      kind === 'tracer' ? !!findTracer(id) :
+                          !!findFinish(id);
+    if (!exists) return false;
+    if (kind === 'skin')        this.data.unlockedSkins.push(id);
+    else if (kind === 'effect') this.data.unlockedEffects.push(id);
+    else if (kind === 'tracer') this.data.unlockedTracers.push(id);
+    else                        this.data.unlockedFinishes.push(id);
+    this.save();
+    return true;
+  }
+
   /**
    * Buy a cosmetic with credits. Validates the id, that it's not already owned,
    * and that the player can afford `price`; on success deducts the credits and

@@ -95,13 +95,19 @@ const SECTION_ORDER = [
   'Kill Effects', 'Bullet Tracers', 'Weapon Finishes',
 ];
 
+/** Flat credit price of one Mystery Crate spin — cheaper than most premium items,
+ *  so the gamble can pay off big (or hand you a cheap one). */
+const CRATE_PRICE = 120;
+
 export class ShopUI {
   private account: Account;
   private playSound: (id: string) => void;
   private overlay: HTMLElement;
   private creditsEl: HTMLElement;
+  private crateEl: HTMLElement;
   private featuredEl: HTMLElement;
   private bodyEl: HTMLElement;
+  private revealEl: HTMLElement;
   private catalog = buildCatalog();
   private open = false;
 
@@ -110,12 +116,21 @@ export class ShopUI {
     this.playSound = playSound;
     this.overlay = document.getElementById('shop-overlay')!;
     this.creditsEl = document.getElementById('shop-credits')!;
+    this.crateEl = document.getElementById('shop-crate')!;
     this.featuredEl = document.getElementById('shop-featured')!;
     this.bodyEl = document.getElementById('shop-body')!;
+    this.revealEl = document.getElementById('crate-reveal')!;
 
     document.getElementById('shop-close')?.addEventListener('click', () => {
       this.playSound('ui_click');
       this.hide();
+    });
+    document.getElementById('crate-claim')?.addEventListener('click', () => {
+      this.playSound('ui_click');
+      this.revealEl.classList.add('hidden');
+    });
+    this.crateEl.addEventListener('click', (ev) => {
+      if ((ev.target as HTMLElement).closest('#shop-crate-buy')) this.openCrate();
     });
     // Re-render live when credits/unlocks change (e.g. a purchase) but only while
     // the shop is on screen — otherwise it's wasted work behind the menu.
@@ -152,6 +167,60 @@ export class ShopUI {
     }
   }
 
+  /** All catalogue items the player doesn't yet own (the crate's prize pool). */
+  private unownedPool(): ShopItem[] {
+    return this.catalog.filter((c) => !this.owned(c));
+  }
+
+  /** Open a Mystery Crate: spend the flat price, grant a random unowned cosmetic,
+   *  and play the reveal. No-op (with a cue) if broke or everything's unlocked. */
+  private openCrate() {
+    const pool = this.unownedPool();
+    if (pool.length === 0) { this.playSound('ui_click'); return; }
+    if (this.account.credits < CRATE_PRICE) { this.playSound('empty_click'); return; }
+    if (!this.account.spendCredits(CRATE_PRICE)) { this.playSound('empty_click'); return; }
+    const prize = pool[Math.floor(Math.random() * pool.length)];
+    this.account.grantCosmetic(prize.kind, prize.id);   // triggers onChange → re-render
+    this.showReveal(prize);
+  }
+
+  private showReveal(item: ShopItem) {
+    const swatch = this.revealEl.querySelector<HTMLElement>('.cr-swatch')!;
+    swatch.style.setProperty('--body-c', hex(item.swatch));
+    swatch.style.setProperty('--head-c', hex(item.swatch2));
+    this.revealEl.querySelector('#cr-name')!.textContent = item.name;
+    this.revealEl.querySelector('#cr-kind')!.textContent = item.group;
+    // value flavour — how much the prize would have cost at full shop price.
+    this.revealEl.querySelector('#cr-value')!.textContent = `worth ◈ ${item.price}`;
+    this.revealEl.classList.remove('hidden');
+    // restart the pop animation
+    const card = this.revealEl.querySelector<HTMLElement>('.crate-card')!;
+    card.style.animation = 'none';
+    void card.offsetWidth;
+    card.style.animation = '';
+    this.playSound('level_up');
+  }
+
+  private renderCrate() {
+    const remaining = this.unownedPool().length;
+    const afford = this.account.credits >= CRATE_PRICE;
+    if (remaining === 0) {
+      this.crateEl.innerHTML = `<div class="shop-crate-inner done">
+        <span class="crate-ico">🎁</span>
+        <div class="crate-text"><b>MYSTERY CRATE</b><span>Everything unlocked — you own it all ✓</span></div>
+      </div>`;
+      return;
+    }
+    this.crateEl.innerHTML = `<div class="shop-crate-inner">
+      <span class="crate-ico">🎁</span>
+      <div class="crate-text">
+        <b>MYSTERY CRATE</b>
+        <span>A random cosmetic you don't own yet · ${remaining} left in the pool</span>
+      </div>
+      <button id="shop-crate-buy" class="crate-buy ${afford ? '' : 'cant'}">◈ ${CRATE_PRICE} · OPEN</button>
+    </div>`;
+  }
+
   private buy(item: ShopItem, price: number) {
     if (this.owned(item)) { this.playSound('ui_click'); return; }
     if (this.account.credits < price) { this.playSound('empty_click'); return; }
@@ -179,6 +248,9 @@ export class ShopUI {
 
   private render() {
     this.creditsEl.textContent = String(this.account.credits);
+
+    // Mystery Crate banner.
+    this.renderCrate();
 
     // Featured deal.
     const feat = this.featuredItem();

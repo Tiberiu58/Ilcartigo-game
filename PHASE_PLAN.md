@@ -1346,3 +1346,40 @@ build green, never break solo / MP / the audit fixes.
   not owned). Versions bumped to v0.39.0 (+ menu subtitle/footer). README updated.
 
 ### Phase 39 COMPLETE — Credits economy + Armory Shop, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — Mystery Crate (autonomous build, v0.40.0)
+
+Deepens the Phase-39 economy with the loot-box loop every live shooter runs — a
+**gamble** sink for Credits that creates the "one more spin" pull (and another
+flashy reward beat). Pure-client, builds straight on the Shop plumbing.
+
+- **🎁 Mystery Crate** banner at the top of the Armory: a flat **120 CR** spin
+  grants a *random cosmetic you don't own yet* (uniform over the unowned pool
+  across all four purchasable axes). 120 CR is cheaper than most premium items,
+  so the gamble can pay off big (a 600-CR skin) or hand you a cheap one — real
+  risk/reward. The banner shows the pool size ("59 left") and collapses to an
+  "Everything unlocked ✓" state once you own it all.
+- **Reveal.** A centered `#crate-reveal` card flips in (scale/bounce pop) showing
+  the won item's swatch + name + section + a "worth ◈ N" value flavour, with a
+  `level_up` sting. "▸ Nice!" dismisses it.
+- **Minimal surface.** New `Account.spendCredits(n)` (deduct-if-affordable) +
+  `grantCosmetic(kind, id)` (cost-free unlock, validated, no double-grant) — the
+  crate spends the flat price and grants separately (vs `buyWithCredits` which
+  charges the item's own price). `ShopUI` gained the crate banner render + open +
+  reveal; the live `account.onChange` re-render already keeps the pool count +
+  ownership marks in sync. No auto-equip on crate prizes (a random skin for a
+  class you don't play shouldn't override your look).
+
+### Status log
+- ✅ Phase 40 — Mystery Crate. DONE (client + server tsc + client build green;
+  app chunk ~98 KB gzip). `Account.spendCredits`/`grantCosmetic`, `ShopUI`
+  crate banner + `openCrate` (unowned-pool random pick) + `showReveal`,
+  `#shop-crate` + `#crate-reveal` DOM, CSS (gradient banner, pop-in reveal).
+  **Browser-verified**: banner shows "59 left · ◈ 120 · OPEN"; opening spent
+  120 CR (500→380), revealed a prize ("Apex Lord · Hunter · worth ◈ 600"),
+  granted it, and "Nice!" closed the reveal — no errors. Versions bumped to
+  v0.40.0 (+ menu subtitle/footer). README updated.
+
+### Phase 40 COMPLETE — Mystery Crate, pure client, no protocol change, solo + MP intact.

@@ -311,7 +311,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.39</p>
+          <p class="subtitle">Browser arena shooter · v0.40</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <!-- Credits balance (Armory currency). Updated by main.ts. -->
@@ -412,7 +412,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.39.0 — Armory Shop + Credits economy · Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · 7 maps · 9 weapons</div>
+          <div>v0.40.0 — Mystery Crate · Armory Shop + Credits economy · Procedural audio · Career medals · Nemesis · First-person arms · 7 maps · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -643,8 +643,21 @@
           </header>
           <p class="shop-sub">Earn Credits every match — spend them here. Buying a cosmetic equips it. Items also unlock with XP in Settings → Cosmetics.</p>
           <div class="ad-slot" id="ad-shop" data-ad-slot="shop"></div>
+          <div id="shop-crate" class="shop-crate"></div>
           <div id="shop-featured" class="shop-featured"></div>
           <div id="shop-body" class="shop-body"></div>
+        </div>
+      </div>
+
+      <!-- Mystery Crate reveal — shown after opening a crate in the Armory. -->
+      <div id="crate-reveal" class="hidden">
+        <div class="crate-card">
+          <div class="crate-head">🎁 MYSTERY CRATE</div>
+          <div class="cr-swatch cos-swatch"><div class="head"></div><div class="body"></div></div>
+          <div class="cr-name" id="cr-name">—</div>
+          <div class="cr-kind" id="cr-kind">—</div>
+          <div class="cr-value" id="cr-value"></div>
+          <button class="menu-btn primary" id="crate-claim">▸ Nice!</button>
         </div>
       </div>
 
