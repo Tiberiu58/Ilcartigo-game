@@ -97,6 +97,8 @@ interface AccountData {
   unlockedAchievements: string[];
   /** Today's daily-rotating coin shop. */
   shop: ShopState;
+  /** YYYY-MM-DD of the last claimed "first win of the day" bonus ('' = never). */
+  firstWinDate: string;
 }
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
@@ -201,6 +203,7 @@ function freshData(): AccountData {
     login: { last: '', streak: 0 },
     unlockedAchievements: [],
     shop: { date: '', offers: [] },
+    firstWinDate: '',
   };
 }
 
@@ -273,6 +276,7 @@ export class Account {
           && Array.isArray((parsed.shop as ShopState).offers))
           ? parsed.shop as ShopState
           : fresh.shop,
+        firstWinDate: typeof parsed.firstWinDate === 'string' ? parsed.firstWinDate : fresh.firstWinDate,
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
@@ -660,6 +664,20 @@ export class Account {
     this.grantAndEquip(offer.kind, offer.id);
     this.save();
     return 'ok';
+  }
+
+  /** First match win of the local day → a one-time bonus. Returns the granted
+   *  {xp, coins} the first time it's called on a winning match each day, or null
+   *  if today's first-win bonus was already claimed. */
+  claimFirstWinOfDay(): { xp: number; coins: number } | null {
+    const today = todayKey();
+    if (this.data.firstWinDate === today) return null;
+    this.data.firstWinDate = today;
+    const xp = 200, coins = 50;
+    this.data.xp += xp;
+    this.data.coins += coins;
+    this.save();
+    return { xp, coins };
   }
 
   // ── Daily-login streak ────────────────────────────────────────────────────

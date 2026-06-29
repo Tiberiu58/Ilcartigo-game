@@ -1417,6 +1417,7 @@ const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
 const pmCoinsEarned = document.getElementById('pm-coins-earned')!;
+const pmFirstWin = document.getElementById('pm-firstwin')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
 // Match-summary strip (tyoq4q) + accolade flavour (p4aum5), merged into one card.
 const pmSKills = document.getElementById('pm-s-kills')!;
@@ -1493,10 +1494,17 @@ function showPostMatch(winnerId: string, override?: { won: boolean; headline: st
   else if (topThree) game.account.awardCoins(12);
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
-  pmXpEarned.textContent = String(xpDelta + xpFromKills);
   // Coins earned this match: +2/kill (banked live) + the win/top-3 bonus above.
   const coinsBonus = youWon ? 25 : (topThree ? 12 : 0);
-  pmCoinsEarned.textContent = String(myKills * 2 + coinsBonus);
+  // First win of the day → a one-time bonus on top, with a celebratory badge.
+  let fwXp = 0, fwCoins = 0;
+  if (youWon) {
+    const fw = game.account.claimFirstWinOfDay();
+    if (fw) { fwXp = fw.xp; fwCoins = fw.coins; }
+  }
+  pmFirstWin.classList.toggle('hidden', fwXp === 0);
+  pmXpEarned.textContent = String(xpDelta + xpFromKills + fwXp);
+  pmCoinsEarned.textContent = String(myKills * 2 + coinsBonus + fwCoins);
 
   pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null || override ? 'DEFEAT' : 'MATCH OVER');
   if (override) {

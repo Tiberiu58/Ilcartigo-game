@@ -1493,3 +1493,30 @@ loop. Pure-client, no protocol change.
   Versions bumped to v0.43.0 (+ menu subtitle/footer).
 
 ### Phase 43 COMPLETE — pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 44 — First win of the day bonus (autonomous build, v0.44.0)
+
+A retention round on the brief's revenue pillar: the classic "come back and win
+once a day" hook every live game runs, layered on the coins economy. Your first
+match **win** each local day grants a one-time **+200 XP · +50 🪙** on top of the
+normal end-of-match rewards — pulling players into at least one full match daily
+(→ retention → ad impressions → coins feeding the shop). Pure-client,
+migration-safe, no protocol change.
+
+- **`Account` extension (migration-safe).** New `firstWinDate` ('' default,
+  defensive load) + `claimFirstWinOfDay()` → returns the granted `{ xp, coins }`
+  the first winning match each day (and banks them), or null if already claimed
+  today. One claim per local day.
+- **Surfaced at the ad breakpoint.** `showPostMatch` claims it on a win (solo +
+  MP), folds the bonus into the displayed XP/coin totals, and toggles a pulsing
+  gold **★ FIRST WIN OF THE DAY** badge (`#pm-firstwin`) on the post-match card.
+
+### Status log
+- ✅ Phase 44 — First win of the day. DONE (client + server tsc + client build
+  green). `Account.firstWinDate` + `claimFirstWinOfDay`, `showPostMatch` claim +
+  total-folding + `#pm-firstwin` badge (HTML + pulsing CSS). Versions bumped to
+  v0.44.0 (+ menu subtitle/footer).
+
+### Phase 44 COMPLETE — pure client, no protocol change, solo + MP intact.
