@@ -1437,3 +1437,29 @@ darker existing seven.
   footer).
 
 ### Phase 41 COMPLETE — additive 8th map, no protocol change, solo + MP intact.
+
+---
+
+## Phase 42 — Cosmetics drop (autonomous build, v0.42.0)
+
+A content drop deepening the unlock chase right after the coins/shop launch —
+more to grind for and (newly) to buy → longer engagement → more ad impressions.
+Pure data: the Cosmetics UI and the daily Shop (`account/Shop.ts → fullCatalog`)
+both auto-iterate `KILL_EFFECTS` / `TRACERS` / `FINISHES`, so the new items
+appear, unlock, equip and rotate into the shop with no logic change.
+
+- **+4 kill effects** (Golden Shock · Rose Burst · Azure Nova · Spectral Rift,
+  1400–5000 XP) → 12 total — seen on every kill.
+- **+4 tracers** (Rose · Azure · Spectral · Sunset, 1300–2900 XP) → 14 total —
+  seen on every shot.
+- **+4 finishes** (Rose Gold · Azure · Spectral · Onyx, 1800–5000 XP) → 12 total
+  — seen on the viewmodel constantly.
+- The coin-purchasable shop catalogue grows to **71 items** (verified).
+
+### Status log
+- ✅ Phase 42 — Cosmetics drop. DONE (client + server tsc + client build green).
+  Data-only additions to `Cosmetics.ts`; shop catalogue confirmed at 71 items
+  (36 skins · 11 effects · 13 tracers · 11 finishes). Versions bumped to v0.42.0
+  (+ menu subtitle/footer).
+
+### Phase 42 COMPLETE — pure data, no protocol change, solo + MP intact.
