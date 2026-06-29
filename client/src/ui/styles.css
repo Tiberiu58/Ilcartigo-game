@@ -1416,6 +1416,51 @@ body.no-speedlines #speed-lines { display: none; }
 /* ── Duel (1v1 gauntlet) HUD ─────────────────────────────────────────────── */
 .menu-btn.duel { border-left: 3px solid #ffb454; }
 .menu-btn.duel:hover { border-left-color: #ffb454; color: #ffca7a; }
+.menu-btn.koth { border-left: 3px solid #36e08a; }
+.menu-btn.koth:hover { border-left-color: #6cf0ad; color: #6cf0ad; }
+
+/* ── King of the Hill ticker ──────────────────────────────────────────────── */
+#koth-ticker {
+  position: absolute;
+  left: 50%; top: 60px;
+  transform: translateX(-50%);
+  background: rgba(14, 22, 18, 0.84);
+  padding: 7px 16px;
+  border-radius: 4px;
+  border-left: 3px solid var(--koth-c, #8893a5);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 12;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: border-color 0.2s;
+}
+#koth-ticker.hidden { display: none; }
+#koth-ticker .koth-crown { font-size: 15px; color: var(--koth-c, #8893a5); }
+#koth-ticker .koth-stat {
+  font: 800 13px/1 'Segoe UI', sans-serif;
+  letter-spacing: 2px;
+  color: var(--koth-c, #8893a5);
+}
+#koth-ticker .koth-score {
+  font: 700 12px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+#koth-ticker .koth-score b { color: #fff; }
+#koth-ticker .koth-vs { color: var(--muted); }
+#koth-ticker .koth-goal {
+  font: 700 10px/1 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-left: 1px solid rgba(255,255,255,0.14);
+  padding-left: 10px;
+}
+#koth-ticker[data-status="holding"]   { --koth-c: #36e08a; }
+#koth-ticker[data-status="contested"] { --koth-c: #ffb020; }
+#koth-ticker[data-status="enemy"]     { --koth-c: #ff4d5e; }
+#koth-ticker[data-status="neutral"]   { --koth-c: #8893a5; }
 
 #duel-ticker {
   position: absolute;

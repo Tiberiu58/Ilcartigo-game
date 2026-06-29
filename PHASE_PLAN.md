@@ -1346,3 +1346,57 @@ green, never break solo / MP / the audit fixes.
   bumped to v0.39.0 (+ menu subtitle/footer).
 
 ### Phase 39 COMPLETE — coins economy + daily shop, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 40 — King of the Hill (zone-control mode) (autonomous build, v0.40.0)
+
+The mode roster had frags (FFA · TDM), wave survival (Onslaught), a weapon
+ladder (Gun Game), and 1v1 (Duel) — but no **objective/zone-control** mode, the
+other arena-shooter staple (Krunker's "Point Capture" / CoD "Hardpoint"). Phase
+40 adds **King of the Hill**: fight to OCCUPY a contested zone rather than rack
+up kills. It rewards positioning + map control and creates the constant
+push-and-shove "take the point, hold the point" loop. Pure-client, **no
+protocol/server/controller change** — solo + MP + every prior mode intact.
+
+Guiding constraint (kept): no protocol changes, no new deps, typecheck + build
+green, never break solo / MP / the audit fixes.
+
+- **New `modes/KingOfTheHill.ts`** (Game-coupled controller, like Duel/Onslaught).
+  A fixed central hill (radius 5.5 at the arena origin — the central high ground
+  on most maps). Each frame it resolves who's inside (player alive + horizontal
+  overlap; any active live bot):
+  - **HOLDING** (you alone) → your capture meter fills at 13/s.
+  - **ENEMY** (bots alone) → the enemy pool fills at 10/s (a touch slower → you
+    have the edge).
+  - **CONTESTED** (both) → nobody scores.
+  - **NEUTRAL** (empty) → idle.
+  First side to **100** wins → `onEnd(won, …)`. A translucent **capture column +
+  pulsing ground ring**, both recoloured live by status (teal/amber/red/grey),
+  marks the hill; built into `game.scene` on start, disposed on stop.
+- **Runs on the live combat roster.** `'koth'` is a combat-class mode, so
+  `setMode` activates the normal 3 base bots and they **auto-respawn** — the hill
+  stays contested without any special roster handling. Every frag still flows
+  through the kill bus → XP / coins / lifetime stats / killfeed / announcer /
+  mastery; player death → the normal solo auto-respawn (not gated off like
+  Onslaught/Duel).
+- **Integration.** `'koth'` added to `GameMode` + `isCombatMode`; a `game.koth`
+  field ticked in `Game.update`; `KingOfTheHill` instantiated in main.ts.
+  A `#koth-ticker` HUD element (YOU vs ENEMY + status word, status-coloured via a
+  `data-status` CSS hook) wired off `onState`. `onEnd` reuses the **standard
+  post-match overlay** via a new optional `showPostMatch(winnerId, override)`
+  param (`{ won, headline }`) — so KOTH gets the rich scorecard + ad slot + win
+  XP/coins (FFA top-3 consolation correctly skipped for override modes). Play
+  Again restarts the capture race; menu button **♛ King of the Hill**; scoreboard
+  mode label + goal updated; start/stop wired into every mode-switch teardown.
+
+### Status log
+- ✅ Phase 40 — King of the Hill. DONE (client + server tsc + client build green;
+  app chunk ~98 KB gzip). New `modes/KingOfTheHill.ts` (zone capture logic +
+  scene-added column/ring visuals), `'koth'` GameMode + isCombatMode + Game tick,
+  main.ts wiring (instantiate, menu button, ticker onState, onEnd → post-match
+  override, start/stop in startGame/startOnline/startAimLab/quitToMenu, Play
+  Again restart, scoreboard label/goal), `#koth-ticker` HTML + status-coloured
+  CSS, menu button + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
+
+### Phase 40 COMPLETE — zone-control mode, pure client, no protocol change, solo + MP intact.

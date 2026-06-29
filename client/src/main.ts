@@ -22,6 +22,7 @@ import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
 import { Duel, type DuelResult } from './modes/Duel';
+import { KingOfTheHill, type HillStatus } from './modes/KingOfTheHill';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
@@ -77,6 +78,7 @@ const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement
 const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
 const menuDuel = document.getElementById('menu-duel') as HTMLButtonElement;
+const menuKoth = document.getElementById('menu-koth') as HTMLButtonElement;
 const menuPractice = document.getElementById('menu-practice') as HTMLButtonElement;
 const menuAimlab = document.getElementById('menu-aimlab') as HTMLButtonElement;
 const menuSettings = document.getElementById('menu-settings') as HTMLButtonElement;
@@ -108,6 +110,7 @@ const game = new Game(canvas);
 game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
 game.duel = new Duel(game);
+game.koth = new KingOfTheHill(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
@@ -352,6 +355,35 @@ durQuit.addEventListener('click', () => {
   quitToMenu();
 });
 
+// ─── King of the Hill ──────────────────────────────────────────────────────
+const kothTicker = document.getElementById('koth-ticker')!;
+const kothYou = document.getElementById('koth-you')!;
+const kothEnemy = document.getElementById('koth-enemy')!;
+const kothGoal = document.getElementById('koth-goal')!;
+const kothStatus = document.getElementById('koth-status')!;
+const KOTH_LABEL: Record<HillStatus, string> = {
+  neutral: 'NEUTRAL', holding: 'HOLDING', contested: 'CONTESTED', enemy: 'LOSING HILL',
+};
+game.koth!.onState = (ps, es, goal, status) => {
+  kothYou.textContent = String(ps);
+  kothEnemy.textContent = String(es);
+  kothGoal.textContent = String(goal);
+  kothStatus.textContent = KOTH_LABEL[status];
+  kothTicker.dataset.status = status;
+};
+game.koth!.onEnd = (won, ps, es) => {
+  kothTicker.classList.add('hidden');
+  game.matchEnded = true;
+  showPostMatch(won ? 'koth:win' : 'koth:loss', {
+    won,
+    headline: `<b>${won ? 'HILL HELD' : 'HILL LOST'}</b> · ${ps}–${es}`,
+  });
+};
+function stopKoth() {
+  if (game.koth?.active) game.koth.stop();
+  kothTicker.classList.add('hidden');
+}
+
 // Restore persisted settings.
 const savedFov = Number(localStorage.getItem('ilc.fov') ?? 90);
 const savedSens = Number(localStorage.getItem('ilc.sens') ?? 0.5);
@@ -571,10 +603,11 @@ gfxButtons.forEach((btn) => {
   });
 });
 
-function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' = 'combat') {
+function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' | 'koth' = 'combat') {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -621,6 +654,14 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
     duelTicker.classList.add('hidden');
   }
 
+  // King of the Hill: start the capture controller over the live combat roster.
+  if (mode === 'koth') {
+    game.koth!.start();
+    kothTicker.classList.remove('hidden');
+  } else {
+    kothTicker.classList.add('hidden');
+  }
+
   practiceBadge.classList.toggle('hidden', mode !== 'practice');
   mainMenu.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
@@ -636,6 +677,7 @@ function startOnline() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   // Make sure single-player bots aren't running in the background. Don't
   // pre-pick the map — MultiplayerSession.handleWelcome adopts whichever
   // map the server is running, and preseting here would force a flicker
@@ -685,6 +727,7 @@ function quitToMenu() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopKoth();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -701,6 +744,7 @@ function quitToMenu() {
   tdmTicker.classList.add('hidden');
   onsTicker.classList.add('hidden');
   duelTicker.classList.add('hidden');
+  kothTicker.classList.add('hidden');
   refreshOnslaughtButton();
   refreshDuelButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
@@ -851,6 +895,7 @@ menuGungame.addEventListener('click', () => startGame('gungame'));
 menuTdm.addEventListener('click', () => startGame('tdm'));
 menuOnslaught.addEventListener('click', () => startGame('onslaught'));
 menuDuel.addEventListener('click', () => startGame('duel'));
+menuKoth.addEventListener('click', () => startGame('koth'));
 menuPractice.addEventListener('click', () => startGame('practice'));
 menuAimlab.addEventListener('click', () => openAimlabSelect());
 backToMenu.addEventListener('click', quitToMenu);
@@ -1084,8 +1129,12 @@ function renderScoreboard() {
     renderTdmScoreboard();
     return;
   }
-  sbMode.textContent = game.mp ? 'Free-for-All · Online' : (game.mode === 'practice' ? 'Practice' : 'Free-for-All · Bots');
-  sbGoal.textContent = String(Game.MATCH_KILL_GOAL);
+  sbMode.textContent = game.mp
+    ? 'Free-for-All · Online'
+    : (game.mode === 'practice' ? 'Practice'
+      : game.mode === 'koth' ? 'King of the Hill · Bots'
+      : 'Free-for-All · Bots');
+  sbGoal.textContent = game.mode === 'koth' ? String(KingOfTheHill.goal) : String(Game.MATCH_KILL_GOAL);
 
   const ids = new Set<string>();
   // Always include the local player.
@@ -1395,7 +1444,7 @@ function accoladeFor(youWon: boolean, rank: number, kills: number, deaths: numbe
   return 'GOOD FIGHT';
 }
 
-function showPostMatch(winnerId: string) {
+function showPostMatch(winnerId: string, override?: { won: boolean; headline: string }) {
   clearFinalBlow();   // tidy up the win cinematic before the scoreboard appears
   game.audio.play('match_end');
   game.input.exitPointerLock();
@@ -1423,30 +1472,36 @@ function showPostMatch(winnerId: string) {
   const myKills = rows.find((r) => r.isYou)?.kills ?? 0;
 
   // TDM result: winnerId is "team:N". Win is your team winning, not your rank.
+  // An explicit override (e.g. King of the Hill, scored by zone control not
+  // frags) supplies its own win flag + headline.
   const tdmTeam = winnerId.startsWith('team:') ? Number(winnerId.slice(5)) : null;
-  const youWon = tdmTeam !== null ? tdmTeam === game.playerActor.team : myRank === 1;
+  const youWon = override ? override.won : (tdmTeam !== null ? tdmTeam === game.playerActor.team : myRank === 1);
 
   // Lifetime career: count this finished match + win.
   game.account.recordMatchEnd(youWon);
 
-  // Award end-of-match XP: 50 for a win. FFA also grants 25 for a top-3 finish.
+  // Award end-of-match XP: 50 for a win. FFA also grants 25 for a top-3 finish
+  // (the top-3 consolation is FFA-only — skipped for override modes like KOTH).
+  const topThree = !override && tdmTeam === null && myRank > 0 && myRank <= 3;
   const xpBefore = game.account.xp;
   if (youWon) game.account.awardXP(50);
-  else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardXP(25);
+  else if (topThree) game.account.awardXP(25);
   const xpDelta = game.account.xp - xpBefore;
   // Coins: a chunky win bonus / smaller top-3 consolation, on top of the +2/kill
   // already banked. Feeds the daily shop loop.
   if (youWon) game.account.awardCoins(25);
-  else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardCoins(12);
+  else if (topThree) game.account.awardCoins(12);
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
   // Coins earned this match: +2/kill (banked live) + the win/top-3 bonus above.
-  const coinsBonus = youWon ? 25 : (tdmTeam === null && myRank > 0 && myRank <= 3 ? 12 : 0);
+  const coinsBonus = youWon ? 25 : (topThree ? 12 : 0);
   pmCoinsEarned.textContent = String(myKills * 2 + coinsBonus);
 
-  pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null ? 'DEFEAT' : 'MATCH OVER');
-  if (tdmTeam !== null) {
+  pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null || override ? 'DEFEAT' : 'MATCH OVER');
+  if (override) {
+    pmWinnerLine.innerHTML = override.headline;
+  } else if (tdmTeam !== null) {
     const label = tdmTeam === 0 ? 'BLUE' : 'RED';
     pmWinnerLine.innerHTML = `<b>${label} TEAM WINS</b> · ${game.teamScore[0]}–${game.teamScore[1]}`;
   } else {
@@ -1542,6 +1597,11 @@ pmPlayAgain.addEventListener('click', () => {
     // Gun Game: restart the weapon ladder from rung 0 for a fresh race.
     if (game.mode === 'gungame') {
       gunGame.start([game.localPlayerId(), ...game.bots.filter((b) => b.active).map((b) => b.id)]);
+    }
+    // King of the Hill: start a fresh capture race + re-show the ticker.
+    if (game.mode === 'koth') {
+      game.koth!.start();
+      kothTicker.classList.remove('hidden');
     }
     game.input.requestPointerLock();
   }
