@@ -1805,6 +1805,11 @@ body.no-speedlines #speed-lines { display: none; }
   font: 700 22px/1.2 'Segoe UI', sans-serif;
   color: var(--accent);
 }
+.pm-coins {
+  font: 700 17px/1.2 'Segoe UI', sans-serif;
+  color: #ffd560;
+  margin-top: 2px;
+}
 #pm-unlocks {
   margin-top: 8px;
   font-size: 12px;

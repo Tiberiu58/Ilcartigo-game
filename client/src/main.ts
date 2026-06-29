@@ -1367,6 +1367,7 @@ const pmTitle = document.getElementById('pm-title')!;
 const pmWinnerLine = document.getElementById('pm-winner-line')!;
 const pmScoreboardBody = document.getElementById('pm-scoreboard-body')!;
 const pmXpEarned = document.getElementById('pm-xp-earned')!;
+const pmCoinsEarned = document.getElementById('pm-coins-earned')!;
 const pmUnlocks = document.getElementById('pm-unlocks')!;
 // Match-summary strip (tyoq4q) + accolade flavour (p4aum5), merged into one card.
 const pmSKills = document.getElementById('pm-s-kills')!;
@@ -1440,6 +1441,9 @@ function showPostMatch(winnerId: string) {
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);
+  // Coins earned this match: +2/kill (banked live) + the win/top-3 bonus above.
+  const coinsBonus = youWon ? 25 : (tdmTeam === null && myRank > 0 && myRank <= 3 ? 12 : 0);
+  pmCoinsEarned.textContent = String(myKills * 2 + coinsBonus);
 
   pmTitle.textContent = youWon ? 'VICTORY' : (tdmTeam !== null ? 'DEFEAT' : 'MATCH OVER');
   if (tdmTeam !== null) {
