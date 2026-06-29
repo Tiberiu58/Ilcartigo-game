@@ -519,6 +519,7 @@ export class Game {
         // Track best-streak high-water mark from the per-match streak.
         this.localStreak++;
         this.account.recordStreak(this.localStreak);
+        this.maybeStreakReward(this.localStreak);
         this.playKillEffect(e.hitPoint ?? null);
         this.audio.play('kill_feedback');
         // Nemesis avenged — you killed the bot that last killed you. Bonus XP +
@@ -1175,6 +1176,21 @@ export class Game {
 
   /** Grant a power-up to the local player: starts/refreshes its timer, applies
    *  the weapon-layer multiplier, and fires juicy grab feedback. Solo-only. */
+  /** Killstreak rewards — at escalating solo killstreaks, auto-grant a temporary
+   *  power-up buff (the "I'm on fire, reward me" loop). Fires once per milestone
+   *  (streaks 5, 9, 13, 17… — every 4 kills), cycling haste → damage → shield.
+   *  Solo combat only (gated like the power-up pads: not MP — where damage is
+   *  server-authoritative — nor Gun Game / Practice). The buff clears on death
+   *  with the rest, so the streak and its reward fall together. */
+  private maybeStreakReward(streak: number) {
+    if (this.mp || this.mode === 'gungame' || this.mode === 'practice') return;
+    if (streak < 5 || (streak - 5) % 4 !== 0) return;
+    const cycle: PowerupType[] = ['haste', 'damage', 'shield'];
+    const type = cycle[(((streak - 5) / 4) % cycle.length + cycle.length) % cycle.length];
+    ScorePopup.pop(`KILLSTREAK ${streak} — REWARD`, 'buff');
+    this.grantPowerup(type);
+  }
+
   grantPowerup(type: PowerupType) {
     const until = performance.now() + Game.POWERUP_DURATION_MS;
     if (type === 'damage') {

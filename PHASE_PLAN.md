@@ -1463,3 +1463,33 @@ appear, unlock, equip and rotate into the shop with no logic change.
   (+ menu subtitle/footer).
 
 ### Phase 42 COMPLETE — pure data, no protocol change, solo + MP intact.
+
+---
+
+## Phase 43 — Killstreak buff rewards (autonomous build, v0.43.0)
+
+A combat-feel round on the brief's "constant desire to win the next duel" +
+"satisfying mechanics" pillars: going on a tear now *pays off mechanically*, not
+just visually (the "ON FIRE" rampage aura). At escalating solo killstreaks you're
+auto-granted a temporary arena power-up — the classic "I'm dominating, reward me"
+loop. Pure-client, no protocol change.
+
+- **Milestones every 4 kills from 5** (5, 9, 13, 17…), cycling **haste (RAPID
+  FIRE) → damage (OVERCHARGE) → shield (OVERSHIELD)**. Fires once per milestone
+  as the streak crosses it (`Game.maybeStreakReward`, called where `localStreak`
+  increments on a confirmed local kill).
+- **Full reuse + correct gating.** Calls the existing `Game.grantPowerup(type)`,
+  so the player gets the buff + its SFX, `CastFX` burst, screen flash, buff-tray
+  pill and timer for free; adds a "KILLSTREAK n — REWARD" `ScorePopup`. Gated
+  exactly like the power-up pads — **not MP** (server-authoritative damage would
+  make a client buff mislead), **not Gun Game** (keeps its ladder identity),
+  **not Practice**. The buff clears on death via the existing `clearBuffs`
+  (respawn) path, so it falls together with the streak it rewarded.
+
+### Status log
+- ✅ Phase 43 — Killstreak buff rewards. DONE (client + server tsc + client build
+  green). `Game.maybeStreakReward` (milestone + cycle math, solo-combat gating)
+  wired into the local-kill streak increment; reuses `grantPowerup` + ScorePopup.
+  Versions bumped to v0.43.0 (+ menu subtitle/footer).
+
+### Phase 43 COMPLETE — pure client, no protocol change, solo + MP intact.
