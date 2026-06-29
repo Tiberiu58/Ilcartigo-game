@@ -791,7 +791,7 @@ mapBtns.forEach((btn) => {
 });
 // Recover from a corrupt localStorage value. Practice is reached via its own
 // button, so it isn't a valid *combat* map selection.
-const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt', 'overpass', 'frostline', 'foundry'];
+const COMBAT_MAPS: MapId[] = ['sandstone', 'industrial', 'cobalt', 'overpass', 'frostline', 'foundry', 'meridian'];
 if (!COMBAT_MAPS.includes(savedMap)) {
   localStorage.setItem('ilc.map', 'sandstone');
 }

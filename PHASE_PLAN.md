@@ -1400,3 +1400,40 @@ green, never break solo / MP / the audit fixes.
   CSS, menu button + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — zone-control mode, pure client, no protocol change, solo + MP intact.
+
+---
+
+## Phase 41 — Meridian (8th combat map) (autonomous build, v0.41.0)
+
+Maps are the highest-leverage *content* lever in an arena shooter, and a new one
+deepens **every** solo mode at once (FFA / TDM / Gun Game / Onslaught / Duel /
+King of the Hill + the map selector). ILCARTIGO had seven; Phase 41 adds an
+eighth with a distinct identity: **a sunlit white-marble & gold coliseum** — the
+brightest, cleanest-looking map, for instant contrast with the warmer/colder/
+darker existing seven.
+
+- **Meridian** — warm marble ground + sandstone accent tiles, sandy-marble
+  structures, opaque stone-column cover, gold neon trim, bright warm midday
+  lighting + a sunlit haze fog.
+- **Built on the proven symmetric Cobalt/Frostline skeleton** (mirrored about both
+  axes → TDM-fair, spawn corners known-clear), then fully re-themed marble + gold.
+  Collision geometry is byte-identical to the spawn-verified Frostline layout
+  (only materials/lighting differ — `addColumn` produces the same AABB as
+  Frostline's `addIceBlock`), so all 6 FFA + TDM spawns sit clear of every solid
+  by construction. Verticality is entirely jump-pad-driven (no step-up-snagging
+  ledges).
+- **Solo-selectable, zero MP risk.** New `maps/MeridianMap.ts` registered in
+  `MapId` / `MAPS` + a loadout button + the `COMBAT_MAPS` validation list; health
+  pads added to **both** `maps/Pickups.ts` ⇆ `server/src/Pickups.ts` (kept in
+  sync). The MP server still defaults to Sandstone and clients adopt the server's
+  map, so Meridian needs no protocol/server change.
+
+### Status log
+- ✅ Phase 41 — Meridian map. DONE (client + server tsc + client build green).
+  New `maps/MeridianMap.ts` (marble/gold palette, opaque stone columns, gold
+  accents, warm midday lighting), full wiring (MapId/MAPS/menu/COMBAT_MAPS),
+  Meridian pickups mirrored client+server. Geometry collision-identical to the
+  spawn-verified Frostline skeleton. Versions bumped to v0.41.0 (+ menu subtitle/
+  footer).
+
+### Phase 41 COMPLETE — additive 8th map, no protocol change, solo + MP intact.
