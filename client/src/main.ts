@@ -29,6 +29,7 @@ import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { AchievementsUI } from './ui/AchievementsUI';
+import { ShopUI } from './ui/ShopUI';
 import { AchievementTracker } from './account/Achievements';
 import { AchievementToast } from './ui/AchievementToast';
 import { Ads } from './ads/Ads';
@@ -1241,6 +1242,16 @@ dailyClaim.addEventListener('click', () => {
 dailyDismiss.addEventListener('click', () => { hideDaily(); game.audio.play('ui_click'); });
 menuDaily.addEventListener('click', () => { showDaily(); game.audio.play('ui_click'); });
 
+// ─── Daily coin shop ───────────────────────────────────────────────────────
+const shopOverlay = document.getElementById('shop-overlay')!;
+const menuShop = document.getElementById('menu-shop') as HTMLButtonElement;
+const shopClose = document.getElementById('shop-close') as HTMLButtonElement;
+function showShop() { shopUI.render(); shopOverlay.classList.remove('hidden'); }
+function hideShop() { shopOverlay.classList.add('hidden'); }
+menuShop.addEventListener('click', () => { showShop(); game.audio.play('ui_click'); });
+shopClose.addEventListener('click', () => { hideShop(); game.audio.play('ui_click'); });
+shopOverlay.addEventListener('click', (e) => { if (e.target === shopOverlay) hideShop(); });
+
 // Auto-show once per session if a reward is waiting — but never on top of the
 // first-run How-to card (brand-new players see that first; daily greets them
 // next session).
@@ -1312,6 +1323,7 @@ const profileUI = new ProfileUI(game.account);
 void profileUI;
 const achievementsUI = new AchievementsUI(game.account);
 void achievementsUI;
+const shopUI = new ShopUI(game.account, game.audio);
 
 // Career achievements (medals): the tracker watches the account and unlocks
 // medals as their metric crosses the goal, popping a flashy toast + sting. The
@@ -1341,7 +1353,13 @@ if (resetBtn) {
 game.account.onChange(() => {
   game.mp?.sendHello();
   game.applyEquippedFinish();
+  syncMenuCoins();
 });
+
+// Keep the menu coin chip in sync with the account balance.
+const menuCoinsEl = document.querySelector('#menu-coins b') as HTMLElement | null;
+function syncMenuCoins() { if (menuCoinsEl) menuCoinsEl.textContent = String(game.account.coins); }
+syncMenuCoins();
 
 // ─── Post-match overlay ────────────────────────────────────────────────────
 const postmatchOverlay = document.getElementById('postmatch-overlay')!;
@@ -1415,6 +1433,10 @@ function showPostMatch(winnerId: string) {
   if (youWon) game.account.awardXP(50);
   else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardXP(25);
   const xpDelta = game.account.xp - xpBefore;
+  // Coins: a chunky win bonus / smaller top-3 consolation, on top of the +2/kill
+  // already banked. Feeds the daily shop loop.
+  if (youWon) game.account.awardCoins(25);
+  else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardCoins(12);
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);

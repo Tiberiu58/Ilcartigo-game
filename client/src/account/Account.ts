@@ -19,6 +19,7 @@ import {
   type SkinId, type KillEffectId, type TracerId, type FinishId,
   type WeaponSkinId, type WeaponSkinConfig,
 } from './Cosmetics';
+import { generateShop, type ShopOffer, type CosmeticKind } from './Shop';
 import type { ClassId } from '../classes/types';
 
 const STORAGE_KEY = 'ilc.account';
@@ -58,8 +59,17 @@ function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeSt
   };
 }
 
+/** Today's shop: the date it was rolled for + the chosen offers (stable across
+ *  the day so buying one item doesn't reshuffle the rest). */
+interface ShopState {
+  date: string;
+  offers: ShopOffer[];
+}
+
 interface AccountData {
   xp: number;
+  /** Soft currency earned in matches, spent in the daily shop. */
+  coins: number;
   /** Set of unlocked cosmetic IDs (we store as array for JSON). */
   unlockedSkins: SkinId[];
   unlockedEffects: KillEffectId[];
@@ -85,6 +95,8 @@ interface AccountData {
   /** Unlocked career-achievement (medal) ids. Generic string set so the medal
    *  catalogue can grow without touching this storage shape. */
   unlockedAchievements: string[];
+  /** Today's daily-rotating coin shop. */
+  shop: ShopState;
 }
 
 /** A single daily challenge: a stat to grow by `goal` for `reward` XP. */
@@ -169,6 +181,7 @@ function freshDaily(stats: LifetimeStats): DailyState {
 function freshData(): AccountData {
   return {
     xp: 0,
+    coins: 0,
     unlockedSkins: [
       'phantom-default', 'rush-default', 'vanguard-default',
       'ghost-default', 'engineer-default', 'hunter-default',
@@ -187,6 +200,7 @@ function freshData(): AccountData {
     daily: freshDaily(freshStats()),
     login: { last: '', streak: 0 },
     unlockedAchievements: [],
+    shop: { date: '', offers: [] },
   };
 }
 
@@ -210,6 +224,7 @@ export class Account {
       const fresh = freshData();
       this.data = {
         xp: typeof parsed.xp === 'number' ? parsed.xp : fresh.xp,
+        coins: typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) ? parsed.coins : fresh.coins,
         unlockedSkins: Array.isArray(parsed.unlockedSkins) ? parsed.unlockedSkins : fresh.unlockedSkins,
         unlockedEffects: Array.isArray(parsed.unlockedEffects) ? parsed.unlockedEffects : fresh.unlockedEffects,
         // Always keep the default tracer unlocked even on an older save.
@@ -253,9 +268,15 @@ export class Account {
         unlockedAchievements: Array.isArray(parsed.unlockedAchievements)
           ? parsed.unlockedAchievements.filter((x): x is string => typeof x === 'string')
           : fresh.unlockedAchievements,
+        shop: (parsed.shop && typeof parsed.shop === 'object'
+          && typeof (parsed.shop as ShopState).date === 'string'
+          && Array.isArray((parsed.shop as ShopState).offers))
+          ? parsed.shop as ShopState
+          : fresh.shop,
       };
       // Roll over to a new day's challenges if needed, and rebase baselines.
       this.refreshDaily();
+      this.refreshShop();
     } catch (e) {
       console.warn('[account] load failed, resetting', e);
       this.data = freshData();
@@ -280,6 +301,7 @@ export class Account {
   // ── Read accessors ────────────────────────────────────────────────────────
 
   get xp(): number { return this.data.xp; }
+  get coins(): number { return this.data.coins; }
   get level(): number { return Math.floor(this.data.xp / XP_PER_LEVEL); }
   /** XP into the current level. 0..XP_PER_LEVEL-1. */
   get xpIntoLevel(): number { return this.data.xp % XP_PER_LEVEL; }
@@ -555,8 +577,89 @@ export class Account {
     if (progress < c.goal) return false;
     c.claimed = true;
     this.data.xp += c.reward;
+    this.data.coins += Math.round(c.reward * 0.4);
     this.save();
     return true;
+  }
+
+  // ── Coins economy + daily shop ────────────────────────────────────────────
+
+  /** Award coins (the match-earned soft currency). Returns the new balance. */
+  awardCoins(amount: number): number {
+    if (amount > 0) {
+      this.data.coins += Math.round(amount);
+      this.save();
+    }
+    return this.data.coins;
+  }
+
+  /** True if a cosmetic of the given kind/id is already owned. */
+  private isOwnedByKind(kind: CosmeticKind, id: string): boolean {
+    switch (kind) {
+      case 'skin':   return this.isSkinUnlocked(id);
+      case 'effect': return this.isEffectUnlocked(id);
+      case 'tracer': return this.isTracerUnlocked(id);
+      case 'finish': return this.isFinishUnlocked(id);
+    }
+  }
+
+  /** Mark a cosmetic unlocked (no cost) + auto-equip it. Used by the buy path. */
+  private grantAndEquip(kind: CosmeticKind, id: string) {
+    switch (kind) {
+      case 'skin':
+        if (!this.data.unlockedSkins.includes(id)) this.data.unlockedSkins.push(id);
+        { const s = findSkin(id); if (s) this.data.equippedSkin[s.classId] = id; }
+        break;
+      case 'effect':
+        if (!this.data.unlockedEffects.includes(id)) this.data.unlockedEffects.push(id);
+        this.data.equippedKillEffect = id;
+        break;
+      case 'tracer':
+        if (!this.data.unlockedTracers.includes(id)) this.data.unlockedTracers.push(id);
+        this.data.equippedTracer = id;
+        break;
+      case 'finish':
+        if (!this.data.unlockedFinishes.includes(id)) this.data.unlockedFinishes.push(id);
+        this.data.equippedFinish = id;
+        break;
+    }
+  }
+
+  /** Regenerate the shop if the day rolled over (or it was never built). */
+  private refreshShop() {
+    if (this.data.shop.date !== todayKey()) {
+      this.data.shop = {
+        date: todayKey(),
+        offers: generateShop(todayKey(), (kind, id) => this.isOwnedByKind(kind, id)),
+      };
+      this.save();
+    }
+  }
+
+  /** Today's shop offers, each annotated with owned/affordable flags for the UI. */
+  get shopOffers(): Array<ShopOffer & { owned: boolean; affordable: boolean }> {
+    this.refreshShop();
+    return this.data.shop.offers.map((o) => ({
+      ...o,
+      owned: this.isOwnedByKind(o.kind, o.id),
+      affordable: this.data.coins >= o.price,
+    }));
+  }
+
+  /**
+   * Buy a shop offer with coins → deduct coins, unlock + equip the cosmetic.
+   * Returns 'ok' on success, or a reason it failed (so the UI can react).
+   */
+  buyShopItem(id: string): 'ok' | 'owned' | 'poor' | 'gone' {
+    this.refreshShop();
+    const offer = this.data.shop.offers.find((o) => o.id === id);
+    if (!offer) return 'gone';
+    if (this.isOwnedByKind(offer.kind, offer.id)) return 'owned';
+    if (this.data.coins < offer.price) return 'poor';
+    this.data.coins -= offer.price;
+    this.grantAndEquip(offer.kind, offer.id);
+    this.save();
+    return 'ok';
   }
 
   // ── Daily-login streak ────────────────────────────────────────────────────
@@ -592,6 +695,7 @@ export class Account {
     this.data.login.last = todayKey();
     this.data.login.streak = st.day;
     this.data.xp += st.reward;
+    this.data.coins += Math.round(st.reward * 0.5);
     this.save();
     return { day: st.day, reward: st.reward };
   }

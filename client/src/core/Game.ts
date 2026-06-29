@@ -498,6 +498,7 @@ export class Game {
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
         this.account.awardXP(10);
+        this.account.awardCoins(2);
         this.account.recordKill(e.isHeadshot);
         // Weapon mastery — bump this weapon's kill count; celebrate a fresh
         // skin unlock via the bus (ProgressionFX pops a reward chip).
@@ -519,6 +520,7 @@ export class Game {
         if (this.nemesisId && e.targetId === this.nemesisId) {
           this.nemesisId = null;
           this.account.awardXP(25);
+          this.account.awardCoins(10);
           ScorePopup.pop('☠ NEMESIS DOWN', 'buff');
         }
       }

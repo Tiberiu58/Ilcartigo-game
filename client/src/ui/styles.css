@@ -2967,6 +2967,161 @@ body.slowmo::after {
 .daily-card .menu-btn:disabled { opacity: 0.5; cursor: default; }
 .menu-btn.daily { border-left: 3px solid #ffd23f; }
 .menu-btn.daily:hover { border-left-color: #ffe27a; color: #ffe27a; }
+.menu-btn.shop { border-left: 3px solid #f0b429; }
+.menu-btn.shop:hover { border-left-color: #ffd560; color: #ffd560; }
+
+/* ── Phase 39: coins economy + daily shop ────────────────────────────────── */
+.menu-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px auto 2px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(240, 180, 41, 0.12);
+  border: 1px solid rgba(240, 180, 41, 0.4);
+  font: 800 13px/1 'JetBrains Mono', Consolas, monospace;
+  color: #ffd560;
+  letter-spacing: 0.5px;
+}
+#shop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 24px;
+}
+#shop-overlay.hidden { display: none; }
+.shop-card {
+  background: var(--panel);
+  border-top: 4px solid #f0b429;
+  border-radius: 12px;
+  width: 720px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  padding: 24px 28px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+}
+.shop-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.shop-header h2 {
+  font-size: 24px;
+  letter-spacing: 3px;
+  color: #f0b429;
+  flex: 1;
+}
+.shop-balance {
+  font: 800 16px/1 'JetBrains Mono', Consolas, monospace;
+  color: #ffd560;
+}
+.shop-sub {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 4px 0 16px;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  overflow-y: auto;
+}
+.shop-item {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.shop-item.featured {
+  border-color: #f0b429;
+  background: rgba(240, 180, 41, 0.1);
+  box-shadow: 0 0 16px rgba(240, 180, 41, 0.22);
+}
+.shop-item.owned { opacity: 0.6; }
+.shop-tag {
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  font: 800 8.5px/1 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  color: #1a1206;
+  background: #f0b429;
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+.shop-top { display: flex; align-items: center; gap: 11px; }
+.shop-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 0 10px rgba(0, 0, 0, 0.4);
+}
+.shop-meta { min-width: 0; }
+.shop-name {
+  font: 700 14px/1.15 'Segoe UI', sans-serif;
+  color: var(--text);
+  text-transform: capitalize;
+}
+.shop-cat {
+  font: 600 10.5px/1 'Segoe UI', sans-serif;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-top: 3px;
+  text-transform: capitalize;
+}
+.shop-buy {
+  width: 100%;
+  padding: 8px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(240, 180, 41, 0.5);
+  background: rgba(240, 180, 41, 0.16);
+  color: #ffd560;
+  font: 700 12.5px/1 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.shop-buy:hover:not(:disabled) { background: rgba(240, 180, 41, 0.3); border-color: #f0b429; }
+.shop-buy:disabled { cursor: default; opacity: 0.65; }
+.shop-buy.owned {
+  border-color: rgba(54, 224, 138, 0.5);
+  background: rgba(54, 224, 138, 0.14);
+  color: #36e08a;
+}
+.shop-buy .shop-list {
+  text-decoration: line-through;
+  color: var(--muted);
+  font-size: 11px;
+  margin-right: 3px;
+}
+.shop-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 40px 20px;
+}
+.shop-foot {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 14px 0 0;
+}
+@media (max-width: 560px) {
+  .shop-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* ── Phase 13: progression spectacle ─────────────────────────────────────── */
 

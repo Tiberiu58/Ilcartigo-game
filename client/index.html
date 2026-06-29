@@ -311,9 +311,11 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.40</p>
+          <p class="subtitle">Browser arena shooter · v0.39</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
+          <!-- Coin balance — synced from the account in main.ts. -->
+          <div id="menu-coins" class="menu-coins">🪙 <b>0</b></div>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -403,13 +405,14 @@
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
+            <button class="menu-btn shop" id="menu-shop">🛒 Shop</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
             <button class="menu-btn" id="menu-about">About</button>
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.38.0 — Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
+          <div>v0.39.0 — Coins economy &amp; daily shop · Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -624,6 +627,21 @@
           <div class="daily-track" id="daily-track"></div>
           <button class="menu-btn primary" id="daily-claim">▸ Claim</button>
           <button class="menu-btn" id="daily-dismiss">Close</button>
+        </div>
+      </div>
+
+      <!-- Daily coin shop overlay. Rotating cosmetic offers bought with coins
+           (the match-earned soft currency). Populated + wired by ShopUI/main.ts. -->
+      <div id="shop-overlay" class="hidden">
+        <div class="shop-card">
+          <header class="shop-header">
+            <h2>🛒 Shop</h2>
+            <div class="shop-balance">🪙 <b id="shop-coins">0</b></div>
+            <button class="settings-close" id="shop-close" aria-label="Close">×</button>
+          </header>
+          <p class="shop-sub">Featured cosmetics rotate daily. Earn 🪙 from kills, wins &amp; daily rewards.</p>
+          <div class="shop-grid" id="shop-grid"></div>
+          <p class="shop-foot" id="shop-foot"></p>
         </div>
       </div>
 

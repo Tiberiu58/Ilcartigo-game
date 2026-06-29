@@ -1289,3 +1289,60 @@ build green, never break solo / MP / the audit fixes.
   + audio asset guide updated.
 
 ### Phase 36 COMPLETE — full procedural SFX, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 39 — Coins economy + daily shop (autonomous build, v0.39.0)
+
+The biggest pillar ILCARTIGO was still missing versus Krunker: a **soft
+currency + a rotating shop**. Until now *every* cosmetic gated on a single XP
+pool (which also drives level/rank), so there was no "earn a spendable currency,
+save up, buy the thing you want" loop and no daily reason to revisit the menu.
+Phase 39 adds it — a new **🪙 coins** currency earned in matches, spent in a
+**daily-rotating shop** — which simultaneously serves all four brief pillars:
+rewards, cosmetics, the collect/improve desire, and AdSense revenue (more daily
+menu visits → more impressions on the existing menu ad slots). Pure-client,
+migration-safe, **no protocol/server/controller change** — MP, the two-controller
+sync, and every audit fix untouched.
+
+Guiding constraint (kept): no protocol changes, no new deps, typecheck + build
+green, never break solo / MP / the audit fixes.
+
+- **New `account/Shop.ts`** (pure data, no DOM, no Account dependency — imports
+  only the Cosmetics registries). Normalises the four paid cosmetic registries
+  (skins · kill effects · tracers · finishes; defaults excluded; mastery-gated
+  weapon skins deliberately omitted) into a unified **59-item catalogue**, with
+  a coin price derived from each item's XP cost (`clamp(round(xp/6), 60..900)`).
+  `generateShop(dateKey, isOwned)` returns the day's **6 offers** via a
+  deterministic FNV-seeded shuffle (stable across reloads within a day, fresh
+  each new day), skipping anything already owned; the first slot is the **40%-off
+  FEATURED** deal.
+- **`Account` extension (migration-safe).** New `coins` number + `shop:
+  { date, offers }` state, both defaulting cleanly on old saves. `awardCoins`,
+  a private `isOwnedByKind`/`grantAndEquip` dispatcher over the four kinds, a
+  `refreshShop()` day-rollover (mirrors `refreshDaily`), a `shopOffers` getter
+  (annotates each offer with `owned`/`affordable`), and `buyShopItem(id)` →
+  `'ok' | 'owned' | 'poor' | 'gone'` (deducts coins, unlocks **and auto-equips**
+  the cosmetic). Coin sources wired: **+2/kill** + **+10 nemesis-down** (Game.ts),
+  **+25 win / +12 top-3** (main.ts match-end), plus **50% of the login reward**
+  and **40% of each challenge reward** folded into the existing claim methods.
+- **`ui/ShopUI.ts`** — renders the `#shop-overlay` grid (swatch · name · category ·
+  price · Buy), highlights the featured deal with its struck-through list price,
+  shows OWNED ✓ / disables unaffordable buttons, and re-renders on
+  `account.onChange` so coins earned in a match update the balance + affordability
+  live. Buy success plays `pickup_powerup`. New **🛒 Shop** main-menu button +
+  overlay (close button + click-outside), and a **🪙 coin chip** on the menu
+  (menu-only — kept off the in-game HUD) synced via `account.onChange`.
+
+### Status log
+- ✅ Phase 39 — Coins economy + daily shop. DONE (client + server tsc + client
+  build green; app chunk ~97 KB gzip, 108 modules). New `account/Shop.ts` +
+  `ui/ShopUI.ts`; Account `coins`/`shop` state + buy/award methods (migration-
+  safe load merge); coin earning wired into kill/win/top-3/nemesis/daily-login/
+  daily-challenge; `#shop-overlay` + `#menu-coins` HTML + CSS (coin-gold theme);
+  menu Shop button + overlay wiring. Shop generator headless-verified
+  (59-item catalogue, 6 deterministic same-day slots, fresh next day, 1
+  discounted featured deal, clamped pricing, empty-when-all-owned). Versions
+  bumped to v0.39.0 (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — coins economy + daily shop, pure client, no protocol change, solo + MP intact.
