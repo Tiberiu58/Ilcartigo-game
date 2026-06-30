@@ -3094,6 +3094,24 @@ body.slowmo::after {
 .menu-btn.crates { border-left: 3px solid #ffae3a; }
 .menu-btn.crates:hover { border-left-color: #ffc46a; color: #ffc46a; }
 .pm-coins { color: #ffd34a; font: 800 16px/1 'JetBrains Mono', Consolas, monospace; }
+.free-badge { color: #36e08a; font-weight: 800; animation: free-badge-pulse 1.4s ease-in-out infinite; }
+.free-badge.hidden { display: none; }
+@keyframes free-badge-pulse {
+  0%, 100% { opacity: 0.65; text-shadow: 0 0 4px rgba(54,224,138,0.4); }
+  50% { opacity: 1; text-shadow: 0 0 12px rgba(54,224,138,0.8); }
+}
+.menu-btn.free-crate {
+  border-left: 3px solid #36e08a;
+  color: #6cf0a8;
+  box-shadow: 0 0 16px rgba(54, 224, 138, 0.25);
+  animation: free-crate-glow 1.8s ease-in-out infinite;
+}
+.menu-btn.free-crate.hidden { display: none; }
+.menu-btn.free-crate:hover { border-left-color: #6cf0a8; color: #9affc8; }
+@keyframes free-crate-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(54, 224, 138, 0.2); }
+  50% { box-shadow: 0 0 22px rgba(54, 224, 138, 0.45); }
+}
 
 /* ── Phase 13: progression spectacle ─────────────────────────────────────── */
 

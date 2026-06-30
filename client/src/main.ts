@@ -1253,8 +1253,12 @@ if (localStorage.getItem(HOWTO_SEEN_KEY) && game.account.dailyLoginStatus().avai
 const cratesUI = new CratesUI(game.account, game.audio);
 const menuCrates = document.getElementById('menu-crates') as HTMLButtonElement;
 const menuCoins = document.getElementById('menu-coins')!;
+const menuCrateFree = document.getElementById('menu-crate-free')!;
 menuCrates.addEventListener('click', () => { cratesUI.show(); game.audio.play('ui_click'); });
-function renderMenuCoins() { menuCoins.textContent = game.account.coins.toLocaleString(); }
+function renderMenuCoins() {
+  menuCoins.textContent = game.account.coins.toLocaleString();
+  menuCrateFree.classList.toggle('hidden', !game.account.freeCrateAvailable());
+}
 renderMenuCoins();
 game.account.onChange(renderMenuCoins);
 

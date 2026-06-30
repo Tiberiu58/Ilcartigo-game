@@ -86,6 +86,8 @@ interface AccountData {
   daily: DailyState;
   /** Daily-login streak (show-up reward, separate from the in-match challenges). */
   login: LoginState;
+  /** Daily free-crate state — `last` = YYYY-MM-DD a free crate was last claimed. */
+  freeCrate: { last: string };
   /** Unlocked career-achievement (medal) ids. Generic string set so the medal
    *  catalogue can grow without touching this storage shape. */
   unlockedAchievements: string[];
@@ -191,6 +193,7 @@ function freshData(): AccountData {
     name: '',
     daily: freshDaily(freshStats()),
     login: { last: '', streak: 0 },
+    freeCrate: { last: '' },
     unlockedAchievements: [],
   };
 }
@@ -256,6 +259,10 @@ export class Account {
           && typeof (parsed.login as LoginState).streak === 'number')
           ? parsed.login as LoginState
           : fresh.login,
+        freeCrate: (parsed.freeCrate && typeof parsed.freeCrate === 'object'
+          && typeof (parsed.freeCrate as { last: string }).last === 'string')
+          ? parsed.freeCrate as { last: string }
+          : fresh.freeCrate,
         unlockedAchievements: Array.isArray(parsed.unlockedAchievements)
           ? parsed.unlockedAchievements.filter((x): x is string => typeof x === 'string')
           : fresh.unlockedAchievements,
@@ -652,6 +659,22 @@ export class Account {
     this.data.xp += st.reward;
     this.save();
     return { day: st.day, reward: st.reward };
+  }
+
+  // ── Daily free crate ──────────────────────────────────────────────────────
+
+  /** True if today's free crate hasn't been claimed yet. */
+  freeCrateAvailable(): boolean {
+    return this.data.freeCrate.last !== todayKey();
+  }
+
+  /** Claim today's free crate (marks it used). Returns true if it was available.
+   *  Does NOT roll the crate — the caller runs the (coin-free) open + reveal. */
+  claimFreeCrate(): boolean {
+    if (!this.freeCrateAvailable()) return false;
+    this.data.freeCrate.last = todayKey();
+    this.save();
+    return true;
   }
 
   // ── Career achievements (medals) ──────────────────────────────────────────
