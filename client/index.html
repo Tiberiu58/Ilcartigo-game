@@ -311,7 +311,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.40</p>
+          <p class="subtitle">Browser arena shooter · v0.39</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -403,13 +403,14 @@
             <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
             <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
+            <button class="menu-btn crates" id="menu-crates">📦 Crates · <span id="menu-coins">0</span> ⛁</button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
             <button class="menu-btn" id="menu-settings">Settings</button>
             <button class="menu-btn" id="menu-about">About</button>
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.38.0 — Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
+          <div>v0.39.0 — Coins &amp; Loot Crates · Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -464,6 +465,7 @@
 
           <div class="pm-rewards">
             <div class="pm-xp">+<span id="pm-xp-earned">0</span> XP</div>
+            <div class="pm-coins">+<span id="pm-coins-earned">0</span> ⛁</div>
             <div id="pm-unlocks"></div>
           </div>
 
@@ -624,6 +626,21 @@
           <div class="daily-track" id="daily-track"></div>
           <button class="menu-btn primary" id="daily-claim">▸ Claim</button>
           <button class="menu-btn" id="daily-dismiss">Close</button>
+        </div>
+      </div>
+
+      <!-- Loot-crate shop + reveal overlay. Spend Coins for a random cosmetic.
+           Shop chrome + reveal animation are built/driven by ui/CratesUI.ts. -->
+      <div id="crates-overlay" class="hidden">
+        <div class="crates-card">
+          <h2>📦 Crates</h2>
+          <p class="crates-sub">Spend Coins for a random cosmetic — rarer drops are harder to hit.</p>
+          <div class="crates-balance"><span id="crates-coins">0</span> ⛁ Coins</div>
+          <div class="crates-stage" id="crates-stage"></div>
+          <div class="crate-odds" id="crates-odds"></div>
+          <div class="crate-progress" id="crates-progress"></div>
+          <button class="menu-btn primary" id="crates-open">▸ Open Crate</button>
+          <button class="menu-btn" id="crates-dismiss">Close</button>
         </div>
       </div>
 
