@@ -238,6 +238,9 @@ export class Game {
   matchKills = new Map<string, number>();
   matchDeaths = new Map<string, number>();
   matchEnded = false;
+  /** Coins the local player has earned this match (per-kill drip) — surfaced on
+   *  the post-match card alongside the end-of-match bonus. Reset each match. */
+  matchCoins = 0;
   /** Local player's current consecutive-kill streak (resets on death). Feeds
    *  the lifetime best-streak stat. */
   localStreak = 0;
@@ -498,6 +501,12 @@ export class Game {
       // XP + kill effect when YOU got the kill.
       if (youKilled) {
         this.account.awardXP(10);
+        // Coins — the soft currency that buys loot crates. A small per-kill
+        // drip (a headshot pays a touch more) flows through every mode that
+        // uses this kill bus, so the crate economy fills up naturally as you
+        // play. Crate unlocking is XP-free, so this is the only sink that earns.
+        this.matchCoins += e.isHeadshot ? 5 : 3;
+        this.account.awardCoins(e.isHeadshot ? 5 : 3);
         this.account.recordKill(e.isHeadshot);
         // Weapon mastery — bump this weapon's kill count; celebrate a fresh
         // skin unlock via the bus (ProgressionFX pops a reward chip).
@@ -1008,6 +1017,7 @@ export class Game {
   resetMatchScore() {
     this.matchKills.clear();
     this.matchDeaths.clear();
+    this.matchCoins = 0;
     this.matchEnded = false;
     this.nemesisId = null;
     this.teamScore[0] = 0;

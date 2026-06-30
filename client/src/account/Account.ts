@@ -60,6 +60,10 @@ function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeSt
 
 interface AccountData {
   xp: number;
+  /** Soft currency (Coins) — earned per kill/win, spent on loot crates. Kept
+   *  separate from XP (which gates direct cosmetic unlocks) so the crate loop
+   *  is its own reward economy. */
+  coins: number;
   /** Set of unlocked cosmetic IDs (we store as array for JSON). */
   unlockedSkins: SkinId[];
   unlockedEffects: KillEffectId[];
@@ -169,6 +173,7 @@ function freshDaily(stats: LifetimeStats): DailyState {
 function freshData(): AccountData {
   return {
     xp: 0,
+    coins: 0,
     unlockedSkins: [
       'phantom-default', 'rush-default', 'vanguard-default',
       'ghost-default', 'engineer-default', 'hunter-default',
@@ -210,6 +215,7 @@ export class Account {
       const fresh = freshData();
       this.data = {
         xp: typeof parsed.xp === 'number' ? parsed.xp : fresh.xp,
+        coins: typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) ? parsed.coins : fresh.coins,
         unlockedSkins: Array.isArray(parsed.unlockedSkins) ? parsed.unlockedSkins : fresh.unlockedSkins,
         unlockedEffects: Array.isArray(parsed.unlockedEffects) ? parsed.unlockedEffects : fresh.unlockedEffects,
         // Always keep the default tracer unlocked even on an older save.
@@ -285,6 +291,9 @@ export class Account {
   get xpIntoLevel(): number { return this.data.xp % XP_PER_LEVEL; }
   get xpPerLevel(): number { return XP_PER_LEVEL; }
 
+  /** Current Coin balance (soft currency for crates). */
+  get coins(): number { return this.data.coins; }
+
   isSkinUnlocked(id: SkinId): boolean {
     return this.data.unlockedSkins.includes(id);
   }
@@ -354,6 +363,55 @@ export class Account {
     this.save();
     return this.data.xp;
   }
+
+  // ── Coins (soft currency) ─────────────────────────────────────────────────
+
+  /** Add Coins. Triggers persistence + listeners. Returns the new balance. */
+  awardCoins(amount: number): number {
+    if (amount <= 0) return this.data.coins;
+    this.data.coins += Math.floor(amount);
+    this.save();
+    return this.data.coins;
+  }
+
+  /** Spend Coins if the balance covers it. Returns true on success. */
+  spendCoins(amount: number): boolean {
+    if (amount <= 0) return true;
+    if (this.data.coins < amount) return false;
+    this.data.coins -= Math.floor(amount);
+    this.save();
+    return true;
+  }
+
+  // ── Crate grants (unlock a cosmetic WITHOUT an XP cost) ───────────────────
+  // Crates are paid for in Coins, so the awarded cosmetic is granted free of XP.
+  // Each returns true if it was newly unlocked (false if already owned). No
+  // save() here — callers batch a single save (e.g. after also crediting Coins).
+
+  grantSkin(id: SkinId): boolean {
+    if (this.data.unlockedSkins.includes(id)) return false;
+    this.data.unlockedSkins.push(id);
+    return true;
+  }
+  grantEffect(id: KillEffectId): boolean {
+    if (this.data.unlockedEffects.includes(id)) return false;
+    this.data.unlockedEffects.push(id);
+    return true;
+  }
+  grantTracer(id: TracerId): boolean {
+    if (this.data.unlockedTracers.includes(id)) return false;
+    this.data.unlockedTracers.push(id);
+    return true;
+  }
+  grantFinish(id: FinishId): boolean {
+    if (this.data.unlockedFinishes.includes(id)) return false;
+    this.data.unlockedFinishes.push(id);
+    return true;
+  }
+
+  /** Commit pending grant mutations (persist + notify). Called once after a
+   *  crate result is applied so the UI updates exactly once. */
+  commit() { this.save(); }
 
   /**
    * Attempt to unlock a cosmetic. If the player has enough XP, deducts cost
