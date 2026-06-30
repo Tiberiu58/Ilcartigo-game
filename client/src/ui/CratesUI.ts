@@ -25,6 +25,7 @@ export class CratesUI {
   private oddsEl: HTMLElement;
   private progressEl: HTMLElement;
   private openBtn: HTMLButtonElement;
+  private freeBtn: HTMLButtonElement;
   /** Guards the ~900 ms reveal animation from overlapping opens. */
   private opening = false;
   private revealTimer = 0;
@@ -38,8 +39,10 @@ export class CratesUI {
     this.oddsEl = document.getElementById('crates-odds')!;
     this.progressEl = document.getElementById('crates-progress')!;
     this.openBtn = document.getElementById('crates-open') as HTMLButtonElement;
+    this.freeBtn = document.getElementById('crates-free') as HTMLButtonElement;
 
     this.openBtn.addEventListener('click', () => this.open());
+    this.freeBtn.addEventListener('click', () => this.openFree());
     document.getElementById('crates-dismiss')!.addEventListener('click', () => {
       this.hide();
       this.audio.play('ui_click');
@@ -88,6 +91,11 @@ export class CratesUI {
       ? 'Opening…'
       : canAfford ? `▸ Open Crate · ${CRATE_COST} ⛁`
       : `Need ${CRATE_COST} ⛁ (${(CRATE_COST - this.account.coins).toLocaleString()} more)`;
+
+    // Daily free crate — a no-cost roll, once per day.
+    const freeReady = this.account.freeCrateAvailable();
+    this.freeBtn.classList.toggle('hidden', !freeReady);
+    this.freeBtn.disabled = this.opening;
   }
 
   private resetStage() {
@@ -103,7 +111,19 @@ export class CratesUI {
     if (this.opening) return;
     if (this.account.coins < CRATE_COST) { this.audio.play('ui_click'); return; }
     if (!this.account.spendCoins(CRATE_COST)) { this.audio.play('ui_click'); return; }
+    this.beginReveal();
+  }
 
+  /** Claim + open today's free crate — no Coin cost. */
+  private openFree() {
+    if (this.opening) return;
+    if (!this.account.claimFreeCrate()) { this.audio.play('ui_click'); return; }
+    this.beginReveal();
+  }
+
+  /** Roll + commit a crate and kick off the shake → reveal animation. The
+   *  caller has already paid (Coins or the daily free claim). */
+  private beginReveal() {
     this.opening = true;
     const res = openCrate(this.account);
     applyCrateResult(this.account, res); // grants cosmetic + bonus Coins (persists)

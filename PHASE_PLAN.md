@@ -1365,3 +1365,35 @@ build green, never break solo / MP / the audit fixes.
   `+⛁` line. Versions bumped to v0.39.0 (+ menu subtitle/footer).
 
 ### Phase 39 COMPLETE — Coins economy + loot crates, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 40 — Daily Free Crate (autonomous build, v0.40.0)
+
+A retention hook that funnels straight into the Phase-39 crate loop: **one free
+loot crate every day.** "Show up → free dopamine" is the cheapest daily-active
+driver in any live game, and here it lands the player on the crate-reveal screen
+(an ad-adjacent moment) with zero spend. Pure-client, migration-safe `Account`,
+builds directly on Phase 39 — no protocol change.
+
+- **`Account.freeCrate` state** (migration-safe, defaults cleanly on old saves) +
+  `freeCrateAvailable()` / `claimFreeCrate()` (date-keyed off the existing
+  `todayKey` infra; once per local day, claim only marks it used — the caller
+  runs the coin-free roll).
+- **CratesUI free path.** A glowing green **"🎁 Claim Free Daily Crate"** button
+  in the crates overlay (shown only when available); `open()` and `openFree()`
+  now share a `beginReveal()` so the free crate gets the identical shake → rarity
+  burst → pop reveal (and its shard-Coin bonus), just without the 600-Coin debit.
+- **Menu nudge.** The `📦 Crates` main-menu button shows a pulsing **`· FREE 🎁`**
+  badge while today's crate is unclaimed (toggled via `account.onChange`), so the
+  reward is visible without opening anything.
+
+### Status log
+- ✅ Phase 40 — Daily Free Crate. DONE (client + server tsc + client build green).
+  Browser-smoke-tested end-to-end on a 0-Coin account: menu FREE badge shows,
+  free button opens with no Coins, reveals a cosmetic ("Violet Veil") + 30 shard
+  Coins, button disappears after claim, no JS errors. `Account.freeCrate` +
+  available/claim, CratesUI free button + `beginReveal` refactor, menu FREE badge
+  + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
+
+### Phase 40 COMPLETE — daily free crate, no protocol change, no new deps, solo + MP intact.
