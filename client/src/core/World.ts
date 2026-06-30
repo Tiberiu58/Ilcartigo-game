@@ -87,6 +87,19 @@ export class World {
     this.mapObjects.push(o);
   }
 
+  /** Remove a decoration added via addDecoration (e.g. a mode's transient
+   *  objective). Disposes its geometry/material. Safe if not present. */
+  removeDecoration(o: THREE.Object3D) {
+    this.scene.remove(o);
+    const i = this.mapObjects.indexOf(o);
+    if (i >= 0) this.mapObjects.splice(i, 1);
+    const mesh = o as THREE.Mesh;
+    if (mesh.geometry) mesh.geometry.dispose();
+    const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+    if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+    else if (mat) mat.dispose();
+  }
+
   /**
    * Add a solid box that auto-removes after `lifetimeSeconds`. Used by the
    * Engineer's Barrier ability. The mesh is parented to the scene and removed

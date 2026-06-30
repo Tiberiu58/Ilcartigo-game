@@ -394,14 +394,24 @@
             </div>
           </div>
           <div class="menu-buttons">
+            <!-- Primary modes — always shown. -->
             <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
             <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
-            <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
-            <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
-            <button class="menu-btn duel" id="menu-duel">🎯 Duel (1v1 Gauntlet)</button>
-            <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
-            <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
+            <button class="menu-btn heist" id="menu-heist">🏰 Heist — Owner vs Thief</button>
+
+            <!-- More Modes — collapsible drawer holding the archived modes so they
+                 don't crowd the menu but stay one click away. -->
+            <button class="menu-btn more-toggle" id="menu-more">▾ More Modes</button>
+            <div id="more-modes" class="more-modes hidden">
+              <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
+              <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
+              <button class="menu-btn duel" id="menu-duel">🎯 Duel (1v1 Gauntlet)</button>
+              <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
+              <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
+            </div>
+
+            <!-- Economy + utilities — kept in the main menu. -->
             <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
             <button class="menu-btn crates" id="menu-crates">📦 Crates · <span id="menu-coins">0</span> ⛁<span id="menu-crate-free" class="free-badge hidden"> · FREE 🎁</span></button>
             <button class="menu-btn" id="menu-howto">How to Play</button>
@@ -410,7 +420,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.39.0 — Coins &amp; Loot Crates · Procedural audio · Career medals · Nemesis · First-person arms · Animated character (MP) · Burst Rifle · Foundry map · 7 maps · 9 weapons</div>
+          <div>v0.40.0 — 🏰 Heist (Owner vs Thief) · Mansion map · streamlined menu (More drawer) · Coins &amp; Crates · Procedural audio · 8 maps · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
@@ -503,6 +513,40 @@
             <button class="menu-btn" id="als-back">Back to Menu</button>
           </div>
         </div>
+      </div>
+
+      <!-- Heist side-select. Shown when "Heist" is picked from the menu: choose
+           Owner (defend the mansion) or Thief (break in). -->
+      <div id="heist-select" class="hidden">
+        <div class="heist-card">
+          <h2>🏰 HEIST</h2>
+          <p class="hs-sub">Owner vs Thief · choose your side</p>
+          <div class="hs-grid">
+            <button class="hs-side hs-thief" data-side="thief">
+              <div class="hs-icon">🦝</div>
+              <div class="hs-name">THIEF</div>
+              <div class="hs-blurb">Break into the mansion from outside. Stay unseen,
+                reach the vault, get out alive.</div>
+              <div class="hs-spawn">Spawns: outside, at the gate</div>
+            </button>
+            <button class="hs-side hs-owner" data-side="owner">
+              <div class="hs-icon">🎩</div>
+              <div class="hs-name">OWNER</div>
+              <div class="hs-blurb">Defend your manor. Patrol the halls, guard the vault,
+                and gun down any intruder who breaks in.</div>
+              <div class="hs-spawn">Spawns: inside, the grand hall</div>
+            </button>
+          </div>
+          <div class="alr-buttons">
+            <button class="menu-btn" id="hs-back">Back to Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Heist HUD ticker — top-center. Role + objective state. -->
+      <div id="heist-ticker" class="hidden">
+        <span class="heist-role" id="heist-role">THIEF</span>
+        <span class="heist-obj" id="heist-obj">reach the vault</span>
       </div>
 
       <!-- Aim Lab results card. Shown when a run ends. Natural ad breakpoint

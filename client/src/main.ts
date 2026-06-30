@@ -22,6 +22,7 @@ import { DamageDirection } from './ui/DamageDirection';
 import { GunGame } from './modes/GunGame';
 import { Onslaught, type OnslaughtResult } from './modes/Onslaught';
 import { Duel, type DuelResult } from './modes/Duel';
+import { Heist, type HeistSide } from './modes/Heist';
 import { ProgressionFX } from './ui/ProgressionFX';
 import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
@@ -74,6 +75,9 @@ const playBtn = document.getElementById('play-btn') as HTMLButtonElement;
 const menuPlay = document.getElementById('menu-play') as HTMLButtonElement;
 const menuOnline = document.getElementById('menu-online') as HTMLButtonElement;
 const menuGungame = document.getElementById('menu-gungame') as HTMLButtonElement;
+const menuHeist = document.getElementById('menu-heist') as HTMLButtonElement;
+const menuMore = document.getElementById('menu-more') as HTMLButtonElement;
+const moreModes = document.getElementById('more-modes') as HTMLElement;
 const menuTdm = document.getElementById('menu-tdm') as HTMLButtonElement;
 const menuOnslaught = document.getElementById('menu-onslaught') as HTMLButtonElement;
 const menuDuel = document.getElementById('menu-duel') as HTMLButtonElement;
@@ -108,6 +112,7 @@ const game = new Game(canvas);
 game.aimLab = new AimLab(game);
 game.onslaught = new Onslaught(game);
 game.duel = new Duel(game);
+game.heist = new Heist(game);
 const ui = new HUD(game);
 const announcer = new Announcer(game.bus, game.audio, (id) => game.isLocalPlayer(id));
 // "ON FIRE" rampage aura — driven by the Announcer's streak (single source).
@@ -575,6 +580,7 @@ function startGame(mode: 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught'
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopHeist();
   // Tear down any active MP session before going single-player.
   if (game.mp) {
     game.mp.disconnect();
@@ -685,6 +691,7 @@ function quitToMenu() {
   stopAimLab();
   stopOnslaught();
   stopDuel();
+  stopHeist();
   if (game.mp) {
     game.mp.disconnect();
     game.mp = null;
@@ -701,6 +708,7 @@ function quitToMenu() {
   tdmTicker.classList.add('hidden');
   onsTicker.classList.add('hidden');
   duelTicker.classList.add('hidden');
+  heistTicker.classList.add('hidden');
   refreshOnslaughtButton();
   refreshDuelButton();
   // Restore the player's chosen loadout weapon (Gun Game overwrote it).
@@ -848,6 +856,14 @@ renderWeaponStats(savedPrimary);
 menuPlay.addEventListener('click', () => startGame('combat'));
 menuOnline.addEventListener('click', () => startOnline());
 menuGungame.addEventListener('click', () => startGame('gungame'));
+menuHeist.addEventListener('click', () => openHeistSelect());
+// "More Modes" drawer toggle — archived modes live here so they don't crowd
+// the menu but stay one click away.
+menuMore.addEventListener('click', () => {
+  const open = moreModes.classList.toggle('hidden') === false;
+  menuMore.textContent = open ? '▴ Fewer Modes' : '▾ More Modes';
+  game.audio.play('ui_click');
+});
 menuTdm.addEventListener('click', () => startGame('tdm'));
 menuOnslaught.addEventListener('click', () => startGame('onslaught'));
 menuDuel.addEventListener('click', () => startGame('duel'));
@@ -919,6 +935,101 @@ aimlabSelect.querySelectorAll<HTMLButtonElement>('.als-card').forEach((card) => 
   });
 });
 alsBackBtn.addEventListener('click', () => { closeAimlabSelect(); quitToMenu(); });
+
+// ─── Heist (Owner vs Thief) ────────────────────────────────────────────────
+const heistSelect = document.getElementById('heist-select')!;
+const hsBackBtn = document.getElementById('hs-back') as HTMLButtonElement;
+const heistTicker = document.getElementById('heist-ticker')!;
+const heistRoleEl = document.getElementById('heist-role')!;
+const heistObjEl = document.getElementById('heist-obj')!;
+
+/** Show the Owner/Thief side-select (from the main menu). */
+function openHeistSelect() {
+  stopHeist();
+  mainMenu.classList.add('hidden');
+  heistSelect.classList.remove('hidden');
+  game.audio.play('ui_click');
+}
+function closeHeistSelect() { heistSelect.classList.add('hidden'); }
+
+/** Begin a heist round on the chosen side. */
+function startHeist(side: HeistSide) {
+  // Tear down other modes / MP, like startGame does.
+  stopAimLab(); stopOnslaught(); stopDuel();
+  if (game.mp) { game.mp.disconnect(); game.mp = null; onlineBadge.classList.add('hidden'); }
+  announcer.reset();
+
+  // Force the role spawn, switch to the mansion map in heist mode, then start.
+  game.heistSpawn = Heist.spawnFor(side);
+  game.setMode('heist');
+  game.setMap('mansion');          // loads mansion (no-op if already loaded)
+  // setMap early-returns when the map is unchanged (e.g. Thief → Owner re-pick),
+  // so always respawn to apply the new role spawn.
+  game.respawnPlayer();
+  game.heist!.hooks = {
+    onState: (role, obj) => {
+      heistRoleEl.textContent = role.toUpperCase();
+      heistRoleEl.className = `heist-role ${role}`;
+      heistObjEl.textContent = obj;
+    },
+    onEnd: (won, reason) => showHeistEnd(won, reason),
+  };
+  game.heist!.start(side);
+
+  heistTicker.classList.remove('hidden');
+  ggTicker.classList.add('hidden');
+  tdmTicker.classList.add('hidden');
+  onsTicker.classList.add('hidden');
+  duelTicker.classList.add('hidden');
+  mainMenu.classList.add('hidden');
+  pauseOverlay.classList.add('hidden');
+  hud.classList.remove('hidden');
+  game.input.requestPointerLock();
+}
+
+function stopHeist() {
+  if (game.heist?.active) game.heist.stop();
+  game.heistSpawn = null;
+  heistTicker.classList.add('hidden');
+  heistSelect.classList.add('hidden');
+}
+
+/** Round-over: brief center-screen banner (reusing the announcer DOM), then
+ *  back to the menu. */
+const heistAnnouncer = document.getElementById('announcer')!;
+const heistAnnMain = document.getElementById('announcer-main')!;
+const heistAnnSub = document.getElementById('announcer-sub')!;
+function showHeistEnd(won: boolean, reason: string) {
+  heistAnnMain.textContent = won ? 'HEIST WON' : 'HEIST LOST';
+  heistAnnMain.style.color = won ? '#7fe08a' : '#ff6a6a';
+  heistAnnSub.textContent = reason;
+  heistAnnouncer.classList.remove('hidden');
+  game.input.exitPointerLock();
+  // Short beat on the result, then clear + return to the menu.
+  window.setTimeout(() => {
+    heistAnnouncer.classList.add('hidden');
+    heistAnnMain.style.color = '';
+    quitToMenu();
+  }, 2600);
+}
+
+heistSelect.querySelectorAll<HTMLButtonElement>('.hs-side').forEach((card) => {
+  card.addEventListener('click', () => {
+    const side = (card.dataset.side ?? 'thief') as HeistSide;
+    closeHeistSelect();
+    startHeist(side);
+  });
+});
+hsBackBtn.addEventListener('click', () => { closeHeistSelect(); quitToMenu(); });
+
+// Wire heist win/lose into the kill bus: thief-bot down (owner wins) + local
+// player down (current side loses).
+game.bus.on('kill', (e) => {
+  if (!game.heist?.active) return;
+  if (game.isLocalPlayer(e.targetId)) game.heist.onPlayerDown();
+  else if (!game.isLocalPlayer(e.attackerId)) { /* third-party, ignore */ }
+  else game.heist.onIntruderDown();   // local player killed a bot → owner objective
+});
 
 game.aimLab!.onTick = (timeLeft, score, accuracy) => {
   alTime.textContent = timeLeft.toFixed(1);

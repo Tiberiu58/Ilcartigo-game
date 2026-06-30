@@ -44,6 +44,7 @@ import { COBALT_MAP } from '../maps/CobaltMap';
 import { OVERPASS_MAP } from '../maps/OverpassMap';
 import { FROSTLINE_MAP } from '../maps/FrostlineMap';
 import { FOUNDRY_MAP } from '../maps/FoundryMap';
+import { MANSION_MAP } from '../maps/MansionMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
@@ -63,16 +64,18 @@ const MAPS: Record<MapId, GameMap> = {
   overpass: OVERPASS_MAP,
   frostline: FROSTLINE_MAP,
   foundry: FOUNDRY_MAP,
+  mansion: MANSION_MAP,
 };
 
-export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel';
+export type GameMode = 'combat' | 'practice' | 'gungame' | 'tdm' | 'onslaught' | 'duel' | 'heist';
 
 /** Modes where bots are active threats + the player can die/respawn (i.e. not
  *  the peaceful Practice sandbox). Gun Game + TDM play like Combat with extra
  *  rules layered on top; Onslaught is wave survival vs escalating bot packs;
- *  Duel is a 1v1 gauntlet vs a single escalating opponent. */
+ *  Duel is a 1v1 gauntlet vs a single escalating opponent; Heist is the
+ *  asymmetric Owner-vs-Thief stealth mode (still lethal — you can be shot). */
 export function isCombatMode(m: GameMode): boolean {
-  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel';
+  return m === 'combat' || m === 'gungame' || m === 'tdm' || m === 'onslaught' || m === 'duel' || m === 'heist';
 }
 
 /** TDM team identity colours (figures + HUD). Blue = the player's team. */
@@ -139,6 +142,11 @@ export class Game {
    *  bots are parked and only wave-spawned ephemeral bots are live. Keeps
    *  syncBotState from re-activating the base roster mid-survival. */
   private survivalActive = false;
+  /** Fixed spawn for Heist mode (Owner inside / Thief outside). When set + in
+   *  heist mode, pickSafeSpawn returns this instead of the safe-spawn search. */
+  heistSpawn: THREE.Vector3 | null = null;
+  /** Optional Heist controller (Owner vs Thief) — null unless launched. */
+  heist: import('../modes/Heist').Heist | null = null;
   /** Current game mode. Practice = no bots, lab spawn, peaceful. */
   mode: GameMode = 'combat';
   /** Currently loaded map. Set via setMap(). */
@@ -833,6 +841,8 @@ export class Game {
    * callers must NOT mutate it.
    */
   private pickSafeSpawn(): THREE.Vector3 {
+    // Heist mode forces a fixed role spawn (Owner inside / Thief outside).
+    if (this.mode === 'heist' && this.heistSpawn) return this.heistSpawn;
     const spawns = this.currentMap.meta.ffaSpawns;
     if (this.mode === 'practice' || spawns.length === 0) return spawns[0];
 
@@ -1474,6 +1484,7 @@ export class Game {
     if (this.aimLab) this.aimLab.update(dt);   // Aim Lab timer + target animation
     if (this.onslaught) this.onslaught.update(dt);  // wave pacing + respawn timing
     if (this.duel) this.duel.update(dt);            // duel intro/intermission pacing
+    if (this.heist) this.heist.update(dt);          // heist vault-proximity + objective
 
     // Screen shake — random offset, decays exponentially.
     if (this.shake.intensity > 0.0005) {

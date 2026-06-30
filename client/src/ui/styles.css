@@ -1417,6 +1417,84 @@ body.no-speedlines #speed-lines { display: none; }
 .menu-btn.duel { border-left: 3px solid #ffb454; }
 .menu-btn.duel:hover { border-left-color: #ffb454; color: #ffca7a; }
 
+/* Heist (Owner vs Thief) — moody purple, set apart as the marquee new mode. */
+.menu-btn.heist { border-left: 3px solid #a06bff; }
+.menu-btn.heist:hover { border-left-color: #c39bff; color: #c39bff; }
+
+/* "More Modes" drawer toggle + the collapsible group of archived modes. */
+.menu-btn.more-toggle {
+  border-left: 3px solid #555c66;
+  color: var(--muted);
+  font-size: 13px;
+}
+.menu-btn.more-toggle:hover { border-left-color: #8a93a0; color: var(--text); }
+.more-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 14px;            /* indent so it reads as a sub-group */
+  border-left: 1px dashed rgba(255,255,255,0.10);
+  margin: 2px 0 2px 6px;
+}
+.more-modes.hidden { display: none; }
+
+/* ── Heist side-select overlay ─────────────────────────────────────────────── */
+#heist-select {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 6, 14, 0.92);
+  z-index: 40;
+}
+#heist-select.hidden { display: none; }
+.heist-card {
+  width: min(760px, 92vw);
+  background: linear-gradient(180deg, rgba(30,22,42,0.96), rgba(16,12,22,0.96));
+  border: 1px solid rgba(160,107,255,0.35);
+  border-radius: 14px;
+  padding: 28px 28px 22px;
+  text-align: center;
+}
+.heist-card h2 { font-size: 30px; letter-spacing: 6px; margin: 0 0 4px; color: #c39bff; }
+.hs-sub { color: var(--muted); margin: 0 0 22px; letter-spacing: 1px; }
+.hs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+.hs-side {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 22px 18px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+}
+.hs-side:hover { transform: translateY(-3px); }
+.hs-thief:hover { border-color: #ff6a6a; background: rgba(255,80,80,0.08); }
+.hs-owner:hover { border-color: #6ca0ff; background: rgba(80,140,255,0.08); }
+.hs-icon { font-size: 46px; line-height: 1; margin-bottom: 8px; }
+.hs-name { font: 800 22px/1 'Segoe UI', sans-serif; letter-spacing: 3px; margin-bottom: 10px; }
+.hs-thief .hs-name { color: #ff7a72; }
+.hs-owner .hs-name { color: #6ca0ff; }
+.hs-blurb { color: var(--text); font-size: 13px; line-height: 1.4; min-height: 56px; }
+.hs-spawn { color: var(--muted); font-size: 11px; margin-top: 10px; letter-spacing: 0.5px; }
+
+/* ── Heist HUD ticker ──────────────────────────────────────────────────────── */
+#heist-ticker {
+  position: absolute; left: 50%; top: 60px; transform: translateX(-50%);
+  background: rgba(20, 14, 28, 0.82);
+  padding: 7px 18px; border-radius: 4px;
+  display: flex; align-items: center; gap: 14px;
+  z-index: 12; pointer-events: none; white-space: nowrap;
+  font: 800 14px/1 'Segoe UI', sans-serif; letter-spacing: 2px;
+}
+#heist-ticker.hidden { display: none; }
+#heist-ticker .heist-role { color: #c39bff; }
+#heist-ticker .heist-role.thief { color: #ff7a72; }
+#heist-ticker .heist-role.owner { color: #6ca0ff; }
+#heist-ticker .heist-obj {
+  font: 600 11px/1 'JetBrains Mono', Consolas, monospace;
+  color: var(--muted); letter-spacing: 1px;
+  border-left: 1px solid rgba(255,255,255,0.14); padding-left: 12px;
+}
+
 #duel-ticker {
   position: absolute;
   left: 50%; top: 60px;
