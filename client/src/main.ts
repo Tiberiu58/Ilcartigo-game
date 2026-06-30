@@ -27,6 +27,7 @@ import { Minimap } from './ui/Minimap';
 import { Nameplates } from './ui/Nameplates';
 import { MultiplayerSession } from './networking/MultiplayerSession';
 import { CosmeticsUI } from './ui/CosmeticsUI';
+import { CratesUI } from './ui/CratesUI';
 import { ProfileUI } from './ui/ProfileUI';
 import { AchievementsUI } from './ui/AchievementsUI';
 import { AchievementTracker } from './account/Achievements';
@@ -1248,6 +1249,19 @@ if (localStorage.getItem(HOWTO_SEEN_KEY) && game.account.dailyLoginStatus().avai
   showDaily();
 }
 
+// ─── Loot crates ───────────────────────────────────────────────────────────
+const cratesUI = new CratesUI(game.account, game.audio);
+const menuCrates = document.getElementById('menu-crates') as HTMLButtonElement;
+const menuCoins = document.getElementById('menu-coins')!;
+const menuCrateFree = document.getElementById('menu-crate-free')!;
+menuCrates.addEventListener('click', () => { cratesUI.show(); game.audio.play('ui_click'); });
+function renderMenuCoins() {
+  menuCoins.textContent = game.account.coins.toLocaleString();
+  menuCrateFree.classList.toggle('hidden', !game.account.freeCrateAvailable());
+}
+renderMenuCoins();
+game.account.onChange(renderMenuCoins);
+
 // Pointer-lock change → toggle HUD vs pause overlay.
 // We only show the pause overlay if we lost lock *during* a game (i.e. the
 // main menu isn't visible). Otherwise the user is just clicking around the
@@ -1415,6 +1429,13 @@ function showPostMatch(winnerId: string) {
   if (youWon) game.account.awardXP(50);
   else if (tdmTeam === null && myRank > 0 && myRank <= 3) game.account.awardXP(25);
   const xpDelta = game.account.xp - xpBefore;
+  // Coins payout on the post-match screen — a win pays a fat bonus (the crate
+  // economy's main faucet), a top-3 finish a smaller one. Per-kill Coins were
+  // already dripped during the match.
+  const coinsBonus = youWon ? 75 : (tdmTeam === null && myRank > 0 && myRank <= 3 ? 30 : 0);
+  if (coinsBonus > 0) game.account.awardCoins(coinsBonus);
+  const pmCoins = document.getElementById('pm-coins-earned');
+  if (pmCoins) pmCoins.textContent = String(game.matchCoins + coinsBonus);
   // Per-kill XP was already awarded as each kill happened. We total it for display.
   const xpFromKills = myKills * 10;
   pmXpEarned.textContent = String(xpDelta + xpFromKills);

@@ -1289,3 +1289,111 @@ build green, never break solo / MP / the audit fixes.
   + audio asset guide updated.
 
 ### Phase 36 COMPLETE — full procedural SFX, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phases 37–38 (shipped on branch, between v0.36.0 and here)
+
+Logged in README; summarized here for the plan's record:
+- **v0.37.0 — first-person arms.** The viewmodel gained two low-poly arms gripping
+  the held weapon (per-weapon grip anchors), with walk/idle sway + cloak fade.
+- **v0.38.0 — third routine-integration round.** Cherry-picked 11 features off the
+  routine branches onto `main`: procedural audio engine, Burst Rifle (9th weapon),
+  Foundry (7th map), career achievements + 24 medals, Nemesis system, Prestige
+  "Lord" skins, weapon inspect (T), killfeed weapon icons, Final Blow win cinematic,
+  hit-combo meter, enemy hit-flash. Then footstep SFX removed + melodic arpeggio
+  stings silenced per user request.
+
+---
+
+## Phase 39 — Coins & Loot Crates (autonomous build, v0.39.0)
+
+The single biggest missing Krunker pillar was the **loot-crate dopamine loop** —
+a soft currency you earn by playing, gambled on a flashy random-cosmetic reveal.
+ILCARTIGO had a deep cosmetic catalogue (59 unlockables across skins · kill
+effects · tracers · finishes) but **only one way in: save XP for one specific
+item.** Phase 39 adds the *second* economy — **Coins** + **Crates** — giving
+players a surprise-reward chase, a reason to grind every mode, and a new
+ad-adjacent screen (the crate shop / reveal). Pure-client, migration-safe
+`Account`, **no protocol/server change**; solo + MP + every prior mode intact.
+
+Guiding constraint (unchanged): no protocol changes, no new deps, typecheck +
+build green, never break solo / MP / the audit fixes.
+
+**Design (why it's low-risk + self-contained):**
+- **New Coins currency** in `Account` (migration-safe — old saves default to 0).
+  Earned through the existing kill/match buses: **+3 per kill (+5 on a headshot)**
+  dripped live in every mode via the one `youKilled` chokepoint in `Game`, plus a
+  post-match **+75 win / +30 top-3** bonus in `main.ts`. XP is untouched — Coins
+  are a parallel faucet, so the XP-gated direct-unlock path still works exactly as
+  before.
+- **New `account/Crates.ts`** (pure logic, no DOM/THREE). Aggregates every
+  non-default cosmetic from the existing `Cosmetics` registries into one 59-item
+  pool, assigning a **rarity** (Common / Rare / Epic / Legendary) from each item's
+  original XP cost. `openCrate(acc, rand)` does a weighted rarity roll **only
+  among rarities that still have locked items**, then a uniform pick within that
+  tier — so there are **never duplicate drops and never a dead roll** (once cheap
+  tiers are exhausted the weights renormalize toward Legendary; a fully-complete
+  collection pays out Coins instead). Crate cost **600 ⛁**. Weapon-mastery skins
+  are deliberately excluded (they stay the play-to-earn track), keeping the two
+  reward economies separate.
+- **Crate grants are XP-free** — paid for in Coins — via new `Account.grant{Skin,
+  Effect,Tracer,Finish}` helpers (push-if-absent, batched into one save by
+  `applyCrateResult`). A small rarity-scaled Coin "shard" bonus drops on top of
+  every unlock.
+- **New `ui/CratesUI.ts`** — the shop + reveal overlay. Shows the balance, the
+  per-rarity drop odds + how many of each tier remain, collection progress
+  (`X / 59`), and an Open button gated on affordability. Opening plays a
+  two-stage **shaking-crate → rarity-glow burst → pop reveal** animation (rarity
+  colour drives the stage glow + radial burst), the item swatch + name + type +
+  a NEW badge + the bonus Coins, with escalating SFX (bigger sting for Epic+).
+- **Wiring.** A `📦 Crates · N ⛁` main-menu button (live Coin counter updated via
+  `account.onChange`), the `#crates-overlay` DOM, full CSS, and a `+N ⛁` line on
+  the post-match rewards strip (per-kill drip tracked in `Game.matchCoins`, reset
+  each match, + the end-of-match bonus).
+
+### Status log
+- ✅ Phase 39 — Coins & Loot Crates. DONE (client + server tsc + client build
+  green; app chunk ~97.5 KB gzip). Logic headless-tested (59-item pool clears in
+  exactly 59 opens, zero duplicates, tier renormalization, exhaustion→Coins) and
+  **browser-smoke-tested** end-to-end (menu Coin counter, overlay opens with 4
+  odds rows + `0/59`, opening reveals an item with correct balance math
+  5000→4430, repeatable). `Account.coins` + `awardCoins`/`spendCoins` +
+  `grant*`/`commit` (migration-safe load merge), `account/Crates.ts`
+  (pool/rarity/roll/apply), `ui/CratesUI.ts`, per-kill + win Coin faucets,
+  `Game.matchCoins`, menu button + balance, `#crates-overlay` DOM + CSS, post-match
+  `+⛁` line. Versions bumped to v0.39.0 (+ menu subtitle/footer).
+
+### Phase 39 COMPLETE — Coins economy + loot crates, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 40 — Daily Free Crate (autonomous build, v0.40.0)
+
+A retention hook that funnels straight into the Phase-39 crate loop: **one free
+loot crate every day.** "Show up → free dopamine" is the cheapest daily-active
+driver in any live game, and here it lands the player on the crate-reveal screen
+(an ad-adjacent moment) with zero spend. Pure-client, migration-safe `Account`,
+builds directly on Phase 39 — no protocol change.
+
+- **`Account.freeCrate` state** (migration-safe, defaults cleanly on old saves) +
+  `freeCrateAvailable()` / `claimFreeCrate()` (date-keyed off the existing
+  `todayKey` infra; once per local day, claim only marks it used — the caller
+  runs the coin-free roll).
+- **CratesUI free path.** A glowing green **"🎁 Claim Free Daily Crate"** button
+  in the crates overlay (shown only when available); `open()` and `openFree()`
+  now share a `beginReveal()` so the free crate gets the identical shake → rarity
+  burst → pop reveal (and its shard-Coin bonus), just without the 600-Coin debit.
+- **Menu nudge.** The `📦 Crates` main-menu button shows a pulsing **`· FREE 🎁`**
+  badge while today's crate is unclaimed (toggled via `account.onChange`), so the
+  reward is visible without opening anything.
+
+### Status log
+- ✅ Phase 40 — Daily Free Crate. DONE (client + server tsc + client build green).
+  Browser-smoke-tested end-to-end on a 0-Coin account: menu FREE badge shows,
+  free button opens with no Coins, reveals a cosmetic ("Violet Veil") + 30 shard
+  Coins, button disappears after claim, no JS errors. `Account.freeCrate` +
+  available/claim, CratesUI free button + `beginReveal` refactor, menu FREE badge
+  + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
+
+### Phase 40 COMPLETE — daily free crate, no protocol change, no new deps, solo + MP intact.

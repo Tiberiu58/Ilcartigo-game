@@ -2968,6 +2968,151 @@ body.slowmo::after {
 .menu-btn.daily { border-left: 3px solid #ffd23f; }
 .menu-btn.daily:hover { border-left-color: #ffe27a; color: #ffe27a; }
 
+/* ── Loot crates ──────────────────────────────────────────────────────────── */
+#crates-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 24px;
+}
+#crates-overlay.hidden { display: none; }
+.crates-card {
+  background: var(--panel);
+  border-top: 4px solid #ffae3a;
+  border-radius: 12px;
+  width: 540px;
+  max-width: calc(100vw - 32px);
+  padding: 28px 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.crates-card h2 {
+  font-size: 24px;
+  letter-spacing: 3px;
+  color: #ffae3a;
+  margin: 0;
+}
+.crates-sub { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
+.crates-balance {
+  font: 800 18px/1 'JetBrains Mono', Consolas, monospace;
+  color: #ffd34a;
+  text-shadow: 0 0 12px rgba(255, 174, 58, 0.4);
+  margin-bottom: 14px;
+}
+.crates-stage {
+  position: relative;
+  min-height: 188px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.crate-box { font-size: 72px; line-height: 1; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.5)); }
+.crate-box.idle { animation: crate-float 2.6s ease-in-out infinite; }
+.crate-box.shake { animation: crate-shake 0.16s linear infinite; }
+.crate-hint { color: var(--muted); font-size: 12px; max-width: 320px; }
+@keyframes crate-float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+@keyframes crate-shake {
+  0% { transform: translate(-2px, 1px) rotate(-4deg) scale(1.0); }
+  25% { transform: translate(3px, -1px) rotate(3deg) scale(1.04); }
+  50% { transform: translate(-1px, 2px) rotate(-2deg) scale(1.08); }
+  75% { transform: translate(2px, -2px) rotate(4deg) scale(1.04); }
+  100% { transform: translate(-2px, 1px) rotate(-4deg) scale(1.0); }
+}
+/* Rarity glow on the stage when revealed */
+.crates-stage.rar-common    { border-color: #b7c0cc; box-shadow: inset 0 0 40px rgba(183,192,204,0.18); }
+.crates-stage.rar-rare      { border-color: #4cc6ff; box-shadow: inset 0 0 50px rgba(76,198,255,0.22); }
+.crates-stage.rar-epic      { border-color: #c061ff; box-shadow: inset 0 0 60px rgba(192,97,255,0.26); }
+.crates-stage.rar-legendary { border-color: #ffb020; box-shadow: inset 0 0 70px rgba(255,176,32,0.32); }
+.crate-burst {
+  position: absolute;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--rar, #fff);
+  box-shadow: 0 0 40px 24px var(--rar, #fff);
+  opacity: 0;
+  animation: crate-burst 0.6s ease-out forwards;
+}
+@keyframes crate-burst {
+  0% { transform: scale(0.2); opacity: 0.9; }
+  100% { transform: scale(9); opacity: 0; }
+}
+.crate-reveal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation: crate-pop 0.42s cubic-bezier(0.18, 1.5, 0.4, 1) both;
+}
+@keyframes crate-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.crate-rar { font: 800 14px/1 'Segoe UI', sans-serif; letter-spacing: 3px; }
+.crate-swatch { width: 54px; height: 54px; border-radius: 10px; margin: 6px 0 2px; }
+.crate-new {
+  font: 800 9px/1 'Segoe UI', sans-serif; letter-spacing: 1.5px; color: #0a0c10;
+  background: #ffd34a; padding: 3px 7px; border-radius: 5px;
+}
+.crate-item-name { font: 800 18px/1.1 'Segoe UI', sans-serif; color: var(--text); }
+.crate-item-kind { font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+.crate-coins { font: 700 12px/1 'JetBrains Mono', Consolas, monospace; color: #ffd34a; margin-top: 4px; }
+.crate-odds { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.crate-odd {
+  display: grid;
+  grid-template-columns: 14px 1fr auto auto;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.crate-odd-dot { width: 10px; height: 10px; border-radius: 50%; }
+.crate-odd-name { font-weight: 800; letter-spacing: 1px; text-align: left; }
+.crate-odd-pct { font: 700 11px/1 'JetBrains Mono', Consolas, monospace; color: var(--text); }
+.crate-odd-left { font-size: 10px; color: var(--muted); min-width: 48px; text-align: right; }
+.crate-progress { font-size: 11px; color: var(--muted); margin-bottom: 14px; letter-spacing: 0.5px; }
+.crates-card .menu-btn { width: 100%; }
+.crates-card .menu-btn:disabled { opacity: 0.5; cursor: default; }
+.menu-btn.crates { border-left: 3px solid #ffae3a; }
+.menu-btn.crates:hover { border-left-color: #ffc46a; color: #ffc46a; }
+.pm-coins { color: #ffd34a; font: 800 16px/1 'JetBrains Mono', Consolas, monospace; }
+.free-badge { color: #36e08a; font-weight: 800; animation: free-badge-pulse 1.4s ease-in-out infinite; }
+.free-badge.hidden { display: none; }
+@keyframes free-badge-pulse {
+  0%, 100% { opacity: 0.65; text-shadow: 0 0 4px rgba(54,224,138,0.4); }
+  50% { opacity: 1; text-shadow: 0 0 12px rgba(54,224,138,0.8); }
+}
+.menu-btn.free-crate {
+  border-left: 3px solid #36e08a;
+  color: #6cf0a8;
+  box-shadow: 0 0 16px rgba(54, 224, 138, 0.25);
+  animation: free-crate-glow 1.8s ease-in-out infinite;
+}
+.menu-btn.free-crate.hidden { display: none; }
+.menu-btn.free-crate:hover { border-left-color: #6cf0a8; color: #9affc8; }
+@keyframes free-crate-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(54, 224, 138, 0.2); }
+  50% { box-shadow: 0 0 22px rgba(54, 224, 138, 0.45); }
+}
+
 /* ── Phase 13: progression spectacle ─────────────────────────────────────── */
 
 /* Rank badge — shared markup between the HUD (in-game, bottom-left) and the

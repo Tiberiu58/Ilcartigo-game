@@ -60,6 +60,10 @@ function mergeStats(saved: Partial<LifetimeStats> | undefined, fresh: LifetimeSt
 
 interface AccountData {
   xp: number;
+  /** Soft currency (Coins) — earned per kill/win, spent on loot crates. Kept
+   *  separate from XP (which gates direct cosmetic unlocks) so the crate loop
+   *  is its own reward economy. */
+  coins: number;
   /** Set of unlocked cosmetic IDs (we store as array for JSON). */
   unlockedSkins: SkinId[];
   unlockedEffects: KillEffectId[];
@@ -82,6 +86,8 @@ interface AccountData {
   daily: DailyState;
   /** Daily-login streak (show-up reward, separate from the in-match challenges). */
   login: LoginState;
+  /** Daily free-crate state — `last` = YYYY-MM-DD a free crate was last claimed. */
+  freeCrate: { last: string };
   /** Unlocked career-achievement (medal) ids. Generic string set so the medal
    *  catalogue can grow without touching this storage shape. */
   unlockedAchievements: string[];
@@ -169,6 +175,7 @@ function freshDaily(stats: LifetimeStats): DailyState {
 function freshData(): AccountData {
   return {
     xp: 0,
+    coins: 0,
     unlockedSkins: [
       'phantom-default', 'rush-default', 'vanguard-default',
       'ghost-default', 'engineer-default', 'hunter-default',
@@ -186,6 +193,7 @@ function freshData(): AccountData {
     name: '',
     daily: freshDaily(freshStats()),
     login: { last: '', streak: 0 },
+    freeCrate: { last: '' },
     unlockedAchievements: [],
   };
 }
@@ -210,6 +218,7 @@ export class Account {
       const fresh = freshData();
       this.data = {
         xp: typeof parsed.xp === 'number' ? parsed.xp : fresh.xp,
+        coins: typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) ? parsed.coins : fresh.coins,
         unlockedSkins: Array.isArray(parsed.unlockedSkins) ? parsed.unlockedSkins : fresh.unlockedSkins,
         unlockedEffects: Array.isArray(parsed.unlockedEffects) ? parsed.unlockedEffects : fresh.unlockedEffects,
         // Always keep the default tracer unlocked even on an older save.
@@ -250,6 +259,10 @@ export class Account {
           && typeof (parsed.login as LoginState).streak === 'number')
           ? parsed.login as LoginState
           : fresh.login,
+        freeCrate: (parsed.freeCrate && typeof parsed.freeCrate === 'object'
+          && typeof (parsed.freeCrate as { last: string }).last === 'string')
+          ? parsed.freeCrate as { last: string }
+          : fresh.freeCrate,
         unlockedAchievements: Array.isArray(parsed.unlockedAchievements)
           ? parsed.unlockedAchievements.filter((x): x is string => typeof x === 'string')
           : fresh.unlockedAchievements,
@@ -284,6 +297,9 @@ export class Account {
   /** XP into the current level. 0..XP_PER_LEVEL-1. */
   get xpIntoLevel(): number { return this.data.xp % XP_PER_LEVEL; }
   get xpPerLevel(): number { return XP_PER_LEVEL; }
+
+  /** Current Coin balance (soft currency for crates). */
+  get coins(): number { return this.data.coins; }
 
   isSkinUnlocked(id: SkinId): boolean {
     return this.data.unlockedSkins.includes(id);
@@ -354,6 +370,55 @@ export class Account {
     this.save();
     return this.data.xp;
   }
+
+  // ── Coins (soft currency) ─────────────────────────────────────────────────
+
+  /** Add Coins. Triggers persistence + listeners. Returns the new balance. */
+  awardCoins(amount: number): number {
+    if (amount <= 0) return this.data.coins;
+    this.data.coins += Math.floor(amount);
+    this.save();
+    return this.data.coins;
+  }
+
+  /** Spend Coins if the balance covers it. Returns true on success. */
+  spendCoins(amount: number): boolean {
+    if (amount <= 0) return true;
+    if (this.data.coins < amount) return false;
+    this.data.coins -= Math.floor(amount);
+    this.save();
+    return true;
+  }
+
+  // ── Crate grants (unlock a cosmetic WITHOUT an XP cost) ───────────────────
+  // Crates are paid for in Coins, so the awarded cosmetic is granted free of XP.
+  // Each returns true if it was newly unlocked (false if already owned). No
+  // save() here — callers batch a single save (e.g. after also crediting Coins).
+
+  grantSkin(id: SkinId): boolean {
+    if (this.data.unlockedSkins.includes(id)) return false;
+    this.data.unlockedSkins.push(id);
+    return true;
+  }
+  grantEffect(id: KillEffectId): boolean {
+    if (this.data.unlockedEffects.includes(id)) return false;
+    this.data.unlockedEffects.push(id);
+    return true;
+  }
+  grantTracer(id: TracerId): boolean {
+    if (this.data.unlockedTracers.includes(id)) return false;
+    this.data.unlockedTracers.push(id);
+    return true;
+  }
+  grantFinish(id: FinishId): boolean {
+    if (this.data.unlockedFinishes.includes(id)) return false;
+    this.data.unlockedFinishes.push(id);
+    return true;
+  }
+
+  /** Commit pending grant mutations (persist + notify). Called once after a
+   *  crate result is applied so the UI updates exactly once. */
+  commit() { this.save(); }
 
   /**
    * Attempt to unlock a cosmetic. If the player has enough XP, deducts cost
@@ -594,6 +659,22 @@ export class Account {
     this.data.xp += st.reward;
     this.save();
     return { day: st.day, reward: st.reward };
+  }
+
+  // ── Daily free crate ──────────────────────────────────────────────────────
+
+  /** True if today's free crate hasn't been claimed yet. */
+  freeCrateAvailable(): boolean {
+    return this.data.freeCrate.last !== todayKey();
+  }
+
+  /** Claim today's free crate (marks it used). Returns true if it was available.
+   *  Does NOT roll the crate — the caller runs the (coin-free) open + reveal. */
+  claimFreeCrate(): boolean {
+    if (!this.freeCrateAvailable()) return false;
+    this.data.freeCrate.last = todayKey();
+    this.save();
+    return true;
   }
 
   // ── Career achievements (medals) ──────────────────────────────────────────
