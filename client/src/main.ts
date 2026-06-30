@@ -781,6 +781,7 @@ const WEAPON_ARCHETYPE: Record<WeaponId, string> = {
   lmg: 'Suppressive Fire',
   railgun: 'Piercing Beam',
   burst: 'Burst Rifle',
+  magnum: 'Hand Cannon',
   pistol: 'Sidearm',
 };
 const wsName = document.getElementById('ws-name')!;

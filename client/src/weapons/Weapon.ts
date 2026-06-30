@@ -315,6 +315,37 @@ export const PISTOL_CONFIG: WeaponConfig = {
   slot: 'secondary',
 };
 
+// Hand Cannon (Magnum) — a heavy, semi-auto precision sidearm-class PRIMARY.
+// The high-risk/high-reward gunslinger pick: massive per-shot damage (2-shot
+// body, one-shot to the head), but a slow cadence, a tiny 6-round cylinder, a
+// long reload, and a heavy kick + big per-shot bloom that punishes spam. Rewards
+// deliberate, accurate single taps — a totally different rhythm from the rapid
+// Pistol secondary or the semi-auto Marksman DMR. Runs alongside the Pistol so
+// it's a true gunslinger loadout. MP applies it as an authoritative single hit.
+export const MAGNUM_CONFIG: WeaponConfig = {
+  id: 'magnum',
+  displayName: 'Hand Cannon',
+  fireRate: 2.2,               // slow, deliberate
+  automatic: false,
+  magSize: 6,                  // revolver cylinder
+  reloadTime: 2.4,             // slow cylinder reload
+  reserveAmmo: -1,
+  baseDamage: 60,              // 2-shot body
+  headshotMultiplier: 2.0,     // one-shot head (120)
+  maxRange: 120,
+  falloffStart: 30,
+  falloffEnd: 80,
+  falloffMinMultiplier: 0.6,
+  baseSpread: 0.004,
+  maxSpread: 0.07,
+  spreadPerShot: 0.024,        // big bloom — spamming throws shots wide
+  spreadDecay: 0.35,
+  recoilPitch: 0.05,           // heavy kick
+  recoilYaw: 0.012,
+  recoilDecay: 0.55,
+  slot: 'primary',
+};
+
 export const WEAPON_LIBRARY = {
   ar: AR_CONFIG,
   smg: SMG_CONFIG,
@@ -324,6 +355,7 @@ export const WEAPON_LIBRARY = {
   lmg: LMG_CONFIG,
   railgun: RAILGUN_CONFIG,
   burst: BURST_CONFIG,
+  magnum: MAGNUM_CONFIG,
   pistol: PISTOL_CONFIG,
 } as const;
 export type WeaponId = keyof typeof WEAPON_LIBRARY;

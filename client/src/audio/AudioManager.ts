@@ -87,6 +87,9 @@ export const SOUND_FILES = {
   // Burst Rifle (Phase 37) — a snappy 3-round burst crack.
   fire_burst:    'fire_burst.wav',
 
+  // Hand Cannon (Phase 41) — a big, booming single shot.
+  fire_magnum:   'fire_magnum.wav',
+
   // Frag grenade (Phase 21) — detonation boom.
   grenade_explode: 'grenade_explode.wav',
 

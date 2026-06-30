@@ -1397,3 +1397,36 @@ builds directly on Phase 39 — no protocol change.
   + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — daily free crate, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 41 — Hand Cannon (10th weapon) (autonomous build, v0.41.0)
+
+Back to the brief's first pillar (weapon variety / satisfying shooting). A
+**10th weapon** — the **Hand Cannon (Magnum)**, a heavy semi-auto precision
+PRIMARY that fills the "gunslinger" niche: massive per-shot damage (2-shot body,
+one-shot to the head at ×2.0), but a slow 2.2-RPS cadence, a tiny 6-round
+cylinder, a long 2.4 s reload, and a heavy kick + big per-shot bloom that
+punishes spam. A totally different rhythm from the rapid Pistol secondary and
+the semi-auto Marksman DMR — deliberate single taps. Runs as a primary, so it
+pairs with the Pistol for a true gunslinger loadout.
+
+- **Full integration across every weapon touch point:** `MAGNUM_CONFIG` +
+  `WEAPON_LIBRARY`; a chunky `buildMagnum` viewmodel + Pistol-FBX model def +
+  `slide` reload kind + two-hand grip anchors; `fire_magnum` sound id +
+  a booming SynthEngine recipe; `WEAPON_LABEL` (Gun Game) + `WEAPON_ARCHETYPE`
+  ("Hand Cannon") loadout card; three mastery skins (Gunmetal / Bone / Outlaw) +
+  `WEAPON_SKIN_ORDER`; a loadout button. (Also noticed the Burst Rifle never got
+  mastery skins — left as-is to keep this phase scoped to the new weapon.)
+- **MP-authoritative, no protocol change.** `SERVER_WEAPONS['magnum']` mirrors the
+  client damage profile + a `VALID_WEAPONS` entry (the LMG/Railgun precedent), so
+  the Hand Cannon hits identically online. Not on the fixed Gun Game ladder.
+
+### Status log
+- ✅ Phase 41 — Hand Cannon. DONE (client + server tsc + client build green; app
+  chunk ~98 KB gzip). Browser-smoke-tested: selectable in the loadout, stat card
+  reads "Hand Cannon", a vs-bots match starts with it (viewmodel builds, HUD up),
+  zero JS errors. All `Record<WeaponId,…>` exhaustive maps updated (tsc enforces).
+  Versions bumped to v0.41.0 (+ menu subtitle/footer).
+
+### Phase 41 COMPLETE — additive 10th weapon, no protocol change, no new deps, solo + MP intact.

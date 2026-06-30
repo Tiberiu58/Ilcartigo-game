@@ -399,6 +399,7 @@ const RELOAD_KINDS: Record<WeaponId, ReloadKind> = {
   sniper: 'bolt',
   shotgun: 'pump',
   pistol: 'slide',
+  magnum: 'slide',   // revolver — reuse the slide-pull motion for the cylinder reload
   railgun: 'cell',
 };
 
@@ -494,8 +495,19 @@ const WEAPON_BUILDERS: Record<WeaponId, (parent: THREE.Group) => number> = {
   lmg: buildLMG,
   railgun: buildRailgun,
   burst: buildBurst,
+  magnum: buildMagnum,
   pistol: buildPistol,
 };
+
+function buildMagnum(p: THREE.Group): number {
+  p.add(box(0.11, 0.12, 0.22, 0x33363d, 0, 0, 0));            // chunky frame
+  p.add(box(0.085, 0.10, 0.12, 0x44474e, 0, 0.005, -0.02));   // cylinder housing
+  p.add(box(0.05, 0.055, 0.30, 0x17181c, 0, 0.03, -0.20));    // long heavy barrel
+  p.add(box(0.06, 0.04, 0.10, 0x101116, 0, 0.06, -0.10));     // top rib / vent
+  p.add(box(0.09, 0.18, 0.11, 0x26292f, 0, -0.14, 0.06));     // grip
+  p.add(box(0.025, 0.035, 0.025, 0xd8c24a, 0, 0.085, -0.30)); // brass front sight
+  return -0.34;
+}
 
 function buildBurst(p: THREE.Group): number {
   p.add(box(0.15, 0.12, 0.38, 0x2f3a34, 0, 0, 0));            // compact carbine body (olive-steel)
@@ -671,6 +683,7 @@ const WEAPON_GRIPS: Record<WeaponId, Grips> = {
   lmg:      { rear: [0.0, -0.10, -0.18], front: [-0.02, -0.08, 0.28] },
   burst:    { rear: [0.0, -0.10, -0.14], front: [-0.02, -0.06, 0.20] },
   railgun:  { rear: [0.0, -0.10, -0.14], front: [-0.02, -0.06, 0.30] },
+  magnum:   { rear: [0.0, -0.10, -0.02], front: [0.06, -0.12, 0.0] },   // 2-hand grip near rear
   pistol:   { rear: [0.0, -0.10, -0.04], front: [0.06, -0.12, -0.02] },  // 2-hand grip near rear
 };
 
