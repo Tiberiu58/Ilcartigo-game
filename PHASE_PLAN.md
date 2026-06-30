@@ -1430,3 +1430,20 @@ pairs with the Pistol for a true gunslinger loadout.
   Versions bumped to v0.41.0 (+ menu subtitle/footer).
 
 ### Phase 41 COMPLETE — additive 10th weapon, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 42 — Coin pickup juice (autonomous build, v0.42.0)
+
+A tiny, pure-client feedback closer for the Phase-39 economy. Coins were earned
+silently; now each local frag pops a gold **"+N ⛁"** toast next to the existing
+"+10 XP" one (amber theme, +5 on a headshot / +3 otherwise — mirroring the
+faucet), so the crate currency has the same instant, visible-progression juice
+as XP. New `coin` ScorePopup theme + CSS; one line in the kill handler.
+
+### Status log
+- ✅ Phase 42 — Coin pickup juice. DONE (client + server tsc + client build green).
+  `ScorePopup` `coin` theme + `.score-pop-coin` CSS, `+N ⛁` toast in the local-kill
+  handler. Versions bumped to v0.42.0 (+ menu subtitle/footer).
+
+### Phase 42 COMPLETE — pure client, no protocol change, no new deps, solo + MP intact.

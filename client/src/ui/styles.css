@@ -479,6 +479,7 @@ body.kill-flash #app::after {
 .score-pop-xp   { color: #ffd23f; }
 .score-pop-heal { color: #36e08a; }
 .score-pop-buff { color: #ff7aa0; text-shadow: 0 0 8px rgba(255, 90, 130, 0.7), 0 1px 3px rgba(0,0,0,0.8); }
+.score-pop-coin { color: #ffb020; font-size: 15px; text-shadow: 0 0 7px rgba(255, 176, 32, 0.6), 0 1px 3px rgba(0,0,0,0.8); }
 @keyframes score-pop-rise {
   0%   { opacity: 0; transform: translateY(6px) scale(0.8); }
   18%  { opacity: 1; transform: translateY(0) scale(1.1); }

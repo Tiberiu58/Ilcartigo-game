@@ -141,6 +141,9 @@ const nameplates = new Nameplates(game);
 game.bus.on('kill', (e) => {
   if (game.isLocalPlayer(e.attackerId) && !game.isLocalPlayer(e.targetId)) {
     ScorePopup.pop('+10 XP', 'xp');
+    // Coins earned this frag (mirrors Game's faucet: +5 on a headshot, else +3)
+    // — gives the crate currency the same instant feedback as XP.
+    ScorePopup.pop(`+${e.isHeadshot ? 5 : 3} ⛁`, 'coin');
   }
 });
 
