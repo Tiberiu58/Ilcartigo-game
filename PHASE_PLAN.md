@@ -1397,3 +1397,106 @@ builds directly on Phase 39 — no protocol change.
   + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — daily free crate, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 41 — Mansion map overhaul for Heist (Owner vs Thief) (autonomous build, v0.41.0)
+
+The Heist mode shipped in v0.40 with a functional-but-plain manor. Phase 41 is a
+focused, serious pass on the **dedicated Mansion map** to make Thief-vs-Owner feel
+like a real, replayable, competitive minigame environment rather than a box house
+— richer exterior approach, a layered interior, multiple entrances, defensible
+high ground, atmosphere, and clear team identity. Pure-client, solo + self
+contained, **no protocol change**; the map stays fully separated from the arena
+Play / Play Online / Gun Game maps.
+
+**Map rebuild (`maps/MansionMap.ts`, rewritten):**
+- **Walled estate exterior (thief approach).** ~84 m grounds inside a solid
+  perimeter wall with a single 7 m **gate** (piers + arch) where the thief spawns.
+  A gravel **driveway + forecourt**, a stone **fountain** (walkable cover), staggered
+  **hedge lanes** flanking the drive, **trees** (trunk cover + canopy), **bushes**,
+  **planters**, **statues** and low garden walls give the thief cover-lined, choice
+  rich routes toward the house instead of one open lawn.
+- **Six entrances** so there's never a single funnel: front door (S, most
+  exposed, faces the driveway), back door (N flank), two **side doors** (E/W mid),
+  and two **garden French-window openings** on opposite corners (NW library / SE
+  kitchen) — diagonal flanks that reward scouting.
+- **Layered two-storey interior.** A two-storey open **grand hall** (owner spawn)
+  flanked by six ground-floor rooms — study, dining, library (W) and kitchen,
+  lounge, gallery (E). Two spine walls + per-wing cross-walls are wired so **every
+  room has at least two doorways** (into the hall and to a neighbour): full
+  circulation, no dead ends, multiple routes to any point. Furniture-like cover in
+  every room (tables, hearths, bookshelves, kitchen island/counters, sofas, beds,
+  display cases) plus four hall pillars.
+- **Defensible high ground.** A **balcony ring** over both wings (grand hall left
+  open to the roof), reached by **twin staircases**, with a **crouch-peek parapet**
+  over the front door and two upstairs **perch-rooms** (master bedroom / study) —
+  the Owner's signature defensive positions overlooking the hall and entrances,
+  without being overpowering (thieves have flanks + windows below).
+- **Reachable cellar vault (bug fix).** The old map sealed its cellar under a
+  single solid ground slab, so the stair-well could never actually descend into
+  it. The ground slab is now built as a **four-box frame that carves a hole**
+  beneath the study; the study floor doubles as the cellar ceiling except for a
+  stair opening, and thin treads descend into an enclosed stone **vault room**
+  (crates for cover, candle glow). The glowing vault objective (Heist mode) sits
+  in a clear back corner, off the stair column. `VAULT_POS` is now **exported**
+  from `MansionMap` and imported by `Heist.ts` so the objective and room can never
+  drift apart.
+- **Atmosphere + team identity.** Moon-lit gothic night (indigo sky, cold fog),
+  cold hemisphere + directional moon key against **warm interior point-lights**
+  (chandelier, hearths, room candles, gate lamps, porch, cellar) — kept to a
+  modest count for performance. Emissive warm/cold **window glass**. Coloured
+  **spawn pads** — teal at the thief gate, gold in the owner hall — for instant
+  readability.
+
+**Heist wiring:**
+- **Role-correct enemy spawns (`Game.syncBotState`).** The opposing-role bots now
+  start on the **correct side** of the mansion: player-as-Thief → owner-guard bots
+  spawn inside; player-as-Owner → thief bots spawn outside at the gate. Reuses the
+  existing TDM `homeSpawn` respawn path (scatter + solid-nudge), keyed off the
+  imported role-spawn constants so it's correct even before the map finishes
+  loading. (Previously the enemy respawned at generic arena waypoints, which read
+  as broken on the mansion.)
+- **Vault position synced** between `MansionMap` and `Heist.ts`; vault reach
+  widened slightly (2.6 m).
+
+**Menu:**
+- The visible playable menu is now trimmed to exactly **Play · Play Online · Gun
+  Game · Heist**. The archived modes (TDM / Onslaught / Duel / Practice / Aim Lab)
+  remain fully wired in the DOM + code but the **"▾ More Modes" drawer toggle is
+  hidden** — un-hide the one toggle button to bring them back. Nothing was deleted.
+
+**Verification:** client + server `tsc --noEmit` and client `npm run build` all
+green. A headless mock-World harness ran the real `buildMansion()` and asserted
+**all owner/thief/FFA spawns sit clear of solids**, the **six entrances are open**,
+the **cellar vault standpoint + approaches are reachable** (deepest-clear feet-Y
+descends to the cellar floor), and the balcony/stairs are walkable — catching and
+fixing several placement bugs during the pass (kitchen spawn inside the island, a
+counter blocking the SE window, a study spawn over the stair hole, the vault under
+the staircase, and balcony railings blocking the stair landings).
+
+### Status log
+- ✅ Phase 41 — Mansion overhaul. DONE (client + server tsc + client build green;
+  headless spawn/entrance/cellar/balcony clearance harness passed). Rewrote
+  `maps/MansionMap.ts` (walled estate + garden cover + 6 entrances + 2-storey
+  interior with full room circulation + balcony ring/perches + reachable carved
+  cellar vault + night atmosphere + team spawn pads). Exported `VAULT_POS`; synced
+  `modes/Heist.ts`. Added role-correct Heist enemy spawns in `Game.syncBotState`.
+  Hid the More-Modes drawer toggle (archived modes kept in code). Versions bumped
+  to v0.41.0 (+ menu subtitle/footer).
+
+### What should come next (Heist roadmap)
+- **Stealable loot + carry/extract loop.** Replace the touch-to-win vault with a
+  grabbable object the thief must carry back out the gate (drop-on-death), turning
+  the round into a two-way chase.
+- **Owner traps.** Placeable/trigger traps (alarms, tripwires, locked doors) as
+  the Owner's non-gunplay defensive layer (the mode's original hook).
+- **Smarter defender AI.** Bots still patrol the shared arena waypoints; give the
+  Heist roster mansion-aware patrol routes / vault-guarding behaviour so guards
+  hold the interior instead of drifting.
+- **Multi-thief / online Heist.** Team-based thieves + an authoritative server
+  path (needs mansion AABBs in `server/MapCollision.ts` + protocol support).
+- **Round timer + objective HUD polish**, alarm state, and camera/light cues when
+  the vault is breached.
+
+### Phase 41 COMPLETE — Mansion map overhaul + role-correct Heist spawns, menu trimmed to 4 modes, no protocol change, no new deps, solo + MP intact.

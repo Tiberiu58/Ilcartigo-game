@@ -44,7 +44,7 @@ import { COBALT_MAP } from '../maps/CobaltMap';
 import { OVERPASS_MAP } from '../maps/OverpassMap';
 import { FROSTLINE_MAP } from '../maps/FrostlineMap';
 import { FOUNDRY_MAP } from '../maps/FoundryMap';
-import { MANSION_MAP } from '../maps/MansionMap';
+import { MANSION_MAP, OWNER_SPAWN as MANSION_OWNER_SPAWN, THIEF_SPAWN as MANSION_THIEF_SPAWN } from '../maps/MansionMap';
 import type { GameMap, MapId } from '../maps/Map';
 import { AbilityRunner } from '../classes/AbilityRunner';
 import { CLASS_LIBRARY, type ClassId } from '../classes/types';
@@ -682,6 +682,17 @@ export class Game {
           b.setTeamColor(team === 0 ? TDM_BLUE : TDM_RED);
           b.homeSpawn = this.currentMap.meta.teamSpawns?.[team] ?? null;
           b.weapon.ownerTeam = team;
+        } else if (this.mode === 'heist' && this.heistSpawn) {
+          // Heist: the bots fill the role the player did NOT pick, so they must
+          // start on the correct side of the mansion. Player-as-Owner → the bots
+          // are thieves spawning outside at the gate; player-as-Thief → the bots
+          // are owner-guards spawning inside. (Constants used directly so this is
+          // correct even before the mansion map has finished loading.)
+          const playerIsOwner = this.heistSpawn.distanceTo(MANSION_OWNER_SPAWN) < 0.5;
+          b.team = 1;
+          b.setTeamColor(null);
+          b.homeSpawn = playerIsOwner ? MANSION_THIEF_SPAWN : MANSION_OWNER_SPAWN;
+          b.weapon.ownerTeam = undefined;
         } else {
           // FFA: restore the difficulty colour + enemy team, no friendly fire.
           b.team = 1;

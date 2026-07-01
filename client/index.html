@@ -311,7 +311,7 @@
         </div>
         <div class="menu-center">
           <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.40</p>
+          <p class="subtitle">Browser arena shooter · v0.41</p>
           <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
           <div id="menu-rank" class="menu-rank"></div>
           <div class="loadout">
@@ -400,9 +400,11 @@
             <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
             <button class="menu-btn heist" id="menu-heist">🏰 Heist — Owner vs Thief</button>
 
-            <!-- More Modes — collapsible drawer holding the archived modes so they
-                 don't crowd the menu but stay one click away. -->
-            <button class="menu-btn more-toggle" id="menu-more">▾ More Modes</button>
+            <!-- Archived modes — kept in the DOM (and fully wired in code) but
+                 hidden from the visible menu per the current design: only Play,
+                 Play Online, Gun Game and Heist are offered. Un-hide the toggle
+                 below to bring the drawer back. -->
+            <button class="menu-btn more-toggle hidden" id="menu-more">▾ More Modes</button>
             <div id="more-modes" class="more-modes hidden">
               <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
               <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
@@ -420,7 +422,7 @@
           </div>
         </div>
         <div class="menu-footer">
-          <div>v0.40.0 — 🏰 Heist (Owner vs Thief) · Mansion map · streamlined menu (More drawer) · Coins &amp; Crates · Procedural audio · 8 maps · 9 weapons</div>
+          <div>v0.41.0 — 🏰 Heist (Owner vs Thief) · rebuilt Mansion map (walled estate, 6 entrances, 2-storey manor, reachable cellar vault) · menu trimmed to 4 modes · Coins &amp; Crates · Procedural audio · 8 maps · 9 weapons</div>
           <div>
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
