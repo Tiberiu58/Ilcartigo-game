@@ -146,6 +146,13 @@ export class PlayerController {
     this.velocity.set(0, 0, 0);
   }
 
+  /** Face a given yaw (radians). yaw 0 looks toward -Z; +π looks toward +Z.
+   *  Used by Heist to orient role spawns (thief faces the mansion). */
+  setYaw(yaw: number) {
+    this.yaw = yaw;
+    this.camera.rotation.y = yaw;
+  }
+
   addHorizontalImpulse(direction: THREE.Vector3, magnitude: number) {
     this.velocity.x += direction.x * magnitude;
     this.velocity.z += direction.z * magnitude;

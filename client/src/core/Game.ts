@@ -631,9 +631,11 @@ export class Game {
     // Clear the killfeed — old entries from combat shouldn't carry over.
     document.getElementById('killfeed')?.replaceChildren();
 
-    // Swap the map: Practice uses the test map; Combat/Gun Game use the
-    // selected one. setMap calls respawnPlayer for us, so don't double-call.
-    const targetMapId: MapId = mode === 'practice' ? 'practice' : this.combatMapId;
+    // Swap the map: Practice uses the test map; Heist always uses the dedicated
+    // Mansion map; Combat/Gun Game use the selected one. setMap calls
+    // respawnPlayer for us, so don't double-call.
+    const targetMapId: MapId =
+      mode === 'practice' ? 'practice' : mode === 'heist' ? 'mansion' : this.combatMapId;
     if (this.currentMap.meta.id !== targetMapId) {
       this.setMap(targetMapId);
     } else {
@@ -682,6 +684,17 @@ export class Game {
           b.setTeamColor(team === 0 ? TDM_BLUE : TDM_RED);
           b.homeSpawn = this.currentMap.meta.teamSpawns?.[team] ?? null;
           b.weapon.ownerTeam = team;
+        } else if (this.mode === 'heist') {
+          // Heist: bots fill the OPPOSITE role to the local player and spawn on
+          // that side's anchor — owner-guards inside (navy) when the player is
+          // the thief, thief-intruders outside (crimson) when the player is the
+          // owner. Still team 1 (they hunt the player); the colour is a read.
+          const playerIsThief = this.heist?.side !== 'owner';
+          const anchors = this.currentMap.meta.teamSpawns;   // [owner, thief]
+          b.team = 1;
+          b.setTeamColor(playerIsThief ? TDM_BLUE : TDM_RED);
+          b.homeSpawn = anchors ? (playerIsThief ? anchors[0] : anchors[1]) : null;
+          b.weapon.ownerTeam = undefined;
         } else {
           // FFA: restore the difficulty colour + enemy team, no friendly fire.
           b.team = 1;
@@ -703,6 +716,13 @@ export class Game {
     // The local player's weapons get the BLUE team in TDM so allied fire passes
     // through teammates; FFA clears it (hit anyone but self).
     this.inventory.setOwnerTeam(tdm ? this.playerActor.team : undefined);
+  }
+
+  /** Public re-sync of the bot roster. Heist calls this after the side is
+   *  chosen so guards/intruders re-home to the correct mansion anchor (the
+   *  side isn't known yet when setMode runs). */
+  resyncBots() {
+    this.syncBotState();
   }
 
   // ─── Onslaught (wave survival) bot roster ─────────────────────────────────

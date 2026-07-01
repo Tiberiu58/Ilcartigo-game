@@ -975,6 +975,9 @@ function startHeist(side: HeistSide) {
     onEnd: (won, reason) => showHeistEnd(won, reason),
   };
   game.heist!.start(side);
+  // Now that the side is set + mansion is loaded, re-home the opposing bots
+  // (guards inside / intruders outside) and respawn them on the right anchor.
+  game.resyncBots();
 
   heistTicker.classList.remove('hidden');
   ggTicker.classList.add('hidden');

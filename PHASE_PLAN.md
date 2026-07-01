@@ -1397,3 +1397,70 @@ builds directly on Phase 39 — no protocol change.
   + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — daily free crate, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 41 — Heist Mansion overhaul (v0.41.0)
+
+The v0.40 Heist shipped a *skeleton* Mansion — a single front door, a few
+partition walls, and (as it turned out) a cellar that was unreachable because it
+sat under a single solid lawn slab. Phase 41 rebuilds `maps/MansionMap.ts` into a
+real, tactical, replayable Owner-vs-Thief environment while keeping the same
+low-poly flat-shaded box vocabulary and staying lean (~170 solids, ≤8 point
+lights). Pure-client, no protocol change; other modes/maps untouched.
+
+**Exterior approach (the thief's problem to solve):**
+- Walled grounds (92×92 m) with a south **front gate** (lamp-topped posts), a
+  gravel **driveway** + circular forecourt, and a stone porch apron.
+- A glowing **fountain** centrepiece, **lamp posts** lining the drive (emissive
+  lanterns — readability + atmosphere with no extra real lights), **hedges**
+  (waist-high vault-cover), **trees** (trunk cover + canopy), porch **statues**,
+  a back-garden **gazebo**, and side-garden crates hinting the west approach.
+
+**Mansion (the owner's turf):**
+- **Five entrances:** front door (S), kitchen **service door** (W), **terrace
+  door** (N), library **French doors** (E), and a **sunken cellar bulkhead** (a
+  thief-only stealth route straight down to the vault).
+- Ground floor is a **loop** of rooms — foyer → lounge → kitchen → gallery →
+  library → dining → foyer, plus the central hall — so there are **no dead
+  ends**. Full-height doorway gaps throughout; furniture (tables, sofas,
+  bookshelves, kitchen island, banquet table, display plinths) as cover.
+- A **two-storey grand hall** open to the roof, with a **balcony ring** (railed,
+  with stair gaps), **twin grand staircases**, upstairs master/guest rooms, and
+  an **exterior balcony** over the front door — an Owner sniper perch onto the
+  driveway.
+- A **genuinely reachable vault cellar.** The lawn is built as a *frame* around
+  the vault-room footprint (a single slab can't be carved and there's no
+  implicit ground plane), so the cellar below is open. Two descents: an interior
+  **stairwell** (a hole in the lounge floor) and the exterior **bulkhead** into a
+  sunken areaway. Wine-rack + crate cover around the glowing vault.
+
+**Lighting / atmosphere:** deep-indigo moonlit evening — a lifted hemisphere
+fill (the free readability workhorse) + a cool directional moon outside, vs warm
+chandelier / room / cellar point-light pools inside. Lit vs cold emissive window
+panes. The warm-interior / cool-exterior contrast is the map's signature.
+
+**Mode/spawn coherence (supporting the map):**
+- `PlayerController.setYaw` + `Heist.start` orient role spawns — the **thief
+  faces the mansion**, the **owner faces the front door** (the thief's way in).
+- `Game.setMode('heist')` now targets the **Mansion** map directly (no wasteful
+  combat-map build), and new **`Game.resyncBots()`** re-homes the opposing role
+  after the side is chosen: **owner-guards spawn inside (navy), thief-intruders
+  outside (crimson)** — verified the intruders navigate up the driveway, through
+  the front door, and engage the owner.
+- `VAULT_POSITION` is now exported from `MansionMap` as the single source of
+  truth (Heist mode imports it instead of a duplicated constant).
+
+### Status log
+- ✅ Phase 41 — Heist Mansion overhaul. DONE. Client tsc + server tsc + client
+  `npm run build` all green. Geometry headlessly verified (all role/FFA spawns
+  clear of solids, both cellar stairs + grand stairs walkable at ≤0.4 m risers,
+  vault reachable with floor beneath). Browser-smoke-tested both sides: mansion
+  renders, tickers/roles/objectives correct, role-facing spawns confirmed,
+  intruder bots engage — zero page errors (only blocked-AdSense / missing-asset
+  network noise). Rewrote `maps/MansionMap.ts`; `PlayerController.setYaw`;
+  `Heist` uses `VAULT_POSITION` + sets facing; `Game` heist map target +
+  `resyncBots` + heist bot homing. Versions bumped to v0.41.0 (+ menu
+  subtitle/footer).
+
+### Phase 41 COMPLETE — Heist Mansion overhaul, no protocol change, no new deps, solo + MP intact.
