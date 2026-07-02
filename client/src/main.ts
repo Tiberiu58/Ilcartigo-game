@@ -861,7 +861,8 @@ menuHeist.addEventListener('click', () => openHeistSelect());
 // the menu but stay one click away.
 menuMore.addEventListener('click', () => {
   const open = moreModes.classList.toggle('hidden') === false;
-  menuMore.textContent = open ? '▴ Fewer Modes' : '▾ More Modes';
+  menuMore.textContent = open ? 'Fewer Modes' : 'More Modes';
+  menuMore.classList.toggle('open', open);
   game.audio.play('ui_click');
 });
 menuTdm.addEventListener('click', () => startGame('tdm'));

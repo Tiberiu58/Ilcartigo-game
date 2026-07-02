@@ -4,6 +4,17 @@
   --panel: rgba(16, 20, 28, 0.92);
   --text: #e8ecf2;
   --muted: #8892a6;
+
+  /* Menu design tokens — defined globally so shared components (e.g. .menu-btn,
+     reused by the pause + results overlays) resolve them outside #main-menu. */
+  --m-line: rgba(255, 255, 255, 0.07);
+  --m-line-strong: rgba(255, 255, 255, 0.12);
+  --m-panel: rgba(255, 255, 255, 0.022);
+  --m-panel-hi: rgba(255, 255, 255, 0.05);
+  --m-accent: #f4c43a;
+  --m-accent-soft: rgba(244, 196, 58, 0.14);
+  --m-text: #eef1f6;
+  --m-muted: #808a9e;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -960,15 +971,40 @@ body.no-speedlines #speed-lines { display: none; }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-/* --- Main menu shell (Phase 2) ----------------------------------------- */
-
+/* --- Main menu (redesigned) ------------------------------------------------
+ *
+ * Editorial "command deck" layout: a masthead (wordmark + rank) spanning the
+ * top, then two panels — Loadout (what you tune) and Deploy (where you launch).
+ * Type is Space Grotesk (display) + Inter (UI) + JetBrains Mono (tags). No
+ * gradient wordmark, no emoji, restrained accent. Ad rails are preserved.
+ */
 #main-menu {
+  --m-line: rgba(255, 255, 255, 0.07);
+  --m-line-strong: rgba(255, 255, 255, 0.12);
+  --m-panel: rgba(255, 255, 255, 0.022);
+  --m-panel-hi: rgba(255, 255, 255, 0.05);
+  --m-accent: #f4c43a;
+  --m-accent-soft: rgba(244, 196, 58, 0.14);
+  --m-text: #eef1f6;
+  --m-muted: #808a9e;
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #0d0f14 0%, #1a2030 100%);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: var(--m-text);
+  /* Layered backdrop — a cool base wash, a faint amber key-light bleeding down
+     from the masthead, and a whisper-fine grid. Reads as crafted, not a flat
+     two-stop gradient. */
+  background-color: #090b10;
+  background-image:
+    radial-gradient(120% 80% at 50% -10%, rgba(244, 196, 58, 0.10), transparent 55%),
+    radial-gradient(100% 60% at 100% 0%, rgba(80, 120, 220, 0.08), transparent 60%),
+    linear-gradient(180deg, #0b0e14 0%, #090b10 45%, #07090d 100%),
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 44px 44px, 44px 44px;
   display: grid;
   grid-template-columns: 300px 1fr 280px;
-  grid-template-rows: 110px 1fr 60px;
+  grid-template-rows: 96px 1fr 52px;
   grid-template-areas:
     "topad topad topad"
     "side  center sidegap"
@@ -982,7 +1018,7 @@ body.no-speedlines #speed-lines { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--m-line);
 }
 .menu-sidebar {
   grid-area: side;
@@ -994,114 +1030,192 @@ body.no-speedlines #speed-lines { display: none; }
 .menu-center {
   grid-area: center;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* `safe center` keeps the content vertically centred when it fits, but pins
-   * it to the top (instead of clipping the overflow) when it's taller than the
-   * cell — so every loadout + button stays reachable via scroll on short
-   * windows. Plain `center` would hide the top rows in a scroll container. */
   justify-content: safe center;
+  align-items: flex-start;
   overflow-y: auto;
-  padding: 24px;
-  text-align: center;
-  /* Thin, unobtrusive scrollbar that matches the dark theme. */
+  padding: 40px 32px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(245, 212, 66, 0.4) transparent;
+  scrollbar-color: rgba(244, 196, 58, 0.35) transparent;
 }
 .menu-center::-webkit-scrollbar { width: 8px; }
 .menu-center::-webkit-scrollbar-thumb {
-  background: rgba(245, 212, 66, 0.35);
+  background: rgba(244, 196, 58, 0.3);
   border-radius: 4px;
 }
 .menu-center::-webkit-scrollbar-track { background: transparent; }
-.menu-center h1 {
-  font-size: 64px;
-  letter-spacing: 10px;
-  margin-bottom: 4px;
-  background: linear-gradient(90deg, #f5d442 0%, #ffb454 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+
+/* Shell — masthead spans both columns, Loadout + Deploy sit beneath it. */
+.menu-shell {
+  width: min(1000px, 100%);
+  margin: auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  grid-template-areas:
+    "brand brand"
+    "loadout deploy";
+  column-gap: 34px;
+  row-gap: 26px;
+  align-items: start;
 }
-.menu-center .subtitle {
-  color: var(--muted);
-  letter-spacing: 4px;
+
+/* ── Masthead ────────────────────────────────────────────────────────────── */
+.menu-brand {
+  grid-area: brand;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--m-line);
+}
+.brand-mark { text-align: left; }
+.brand-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font: 600 11px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 3.5px;
   text-transform: uppercase;
-  font-size: 12px;
-  margin-bottom: 36px;
+  color: var(--m-accent);
 }
+.brand-kicker::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  background: var(--m-accent);
+  box-shadow: 0 0 10px rgba(244, 196, 58, 0.6);
+}
+.menu-center h1,
+.brand-mark h1 {
+  margin: 10px 0 6px;
+  font: 700 58px/0.9 'Space Grotesk', 'Segoe UI', sans-serif;
+  letter-spacing: -1.5px;
+  color: #f6f8fc;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.6);
+}
+.brand-mark h1 { position: relative; }
+.menu-center .subtitle {
+  color: var(--m-muted);
+  letter-spacing: 0.3px;
+  text-transform: none;
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────────── */
+.menu-panel {
+  background: var(--m-panel);
+  border: 1px solid var(--m-line);
+  border-radius: 14px;
+  padding: 22px 22px 24px;
+  backdrop-filter: blur(2px);
+}
+.menu-loadout { grid-area: loadout; }
+.menu-deploy  { grid-area: deploy; }
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--m-line);
+}
+.panel-eyebrow {
+  font: 600 11px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 1px;
+  color: #0a0c10;
+  background: var(--m-accent);
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.panel-head h2 {
+  font: 600 16px/1 'Space Grotesk', 'Segoe UI', sans-serif;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--m-text);
+}
+
+/* ── Loadout controls ────────────────────────────────────────────────────── */
 .loadout {
-  margin-bottom: 28px;
-  text-align: center;
+  margin-bottom: 20px;
+  text-align: left;
 }
+.loadout:last-child { margin-bottom: 0; }
 .loadout-label {
-  font: 700 11px/1 'JetBrains Mono', Consolas, monospace;
-  letter-spacing: 4px;
-  color: var(--muted);
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 10.5px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--m-muted);
+  margin-bottom: 11px;
+}
+.loadout-label::before {
+  content: "";
+  width: 5px; height: 5px;
+  background: var(--m-accent);
+  transform: rotate(45deg);
 }
 .loadout-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  min-width: 380px;
 }
-.loadout-grid.map-grid {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-.loadout-grid.diff-grid {
-  grid-template-columns: 1fr 1fr 1fr;
-}
+.loadout-grid.map-grid { grid-template-columns: repeat(3, 1fr); }
+.loadout-grid.diff-grid { grid-template-columns: repeat(3, 1fr); }
+.loadout-grid.wpn-grid  { grid-template-columns: repeat(4, 1fr); }
 .loadout-btn {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 14px 8px;
-  font: 700 12px/1 'Segoe UI', sans-serif;
-  letter-spacing: 2px;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--m-text);
+  border: 1px solid var(--m-line);
+  padding: 12px 6px;
+  font: 600 11.5px/1 'Inter', 'Segoe UI', sans-serif;
+  letter-spacing: 0.6px;
+  border-radius: 7px;
   cursor: pointer;
-  text-transform: uppercase;
-  transition: all 0.12s;
+  transition: background 0.14s, border-color 0.14s, color 0.14s, transform 0.14s;
 }
 .loadout-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--m-line-strong);
+  background: var(--m-panel-hi);
+  color: #fff;
+  transform: translateY(-1px);
 }
 .loadout-btn.selected {
-  background: var(--accent);
-  color: #1a1408;
-  border-color: #b6961f;
+  background: var(--m-accent-soft);
+  border-color: rgba(244, 196, 58, 0.55);
+  color: #ffdf7a;
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 58, 0.18);
 }
 
-/* Weapon identity card — archetype label + normalized stat bars. */
+/* Weapon identity card. */
 .weapon-stats {
-  margin-top: 10px;
-  min-width: 380px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
-  padding: 12px 14px;
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--m-line);
+  border-radius: 9px;
+  padding: 13px 14px;
 }
 .weapon-stats .ws-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 11px;
 }
 .weapon-stats #ws-name {
-  font: 800 14px/1 'Segoe UI', sans-serif;
-  letter-spacing: 2px;
-  color: var(--text);
+  font: 600 13.5px/1 'Space Grotesk', 'Segoe UI', sans-serif;
+  letter-spacing: 0.4px;
+  color: var(--m-text);
   text-transform: uppercase;
 }
 .weapon-stats .ws-arch {
-  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
+  font: 600 9.5px/1 'JetBrains Mono', ui-monospace, monospace;
   letter-spacing: 1px;
-  color: var(--accent);
+  color: var(--m-accent);
   text-transform: uppercase;
 }
-.weapon-stats .ws-bars { display: flex; flex-direction: column; gap: 7px; }
+.weapon-stats .ws-bars { display: flex; flex-direction: column; gap: 8px; }
 .weapon-stats .ws-row {
   display: grid;
   grid-template-columns: 72px 1fr;
@@ -1109,14 +1223,15 @@ body.no-speedlines #speed-lines { display: none; }
   gap: 10px;
 }
 .weapon-stats .ws-row label {
-  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
-  letter-spacing: 1px;
-  color: var(--muted);
+  font: 500 9.5px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.6px;
+  color: var(--m-muted);
   text-align: left;
+  text-transform: uppercase;
 }
 .weapon-stats .ws-bar {
-  height: 7px;
-  background: rgba(255, 255, 255, 0.08);
+  height: 6px;
+  background: rgba(255, 255, 255, 0.07);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1124,121 +1239,179 @@ body.no-speedlines #speed-lines { display: none; }
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, #b6961f, var(--accent));
+  background: linear-gradient(90deg, #c79a24, var(--m-accent));
   border-radius: 4px;
   transition: width 0.22s ease-out;
 }
 .weapon-stats .ws-mastery {
-  margin-top: 11px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--m-line);
 }
 .weapon-stats .ws-mastery-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 6px;
-  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
-  letter-spacing: 1px;
-  color: var(--muted);
+  margin-bottom: 7px;
+  font: 500 9.5px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.6px;
+  color: var(--m-muted);
   text-transform: uppercase;
 }
-.weapon-stats .ws-mastery-head b { color: var(--text); }
-.weapon-stats .ws-mastery-next { color: var(--accent); }
+.weapon-stats .ws-mastery-head b { color: var(--m-text); }
+.weapon-stats .ws-mastery-next { color: var(--m-accent); }
 .weapon-stats .ws-mastery-bar i {
-  background: linear-gradient(90deg, #4a8f3a, #6ee04a);
+  background: linear-gradient(90deg, #3f8f4f, #66d06a);
 }
 
-/* Class selector — six color-coded cards in two rows. */
+/* Class selector — six colour-coded cards. */
 .class-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  min-width: 380px;
 }
 .class-btn {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-top: 2px solid var(--class-c, var(--accent));
-  padding: 10px 8px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--m-text);
+  border: 1px solid var(--m-line);
+  padding: 12px 8px 11px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.12s;
-  text-align: center;
-  font-family: 'Segoe UI', sans-serif;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: background 0.14s, border-color 0.14s, transform 0.14s;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+}
+.class-btn::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--class-c, var(--m-accent));
+  opacity: 0.75;
 }
 .class-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--m-panel-hi);
+  border-color: var(--m-line-strong);
   transform: translateY(-1px);
 }
 .class-btn .cb-name {
-  font: 700 13px/1 'Segoe UI', sans-serif;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--class-c, var(--text));
+  font: 700 12.5px/1 'Space Grotesk', 'Segoe UI', sans-serif;
+  letter-spacing: 0.3px;
+  color: var(--class-c, var(--m-text));
 }
 .class-btn .cb-ab {
-  font: 600 10px/1 'JetBrains Mono', Consolas, monospace;
-  color: var(--muted);
-  margin-top: 4px;
+  font: 500 10px/1 'JetBrains Mono', ui-monospace, monospace;
+  color: var(--m-muted);
+  margin-top: 5px;
+  letter-spacing: 0.4px;
 }
 .class-btn.selected {
-  background: rgba(255, 255, 255, 0.06);
-  border-top-width: 3px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--class-c, var(--m-accent)) 14%, transparent);
+  border-color: color-mix(in srgb, var(--class-c, var(--m-accent)) 55%, transparent);
 }
-.class-btn.selected .cb-ab { color: var(--class-c, var(--accent)); }
+.class-btn.selected::before { opacity: 1; box-shadow: 0 0 12px var(--class-c, var(--m-accent)); }
+.class-btn.selected .cb-ab { color: var(--class-c, var(--m-accent)); }
 
+/* ── Deploy column — mode launcher ───────────────────────────────────────── */
 .menu-buttons {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-width: 260px;
+  gap: 10px;
+}
+.mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .menu-btn {
-  background: var(--panel);
-  color: var(--text);
-  border: none;
-  padding: 14px 28px;
-  font: 700 14px/1 'Segoe UI', sans-serif;
-  letter-spacing: 4px;
-  border-radius: 6px;
+  --mode: var(--m-accent);
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--m-text);
+  border: 1px solid var(--m-line);
+  border-radius: 9px;
+  padding: 13px 16px;
+  font: 600 14px/1 'Inter', 'Segoe UI', sans-serif;
+  letter-spacing: 0.4px;
   cursor: pointer;
+  text-align: center;
+  transition: background 0.14s, border-color 0.14s, transform 0.12s, box-shadow 0.14s;
+}
+/* Two-line mode buttons (have an .mb-name) read as a left-aligned launcher row
+   with a coloured leading rule + a chevron that slides in on hover. */
+.menu-btn:has(.mb-name) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  padding-left: 18px;
+}
+.menu-btn:has(.mb-name)::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 10px; bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--mode);
+  opacity: 0.85;
+}
+.menu-btn:has(.mb-name)::after {
+  content: "›";
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--mode);
+  opacity: 0;
+  transition: opacity 0.14s, transform 0.14s;
+}
+.menu-btn:has(.mb-name):hover::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+.mb-name {
+  font: 700 14.5px/1 'Space Grotesk', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+}
+.mb-sub {
+  font: 500 10.5px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
-  border-left: 3px solid transparent;
-  transition: all 0.12s;
+  color: var(--m-muted);
 }
 .menu-btn:hover {
-  border-left-color: var(--accent);
-  transform: translateX(2px);
+  border-color: color-mix(in srgb, var(--mode) 60%, transparent);
+  background: color-mix(in srgb, var(--mode) 9%, rgba(255,255,255,0.03));
+  transform: translateY(-1px);
 }
+.menu-btn:active { transform: translateY(0); }
+
+/* Primary PLAY — the loudest element on the screen. */
 .menu-btn.primary {
-  background: var(--accent);
-  color: #1a1408;
-  border-left: 3px solid #b6961f;
+  background: linear-gradient(180deg, #ffd75a 0%, var(--m-accent) 100%);
+  color: #17130a;
+  border: 1px solid #d9a91f;
+  padding: 16px 18px;
+  box-shadow: 0 10px 30px -12px rgba(244, 196, 58, 0.7);
+  margin-bottom: 4px;
 }
-.menu-btn.primary:hover { transform: translateY(-1px) translateX(0); }
-.menu-btn.practice {
-  border-left: 3px solid #6cc6ff;
+.menu-btn.primary:has(.mb-name)::before { background: rgba(23,19,10,0.35); opacity: 1; }
+.menu-btn.primary:has(.mb-name)::after { color: #17130a; }
+.menu-btn.primary .mb-name { font-size: 18px; color: #17130a; }
+.menu-btn.primary .mb-sub { color: rgba(23, 19, 10, 0.68); }
+.menu-btn.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 36px -12px rgba(244, 196, 58, 0.85);
+  background: linear-gradient(180deg, #ffdf74 0%, #f8ca44 100%);
 }
-.menu-btn.practice:hover { border-left-color: #6cc6ff; color: #6cc6ff; }
-.menu-btn.online {
-  border-left: 3px solid #4ac8a8;
-}
-.menu-btn.online:hover { border-left-color: #4ac8a8; color: #4ac8a8; }
-.menu-btn.gungame {
-  border-left: 3px solid #ff8a3a;
-}
-.menu-btn.gungame:hover { border-left-color: #ff8a3a; color: #ff8a3a; }
-.menu-btn.tdm {
-  border-left: 3px solid #4a8cff;
-}
-.menu-btn.tdm:hover { border-left-color: #4a8cff; color: #6ca0ff; }
-.menu-btn.onslaught {
-  border-left: 3px solid #ff4a4a;
-}
-.menu-btn.onslaught:hover { border-left-color: #ff4a4a; color: #ff6a6a; }
+
+/* Mode accent hues — one source of truth, consumed via --mode above. */
+.menu-btn.online   { --mode: #46c8a4; }
+.menu-btn.gungame  { --mode: #ff8f42; }
+.menu-btn.tdm      { --mode: #5a8cff; }
+.menu-btn.onslaught{ --mode: #ff5a5a; }
 
 /* ── Team Deathmatch ticker (top-center HUD) ────────────────────────────── */
 #tdm-ticker {
@@ -1413,28 +1586,45 @@ body.no-speedlines #speed-lines { display: none; }
 .onslaught-card h2 { color: #ff5a5a; letter-spacing: 8px; }
 .onslaught-card .alr-score { color: #ff7a7a; }
 
-/* ── Duel (1v1 gauntlet) HUD ─────────────────────────────────────────────── */
-.menu-btn.duel { border-left: 3px solid #ffb454; }
-.menu-btn.duel:hover { border-left-color: #ffb454; color: #ffca7a; }
+/* Mode accent hues — consumed via --mode by the base .menu-btn rule. */
+.menu-btn.duel     { --mode: #ffb454; }
+.menu-btn.heist    { --mode: #a06bff; }
+.menu-btn.practice { --mode: #6cc6ff; }
+.menu-btn.aimlab   { --mode: #4ac8ff; }
 
-/* Heist (Owner vs Thief) — moody purple, set apart as the marquee new mode. */
-.menu-btn.heist { border-left: 3px solid #a06bff; }
-.menu-btn.heist:hover { border-left-color: #c39bff; color: #c39bff; }
-
-/* "More Modes" drawer toggle + the collapsible group of archived modes. */
+/* "More Modes" drawer toggle — a quiet, full-width divider button with a
+   chevron that flips when the drawer is open. */
 .menu-btn.more-toggle {
-  border-left: 3px solid #555c66;
-  color: var(--muted);
-  font-size: 13px;
+  --mode: #7a8494;
+  background: transparent;
+  border: 1px dashed var(--m-line-strong);
+  color: var(--m-muted);
+  font: 600 11.5px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 11px 16px;
 }
-.menu-btn.more-toggle:hover { border-left-color: #8a93a0; color: var(--text); }
+.menu-btn.more-toggle::after {
+  content: "▾";
+  margin-left: 8px;
+  font-size: 11px;
+  transition: transform 0.16s;
+  display: inline-block;
+}
+.menu-btn.more-toggle.open::after { transform: rotate(180deg); }
+.menu-btn.more-toggle:hover {
+  border-color: var(--m-muted);
+  color: var(--m-text);
+  background: rgba(255, 255, 255, 0.02);
+  transform: none;
+}
 .more-modes {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-left: 14px;            /* indent so it reads as a sub-group */
-  border-left: 1px dashed rgba(255,255,255,0.10);
-  margin: 2px 0 2px 6px;
+  padding-left: 12px;            /* indent so it reads as a sub-group */
+  border-left: 1px solid var(--m-line);
+  margin: 2px 0 2px 4px;
 }
 .more-modes.hidden { display: none; }
 
@@ -1578,14 +1768,22 @@ body.no-speedlines #speed-lines { display: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  font: 11px/1 'JetBrains Mono', Consolas, monospace;
-  color: var(--muted);
-  letter-spacing: 2px;
+  padding: 0 28px;
+  border-top: 1px solid var(--m-line);
+  font: 500 10.5px/1 'JetBrains Mono', ui-monospace, monospace;
+  color: var(--m-muted);
+  letter-spacing: 0.6px;
 }
-.menu-footer a { color: var(--muted); text-decoration: none; margin-left: 14px; }
-.menu-footer a:hover { color: var(--accent); }
+.menu-footer .mf-ver { opacity: 0.8; }
+.menu-footer .mf-links { display: flex; gap: 20px; }
+.menu-footer a {
+  color: var(--m-muted);
+  text-decoration: none;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.14s;
+}
+.menu-footer a:hover { color: var(--m-accent); }
 
 /* Ad placeholders — visible in dev, hidden via JS once approved AdSense
    tags are inserted. Sizes match standard AdSense slots so the layout
@@ -1899,11 +2097,7 @@ body.no-speedlines #speed-lines { display: none; }
 .pm-buttons .menu-btn { min-width: 240px; }
 
 /* --- Aim Lab (Target Rush) --------------------------------------------- */
-/* Menu button accent — distinct cyan to read as a "training" entry. */
-.menu-btn.aimlab {
-  border-left: 3px solid #4ac8ff;
-}
-.menu-btn.aimlab:hover { background: rgba(74, 200, 255, 0.12); }
+/* Aim Lab's menu accent is set with the other --mode hues near .menu-btn. */
 
 /* In-run HUD — top-center timer + live stats. */
 #aimlab-hud {
@@ -3043,8 +3237,46 @@ body.slowmo::after {
 }
 .daily-card .menu-btn { width: 100%; }
 .daily-card .menu-btn:disabled { opacity: 0.5; cursor: default; }
-.menu-btn.daily { border-left: 3px solid #ffd23f; }
-.menu-btn.daily:hover { border-left-color: #ffe27a; color: #ffe27a; }
+
+/* ── Utility chips (Daily / Crates / How to Play / Settings / About) ──────────
+ * Compact secondary row beneath the mode launcher. Quiet by default so they
+ * never compete with the mode buttons, with per-chip accent tints on hover. */
+.menu-utils {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--m-line);
+}
+.util-btn {
+  --chip: var(--m-muted);
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--m-muted);
+  border: 1px solid var(--m-line);
+  border-radius: 7px;
+  padding: 9px 11px;
+  font: 600 11px/1 'Inter', 'Segoe UI', sans-serif;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.util-btn:hover {
+  color: var(--chip);
+  border-color: color-mix(in srgb, var(--chip) 55%, transparent);
+  background: color-mix(in srgb, var(--chip) 10%, transparent);
+}
+.util-btn.daily  { --chip: #ffd23f; flex-basis: 100%; }
+.util-btn.crates { --chip: #ffae3a; flex-basis: 100%; }
+.util-btn .util-sep { opacity: 0.5; }
+.util-btn .util-coin { color: #ffcf5a; }
+#menu-coins { color: var(--m-text); font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* ── Loot crates ──────────────────────────────────────────────────────────── */
 #crates-overlay {
@@ -3169,14 +3401,23 @@ body.slowmo::after {
 .crate-progress { font-size: 11px; color: var(--muted); margin-bottom: 14px; letter-spacing: 0.5px; }
 .crates-card .menu-btn { width: 100%; }
 .crates-card .menu-btn:disabled { opacity: 0.5; cursor: default; }
-.menu-btn.crates { border-left: 3px solid #ffae3a; }
-.menu-btn.crates:hover { border-left-color: #ffc46a; color: #ffc46a; }
 .pm-coins { color: #ffd34a; font: 800 16px/1 'JetBrains Mono', Consolas, monospace; }
-.free-badge { color: #36e08a; font-weight: 800; animation: free-badge-pulse 1.4s ease-in-out infinite; }
+.free-badge {
+  color: #0c1109;
+  background: #36e08a;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border-radius: 4px;
+  animation: free-badge-pulse 1.4s ease-in-out infinite;
+}
+.util-btn.crates:hover .free-badge { color: #0c1109; }
 .free-badge.hidden { display: none; }
 @keyframes free-badge-pulse {
-  0%, 100% { opacity: 0.65; text-shadow: 0 0 4px rgba(54,224,138,0.4); }
-  50% { opacity: 1; text-shadow: 0 0 12px rgba(54,224,138,0.8); }
+  0%, 100% { box-shadow: 0 0 0 rgba(54,224,138,0.0); }
+  50% { box-shadow: 0 0 10px rgba(54,224,138,0.7); }
 }
 .menu-btn.free-crate {
   border-left: 3px solid #36e08a;
@@ -3240,24 +3481,25 @@ body.slowmo::after {
 #rank-badge .rb-glyph { grid-row: 1 / 3; }
 #rank-badge .rb-prog { grid-column: 1 / 3; }
 
-/* Menu rank badge — under the subtitle, centered, pill-shaped. */
+/* Menu rank badge — pinned to the right of the masthead. */
 .menu-rank {
   display: inline-grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
   align-items: center;
-  column-gap: 9px;
-  row-gap: 4px;
-  min-width: 150px;
-  margin: 0 auto 18px;
-  padding: 8px 16px;
+  column-gap: 11px;
+  row-gap: 6px;
+  min-width: 168px;
+  margin: 0;
+  padding: 11px 16px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  border: 1px solid var(--m-line);
+  border-radius: 12px;
 }
 .menu-rank:empty { display: none; }
-.menu-rank .rb-glyph { grid-row: 1 / 3; font-size: 24px; }
+.menu-rank .rb-glyph { grid-row: 1 / 3; font-size: 26px; }
 .menu-rank .rb-prog { grid-column: 1 / 3; }
+.menu-rank .rb-lvl { color: var(--m-text); }
 
 /* Level-up banner — center screen, above the announcer's vertical slot. */
 #levelup-banner {

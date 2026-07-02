@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ILCARTIGO — fast-paced browser arena shooter" />
     <title>ILCARTIGO</title>
+    <!-- Typography: Space Grotesk for the display wordmark + headings, Inter for
+         UI copy, JetBrains Mono for the technical kicker/label tags. Loaded with
+         preconnect so first paint of the menu doesn't flash the fallback stack. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/ui/styles.css" />
   </head>
   <body>
@@ -310,10 +319,23 @@
           <div class="ad-slot ad-300x600" id="ad-menu-side" data-ad-slot="menu-side"></div>
         </div>
         <div class="menu-center">
-          <h1>ILCARTIGO</h1>
-          <p class="subtitle">Browser arena shooter · v0.40</p>
-          <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
-          <div id="menu-rank" class="menu-rank"></div>
+         <div class="menu-shell">
+
+          <!-- Brand lockup — wordmark + tagline on the left, rank badge pinned
+               to the right so the header reads like a product masthead. -->
+          <header class="menu-brand">
+            <div class="brand-mark">
+              <span class="brand-kicker">Arena Combat</span>
+              <h1>ILCARTIGO</h1>
+              <p class="subtitle">Fast-paced browser FPS</p>
+            </div>
+            <!-- Rank badge — level + tier. Synced by ProgressionFX.ts. -->
+            <div id="menu-rank" class="menu-rank"></div>
+          </header>
+
+          <!-- Loadout column — everything you tune before a match. -->
+          <section class="menu-panel menu-loadout" aria-label="Loadout">
+            <div class="panel-head"><span class="panel-eyebrow">01</span><h2>Loadout</h2></div>
           <div class="loadout">
             <div class="loadout-label">Class</div>
             <div class="class-grid">
@@ -358,7 +380,7 @@
           </div>
           <div class="loadout">
             <div class="loadout-label">Primary Weapon</div>
-            <div class="loadout-grid">
+            <div class="loadout-grid wpn-grid">
               <button class="loadout-btn selected" data-weapon="ar">AR</button>
               <button class="loadout-btn" data-weapon="smg">SMG</button>
               <button class="loadout-btn" data-weapon="marksman">Marksman</button>
@@ -393,35 +415,68 @@
               </div>
             </div>
           </div>
+          </section>
+
+          <!-- Deploy column — the mode launcher. Primary action first, then the
+               alternate modes, a drawer for the deep cuts, and utility chips. -->
+          <section class="menu-panel menu-deploy" aria-label="Deploy">
+            <div class="panel-head"><span class="panel-eyebrow">02</span><h2>Deploy</h2></div>
           <div class="menu-buttons">
-            <!-- Primary modes — always shown. -->
-            <button class="menu-btn primary" id="menu-play">▸ Play (vs Bots)</button>
-            <button class="menu-btn online" id="menu-online">⌬ Play Online (FFA)</button>
-            <button class="menu-btn gungame" id="menu-gungame">🔫 Gun Game (vs Bots)</button>
-            <button class="menu-btn heist" id="menu-heist">🏰 Heist — Owner vs Thief</button>
+            <!-- Primary action — always the loudest thing on the screen. -->
+            <button class="menu-btn primary" id="menu-play">
+              <span class="mb-name">Play</span><span class="mb-sub">Single-player vs Bots</span>
+            </button>
+
+            <!-- Alternate modes — always shown. -->
+            <div class="mode-list">
+              <button class="menu-btn online" id="menu-online">
+                <span class="mb-name">Play Online</span><span class="mb-sub">Free-for-all</span>
+              </button>
+              <button class="menu-btn gungame" id="menu-gungame">
+                <span class="mb-name">Gun Game</span><span class="mb-sub">vs Bots</span>
+              </button>
+              <button class="menu-btn heist" id="menu-heist">
+                <span class="mb-name">Heist</span><span class="mb-sub">Owner vs Thief</span>
+              </button>
+            </div>
 
             <!-- More Modes — collapsible drawer holding the archived modes so they
                  don't crowd the menu but stay one click away. -->
-            <button class="menu-btn more-toggle" id="menu-more">▾ More Modes</button>
+            <button class="menu-btn more-toggle" id="menu-more">More Modes</button>
             <div id="more-modes" class="more-modes hidden">
-              <button class="menu-btn tdm" id="menu-tdm">⚔ Team Deathmatch (vs Bots)</button>
-              <button class="menu-btn onslaught" id="menu-onslaught">☠ Onslaught (Survival)</button>
-              <button class="menu-btn duel" id="menu-duel">🎯 Duel (1v1 Gauntlet)</button>
-              <button class="menu-btn practice" id="menu-practice">⚙ Practice Range</button>
-              <button class="menu-btn aimlab" id="menu-aimlab">✦ Aim Lab (Target Rush)</button>
+              <button class="menu-btn tdm" id="menu-tdm">
+                <span class="mb-name">Team Deathmatch</span><span class="mb-sub">vs Bots</span>
+              </button>
+              <button class="menu-btn onslaught" id="menu-onslaught">
+                <span class="mb-name">Onslaught</span><span class="mb-sub">Survival</span>
+              </button>
+              <button class="menu-btn duel" id="menu-duel">
+                <span class="mb-name">Duel</span><span class="mb-sub">1v1 Gauntlet</span>
+              </button>
+              <button class="menu-btn practice" id="menu-practice">
+                <span class="mb-name">Practice Range</span><span class="mb-sub">Warm up</span>
+              </button>
+              <button class="menu-btn aimlab" id="menu-aimlab">
+                <span class="mb-name">Aim Lab</span><span class="mb-sub">Target Rush</span>
+              </button>
             </div>
 
-            <!-- Economy + utilities — kept in the main menu. -->
-            <button class="menu-btn daily" id="menu-daily">🎁 Daily Reward</button>
-            <button class="menu-btn crates" id="menu-crates">📦 Crates · <span id="menu-coins">0</span> ⛁<span id="menu-crate-free" class="free-badge hidden"> · FREE 🎁</span></button>
-            <button class="menu-btn" id="menu-howto">How to Play</button>
-            <button class="menu-btn" id="menu-settings">Settings</button>
-            <button class="menu-btn" id="menu-about">About</button>
+            <!-- Economy + utilities — kept in the main menu as compact chips. -->
+            <div class="menu-utils">
+              <button class="util-btn daily" id="menu-daily">Daily Reward</button>
+              <button class="util-btn crates" id="menu-crates">Crates<span class="util-sep">·</span><span id="menu-coins">0</span><span class="util-coin">⛁</span><span id="menu-crate-free" class="free-badge hidden">Free</span></button>
+              <button class="util-btn" id="menu-howto">How to Play</button>
+              <button class="util-btn" id="menu-settings">Settings</button>
+              <button class="util-btn" id="menu-about">About</button>
+            </div>
           </div>
+          </section>
+
+         </div>
         </div>
         <div class="menu-footer">
-          <div>v0.40.0 — 🏰 Heist (Owner vs Thief) · Mansion map · streamlined menu (More drawer) · Coins &amp; Crates · Procedural audio · 8 maps · 9 weapons</div>
-          <div>
+          <div class="mf-ver">v0.40.0 · Heist · Mansion map · Coins &amp; Crates · 8 maps · 9 weapons</div>
+          <div class="mf-links">
             <a href="#" data-page="privacy">Privacy</a>
             <a href="#" data-page="terms">Terms</a>
             <a href="#" data-page="about">About</a>
