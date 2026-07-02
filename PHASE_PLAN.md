@@ -1397,3 +1397,86 @@ builds directly on Phase 39 — no protocol change.
   + CSS. Versions bumped to v0.40.0 (+ menu subtitle/footer).
 
 ### Phase 40 COMPLETE — daily free crate, no protocol change, no new deps, solo + MP intact.
+
+---
+
+## Phase 41 — Mansion map overhaul for Thief vs Owner (autonomous build, v0.41.0)
+
+The Heist mode (Thief vs Owner) shipped in v0.40 on a "simple box house". This
+round rebuilds `maps/MansionMap.ts` from scratch into a large, atmospheric,
+tactical estate that makes the minigame feel *special* versus the arena modes —
+and, critically, fixes a latent bug that made the objective unreachable. Pure
+client, no protocol change; the mansion stays isolated from Play / Play Online /
+Gun Game (it only loads for Heist).
+
+**The reachability bug (headline fix).** The old map laid one giant collidable
+ground slab (top at y=0) across the *entire* grounds — including under the house
+— so the cellar (y≈−3) and its vault objective sat *inside* solid ground and
+could never be reached. The Thief literally could not win. The new ground plane
+is tiled as four strips that leave a **hole under the kitchen**, so the cellar
+staircase actually descends. Verified with a headless walk-sim: gate → front
+door → hall → kitchen → down the stairwell → cellar → **vault: WALKABLE**.
+
+**What the new mansion has (all box-vocabulary, ~166 solids, chunk size flat):**
+- **Exterior approach (Thief side).** 84×84 fenced grounds with a main south
+  gate (+ lanterns) and a west service gate; a gravel **driveway** flanked by
+  clipped **hedges** (approach cover) leading to a **columned portico**; a
+  cold-glowing **fountain** that splits the approach; scattered **trees**,
+  **statues**, benches, and **lamp posts** with warm light pools. A green
+  emissive **Thief spawn pad** sits at the gate.
+- **Four ground entrances + two windows.** Front doors (S, most exposed —
+  balcony overwatch), **east French doors** (garden side → dining), **west
+  servant door** (→ lounge), **north back door** (flank → grand hall from
+  behind), plus two **1.5 m crouch-through window openings** flanking the front
+  door (standing is blocked, crouch passes — a stealth entry into library /
+  dining). Verified crouch-through both sides.
+- **9-room interior (Owner side).** A 3×3 grid off a central spine: West wing
+  (library / lounge / kitchen-with-cellar-stair), Centre (foyer with entry
+  columns → two-storey **grand hall** with fireplace + grand staircase),
+  East wing (dining / study / gallery). Every partition leaves a full-height
+  **doorway gap**; rooms interconnect so there are alternate routes and no
+  pointless dead ends. Per-room **furniture cover** (bookshelves, sofas,
+  banquet table, counters, gallery pedestals) and per-room **chandeliers**.
+- **Upper floor.** Second-floor slabs over both wings + a **balcony ring** with
+  waist-high railings around the open grand-hall void, reached by the grand
+  staircase (sub-step treads) to a north landing; an upstairs **master suite**
+  gives the Owner a perch overlooking the entrance kill-zone.
+- **Cellar + vault.** Enclosed stone cellar under the NW kitchen (crates, wine
+  rack, candle) holding the glowing **vault** objective. `VAULT_POS` is now
+  exported from the map and consumed by `Heist.ts` (single source of truth),
+  replacing the old hard-coded (unreachable) position.
+- **Atmosphere.** Deep-night indigo sky + fog, cold moon key light, warm
+  emissive lit windows so the manor reads as inhabited, hearth + chandelier
+  point lights, and clearly readable **team spawn zones** (blue Owner pad in the
+  grand hall, green Thief pad at the gate).
+
+**Engineering.** Modular builders (`buildGardens` / `buildHouseShell` /
+`buildGroundFloor` / `buildUpperFloor` / `buildCellar` / `buildFurniture` /
+`buildInteriorLights` / `buildSpawnZones`) over small primitives (`solid` /
+`wallX` / `wallZ` with door-gap + window subtraction, `column` / `hedge` /
+`tree` / `fountain` / `lampPost`). Spawns + role spawns + FFA fallbacks all
+re-verified clear of solids headlessly. `Heist.ts` updated to import `VAULT_POS`
+and use a 3.0 m reach.
+
+### Status log
+- ✅ Phase 41 — Mansion overhaul. DONE (client + server tsc + client build green;
+  app chunk ~341 KB / 102 KB gzip, essentially unchanged — pure geometry).
+  Headless verification: all role/FFA spawns clear, all four entrances +
+  crouch-through windows + full Thief route (gate→…→cellar vault) + grand stair
+  →balcony→suite all WALKABLE; cellar-reachability bug fixed. Offscreen Chromium
+  renders confirmed the exterior atmosphere (glowing windows, portico, fountain,
+  lamps, hedges, spawn pads) and a readable 9-room interior floorplan. Versions
+  bumped to v0.41.0 (+ menu subtitle/footer). No protocol change; Play / Play
+  Online / Gun Game / movement / shooting / UI all untouched.
+
+### What should come next (Heist)
+- **Owner-role bot pathing to defend the vault** (bots currently spawn at FFA
+  points and hunt; a patrol/guard behaviour around the cellar approach would
+  sharpen the defence).
+- **Stealable loot + extraction:** make the Thief grab the vault loot and carry
+  it back OUT (to the gate) rather than win on touch — adds a risk/tension arc.
+- **Traps** for the Owner (tripwires / alarms) as the next defensive layer.
+- **Multi-thief / MP Heist** (needs mansion AABBs in `server/MapCollision.ts` +
+  role sync in Protocol) once the solo loop is tuned.
+
+### Phase 41 COMPLETE — rebuilt Mansion map, reachable vault, no protocol change, solo + MP intact.

@@ -20,13 +20,12 @@
 
 import * as THREE from 'three';
 import type { Game } from '../core/Game';
-import { OWNER_SPAWN, THIEF_SPAWN } from '../maps/MansionMap';
+import { OWNER_SPAWN, THIEF_SPAWN, VAULT_POS } from '../maps/MansionMap';
 
 export type HeistSide = 'thief' | 'owner';
 
-/** Where the vault sits — in the cellar (matches MansionMap's cellar room). */
-const VAULT_POS = new THREE.Vector3(-11, -2.9, -9);
-const VAULT_REACH = 2.4;       // metres: how close the thief must get
+/** How close (metres, on the cellar plane) the thief must get to the vault. */
+const VAULT_REACH = 3.0;
 
 export interface HeistHooks {
   /** Update the HUD ticker (role + objective text). */
